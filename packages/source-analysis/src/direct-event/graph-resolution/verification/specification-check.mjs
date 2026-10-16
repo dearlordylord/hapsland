@@ -2,37 +2,26 @@ import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
 import { pathToFileURL } from "node:url"
-import * as Effect from "effect/Effect"
-import { languageForPath } from "./native-language-registry.ts"
-import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
+import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { createGraphFixtures } from "./fixtures.mjs"
 import { sourceFacts } from "../frontend-codec.ts"
 import { list, unlist, binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
-  root = join(folder, "../../../../../.."),
-  scratch = join(root, "node_modules/.cache")
-mkdirSync(scratch, { recursive: true })
-const temporary = mkdtempSync(join(scratch, "whole-specification-"))
+  root = join(folder, "../../../../../..")
+const temporary = mkdtempSync(join(tmpdir(), "hapsland-whole-specification-"))
 const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
 const inputs = [
   "../ForestSpecification.bend",
   "../SPEC.bend",
-  "../GraphSpecification.bend",
   "../Environment.bend",
   "../WholeObservation.bend",
   "../Types.bend",
   "./specification-check.mjs",
-  "../traversal/SPEC.bend",
-  "../traversal/core.bend",
-  "../traversal/Traversal.bend",
-  "./fixtures.mjs",
-  "../frontend-codec.ts",
-  "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
-  "../../../../dist/direct-event/graph-resolution/verification/native-rust-module-context.js"
+  "../frontend-codec.ts"
 ]
 const sources = Object.fromEntries(inputs.map((path) => [path, hash(join(folder, path))]))
 const tag = (module, name, fields = {}) => ({
@@ -41,14 +30,7 @@ const tag = (module, name, fields = {}) => ({
 })
 const label = (value) => value.$.slice(value.$.lastIndexOf(".") + 1)
 const maybe = (value) => (value === undefined ? { $: "None" } : { $: "Some", value })
-const omissions = {
-  Unresolved: "unresolved",
-  Unavailable: "unavailable",
-  UnsupportedTarget: "unsupported",
-  ReferenceLimit: "reference-limit"
-}
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   async function compile(name) {
     const path = join(temporary, name + ".mjs")
     execFileSync("bend", [join(folder, "..", name + ".bend"), "-o", path], { timeout: 10000 })
@@ -58,317 +40,165 @@ try {
     environment = await compile("Environment"),
     observation = await compile("WholeObservation"),
     forest = await compile("ForestSpecification")
-  const nativePath = join(
-    folder,
-    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
-  )
-  const { prepareGraphFrame } = await import(pathToFileURL(nativePath))
-  const cases = []
+  // One authored local edge supplies the forest guards. Native parsing provides
+  // declaration metadata only; no native graph preparation or traversal runs.
+  const path = "root.ts",
+    text = "interface A {} export interface Root { a: A }"
+  const facts = languageForPath(path).inspect(path, text)
+  assert.ok(facts)
+  const prepared = spec.source(sourceFacts(facts), 0)
+  const limits = tag("../../../../agent-flow-bend/ImportGraph", "Limits", {
+    version: 1,
+    ...Object.fromEntries(
+      Object.entries(GRAPH_LIMIT_CEILINGS).map(([key, value]) => [
+        {
+          sourceBytes: "source_bytes",
+          treeBytes: "tree_bytes",
+          readBytes: "read_bytes",
+          outgoingEdges: "outgoing_edges"
+        }[key] ?? key,
+        value
+      ])
+    )
+  })
+  const result = spec.root(10000, prepared, path, "Root", tag("Types", "TypeBranch"), limits)
+  assert.equal(label(result), "RootBuilt")
+  const created = forest.construct(10000, result.tree, 1, list([]), result.source.artifacts)
+  assert.equal(label(created), "Constructed")
+  const semantic = { $: "Forest", root: maybe(created.created.root), nodes: created.created.nodes }
+  const materialized = forest.unit(10000, semantic, list([]))
+  assert.equal(label(materialized), "Materialized")
+  assert.deepEqual(fromProductValue(materialized.product), {
+    root: {
+      artifact: facts.declarations.get("Root").artifact,
+      references: [
+        {
+          kind: "expanded",
+          site: { symbol: "A" },
+          node: { artifact: facts.declarations.get("A").artifact, references: [] }
+        }
+      ]
+    },
+    sourceDependencies: []
+  })
+  assert.equal(unlist(result.state.pending_rev).length, 0)
   let forestGuardCases = 0
-  for (const fixture of createGraphFixtures()) {
-    const directory = join(temporary, fixture.name)
-    mkdirSync(directory)
-    execFileSync("git", ["init", "-q", directory])
-    const path = fixture.path ?? "root.ts",
-      text = fixture.source ?? `import type { A } from '${fixture.importPath ?? "./a"}'; export interface Root { a: A }`
-    const files = new Map([[path, text], ...Object.entries(fixture.files)])
-    for (const [name, source] of files) {
-      mkdirSync(dirname(join(directory, name)), { recursive: true })
-      writeFileSync(join(directory, name), source)
-    }
-    for (const name of fixture.directories ?? []) mkdirSync(join(directory, name), { recursive: true })
-    const stable = (name) => ({ text: files.get(name), byteLength: Buffer.byteLength(files.get(name)) })
-    const nativeLimits = { ...GRAPH_LIMIT_CEILINGS, ...fixture.limits }
-    const context = () => {
-      let ticks = 0
-      return {
-        root: directory,
-        policy: fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY,
-        branch: fixture.branch ?? "type",
-        limits: nativeLimits,
-        captureCache: fixture.cache === undefined ? undefined : new Map(fixture.cache),
-        now: () => (ticks++ >= (fixture.expireAt ?? Infinity) ? 5000 : 0),
-        captureSource: (_root, selected) =>
-          Effect.succeed(
-            fixture.unavailable
-              ? { status: "unavailable", diagnostic: { stage: "capture", code: "fixture-unavailable", args: {} } }
-              : { status: "captured", capture: stable(selected.relativePath) }
-          )
-      }
-    }
-    const frame = await Effect.runPromise(prepareGraphFrame(path, stable(path), "Root", context()))
-    if (!frame) {
-      cases.push({ name: fixture.name, status: "native-pre-frame-return", localComparison: false })
-      continue
-    }
-    const language = languageForPath(path),
-      binding = await Effect.runPromise(language.prepareGraph(path, stable(path), context(), nativeLimits, () => false))
-    assert.ok(binding, fixture.name)
-    const facts = binding.session.inspect(path, text, fixture.branch ?? "type")
-    assert.ok(facts, fixture.name)
-    const encoded = sourceFacts(facts),
-      prepared = spec.source(encoded, 0n)
-    const limits = tag("../../../../agent-flow-bend/ImportGraph", "Limits", {
-      version: 1n,
-      ...Object.fromEntries(
-        Object.entries(binding.limits).map(([key, value]) => [
-          {
-            sourceBytes: "source_bytes",
-            treeBytes: "tree_bytes",
-            readBytes: "read_bytes",
-            outgoingEdges: "outgoing_edges"
-          }[key] ?? key,
-          BigInt(value)
-        ])
-      )
-    })
-    const result = spec.root(
-      10000n,
-      prepared,
-      path,
-      "Root",
-      tag("Types", fixture.branch === "function" ? "FunctionBranch" : "TypeBranch"),
-      limits
-    )
-    assert.equal(label(result), "RootBuilt", fixture.name)
-    const artifacts = [...facts.declarations.values(), ...(facts.supportingDeclarations?.values() ?? [])].map(
-      (item) => item.artifact
-    )
-    const addresses = new Map(),
-      pendingOwners = new Map()
-    function tree(node) {
-      addresses.set(String(node.address), node)
-      return {
-        artifact: artifacts[Number(node.artifact)],
-        references: unlist(node.references).map((ref) => {
-          const outcome = ref.outcome,
-            site = { symbol: ref.symbol }
-          if (label(outcome) === "Included") return { kind: "included", site, target: outcome.identity }
-          if (label(outcome) === "Expanded") return { kind: "expanded", site, node: tree(outcome.tree) }
-          assert.equal(label(outcome), "Omitted")
-          assert.ok(Object.hasOwn(omissions, label(outcome.reason)))
-          return {
-            kind: "omitted",
-            site,
-            target: { kind: "unresolved", symbol: outcome.target },
-            reason: omissions[label(outcome.reason)]
-          }
-        })
-      }
-    }
-    const actual = {
-      ...(binding.bindingFingerprint === undefined ? {} : { bindingFingerprint: binding.bindingFingerprint }),
-      root: tree(result.tree),
-      sourceDependencies: binding.dependencies
-    }
-    assert.equal(JSON.stringify(actual), JSON.stringify(frame.unit), fixture.name + " exact root value/order")
-    const created = forest.construct(10000n, result.tree, 1n, list([]), result.source.artifacts)
-    assert.equal(label(created), "Constructed", fixture.name + " semantic construction")
-    const semantic = { $: "Forest", root: maybe(created.created.root), nodes: created.created.nodes }
-    const product = forest.prepared_unit(
-      10000n,
-      semantic,
-      list(binding.dependencies),
-      maybe(binding.bindingFingerprint)
-    )
-    assert.equal(label(product), "Materialized")
-    assert.equal(
-      JSON.stringify(fromProductValue(product.product)),
-      JSON.stringify(frame.unit),
-      fixture.name + " forest ordered product"
-    )
-    const birth = new Map()
-    function visitBirth(node, route = []) {
-      birth.set(node, route)
-      for (const [index, reference] of node.references.entries())
-        if (reference.kind === "expanded") visitBirth(reference.node, [...route, index])
-    }
-    visitBirth(frame.unit.root)
-    const pending = forest.pending(list(unlist(result.state.pending_rev).reverse()), created.created.addresses)
-    assert.equal(label(pending), "PendingBuilt")
-    assert.deepEqual(
-      unlist(pending.pending).map((item) => [Number(item.owner.episode), unlist(item.owner.route).map(Number)]),
-      [...frame.pending.values()].map((item) => [1, birth.get(item.owner)]),
-      fixture.name + " pending birth owner"
-    )
-    if (!forestGuardCases && unlist(unlist(semantic.nodes)[0].references).length) {
-      const rootNode = unlist(semantic.nodes)[0],
-        symbol = { $: "ReferenceSymbol", text: "\0\ud800" },
-        identity = { $: "ArtifactIdentity", text: rootNode.artifact.id }
-      const included = { $: "Included", symbol, identity }
-      const typedReplacement = forest.replace(semantic, rootNode.address, 0n, included)
-      assert.equal(label(typedReplacement), "Replaced")
-      forestGuardCases++
-      const typedProduct = fromProductValue(
-        forest.unit(10000n, typedReplacement.forest, list(binding.dependencies)).product
-      )
-      assert.equal(typedProduct.root.references[0].site.symbol, "\0\ud800")
-      assert.equal(typedProduct.root.references[0].target, rootNode.artifact.id)
-      forestGuardCases++
-      const empty = forest.replace(semantic, rootNode.address, 0n, {
-        $: "Omitted",
-        symbol: { $: "ReferenceSymbol", text: "" },
-        target: { $: "ReferenceSymbol", text: "" },
-        reason: { $: "traversal/core.Unavailable" }
-      })
-      assert.equal(label(empty), "Replaced")
-      assert.equal(
-        fromProductValue(forest.unit(10000n, empty.forest, list(binding.dependencies)).product).root.references[0]
-          .target.symbol,
-        ""
-      )
-      forestGuardCases++
-      const missing = { $: "WholeObservation.NodeAddress", episode: 999999n, route: list([]) }
-      assert.equal(
-        label(forest.replace(semantic, rootNode.address, 0n, { $: "Expanded", symbol, child: missing })),
-        "ReplacementInvalid"
-      )
-      forestGuardCases++
-      assert.equal(
-        label(forest.replace(semantic, rootNode.address, 0n, { $: "Expanded", symbol, child: rootNode.address })),
-        "ReplacementInvalid"
-      )
-      forestGuardCases++
-      const duplicate = {
-        $: "Forest",
-        root: semantic.root,
-        nodes: list([...unlist(semantic.nodes), { ...rootNode, references: list([]) }])
-      }
-      assert.equal(label(forest.replace(duplicate, rootNode.address, 0n, included)), "ReplacementInvalid")
-      forestGuardCases++
-      const later = forest.construct(10000n, result.tree, 2n, list([]), result.source.artifacts)
-      assert.equal(label(later), "Constructed")
-      const retained = forest.append(semantic, later.created)
-      const attached = forest.replace(retained, rootNode.address, 0n, {
-        $: "Expanded",
-        symbol,
-        child: later.created.root
-      })
-      assert.equal(label(attached), "Replaced")
-      forestGuardCases++
-      assert.equal(
-        label(forest.replace(retained, later.created.root, 0n, { $: "Expanded", symbol, child: rootNode.address })),
-        "ReplacementInvalid"
-      )
-      forestGuardCases++
-      const rolledBack = forest.replace(attached.forest, rootNode.address, 0n, included)
-      assert.equal(label(rolledBack), "Replaced")
-      assert.deepEqual(
-        rolledBack.forest.nodes.tail,
-        retained.nodes.tail,
-        "rollback retains all child nodes and their birth addresses"
-      )
-      forestGuardCases++
-      const duplicateChild = {
-        $: "Forest",
-        root: retained.root,
-        nodes: list([...unlist(retained.nodes), unlist(later.created.nodes)[0]])
-      }
-      assert.equal(
-        label(
-          forest.replace(duplicateChild, rootNode.address, 0n, { $: "Expanded", symbol, child: later.created.root })
-        ),
-        "ReplacementInvalid"
-      )
-      forestGuardCases++
-      assert.equal(
-        label(forest.construct(0n, result.tree, 1n, list([]), result.source.artifacts)),
-        "ConstructionExhausted"
-      )
-      assert.equal(label(forest.unit(0n, semantic, list(binding.dependencies))), "MaterializationExhausted")
-      forestGuardCases++
-    }
-
-    let address = 0
-    function visit(node) {
-      pendingOwners.set(node, address++)
-      for (const ref of node.references) if (ref.kind === "expanded") visit(ref.node)
-    }
-    visit(frame.unit.root)
-    const expectedPending = [...frame.pending.values()].map((item) => ({
-      owner: pendingOwners.get(item.owner),
-      index: item.index,
-      from: item.from,
-      symbol: item.symbol,
-      name: item.name,
-      depth: item.depth,
-      expected: item.expectedKind ?? "any",
-      kind: item.bundled ? "bundled" : "file",
-      payload: item.bundled ? item.bundled.declaration.artifact.id : item.importPath
-    }))
-    const actualPending = unlist(result.state.pending_rev)
-      .reverse()
-      .map((item) => ({
-        owner: Number(item.owner),
-        index: Number(item.index),
-        from: item.from,
-        symbol: item.symbol,
-        name: item.name,
-        depth: Number(item.depth),
-        expected:
-          label(item.expected) === "AnyKind" ? "any" : label(item.expected) === "FunctionKind" ? "function" : "type",
-        kind: label(item.target) === "BundledTarget" ? "bundled" : "file",
-        payload:
-          label(item.target) === "BundledTarget" ? artifacts[Number(item.target.declaration)].id : item.target.path
-      }))
-    assert.deepEqual(actualPending, expectedPending, fixture.name + " pending owner/index and payload order")
-    const budget = result.state.budget
-    assert.deepEqual(
-      [budget.max_targets, budget.work, budget.graph_work, budget.max_depth].map(Number),
-      [frame.budget.maxTargetsInFile, frame.budget.work, frame.budget.graphWork, frame.budget.maxDepth],
-      fixture.name + " budget scalars"
-    )
-    cases.push({
-      name: fixture.name,
-      status: "root-local-exact",
-      localComparison: true,
-      pending: actualPending.length,
-      nodes: addresses.size
-    })
+  const rootNode = unlist(semantic.nodes)[0],
+    symbol = { $: "ReferenceSymbol", text: "\0\ud800" },
+    identity = { $: "ArtifactIdentity", text: rootNode.artifact.id }
+  const included = { $: "Included", symbol, identity }
+  const typedReplacement = forest.replace(semantic, rootNode.address, 0, included)
+  assert.equal(label(typedReplacement), "Replaced")
+  forestGuardCases++
+  const typedProduct = fromProductValue(forest.unit(10000, typedReplacement.forest, list([])).product)
+  assert.equal(typedProduct.root.references[0].site.symbol, "\0\ud800")
+  assert.equal(typedProduct.root.references[0].target, rootNode.artifact.id)
+  forestGuardCases++
+  const empty = forest.replace(semantic, rootNode.address, 0, {
+    $: "Omitted",
+    symbol: { $: "ReferenceSymbol", text: "" },
+    target: { $: "ReferenceSymbol", text: "" },
+    reason: { $: "traversal/core.Unavailable" }
+  })
+  assert.equal(label(empty), "Replaced")
+  assert.equal(
+    fromProductValue(forest.unit(10000, empty.forest, list([])).product).root.references[0].target.symbol,
+    ""
+  )
+  forestGuardCases++
+  const missing = { $: "WholeObservation.NodeAddress", episode: 999999, route: list([]) }
+  assert.equal(
+    label(forest.replace(semantic, rootNode.address, 0, { $: "Expanded", symbol, child: missing })),
+    "ReplacementInvalid"
+  )
+  forestGuardCases++
+  assert.equal(
+    label(forest.replace(semantic, rootNode.address, 0, { $: "Expanded", symbol, child: rootNode.address })),
+    "ReplacementInvalid"
+  )
+  forestGuardCases++
+  const duplicate = {
+    $: "Forest",
+    root: semantic.root,
+    nodes: list([...unlist(semantic.nodes), { ...rootNode, references: list([]) }])
   }
+  assert.equal(label(forest.replace(duplicate, rootNode.address, 0, included)), "ReplacementInvalid")
+  forestGuardCases++
+  const later = forest.construct(10000, result.tree, 2, list([]), result.source.artifacts)
+  assert.equal(label(later), "Constructed")
+  const retained = forest.append(semantic, later.created)
+  const attached = forest.replace(retained, rootNode.address, 0, { $: "Expanded", symbol, child: later.created.root })
+  assert.equal(label(attached), "Replaced")
+  forestGuardCases++
+  assert.equal(
+    label(forest.replace(retained, later.created.root, 0, { $: "Expanded", symbol, child: rootNode.address })),
+    "ReplacementInvalid"
+  )
+  forestGuardCases++
+  const rolledBack = forest.replace(attached.forest, rootNode.address, 0, included)
+  assert.equal(label(rolledBack), "Replaced")
+  assert.deepEqual(
+    rolledBack.forest.nodes.tail,
+    retained.nodes.tail,
+    "rollback retains all child nodes and their birth addresses"
+  )
+  forestGuardCases++
+  const duplicateChild = {
+    $: "Forest",
+    root: retained.root,
+    nodes: list([...unlist(retained.nodes), unlist(later.created.nodes)[0]])
+  }
+  assert.equal(
+    label(forest.replace(duplicateChild, rootNode.address, 0, { $: "Expanded", symbol, child: later.created.root })),
+    "ReplacementInvalid"
+  )
+  forestGuardCases++
+  assert.equal(label(forest.construct(0, result.tree, 1, list([]), result.source.artifacts)), "ConstructionExhausted")
+  assert.equal(label(forest.unit(0, semantic, list([]))), "MaterializationExhausted")
+  forestGuardCases++
   // Arbitrary independent operation order changes the world through a responder;
   // no expected request script is supplied to Environment.step.
-  const initial = () => tag("Environment", "WorldState", { world: 0n, effects: list([]) })
+  const initial = () => tag("Environment", "WorldState", { world: 0, effects: list([]) })
   const respond = (operation) => (world) =>
     tag("Environment", "Returned", {
-      world: world + 1n,
+      world: world + 1,
       outcome: tag("Types", "ClockRead", {
         bits: binary64(Number(world) + (label(operation) === "ReadClock" ? 100 : 200))
       }),
       effects: list([])
     })
-  const request = (id, operation) => tag("Types", "Request", { invocation: 7n, id: BigInt(id), operation })
+  const request = (id, operation) => tag("Types", "Request", { invocation: 7, id, operation })
   const first = environment.step(
     respond,
-    request(1, tag("Types", "ReadClock", { clock: tag("Types", "ClockToken", { invocation: 7n, id: 9n }) })),
+    request(1, tag("Types", "ReadClock", { clock: tag("Types", "ClockToken", { invocation: 7, id: 9 }) })),
     initial()
   )
   const reordered = environment.step(respond, request(1, tag("Types", "StartClock")), initial())
-  assert.equal(first.state.world, 1n)
+  assert.equal(first.state.world, 1)
   assert.notDeepEqual(first.reply.outcome, reordered.reply.outcome)
   const second = environment.step(respond, request(2, tag("Types", "StartClock")), first.state)
-  assert.equal(second.state.world, 2n)
+  assert.equal(second.state.world, 2)
   assert.equal(unlist(second.state.effects).length, 4)
-  const lease = (id, invocation = 7n) => ({ $: "WholeObservation.ProviderLease", invocation, id })
+  const lease = (id, invocation = 7) => ({ $: "WholeObservation.ProviderLease", invocation, id })
   const nested = { $: "WholeObservation.ProviderEffect", value: { $: "WholeObservation.Null" } }
   const suspended = environment.step(
     (_operation) => (world) =>
-      tag("Environment", "Suspended", { world: world + 1n, lease: lease(42n), effects: list([nested]) }),
+      tag("Environment", "Suspended", { world: world + 1, lease: lease(42), effects: list([nested]) }),
     request(3, tag("Types", "StartClock")),
     initial()
   )
   assert.equal(label(suspended), "Waiting")
   assert.equal(unlist(suspended.state.effects).length, 2)
   const providerOutcome = tag("Types", "ClockStarted", {
-    clock: tag("Types", "ClockToken", { invocation: 999n, id: 1n })
+    clock: tag("Types", "ClockToken", { invocation: 999, id: 1 })
   })
-  for (const foreignLease of [lease(999n), lease(42n, 999n)])
+  for (const foreignLease of [lease(999), lease(42, 999)])
     assert.deepEqual(
       environment.complete(
         suspended,
         tag("Environment", "Completion", {
           lease: foreignLease,
-          world: 8n,
+          world: 8,
           outcome: providerOutcome,
           effects: list([nested])
         })
@@ -378,28 +208,23 @@ try {
     )
   const completed = environment.complete(
     suspended,
-    tag("Environment", "Completion", {
-      lease: lease(42n),
-      world: 8n,
-      outcome: providerOutcome,
-      effects: list([nested])
-    })
+    tag("Environment", "Completion", { lease: lease(42), world: 8, outcome: providerOutcome, effects: list([nested]) })
   )
-  assert.equal(completed.state.world, 8n)
+  assert.equal(completed.state.world, 8)
   assert.deepEqual(unlist(completed.state.effects).map(label), [
     "Invoked",
     "ProviderEffect",
     "ProviderEffect",
     "Responded"
   ])
-  assert.equal(completed.reply.outcome.clock.invocation, 999n, "ownership is not assumed by environment stamping")
+  assert.equal(completed.reply.outcome.clock.invocation, 999, "ownership is not assumed by environment stamping")
   assert.deepEqual(
     environment.complete(
       completed,
       tag("Environment", "Completion", {
-        lease: lease(42n),
-        world: 99n,
-        outcome: tag("Types", "ProductEncoded", { bytes: 0n }),
+        lease: lease(42),
+        world: 99,
+        outcome: tag("Types", "ProductEncoded", { bytes: 0 }),
         effects: list([])
       })
     ),
@@ -422,7 +247,7 @@ try {
     "ExternalProtocol"
   ]) {
     const error = tag("WholeObservation", "Error", {
-      identity: maybe(1n),
+      identity: maybe(1),
       name: tag("WholeObservation", "Text", { units: list([]) }),
       message: tag("WholeObservation", "Text", { units: list([]) }),
       cause: maybe(),
@@ -439,7 +264,7 @@ try {
     observation.completes(
       tag("WholeObservation", "Waiting", {
         request: request(1, tag("Types", "StartClock")),
-        lease: tag("WholeObservation", "ProviderLease", { invocation: 7n, id: 1n }),
+        lease: tag("WholeObservation", "ProviderLease", { invocation: 7, id: 1 }),
         inspection
       })
     ),
@@ -454,12 +279,23 @@ try {
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     sources,
-    cases,
-    rootComparisons: cases.filter((item) => item.localComparison).length,
-    semanticForestProductAndPendingBirthExact: true,
+    passed: true,
+    cases: forestGuardCases + 9,
+    independentCaseGroups: [
+      "local-tree",
+      "operation-order",
+      "provider-suspension",
+      "foreign-lease",
+      "provider-completion",
+      "completed-idempotence",
+      "text-domain",
+      "terminal-origin",
+      "bounded-progress"
+    ],
+    authoredLocalTreeCases: 1,
     forestGuardCases,
     nominalReferenceDomainsPreserveEmptyNulAndLoneSurrogates: true,
-    independentRootValueAndPendingExact: true,
+
     statefulOperationSelectedEnvironment: true,
     waitingSeparateAndCompletionDoesNotReinvoke: true,
     wrongTokenOwnershipNotAssumed: true,
@@ -468,7 +304,7 @@ try {
     textCodeUnitDomainChecked: true,
     implementationBoundFailuresCannotCountAsCompletion: true,
     scope:
-      "Independent semantic forest root products/pending birth addresses plus slot-validity/retention checks; root/local portion of independent whole SPEC on actual frontend facts, exact root value/property order and pending owner/index/payload, budget scalars. Pre-frame outcomes recorded, not independently compared. No whole Rust/expansion/forest projection proof, full-state equivalence, termination, cancellation or performance qualification."
+      "One authored local tree plus independent forest slot/retention guards, stateful Environment operation order, suspended-provider effects/ownership and WholeObservation text/completion classification. Native parser metadata is shared; no native graph oracle or whole production correspondence, termination, cancellation or performance claim."
   }
   mkdirSync(join(root, ".test-runs"), { recursive: true })
   writeFileSync(

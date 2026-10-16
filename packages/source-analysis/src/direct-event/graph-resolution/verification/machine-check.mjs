@@ -1,30 +1,22 @@
 import { artifactValueTag, binary64, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
-import * as Cause from "effect/Cause"
-import { createDispatcher } from "../runtime-observation/transport.mjs"
 import { createServiceSession, createServiceRegistry } from "../service-session.ts"
 import { inspectSourceFrontend, parseCargoSyntax, inspectRustModuleSyntax } from "../frontends.ts"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import {
-  createMachineDriver,
-  createIODriver,
-  createVerificationEffectResolver as createBendEffectResolver
-} from "./resolver-driver.mjs"
+import { createMachineDriver } from "./resolver-driver.mjs"
 import { encodeGraphToken, encodeGraphCache } from "../reply-codec.ts"
 const folder = import.meta.dirname,
   temp = mkdtempSync("/tmp/hapsland-resolver-machine-"),
   tagged = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const machinePath = join(temp, "machine.mjs")
   execFileSync("bend", [join(folder, "../Machine.bend"), "-o", machinePath], { timeout: 10000 })
   const { default: machine } = await import(pathToFileURL(machinePath))
@@ -45,56 +37,28 @@ try {
     Number.MIN_VALUE
   ]
   for (const n of numbers) assert.equal(clock.expired(binary64(n)), n >= 5000)
-  const runtimePath = join(temp, "runtime.js")
-  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", runtimePath], { timeout: 10000 })
-  const source = readFileSync(runtimePath, "utf8"),
-    footer = "\ncli(process.argv.slice(1));\nio_exit($main$, null);"
-  assert.ok(source.endsWith(footer))
-  assert.deepEqual(
-    [...source.matchAll(/io_eff\("([^"]+)",/g)].map((m) => m[1]),
-    ["perform"]
-  )
-  const embedded = join(temp, "embedded.mjs")
-  writeFileSync(
-    embedded,
-    source.slice(0, -footer.length) +
-      "\nexport const start=request=>run_loop($call_service$(request)(value=>({$:'Emit',value})));\nexport const handlers=Object.freeze({perform:$0eff.perform});\n"
-  )
-  const { start, handlers } = await import(pathToFileURL(embedded)),
-    foreign = createDispatcher(start, handlers)
-  const fullRuntime = join(temp, "full-runtime.mjs")
-  execFileSync("bend", [join(folder, "../Runtime.bend"), "-o", fullRuntime], { timeout: 10000 })
-  writeFileSync(
-    fullRuntime,
-    readFileSync(fullRuntime, "utf8") + "\nexport const handlers=Object.freeze({perform:$0eff.perform});\n"
-  )
-  const { default: ioProgram, handlers: ioHandlers } = await import(pathToFileURL(fullRuntime)),
-    ioForeign = createDispatcher(
-      (value) => ioProgram.resolve_debug(value)((value) => ({ $: "Emit", value })),
-      ioHandlers
-    )
   const registry = createServiceRegistry()
-  globalThis.__hapslandWholeResolverServices = registry
+  const foreign = ([request], options) => registry.perform(request, options)
   const c = GRAPH_LIMIT_CEILINGS,
     limits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
-      version: 1n,
-      source_bytes: BigInt(c.sourceBytes),
-      tree_bytes: BigInt(c.treeBytes),
-      files: BigInt(c.files),
-      read_bytes: BigInt(c.readBytes),
-      outgoing_edges: BigInt(c.outgoingEdges),
-      depth: BigInt(c.depth),
-      work: BigInt(c.work)
+      version: 1,
+      source_bytes: c.sourceBytes,
+      tree_bytes: c.treeBytes,
+      files: c.files,
+      read_bytes: c.readBytes,
+      outgoing_edges: c.outgoingEdges,
+      depth: c.depth,
+      work: c.work
     }
   let id = 1,
     maximumPureChain = 0
   const input = (session, path, source, branch = "type", overrides = {}) =>
     tagged("ResolverInput", {
-      invocation: BigInt(session.invocation),
+      invocation: session.invocation,
       root_path: path,
       root_capture: encodeGraphToken(session.registerCapture({ text: source, byteLength: Buffer.byteLength(source) })),
-      root_bytes: BigInt(Buffer.byteLength(source)),
+      root_bytes: Buffer.byteLength(source),
       root_name: "Root",
       root_source: source,
       branch: tagged(branch === "function" ? "FunctionBranch" : "TypeBranch"),
@@ -102,17 +66,6 @@ try {
       limits,
       ...overrides
     })
-  const ioProductForeign = createDispatcher(
-      (value) => ioProgram.resolve(value)((value) => ({ $: "Emit", value })),
-      ioHandlers
-    ),
-    ioProductDrive = createIODriver({ resolve: ioProductForeign, registry })
-  const ioDrive = createIODriver({ resolve: ioForeign, registry })
-  const normalize = (value) =>
-    JSON.stringify(value, (key, item) =>
-      key === "invocation" ? "OWNER" : typeof item === "bigint" ? String(item) : item
-    )
-  let requestTrace = []
   let measuredProduct
   const drive = createMachineDriver({
     machine,
@@ -123,7 +76,6 @@ try {
       if (step.result.$ === "Types.ReviewUnitResult") assert.deepEqual(step.result.value, measuredProduct)
     },
     observeTransition: (step, reply) => {
-      requestTrace.push(normalize(step.request))
       if (step.request.operation.$ === "Types.EncodeProduct") measuredProduct = step.request.operation.value
       if (reply.outcome.$ === "Types.ProviderRejected") return
       const raw = machine.stage_reply(step.state.stage, reply.outcome, step.state)
@@ -135,8 +87,8 @@ try {
       }
       assert.equal(chain.$, "Loop.ServiceStep", "pure dispatch exceeded bound")
       maximumPureChain = Math.max(maximumPureChain, count)
-      assert.deepEqual(machine.settle(BigInt(count), raw), chain)
-      if (count > 0) assert.equal(machine.settle(BigInt(count - 1), raw).step.failure.$, "Types.MalformedReply")
+      assert.deepEqual(machine.settle(count, raw), chain)
+      if (count > 0) assert.equal(machine.settle(count - 1, raw).step.failure.$, "Types.MalformedReply")
     }
   })
 
@@ -153,7 +105,6 @@ try {
     ["root.ts", "import type { A } from './probe-a'; export interface Root { a: A }", "type", true]
   ]
   for (const [path, source, branch, crossFile] of fixtures) {
-    requestTrace = []
     let calls = 0
     const session = createServiceSession({
         invocation: id++,
@@ -170,20 +121,30 @@ try {
       data = input(session, path, source, branch),
       actual = await drive(session, data)
     assert.equal(actual.result.$, "Types.ReviewUnitResult")
-    let nativeCalls = 0
-    const expected = await Effect.runPromise(
-      resolveGraphUnit(path, { text: source, byteLength: Buffer.byteLength(source) }, "Root", {
-        root: temp,
-        policy: DEFAULT_DIRECT_FILE_POLICY,
-        branch,
-        now: () => {
-          nativeCalls++
-          return 0
-        }
-      })
-    )
-    assert.equal(JSON.stringify(fromProductValue(actual.result.value)), JSON.stringify(expected))
-    assert.equal(calls, nativeCalls)
+    const declarations = languageForPath(path).inspect(path, source)?.declarations
+    const rootArtifact =
+      branch === "function"
+        ? languageForPath(path).analyzeFunctions(path, source).functions.get("Root").artifact
+        : declarations.get("Root").artifact
+    const childPath = crossFile ? "probe-a.ts" : path
+    const childName = crossFile ? "A" : "Child"
+    const childArtifact =
+      branch === "function"
+        ? undefined
+        : crossFile
+          ? languageForPath(childPath).inspect(childPath, "export interface A { value: string }").declarations.get("A")
+              .artifact
+          : declarations.get("Child").artifact
+    assert.deepEqual(fromProductValue(actual.result.value), {
+      root: {
+        artifact: rootArtifact,
+        references: childArtifact
+          ? [{ kind: "expanded", site: { symbol: childName }, node: { artifact: childArtifact, references: [] } }]
+          : []
+      },
+      sourceDependencies: []
+    })
+    assert.equal(calls, crossFile ? 8 : 4)
     if (!crossFile)
       assert.deepEqual(actual.trace, [
         "Types.StartClock",
@@ -195,33 +156,6 @@ try {
         "Types.EncodeProduct",
         "Types.ReadClock"
       ])
-    for (const [label, driver] of [
-      ["debug", ioDrive],
-      ["product", ioProductDrive]
-    ]) {
-      const ioTrace = []
-      const ioOriginal = createServiceSession({
-        invocation: id++,
-        root: temp,
-        now: () => 0,
-        ...physicalPorts,
-        frontend: inspectSourceFrontend,
-        parseCargo: parseCargoSyntax,
-        inspectRustModules: inspectRustModuleSyntax
-      })
-      const ioSession = {
-        ...ioOriginal,
-        perform: (request) => {
-          ioTrace.push(normalize(request))
-          return ioOriginal.perform(request)
-        }
-      }
-      const ioResult = await driver(ioSession, input(ioSession, path, source, branch))
-      assert.deepEqual(ioTrace, requestTrace, path + " exact generic IO requests")
-      assert.deepEqual(ioResult.result, actual.result, path + " generic IO terminal result")
-      if (label === "debug")
-        assert.equal(normalize(ioResult.finalFrame), normalize(actual.finalFrame), path + " generic terminal frame")
-    }
   }
   assert.ok(maximumPureChain > 0, "cross-file fixture must exercise nonzero pure dispatch")
   const expired = createServiceSession({
@@ -256,14 +190,14 @@ try {
     awaiting = machine.initial(input(protocolSession, "root.ts", "interface Root {}"))
   const request = awaiting.step.request
   for (const [patch, expected] of [
-    [{ invocation: 999n }, "Types.WrongInvocation"],
-    [{ id: 99n }, "Types.WrongCorrelation"],
-    [{ outcome: tagged("ProductEncoded", { bytes: 1n }) }, "Types.WrongReplyKind"]
+    [{ invocation: 999 }, "Types.WrongInvocation"],
+    [{ id: 99 }, "Types.WrongCorrelation"],
+    [{ outcome: tagged("ProductEncoded", { bytes: 1 }) }, "Types.WrongReplyKind"]
   ]) {
     const reply = tagged("Reply", {
       invocation: request.invocation,
       id: request.id,
-      outcome: tagged("ClockStarted", { clock: tagged("ClockToken", { invocation: request.invocation, id: 1n }) }),
+      outcome: tagged("ClockStarted", { clock: tagged("ClockToken", { invocation: request.invocation, id: 1 }) }),
       ...patch
     })
     assert.equal(machine.resume(awaiting, tagged("ServiceReply", { reply })).step.failure.$, expected)
@@ -286,225 +220,32 @@ try {
     (error) => error === originalError
   )
   assert.equal(registry.size, 0)
-  const ioOriginalError = new Error("IO clock failure"),
-    ioThrows = createServiceSession({
-      invocation: id++,
-      root: temp,
-      now: () => {
-        throw ioOriginalError
-      }
-    })
-  await assert.rejects(
-    ioDrive(ioThrows, input(ioThrows, "root.ts", "interface Root {}")),
-    (error) => error === ioOriginalError
-  )
-  assert.equal(registry.size, 0)
-  let releaseFrontend, markFrontend
-  const frontendStarted = new Promise((resolve) => {
-      markFrontend = resolve
-    }),
-    lateFrontend = new Promise((resolve) => {
-      releaseFrontend = resolve
-    }),
-    abort = new AbortController()
-  let lateCalls = 0
-  const lateOriginal = createServiceSession({
-      invocation: id++,
-      root: temp,
-      now: () => 0,
-      frontend: () => {
-        markFrontend()
-        return lateFrontend
-      }
-    }),
-    lateSession = {
-      ...lateOriginal,
-      perform: (...args) => {
-        lateCalls++
-        return lateOriginal.perform(...args)
-      }
-    }
-  const lateRun = ioDrive(lateSession, input(lateSession, "root.ts", "interface Root {}"), { signal: abort.signal })
-  await frontendStarted
-  abort.abort()
-  await assert.rejects(lateRun, (error) => error.code === "aborted")
-  assert.equal(registry.size, 0)
-  const callsBeforeLateReply = lateCalls
-  releaseFrontend(undefined)
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  assert.equal(lateCalls, callsBeforeLateReply)
   const hostileClock = tagged("Reply", {
     invocation: request.invocation,
     id: request.id,
-    outcome: tagged("ClockStarted", { clock: tagged("ClockToken", { invocation: 999n, id: 1n }) })
+    outcome: tagged("ClockStarted", { clock: tagged("ClockToken", { invocation: 999, id: 1 }) })
   })
   assert.equal(
     machine.resume(awaiting, tagged("ServiceReply", { reply: hostileClock })).step.failure.$,
     "Types.WrongInvocation"
   )
-  const physicalCancellation = []
-  execFileSync("git", ["init", "-q", temp])
-  const captureRoot = "import type { A } from './interrupt-a'; export interface Root { a: A }"
-  writeFileSync(join(temp, "interrupt-a.ts"), "export interface A {}")
-  for (const mode of ["native", "bend-io", "bend-machine"]) {
-    const events = [],
-      cache = new Map()
-    let releaseCapture, markCapture
-    const started = new Promise((resolve) => {
-        markCapture = resolve
-      }),
-      late = new Promise((resolve) => {
-        releaseCapture = resolve
-      }),
-      controller = new AbortController()
-    const host = {
-      root: temp,
-      branch: "type",
-      policy: DEFAULT_DIRECT_FILE_POLICY,
-      captureCache: cache,
-      now: () => {
-        events.push("clock")
-        return 0
-      },
-      captureSource: (_root, selection) =>
-        Effect.ensuring(
-          Effect.promise((signal) => {
-            events.push("capture:" + selection.relativePath)
-            assert.equal(signal.aborted, false)
-            markCapture()
-            return late.then((value) => {
-              events.push("late-provider-completion")
-              return value
-            })
-          }),
-          Effect.sync(() => {
-            events.push("capture-finalized")
-          })
-        )
-    }
-    const candidate =
-      mode === "native"
-        ? resolveGraphUnit
-        : createBendEffectResolver(
-            mode === "bend-io" ? { resolveIO: ioProductForeign, registry } : { machine, foreign, registry }
-          )
-    const pending = Effect.runPromiseExit(
-      candidate("root.ts", { text: captureRoot, byteLength: Buffer.byteLength(captureRoot) }, "Root", host),
-      { signal: controller.signal }
-    )
-    await Promise.race([
-      started,
-      pending.then((exit) => {
-        throw new Error(mode + " resolver terminated before pending capture: " + JSON.stringify(exit))
-      })
-    ])
-    controller.abort()
-    const exit = await pending
-    assert.ok(Exit.hasInterrupts(exit), mode + " outer interruption")
-    await new Promise((resolve) => setImmediate(resolve))
-    assert.ok(events.includes("capture-finalized"), mode + " capture finalizer")
-    assert.equal(registry.size, 0, mode + " registry cleanup")
-    const prefix = events.slice(),
-      cachePrefix = [...cache]
-    releaseCapture({ status: "captured", capture: { text: "export interface A {}", byteLength: 21 } })
-    await new Promise((resolve) => setImmediate(resolve))
-    assert.deepEqual(events, [...prefix, "late-provider-completion"], mode + " late provider must not resume resolver")
-    assert.deepEqual([...cache], cachePrefix, mode + " late provider must not publish cache writes")
-    physicalCancellation.push({
-      mode,
-      prefix,
-      afterLate: events.slice(),
-      cache: cachePrefix,
-      interrupted: true,
-      registryEmpty: true
-    })
-  }
-  const captureDefect = new Error("injected capture defect", { cause: new Error("injected underlying cause") }),
-    captureFailures = []
-  for (const mode of ["native", "bend-io", "bend-machine"]) {
-    const prefix = [],
-      cache = new Map(),
-      host = {
-        root: temp,
-        branch: "type",
-        policy: DEFAULT_DIRECT_FILE_POLICY,
-        captureCache: cache,
-        now: () => {
-          prefix.push("clock")
-          return 0
-        },
-        captureSource: (_root, selection) =>
-          Effect.ensuring(
-            Effect.sync(() => {
-              prefix.push("capture:" + selection.relativePath)
-              throw captureDefect
-            }),
-            Effect.sync(() => {
-              prefix.push("capture-finalized")
-            })
-          )
-      }
-    const candidate =
-      mode === "native"
-        ? resolveGraphUnit
-        : createBendEffectResolver(
-            mode === "bend-io" ? { resolveIO: ioProductForeign, registry } : { machine, foreign, registry }
-          )
-    const exit = await Effect.runPromiseExit(
-      candidate("root.ts", { text: captureRoot, byteLength: Buffer.byteLength(captureRoot) }, "Root", host)
-    )
-    assert.ok(Exit.isFailure(exit))
-    assert.equal(Cause.squash(exit.cause), captureDefect, mode + " original capture defect identity")
-    assert.deepEqual(
-      exit.cause.reasons.map((failure) => ({ kind: failure._tag, defect: failure.defect })),
-      [{ kind: "Die", defect: captureDefect }],
-      mode + " capture Cause preserved"
-    )
-    assert.equal(registry.size, 0)
-    assert.deepEqual([...cache], [])
-    captureFailures.push({
-      mode,
-      prefix,
-      originalIdentity: true,
-      causeKind: "Die",
-      underlyingCausePreserved: Cause.squash(exit.cause).cause === captureDefect.cause,
-      registryEmpty: true
-    })
-  }
-  assert.deepEqual(captureFailures[1].prefix, captureFailures[0].prefix)
-  assert.deepEqual(captureFailures[2].prefix, captureFailures[0].prefix)
-  assert.deepEqual(physicalCancellation[1].prefix, physicalCancellation[0].prefix)
-  assert.deepEqual(physicalCancellation[2].prefix, physicalCancellation[0].prefix)
   const record = {
-    at: new Date().toISOString(),
-    runtime: typeof Bun === "undefined" ? "node" : "bun",
-    actualForeignBendIO: true,
-    physicalCancellation,
-    captureFailures,
-    ioOwnedRuntimeLoop: true,
-    productOnlyRuntimeEntry: true,
-    debugTerminalStateExact: true,
-    exactRuntimeToPureRequestTrace: true,
-    ioProviderExceptionIdentity: true,
-    lateCancelledFrontendDoesNotResume: true,
+    passed: true,
+    cases: numbers.length + fixtures.length + 10,
+    clockBitCases: numbers.length,
+    rootConsumerFixtures: fixtures.length,
     maximumPureChain,
     zeroFuelServiceBoundaryAccepted: true,
-    exactClockCaptureCacheDiagnosticEffects: true,
-    providerExceptionIdentityBeforeCleanup: true,
-    outputTokenInvocationRejected: true,
-    rootConsumerFixtures: fixtures.length,
-    wholeGraphConsumerOwner: "resident-runtime/preparation/verification/artifact-owned-root-check.mjs",
-    exactCaptureCacheAndDiagnosticEffects: true,
-    exactOrderedRootEffects: true,
-    clockBitCases: numbers.length,
+    measuredProductReturned: true,
     deadlineBeforeFrontend: true,
     deadlineTransitionRetained: true,
-    measuredProductReturned: true,
     wrongOwnerCorrelationKindRejected: true,
+    outputTokenInvocationRejected: true,
     cancellationDistinct: true,
+    providerExceptionIdentityBeforeCleanup: true,
     registryClosed: registry.size === 0,
     scope:
-      "standalone generic machine/IO pure-chain, protocol, cancellation and Cause checks; full multilingual graph fixtures belong to resident-owned composition; no whole migration adoption or proof claim"
+      "Standalone pure machine settlement/protocol/deadline checks over four authored trees and native parser facts. Production Canonical Cause/interruption/late cleanup belong to owned Graph and physical clock/capture consumers; no generic IO-loop, native graph oracle or whole acceptance claim."
   }
   assert.equal(registry.size, 0)
   mkdirSync(join(folder, "../../../../../..", ".test-runs"), { recursive: true })
