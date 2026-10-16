@@ -202,8 +202,8 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- `2530e460` execution at 2026-10-16 17:31 UTC qualifies **0.7150×**.
-  Build at 17:32 qualifies **0.9017×**: 17 frozen pairs, all samples 23/46 cached.
+- `098426e5` execution at 2026-10-16 18:01 UTC qualifies **0.6323×**.
+  Build at 18:01 qualifies **0.8839×**: 17 frozen pairs, all samples 23/46 cached.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable.
   First 17:31 build refused a leaked candidate producer in baseline; corrected environment passed. The 04:54 CPU11 baseline admission-lock
