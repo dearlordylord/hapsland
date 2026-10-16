@@ -176,10 +176,9 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | --- | --- |
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Retained checks use explicit fixtures and the independent Bend specification; whole performance qualifies separately. |
 | Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original complete law passes checker+kernel: ALL PROOFS CHECK, 11.35s wall/11.04s CPU, unchanged source SHA073e9514. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
-| Original proof formatting | Closed: formatter0.1.23 (`55e106a`), nine proofs conform; attachment unchanged. |
 | Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 18:59 UTC qualifies **1.4044×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Earlier current-native runs are historical; their oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing, native Graph/local/Go/Python preparation and reference drivers. Authored checks: public Preparation13, Post23360/sizing131, Source59/6687+34, resident52/11316+893Post, resident Graph13/629, public Graph76, owned Graph115/4903, Python composition18/7125, result4, clock4/cancellation7, Python session9/1547, local657/signed4378, spec20/protocol25, Go55/Canonical59. Build46/46, fast, receipts23, GoPackage247/unit47 pass. Python roots67/alternatives21/parents17/target21/import26 use authored plans; session9/owned115/composed18 pass. Rust search6/cache32/UTF1 pass; task runner deleted. Remaining: Cargo oracle; host audit/whole acceptance. |
+| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing, native Graph/local/Go/Python preparation and reference drivers. Full consumers: Preparation13, Post23360/sizing131, Source59/6687+34, resident52/11316+893Post, Graph115/4903, Python composition18/7125. Build46/46, fast, receipts23, GoPackage247/unit47 pass. Python roots67/alternatives21/parents17/target21/import26 use authored plans; session9/owned115/composed18 pass. Rust search6/cache32/UTF1 pass; task runner deleted. Bounded host review found no new production policy blocker. Remaining: Cargo/Go BuildContext/Post enrollment oracles; whole acceptance. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
 Acks/three observations. One-callable CPU ratio 1.3570 is diagnostic only. Whole
@@ -202,8 +201,9 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- `192dcee9` execution at 2026-10-16 18:54 UTC qualifies **0.7829×**.
-  Build at 18:55 qualifies **0.8781×**: 17 frozen pairs, all samples 23/46 cached.
+- `57e4081d` execution at 2026-10-16 19:23 UTC qualifies **0.6987×**.
+  Prepared build at 19:26 qualifies **0.9039×**: 17 frozen pairs, all samples 23/46 cached.
+  First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable.
   First 17:31 build refused a leaked candidate producer in baseline; corrected environment passed. The 04:54 CPU11 baseline admission-lock
