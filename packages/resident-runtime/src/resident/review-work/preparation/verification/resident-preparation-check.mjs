@@ -44,7 +44,6 @@ import { resize as __resize } from "../../../state/capacity/reservations.ts"
 import { analyzeFunctionFile as __analyzeFunctionFile } from "@hapsland/source-analysis/direct-event/function-analyzer"
 import { analysisWorkspaceBytes as __analysisWorkspaceBytes } from "../../../work-ownership/workspace/verification/native-workspace.ts"
 import { configuredRules, advicee } from "./preparation-fixtures.mjs"
-import { nativePostPreparationSource } from "./native-post-preparation-child.mjs"
 import { consumeRetainedPreparation } from "./retention-consumer.mjs"
 import { createVerificationPreparationForeign as createPreparationForeign } from "./preparation-foreign-reference.mjs"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
@@ -90,9 +89,9 @@ const languageRoots = [
   ["bend", { path: "root.bend", source: "type Root is Data:\n  Root{}\n" }]
 ].map(([language, fixture]) =>
   scenario(
-    "retention-owned-" + language + "-success",
+    "retention-" + language + "-success",
     { ...fixture, contracts: [{ $: "PreparationSelection.TypeContract" }], expected: { selected: 1, units: 1 } },
-    { compareNative: true, retentionMode: "retention-owned-success" }
+    { compareNative: true, retentionMode: "retention-success" }
   )
 )
 const scenarios = [
@@ -127,49 +126,44 @@ const scenarios = [
   scenario("retention-cached-clear", twoDeclarations),
   scenario("retention-joined-claimed", twoDeclarations),
   scenario("retention-joined-pending", twoDeclarations),
-  scenario("retention-owned-success", twoDeclarations),
-  scenario("retention-owned-cached-clear", twoDeclarations),
-  scenario("retention-owned-joined-claimed", twoDeclarations),
-  scenario("retention-owned-after-revision", twoDeclarations),
-  scenario("retention-owned-fault-after-revision", twoDeclarations),
-  scenario("retention-owned-before-flow", twoDeclarations),
-  scenario("retention-owned-before-enqueue", twoDeclarations),
-  scenario("retention-owned-after-enqueue-ack", twoDeclarations),
-  scenario("retention-owned-after-queue-commit", twoDeclarations),
-  scenario("retention-owned-fault-after-queue-commit", twoDeclarations),
-  scenario("retention-owned-fault-after-enqueue-ack", twoDeclarations),
-  scenario("retention-owned-preinstall-cancel", twoDeclarations),
-  scenario("retention-owned-constructor-fault", twoDeclarations),
-  scenario("retention-owned-duplicate-active", twoDeclarations),
-  scenario("retention-owned-joined-pending", twoDeclarations),
-  scenario("retention-owned-joined-pending-restore-fault", twoDeclarations),
-  scenario("retention-owned-fault-reuse-claim", twoDeclarations),
-  scenario("retention-owned-fault-clear-register", twoDeclarations),
-  scenario("retention-owned-fault-clear-release", twoDeclarations),
-  scenario("retention-owned-fault-joined-append", twoDeclarations),
-  scenario("retention-owned-fault-clear-shared-release", twoDeclarations),
-  scenario("retention-owned-fault-clear-cleanup-receipt", twoDeclarations),
+
+  scenario("retention-before-enqueue", twoDeclarations),
+  scenario("retention-after-enqueue-ack", twoDeclarations),
+  scenario("retention-after-queue-commit", twoDeclarations),
+  scenario("retention-fault-after-queue-commit", twoDeclarations),
+  scenario("retention-fault-after-enqueue-ack", twoDeclarations),
+  scenario("retention-preinstall-cancel", twoDeclarations),
+  scenario("retention-constructor-fault", twoDeclarations),
+  scenario("retention-duplicate-active", twoDeclarations),
+
+  scenario("retention-joined-pending-restore-fault", twoDeclarations),
+  scenario("retention-fault-reuse-claim", twoDeclarations),
+  scenario("retention-fault-clear-register", twoDeclarations),
+  scenario("retention-fault-clear-release", twoDeclarations),
+  scenario("retention-fault-joined-append", twoDeclarations),
+  scenario("retention-fault-clear-shared-release", twoDeclarations),
+  scenario("retention-fault-clear-cleanup-receipt", twoDeclarations),
   scenario("retention-cached-finding", twoDeclarations),
-  scenario("retention-owned-cached-finding", twoDeclarations),
+
   scenario("retention-cached-finding-standalone", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone-cutoff", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone-insert-ack", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone-inspection", twoDeclarations),
+
+  scenario("retention-cached-finding-standalone-cutoff", twoDeclarations),
+  scenario("retention-cached-finding-standalone-insert-ack", twoDeclarations),
+  scenario("retention-cached-finding-standalone-inspection", twoDeclarations),
   scenario("retention-cached-finding-standalone-inspection-single", oneDeclaration),
-  scenario("retention-owned-cached-finding-standalone-inspection-single", oneDeclaration),
-  scenario("retention-owned-cached-finding-standalone-barrier", twoDeclarations),
+
+  scenario("retention-cached-finding-standalone-barrier", twoDeclarations),
   scenario("retention-cached-finding-standalone-barrier-mixed", oneDeclaration),
-  scenario("retention-owned-cached-finding-standalone-barrier-mixed", oneDeclaration),
+
   scenario("retention-cached-finding-standalone-barrier-mixed-remove-ack", oneDeclaration),
-  scenario("retention-owned-cached-finding-standalone-barrier-mixed-remove-ack", oneDeclaration),
+
   scenario("retention-cached-finding-standalone-barrier-mixed-remove-before", oneDeclaration),
-  scenario("retention-owned-cached-finding-standalone-barrier-mixed-remove-before", oneDeclaration),
+
   scenario("retention-cached-finding-standalone-inactive", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone-inactive", twoDeclarations),
-  scenario("retention-cached-finding-standalone-shared", twoDeclarations),
-  scenario("retention-owned-cached-finding-standalone-shared", twoDeclarations)
+
+  scenario("retention-cached-finding-standalone-shared", twoDeclarations)
 ]
+assert.equal(new Set(scenarios.map((item) => item.name)).size, scenarios.length, "scenario names must be unique")
 const selectedScenarios = scenarios.filter(
   (item) => !process.env.HAPSLAND_POSTFLOW_CASE || item.name === process.env.HAPSLAND_POSTFLOW_CASE
 )
@@ -278,7 +272,7 @@ try {
   for (const testCase of selectedScenarios) {
     const { name: mode, fixture, expected, compareNative } = testCase
     if (process.env.HAPSLAND_POSTFLOW_TRACE) console.error(JSON.stringify({ scenario: mode, phase: "start" }))
-    const owned = mode.startsWith("retention-owned-"),
+    const owned = mode.startsWith("retention-"),
       postSessions = new Map(),
       currentPath = fixture.path,
       candidatePaths = fixture.candidates ?? [currentPath]
@@ -374,13 +368,12 @@ try {
       registry,
       hooks: {
         beforeInstall: ({ invocation }) => {
-          if (mode === "retention-owned-preinstall-cancel" && postSessions.has(Number(invocation)))
-            driver.cancel(invocation)
+          if (mode === "retention-preinstall-cancel" && postSessions.has(Number(invocation))) driver.cancel(invocation)
         }
       },
       selectMachine: (input, session) => {
         if ("finalization" in input) return session.machine
-        if (input.postPreparation && mode === "retention-owned-constructor-fault")
+        if (input.postPreparation && mode === "retention-constructor-fault")
           throw new Error("injected post machine construction failure")
         return input.preparation
           ? preparationForeign.machine
@@ -396,7 +389,7 @@ try {
           if (postSessions.has(Number(request.invocation))) {
             postRequests++
             const postSession = postSessions.get(Number(request.invocation))
-            if (mode === "retention-owned-duplicate-active" && !duplicateChecked) {
+            if (mode === "retention-duplicate-active" && !duplicateChecked) {
               duplicateChecked = true
               const before = Effect.runSync(connection.transaction.read),
                 resources = driver.resources
@@ -409,15 +402,15 @@ try {
               assert.deepEqual(driver.resources, resources)
             }
             const faultCommand = {
-              "retention-owned-fault-reuse-claim": "LookupReuse",
-              "retention-owned-fault-clear-register": "RegisterClear",
-              "retention-owned-fault-clear-release": "ReleaseClear",
-              "retention-owned-fault-joined-append": "AppendJoined",
-              "retention-owned-fault-clear-shared-release": "ReleaseClear"
+              "retention-fault-reuse-claim": "LookupReuse",
+              "retention-fault-clear-register": "RegisterClear",
+              "retention-fault-clear-release": "ReleaseClear",
+              "retention-fault-joined-append": "AppendJoined",
+              "retention-fault-clear-shared-release": "ReleaseClear"
             }[mode]
             if (
-              mode === "retention-owned-cached-finding-standalone-cutoff" ||
-              mode === "retention-owned-cached-finding-standalone-insert-ack"
+              mode === "retention-cached-finding-standalone-cutoff" ||
+              mode === "retention-cached-finding-standalone-insert-ack"
             )
               return yield* postSession.performEffect(request, {
                 ...options,
@@ -429,7 +422,7 @@ try {
                   }
                 }
               })
-            if (mode === "retention-owned-fault-clear-cleanup-receipt")
+            if (mode === "retention-fault-clear-cleanup-receipt")
               return yield* postSession.performEffect(request, {
                 ...options,
                 beforeCommand: (command) => {
@@ -461,7 +454,7 @@ try {
               })
             return yield* postSession.performEffect(
               request,
-              mode === "retention-owned-joined-pending-restore-fault"
+              mode === "retention-joined-pending-restore-fault"
                 ? {
                     ...options,
                     afterPendingRestore: () => {
@@ -684,7 +677,7 @@ try {
         assert.equal(completed.length, unlist(outcome.preparation.units).length)
       }
     }
-    if (mode === "retention-owned-duplicate-active") assert.equal(duplicateChecked, true)
+    if (mode === "retention-duplicate-active") assert.equal(duplicateChecked, true)
     if (mode.includes("-fault-reuse-") || mode.includes("-fault-clear-") || mode.includes("-fault-joined-"))
       assert.equal(reuseFaultInjected, true)
     assert.equal(driver.stats.providerStarts, driver.stats.providerCleanups)
@@ -704,7 +697,6 @@ try {
       cases,
       requests,
       postRequests,
-      nativePostPreparationSource,
       scope:
         "actual resident transaction, capacity resize/completion, emitted preparation progression and nested split resolver with native Go/Rust/Bend/Python/TypeScript IO and full native preparation differential for successful branches; parent cancellation/late success/rejection and first semantic refusal; actual native preflight/workspace sizing bindings and whole Bend finalization through the same resident Canonical gate; actual post-preparation admission/planning, revision/claims/spawn/enqueue and three post-acceptance cancellation barriers plus owner-claim and pre-spawn exceptions with guaranteed cleanup; native policy deletion, source-free Canonical progression and production adoption remain open"
     })

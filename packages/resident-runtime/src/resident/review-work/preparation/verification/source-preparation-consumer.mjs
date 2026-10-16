@@ -369,7 +369,6 @@ try {
         ? '*** Begin Patch\n*** Update File: comment.ts\n@@\n-// old comment\n+// updated outside declarations\n export class Example { value: string = "x" }\n*** End Patch'
         : undefined
     const shared = await createResidentRetentionContext(connection, root, rootIdentity, {
-      useOwned: true,
       observation: {
         root,
         rootIdentity,

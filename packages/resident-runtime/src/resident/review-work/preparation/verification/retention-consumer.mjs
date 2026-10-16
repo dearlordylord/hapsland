@@ -3,12 +3,10 @@ import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Scope from "effect/Scope"
 import * as Exit from "effect/Exit"
-import { completeSourcePreparation } from "./native-post-retention.ts"
 import { sourcePartition } from "../../../recipient/identity.ts"
 import { evaluationSourcePartition } from "../../../work-ownership/identity.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { createPostPreparationProvider } from "../post-preparation-host.mjs"
-import { nativePostPreparation } from "./native-post-preparation-child.mjs"
 import { createResidentRetentionContext } from "./resident-retention-context.mjs"
 
 // Actual semantic owners and one bridged resident transaction. Recording sinks
@@ -20,25 +18,22 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
   const cachedStandalone = mode.endsWith("cached-finding-standalone")
   if (cachedStandalone) mode = mode.replace("-standalone", "")
   const caseName = mode
-  const cleanupReceiptFault = mode === "retention-owned-fault-clear-cleanup-receipt"
+  const cleanupReceiptFault = mode === "retention-fault-clear-cleanup-receipt"
   const sharedRelease =
-    mode === "retention-owned-fault-clear-shared-release" || cleanupReceiptFault || cachedFault === "shared"
+    mode === "retention-fault-clear-shared-release" || cleanupReceiptFault || cachedFault === "shared"
   const reuseFaults = {
-    "retention-owned-fault-reuse-claim": ["LookupReuse", "retention-success"],
-    "retention-owned-fault-clear-register": ["RegisterClear", "retention-cached-clear"],
-    "retention-owned-fault-clear-release": ["ReleaseClear", "retention-cached-clear"],
-    "retention-owned-fault-joined-append": ["AppendJoined", "retention-joined-claimed"],
-    "retention-owned-fault-clear-shared-release": ["ReleaseClear", "retention-cached-clear"],
-    "retention-owned-fault-clear-cleanup-receipt": ["Cleanup", "retention-cached-clear"]
+    "retention-fault-reuse-claim": ["LookupReuse", "retention-success"],
+    "retention-fault-clear-register": ["RegisterClear", "retention-cached-clear"],
+    "retention-fault-clear-release": ["ReleaseClear", "retention-cached-clear"],
+    "retention-fault-joined-append": ["AppendJoined", "retention-joined-claimed"],
+    "retention-fault-clear-shared-release": ["ReleaseClear", "retention-cached-clear"],
+    "retention-fault-clear-cleanup-receipt": ["Cleanup", "retention-cached-clear"]
   }
   const reuseFault = reuseFaults[mode]
-  const faultJoinRestore = mode === "retention-owned-joined-pending-restore-fault"
-  const useOwned = mode.startsWith("retention-owned-")
-  mode = mode.replace("retention-owned-", "retention-")
+  const faultJoinRestore = mode === "retention-joined-pending-restore-fault"
   if (mode === "retention-duplicate-active") mode = "retention-success"
   if (faultJoinRestore) mode = "retention-joined-pending"
   if (reuseFault) mode = reuseFault[1]
-  const postFlow = nativePostPreparation
   const {
     retire,
     run,
@@ -68,7 +63,6 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
     context
   } = await createResidentRetentionContext(connection, root, rootIdentity, {
     mode,
-    useOwned,
     cachedStandalone,
     cachedFault,
     observation: connection.preparationObservation
@@ -144,7 +138,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
       )
     )
   let postSession
-  if (useOwned) {
+  {
     postSession = createPostPreparationProvider(
       connection.owned.receipt.handoff,
       context,
@@ -197,7 +191,6 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
     let continued
     try {
       const flow = async () => {
-        if (!useOwned) return Effect.runPromise(postFlow(context, prepared, connection.preparation, observation, false))
         const accepted = await Effect.runPromise(
           connection.owned.driver.driveHandoffEffect(connection.owned.receipt, postSession, (projection) => {
             assert.equal(projection.preparation, result)
@@ -212,7 +205,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
         }
         return accepted.continued === true
       }
-      if (useOwned && mode === "retention-before-flow") await assert.rejects(flow, /Unknown or consumed/)
+      if (mode === "retention-before-flow") await assert.rejects(flow, /Unknown or consumed/)
       else if (mode === "retention-preinstall-cancel") await assert.rejects(flow, /WrongGeneration/)
       else if (mode === "retention-constructor-fault")
         await assert.rejects(flow, /injected post machine construction failure/)
@@ -225,11 +218,9 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
         )
       else if (cachedFault === "insert-ack") await assert.rejects(flow, /injected cached insert acknowledgement loss/)
       else if (cachedFault?.startsWith("inspection")) {
-        const exit = useOwned
-          ? await Effect.runPromiseExit(Effect.tryPromise({ try: flow, catch: (error) => error }))
-          : await Effect.runPromiseExit(postFlow(context, prepared, connection.preparation, observation, false))
+        const exit = await Effect.runPromiseExit(Effect.tryPromise({ try: flow, catch: (error) => error }))
         assert.equal(exit._tag, "Failure")
-        const cause = useOwned ? postSession.terminationCause : exit.cause
+        const cause = postSession.terminationCause
         assert.deepEqual(
           cause.reasons.map((reason) => reason._tag),
           ["Die"]
@@ -237,11 +228,9 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
         assert.strictEqual(cause.reasons[0].defect, inspectionDie)
         assert.deepEqual(tailEffects, [])
       } else if (cachedFault?.startsWith("barrier-mixed")) {
-        const exit = useOwned
-          ? await Effect.runPromiseExit(Effect.tryPromise({ try: flow, catch: (error) => error }))
-          : await Effect.runPromiseExit(postFlow(context, prepared, connection.preparation, observation, false))
+        const exit = await Effect.runPromiseExit(Effect.tryPromise({ try: flow, catch: (error) => error }))
         assert.equal(exit._tag, "Failure")
-        const actual = useOwned ? postSession.terminationCause : exit.cause
+        const actual = postSession.terminationCause
         assert.ok(actual, JSON.stringify(exit.cause))
         assert.deepEqual(
           actual.reasons.map((reason) => reason._tag),
@@ -269,8 +258,20 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
           "retention-joined-claimed",
           "retention-joined-pending"
         ].includes(mode)
-      )
-        await Effect.runPromise(completeSourcePreparation(context))
+      ) {
+        // Fixture state for the next Post observation only. Production Source
+        // completion/publication/barriers are checked by the Source consumer.
+        if (cachedStandalone) assert.equal(job.round, undefined)
+        else {
+          const policy = await Effect.runPromise(ledger.rounds.policyWork(job.round))
+          assert.equal(policy.completeSource(job.workObservationId), true)
+        }
+        assert.equal(
+          run(ledger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)),
+          true
+        )
+        job.completed = true
+      }
       if (mode === "retention-joined-pending") {
         const ownerUnits = [...run(transaction.read).records.reuse.pending.values()].filter(Boolean)
         assert.equal(ownerUnits.length, prepared.outcomes.filter((outcome) => outcome.status === "ready").length)
@@ -285,7 +286,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
         job.completed = false
         context.activeWorkspaces.add(secondPreparation.reservation)
         context.expectedActivityUnits.length = 0
-        if (useOwned) {
+        {
           const sourceResult = await connection.owned.startPreparation(secondPreparation)
           const secondPrepared = decodePreparation(sourceResult, identity)
           assert.deepEqual(secondPrepared, prepared)
@@ -320,10 +321,22 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
             }
             continued = accepted.continued === true
           }
-        } else continued = await Effect.runPromise(postFlow(context, prepared, secondPreparation, observation, false))
+        }
         if (!faultJoinRestore) {
           assert.equal(continued, true)
-          await Effect.runPromise(completeSourcePreparation(context))
+          {
+            // Fixture state for the next Post observation only. Production Source
+            // completion/publication/barriers are checked by the Source consumer.
+            const policy = await Effect.runPromise(ledger.rounds.policyWork(job.round))
+            assert.equal(policy.completeSource(job.workObservationId), true)
+            assert.equal(
+              run(
+                ledger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)
+              ),
+              true
+            )
+            job.completed = true
+          }
         }
         const snapshot = run(transaction.read)
         assert.equal(snapshot.records.dispatch.entries.size, ownerUnits.length)
@@ -420,7 +433,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
       assert.equal(snapshot.records.dispatch.entries.size, 0)
       assert.equal(snapshot.records.reuse.pending.size, 0)
       const tails = unlist(snapshot.resolverCustody.children).filter((child) => child.scope.$ === "AdviceTailScope")
-      assert.equal(tails.length, useOwned ? retained.length : 0)
+      assert.equal(tails.length, retained.length)
       for (const tail of tails) assert.equal(tail.phase.$, "ChildAccepted")
       for (const existing of existingRevisions)
         assert.equal(
@@ -435,22 +448,17 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
       const issuedTails = unlist(snapshot.resolverCustody.children).filter(
         (child) => child.scope.$ === "AdviceTailScope"
       )
-      assert.equal(issuedTails.length, useOwned ? 1 : 0, "one insertion transfers exactly one independent tail")
-      if (useOwned) assert.equal(issuedTails[0].phase.$, "ChildAccepted")
+      assert.equal(issuedTails.length, 1, "one insertion transfers exactly one independent tail")
+      assert.equal(issuedTails[0].phase.$, "ChildAccepted")
       assert.equal(registrations, 1)
       assert.equal(snapshot.records.dispatch.entries.size, 0)
       assert.equal(snapshot.records.reuse.pending.size, 0)
       assert.equal(
         retained.length,
-        ["cutoff", "insert-ack"].includes(cachedFault) ||
-          cachedFault?.startsWith("inspection") ||
-          (cachedFault === "barrier-mixed-remove-before" && !useOwned)
-          ? 1
-          : 0
+        ["cutoff", "insert-ack"].includes(cachedFault) || cachedFault?.startsWith("inspection") ? 1 : 0
       )
       if (cachedFault === "barrier-mixed-remove-before") {
         assert.equal(removalReceipts.length, 1)
-        if (!useOwned) assert.strictEqual(retained[0].capability, removalReceipts[0])
       }
       assert.equal(snapshot.records.revision.current.size, retained.length)
       if (retained.length) {
@@ -515,15 +523,7 @@ export async function consumeRetainedPreparation(connection, result, root, rootI
     return { registrations, ready: prepared.outcomes.filter((outcome) => outcome.status === "ready").length }
   } catch (error) {
     console.error(
-      JSON.stringify({
-        mode,
-        caseName,
-        originalCase,
-        cachedFault,
-        useOwned,
-        cachedStandalone,
-        originalFailure: String(error)
-      })
+      JSON.stringify({ mode, caseName, originalCase, cachedFault, cachedStandalone, originalFailure: String(error) })
     )
     throw error
   } finally {

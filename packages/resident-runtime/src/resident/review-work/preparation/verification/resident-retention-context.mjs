@@ -37,13 +37,7 @@ export async function createResidentRetentionContext(
   connection,
   root,
   rootIdentity,
-  {
-    mode = "retention-success",
-    useOwned = false,
-    cachedStandalone = false,
-    cachedFault,
-    observation: providedObservation
-  } = {}
+  { mode = "retention-success", cachedStandalone = false, cachedFault, observation: providedObservation } = {}
 ) {
   assert.ok(providedObservation, "Retention fixture requires an explicit observation")
   const run = Effect.runSync,
@@ -220,12 +214,9 @@ export async function createResidentRetentionContext(
     let failed = false
     const afterRemoval = (effect) =>
       effect.pipe(Effect.tap(() => (failed ? Effect.void : ((failed = true), Effect.die(removalDie)))))
-    if (useOwned) {
+    {
       const remove = connection.bridge.adviceTailRemove
       connection.bridge.adviceTailRemove = (...args) => afterRemoval(remove(...args))
-    } else {
-      const remove = context.deps.residentRemoveAdvice
-      context.deps.residentRemoveAdvice = (...args) => afterRemoval(remove(...args))
     }
   }
   const removalReceipts = []
@@ -243,18 +234,14 @@ export async function createResidentRetentionContext(
         assert.ok(snapshot.reservations.has(capability.reservation.id))
         removalReceipts.push(capability)
       }).pipe(Effect.andThen(Effect.die(removalDie)))
-    if (useOwned) {
+    {
       const remove = connection.bridge.adviceTailRemove
       connection.bridge.adviceTailRemove = (...args) => (!failed ? ((failed = true), beforeRemoval()) : remove(...args))
-    } else {
-      const remove = context.deps.residentRemoveAdvice
-      context.deps.residentRemoveAdvice = (...args) => (!failed ? ((failed = true), beforeRemoval()) : remove(...args))
     }
   }
   context.deps.residentRetainAdvice = (unit, evaluation, sequence) =>
     residentRetainAdvice(context.deps, unit, evaluation, sequence)
-  if (useOwned)
-    context.ownedAdvice = { bridge: connection.bridge, driver: connection.owned.driver, core: connection.postCore }
+  context.ownedAdvice = { bridge: connection.bridge, driver: connection.owned.driver, core: connection.postCore }
   return {
     retire,
     run,
