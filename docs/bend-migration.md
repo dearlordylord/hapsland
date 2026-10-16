@@ -186,12 +186,12 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Receipt candidate (parent `44fb128d`), 2026-10-16 21:35 UTC: execution/build
-  qualify **0.8581×/0.8376×**; 17 frozen pairs each, build23/46 cached, all inputs
-  unchanged. Mean ratios, not causal speedup claims. TS/Bend median[range], seconds:
-  execution .0827[.0627,.1616]/.0603[.0468,.1732];
-  build4.133[3.712,6.540]/3.473[3.214,5.188]. Last Preparation at34b2e70b:
-  .3537[.2330,.5698]/.4717[.3907,.5776]. Cadence slips32.5,31.3,42.1min.
+- Native custody (parent `24bb2493`), 2026-10-16 21:57/58 UTC: execution/build
+  qualify **0.5151×/0.7961×**; 17 frozen pairs each, build23/46 cached, all inputs
+  unchanged. Mean ratios; no causal speedup claim. TS/Bend median[range], seconds:
+  execution .0921[.0641,.2994]/.0558[.0447,.0906];
+  build4.733[3.698,12.141]/3.921[3.157,10.789]. Last Preparation at34b2e70b:
+  .3537[.2330,.5698]/.4717[.3907,.5776]. Cadence: prior32.5,31.3,42.1min; latest22.2/22.3min.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
@@ -239,14 +239,14 @@ Existing Collection/Handoff/Delivery state owns advice, leases and finish slots.
 Host retains native capabilities, IO and capture/encoding.
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
-Concrete obstacles, in order:
+Current path:
 1. Shared finding/notice fitting now uses compiled BatchFitting and native engine ports;
    six protocol scenarios, public120/5 files, fast41 and23 receipts PASS. A callback
    receiver regression failed before its wrapper fix and passed after. Collection passes
    still require transfer; this does not accept the whole unit.
-2. Receipt transitions/ABI/resident events and1398 owner assertions PASS; generic
-   terminal cannot bypass handoff. Native transfer, disconnect cleanup and universal
-   laws remain open; no production delivery caller is connected yet.
+2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
+   interruption, close/observer faults and cleanup retry. Claimed successors survive
+   predecessor cleanup. Whole laws and production delivery caller remain open.
 3. Connect prepare/finalize, reuse evaluated-input freshness, delete workflow/policy
    loops. Prove whole ordered trace, reply fencing and lease/finish accounting using
    existing atomic primitives.

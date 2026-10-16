@@ -24,6 +24,7 @@ const constructionFailureTag = Symbol("CanonicalConstructionFailure")
  * @typedef {{[constructionFailureTag]: true, kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
  * @typedef {{origin: number, value: unknown, kind?: never}} AdviceInput
  * @typedef {import("./contract.ts").PreparationHandoff} PreparationHandoff
+ * @typedef {import("./contract.ts").DeliveryHandoff} DeliveryHandoff
  * @typedef {{handoff: number, scope: Extract<Scope, {$: "AdviceTailScope"}>}} AdviceHandoff
  * @typedef {Extract<Action, {$: "Launch"}> | (Extract<Action, {$: "LaunchPostPreparation"}> & {input_handle: number, receipt: PreparationHandoff}) | (Extract<Action, {$: "LaunchAdviceTail"}> & {receipt: AdviceHandoff})} Launch
  * @typedef {{command: Extract<Action, {$: "CancelChild"}>, completed: Set<number>}} CancellationCleanup
@@ -116,9 +117,10 @@ export function createChildExecutionDriver({
   protocol
 }) {
   /**
+   * @typedef {{receipt: DeliveryHandoff, projected: P, cleanup: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>, cleaned: boolean, retained: boolean, successor?: DeliveryHandoff}} DeliveryInput
    * @typedef {P | ConstructionFailure} ResultPayload
    * @typedef {{value: Reply} | {error: unknown} | {revoked: true}} ReplyPayload
-   * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined}} Payload
+   * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined, delivery?: DeliveryInput, successor?: DeliveryHandoff} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined} | {kind: "delivery-input", value: DeliveryInput}} Payload
    * @typedef {Payload & {invocation: number}} HeldResource
    * @typedef {import("./contract.ts").Outcome<A>} TerminalOutcome
    */
@@ -299,7 +301,21 @@ export function createChildExecutionDriver({
         hooks.beforeTerminal?.({ invocation, generation, handle: id, driver })
         const child = findChild(invocation)
         const method = protocol.terminal(projected, child.scope)
-        return applyOutcome(invoke(method, invocation, generation, id))
+        const outcome = applyOutcome(
+          typeof method === "string"
+            ? invoke(method, invocation, generation, id)
+            : invoke("complete_delivery", invocation, generation, id, method.selection)
+        )
+        // A transfer action may succeed before an observer throws. Its resource
+        // already belongs to the successor; retain cleanup under that child.
+        if (outcome.rejection) {
+          const held = resources.get(id)
+          if (held?.kind === "delivery-input") {
+            const cancelled = applyOutcome(invoke("cancel", held.invocation))
+            outcome.failures.push(...cancelled.failures)
+          }
+        }
+        return outcome
       } finally {
         release(id, invocation)
       }
@@ -309,6 +325,28 @@ export function createChildExecutionDriver({
   // Keep successful suboperations so a later cleanup retry cannot replay them.
   /** @type {Map<number, CancellationCleanup>} */
   const cancellationCleanup = new Map()
+  /** @param {number} handle @param {number} invocation @param {DeliveryInput} input */
+  const cleanDeliveryFlow = function* (handle, invocation, input) {
+    if (!input.cleaned) {
+      yield* input.cleanup()
+      input.cleaned = true
+    }
+    const pending = cancellationCleanup.get(invocation)
+    if (pending) {
+      const outcome = runCancellationCleanup(pending)
+      if (outcome.rejection) throw outcome.rejection.error
+      cancellationCleanup.delete(invocation)
+    }
+    release(handle, invocation)
+  }
+  /** @param {number} handle @param {number} invocation @param {DeliveryInput} input */
+  const retainDeliveryCleanup = (handle, invocation, input) => {
+    if (input.retained || input.successor) return
+    registry.retainConstructionCleanupFlow(invocation, undefined, function* () {
+      yield* cleanDeliveryFlow(handle, invocation, input)
+    })
+    input.retained = true
+  }
   /** @param {CancellationCleanup} obligation @returns {ActionOutcome} */
   const runCancellationCleanup = (obligation) => {
     const { command, completed } = obligation
@@ -317,6 +355,9 @@ export function createChildExecutionDriver({
       () => sessions.get(invocation)?.revoke(),
       () => engine(invocation).disposeInvocation(invocation),
       () => {
+        for (const [handle, held] of resources)
+          if (held.invocation === invocation && held.kind === "delivery-input")
+            retainDeliveryCleanup(handle, invocation, held.value)
         const pending = launches.get(invocation)
         if (pending) {
           release(pending.input_handle, invocation)
@@ -342,6 +383,7 @@ export function createChildExecutionDriver({
         failures.push({ phase: "action", command, operation: index, error })
       }
     }
+    if (!failures.length && !sessions.has(invocation)) cancellationCleanup.delete(invocation)
     return { failures, rejection: failures[0] }
   }
   /** @param {Action} command @returns {ActionOutcome | undefined} */
@@ -352,6 +394,46 @@ export function createChildExecutionDriver({
         launches.set(invocation, command)
         stats.launches++
         break
+      case "IssueDeliveryHandoff": {
+        const raw = command.receipt
+        try {
+          const projected = load(raw.input_handle, invocation, "result")
+          if (constructionFailure(projected)) throw new Error("Invalid delivery handoff payload")
+          const child = owner.find(raw.invocation, current().children)
+          if (child.$ !== "Some" || !owner.delivery_receipt_matches(child.value, raw))
+            throw new Error("Delivery handoff lacks Canonical custody")
+          const receipt = Object.freeze({ handoff: raw.invocation, receipt: raw })
+          const transfer = required(protocol.deliveryHandoff)(projected, required(sessions.get(invocation)), receipt)
+          resources.set(raw.input_handle, {
+            invocation: raw.invocation,
+            kind: "delivery-input",
+            value: { receipt, projected, cleanup: transfer.cleanup, cleaned: false, retained: false }
+          })
+          const previous = owner.find(invocation, current().children)
+          const input =
+            previous.$ === "Some" && previous.value.scope.$ === "DeliveryScope"
+              ? resources.get(previous.value.scope.input_handle)
+              : undefined
+          if (input?.kind === "input") {
+            input.successor = receipt
+            if (input.delivery) input.delivery.successor = receipt
+          }
+          finished.set(invocation, transfer.accepted)
+          stats.accepted++
+        } catch (error) {
+          const primary = { phase: "action", command, error }
+          try {
+            const cleanup = applyOutcome(invoke("cancel", raw.invocation))
+            return { failures: [primary, ...cleanup.failures], rejection: primary }
+          } catch (cleanupError) {
+            return {
+              failures: [primary, { phase: "handoff-cleanup", command, error: cleanupError }],
+              rejection: primary
+            }
+          }
+        }
+        break
+      }
       case "LaunchAdviceTail": {
         const held = resources.get(command.input_handle)
         if (!held || held.invocation !== 0 || held.kind !== "advice-input" || held.value.origin !== command.origin)
@@ -497,8 +579,8 @@ export function createChildExecutionDriver({
   }
   /** @param {Step} step */
   const apply = (step) => unwrap(applyOutcome(step))
-  /** @param {S} session @param {I} input @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
-  function* driveInvocationFlow(session, input, options = {}) {
+  /** @param {S} session @param {I} input @param {ForeignOptions} [options] @param {DeliveryInput} [delivery] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  function* driveInvocationFlow(session, input, options = {}, delivery) {
     if ([...sessions.values()].includes(session) || registry.get(session.invocation) === session)
       throw new Error("Session already owned by an active invocation")
     const invocation = Number(BigInt(input.invocation)),
@@ -510,6 +592,7 @@ export function createChildExecutionDriver({
       if (missing.rejection) throw missing.rejection.error
       throw new Error("Missing Canonical Launch")
     }
+    let nativeInput = resources.get(launch.input_handle)
     let taskEntered = false,
       registryRejected = false
     /** @type {Failure | undefined} */
@@ -555,12 +638,22 @@ export function createChildExecutionDriver({
       launches.delete(invocation)
       sessions.set(invocation, session)
       machines.set(invocation, (selectMachine ? selectMachine(input, session) : undefined) ?? machine)
-      resources.set(launch.input_handle, { invocation, kind: "input", value: input })
+      if (!delivery) {
+        resources.set(launch.input_handle, { invocation, kind: "input", value: input })
+        nativeInput = resources.get(launch.input_handle)
+      }
       invocationSignals.set(invocation, options.signal)
       const registryOutcome = yield* registry.runOutcomeFlow(
         session,
         /** @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */ function* () {
           taskEntered = true
+          // Registry registration precedes this task. Until then the issued
+          // resource remains available to cancellation without a session.
+          if (delivery) {
+            if (!requireActive(invocation)) throw new Error("Delivery cancelled before registration")
+            resources.set(launch.input_handle, { invocation, kind: "input", value: input, delivery })
+            nativeInput = resources.get(launch.input_handle)
+          }
           /** @type {Failure | undefined} */
           let abortFailure
           const abort = () => {
@@ -811,6 +904,25 @@ export function createChildExecutionDriver({
     const finalization = yield* completeInvocationOutcome()
     failures.push(...finalization.failures)
     if (finalization.rejection) registry.retainCleanupFlow(session, completeInvocation)
+    // An unsuccessful caller cannot receive a newly issued continuation. Revoke
+    // only its still-unclaimed successor; a caller that already claimed owns it.
+    if (failures.length && nativeInput?.kind === "input" && nativeInput.successor) {
+      const receipt = nativeInput.successor
+      const held = resources.get(receipt.receipt.input_handle)
+      const child = owner.find(receipt.handoff, current().children)
+      if (
+        held?.kind === "delivery-input" &&
+        held.value.receipt === receipt &&
+        child.$ === "Some" &&
+        owner.delivery_receipt_matches(child.value, receipt.receipt)
+      ) {
+        try {
+          failures.push(...applyOutcome(invoke("cancel", receipt.handoff)).failures)
+        } catch (error) {
+          failures.push({ phase: "handoff-cleanup", error })
+        }
+      }
+    }
     if (failures.length === 1) throw required(failures[0]).error
     if (failures.length > 1) {
       /** @type {unknown} */
@@ -867,6 +979,55 @@ export function createChildExecutionDriver({
       if (!entered) yield* closeUnregisteredFlow(session)
     }
   }
+  /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  function* driveDeliveryFlow(receipt, construct, options = {}) {
+    const invocation = receipt.handoff,
+      handle = receipt.receipt.input_handle
+    const held = resources.get(handle)
+    // Refusal cannot revoke another caller's already-running invocation.
+    if (!held || held.invocation !== invocation || held.kind !== "delivery-input" || held.value.receipt !== receipt)
+      throw new Error("Unknown or consumed delivery handoff capability")
+    const claim = invoke("claim_delivery", receipt.receipt)
+    if (claim.$ !== "Advanced") {
+      apply(claim)
+      throw new Error("Unreachable rejected delivery claim")
+    }
+    let constructed,
+      entered = false
+    try {
+      apply(claim)
+      if (!requireActive(invocation)) throw new Error("Delivery cancelled before construction")
+      constructed = yield* construct(held.value.projected, invocation)
+      if (constructed.input.invocation !== invocation || constructed.session.invocation !== invocation)
+        throw new Error("Delivery construction changed Canonical invocation")
+      if (!requireActive(invocation)) throw new Error("Delivery cancelled during construction")
+      entered = true
+      return yield* driveInvocationFlow(constructed.session, constructed.input, options, held.value)
+    } catch (error) {
+      const failures = [error]
+      try {
+        const child = owner.find(invocation, current().children)
+        if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
+      } catch (cleanupError) {
+        failures.push(cleanupError)
+      }
+      try {
+        retainDeliveryCleanup(handle, invocation, held.value)
+      } catch (cleanupError) {
+        failures.push(cleanupError)
+      }
+      if (constructed && !entered) {
+        try {
+          yield* closeUnregisteredFlow(constructed.session)
+        } catch (cleanupError) {
+          failures.push(cleanupError)
+        }
+      }
+      if (failures.length > 1)
+        throw nativeFailureAggregate(failures, "Delivery construction and cleanup failed", { cause: error })
+      throw error
+    }
+  }
   /** @param {(options: ForeignOptions) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} flow @param {ForeignOptions} options */
   const runEffectFlow = (flow, options) =>
     Effect.suspend(() => {
@@ -917,6 +1078,28 @@ export function createChildExecutionDriver({
         } else resources.delete(inputId)
         throw error
       }
+    },
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @returns {number} */
+    allocateCollectionInvocation(context) {
+      const invocation = current().next_invocation
+      if (!Number.isSafeInteger(invocation) || invocation < 1)
+        throw new RangeError("Invocation exceeds exact native ID range")
+      const inputId = save(invocation, { kind: "input", value: undefined })
+      try {
+        apply(invoke("launch_collection", context, inputId))
+        return invocation
+      } catch (error) {
+        try {
+          driver.constructionFailed(invocation, { inputHandle: inputId })
+        } catch (cleanup) {
+          throw nativeFailureAggregate([error, cleanup], "Collection publication and cleanup failed", { cause: error })
+        }
+        throw error
+      }
+    },
+    /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] */
+    driveDeliveryEffect(receipt, construct, options = {}) {
+      return runEffectFlow((execution) => driveDeliveryFlow(receipt, construct, execution), options)
     },
     /** @returns {number} */
     allocateSettingsInvocation() {
@@ -1088,6 +1271,9 @@ export function createChildExecutionDriver({
     },
     get stats() {
       return { ...stats }
+    },
+    get pendingCancellationCleanups() {
+      return cancellationCleanup.size
     },
     get resources() {
       return {

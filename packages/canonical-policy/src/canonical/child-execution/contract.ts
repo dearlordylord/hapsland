@@ -87,6 +87,7 @@ export type ForeignReply<Reply> =
   | { readonly group: { readonly checkpoints?: "canonical"; readonly next: () => ForeignCommand<Reply> } }
 
 export type Projection = { readonly kind: string; readonly view: { readonly $: string } }
+export type DeliveryHandoff = { readonly handoff: number; readonly receipt: Owner.DeliveryReceipt }
 export type PreparationHandoff = {
   readonly handoff: number
   readonly scope: Extract<Owner.Scope, { $: "RetainingScope" }>
@@ -122,7 +123,18 @@ export type Protocol<
   resume(continuation: C, reply: Reply): C
   awaitRequest(projection: P): R | undefined
   installation(projection: P, scope: Owner.Scope): Installation
-  terminal(projection: P, scope: Owner.Scope): TerminalMethod
+  terminal(
+    projection: P,
+    scope: Owner.Scope
+  ): TerminalMethod | { readonly method: "complete_delivery"; readonly selection: Owner.DeliverySelection }
+  deliveryHandoff?(
+    projection: P,
+    session: S,
+    receipt: DeliveryHandoff
+  ): {
+    readonly accepted: Accepted
+    readonly cleanup: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>
+  }
   accepted(projection: P): Accepted
   preparation(projection: P): Preparation
   projectTerminal(outcome: Outcome<Accepted>, session: S): Outcome<Accepted>

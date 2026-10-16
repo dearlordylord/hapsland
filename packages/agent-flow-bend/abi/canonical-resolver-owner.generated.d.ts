@@ -153,6 +153,7 @@ export interface CanonicalResolverOwner {
   launch_freshness(state: State, input_handle: number): Step
   launch_collection(state: State, context: DeliveryContext, input_handle: number): Step
   claim_delivery(state: State, receipt: DeliveryReceipt): Step
+  delivery_receipt_matches(child: Child, receipt: DeliveryReceipt): boolean
   complete_delivery(state: State, invocation: number, generation: number, result_handle: number, selection: DeliverySelection): Step
   launch(state: State, scope: Scope, input_handle: number): Step
   launch_preparation(state: State, scope: Scope, input_handle: number): Step

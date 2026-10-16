@@ -1,5 +1,7 @@
 import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
+import { createNativeSessionRegistry } from "@hapsland/runtime-environment/runtime/native-session-registry"
+import { awaitNative, effectNative } from "@hapsland/runtime-environment/runtime/native-execution"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
@@ -79,6 +81,291 @@ try {
     return s
   }
   let assertions = 0
+  {
+    const context = {
+      $: "DeliveryContext",
+      request: 41,
+      recipient: 7,
+      partition: 1,
+      lifetime: 1,
+      round: { $: "Some", value: 1 },
+      local_delivery: false
+    }
+    const selection = { $: "NoDeliverySelection" }
+    const fixture = (fault = {}) => {
+      const registry = createNativeSessionRegistry()
+      const physical = { identity: {}, releases: 0, attempts: 0, handoffs: [] }
+      const closed = []
+      const cleanup = function* () {
+        physical.attempts++
+        if (fault.cleanup && physical.attempts === 1) throw new Error("delivery cleanup fault")
+        if (!physical.releases) physical.releases++
+      }
+      const machine = {
+        initial: (input) => input,
+        view: (input) => ({ kind: "delivery", view: { $: "Finished" }, input }),
+        resume() {
+          throw new Error("No provider in custody fixture")
+        },
+        disposeInvocation() {},
+        retainedHandles: 0
+      }
+      const session = (invocation) => ({
+        invocation,
+        close() {
+          closed.push(invocation)
+          if (fault.closePrepare && invocation === 2 && closed.filter((id) => id === 2).length === 1)
+            throw new Error("delivery close fault")
+        },
+        revoke() {}
+      })
+      const driver = createChildExecutionDriver({
+        owner: m,
+        initialState: fresh(),
+        registry: fault.registration
+          ? {
+              ...registry,
+              get size() {
+                return registry.size
+              },
+              get pendingCleanup() {
+                return registry.pendingCleanup
+              },
+              *runOutcomeFlow(session, task) {
+                if (session.invocation !== 1) throw new Error("delivery registration fault")
+                return yield* registry.runOutcomeFlow(session, task)
+              }
+            }
+          : registry,
+        machine,
+        foreign: async () => {
+          throw new Error("No external provider")
+        },
+        hooks: {
+          afterAction({ command, driver }) {
+            if (command.$ === "IssueDeliveryHandoff" && command.invocation === 2)
+              fault.afterTransfer?.(physical.handoffs.at(-1), driver)
+            if (fault.observer && command.$ === "IssueDeliveryHandoff") throw new Error("delivery observer fault")
+          }
+        },
+        protocol: {
+          initial: (_machine, input) => machine.initial(input),
+          view: machine.view,
+          resume: machine.resume,
+          awaitRequest: () => undefined,
+          installation: () => ({ method: "install" }),
+          terminal: () => ({ method: "complete_delivery", selection }),
+          preparation() {
+            throw new Error("Not Preparation")
+          },
+          accepted: (projection) => ({ result: projection.input.physical }),
+          deliveryHandoff(projection, _session, receipt) {
+            assert.equal(projection.input.physical, physical)
+            if (fault.validation) throw new Error("delivery validation fault")
+            physical.handoffs.push(receipt)
+            return { accepted: { handoff: receipt }, cleanup }
+          },
+          projectTerminal: (outcome) => outcome
+        }
+      })
+      const issue = async () => {
+        const invocation = driver.allocateCollectionInvocation(context)
+        try {
+          const outcome = await Effect.runPromise(driver.driveEffect(session(invocation), { invocation, physical }))
+          return outcome.handoff
+        } catch (error) {
+          // Original request owns the capability until successful handoff.
+          if (!physical.releases) physical.releases++
+          throw error
+        }
+      }
+      const construct = function* (projection, invocation) {
+        assert.equal(projection.input.physical, physical)
+        return { session: session(invocation), input: { invocation, physical } }
+      }
+      return { registry, physical, driver, session, issue, construct, closed }
+    }
+    {
+      const f = fixture(),
+        receipt = await f.issue()
+      assert.equal(f.closed.length, 1)
+      assert.equal(f.physical.releases, 0)
+      assert.equal(f.driver.resources.payloads, 1)
+      assert.equal(f.driver.resources.launches, 0)
+      await assert.rejects(
+        Effect.runPromise(f.driver.driveDeliveryEffect({ ...receipt }, f.construct)),
+        /Unknown or consumed/
+      )
+      const next = await Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct))
+      assert.equal(f.physical.releases, 0)
+      assert.equal(next.handoff.receipt.permission.$, "FinalizeDeliveryIssued")
+      assert.throws(() => f.driver.cancel(receipt.receipt.origin), /WrongPhase/)
+      assert.equal(f.physical.releases, 0)
+      const final = await Effect.runPromise(f.driver.driveDeliveryEffect(next.handoff, f.construct))
+      assert.equal(final.result, f.physical)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.size, 0)
+      assert.equal(f.registry.pendingCleanup, 0)
+      await assert.rejects(Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)), /Unknown or consumed/)
+    }
+    {
+      const f = fixture({ cleanup: true }),
+        receipt = await f.issue()
+      f.driver.cancel(receipt.handoff)
+      assert.equal(f.registry.size, 0)
+      assert.equal(f.registry.pendingCleanup, 1)
+      await assert.rejects(Effect.runPromise(f.registry.retryCleanupEffect()), /delivery cleanup fault/)
+      assert.equal(f.registry.pendingCleanup, 1)
+      assert.equal(f.physical.releases, 0)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.attempts, 2)
+      assert.equal(f.registry.pendingCleanup, 0)
+      assert.equal(f.driver.resources.payloads, 0)
+      await assert.rejects(Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)), /Unknown or consumed/)
+    }
+    for (const fault of ["validation", "observer"]) {
+      const f = fixture({ [fault]: true })
+      await assert.rejects(f.issue(), new RegExp("delivery " + fault + " fault"))
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.pendingCleanup, 0)
+    }
+    {
+      const f = fixture(),
+        receipt = await f.issue()
+      await assert.rejects(
+        Effect.runPromise(
+          f.driver.driveDeliveryEffect(receipt, function* () {
+            throw new Error("delivery construction fault")
+          })
+        ),
+        /delivery construction fault/
+      )
+      assert.equal(f.registry.pendingCleanup, 1)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    {
+      const f = fixture(),
+        receipt = await f.issue()
+      let begin, release
+      const started = new Promise((resolve) => {
+        begin = resolve
+      })
+      const gate = new Promise((resolve) => {
+        release = resolve
+      })
+      const first = Effect.runPromise(
+        f.driver.driveDeliveryEffect(receipt, function* (projection, invocation) {
+          begin()
+          yield awaitNative(gate)
+          return yield* f.construct(projection, invocation)
+        })
+      )
+      await started
+      await assert.rejects(Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)), /WrongPhase/)
+      assert.equal(m.child_active(m.find(receipt.handoff, f.driver.state.children).value), true)
+      assert.equal(f.physical.releases, 0)
+      release()
+      const next = await first
+      f.driver.cancel(next.handoff.handoff)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    {
+      const f = fixture({ registration: true }),
+        receipt = await f.issue()
+      await assert.rejects(
+        Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)),
+        /delivery registration fault/
+      )
+      assert.equal(f.registry.size, 0)
+      assert.equal(f.registry.pendingCleanup, 1)
+      assert.ok(f.closed.includes(receipt.handoff))
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.driver.pendingCancellationCleanups, 0)
+    }
+    {
+      const f = fixture(),
+        receipt = await f.issue(),
+        cancellation = new AbortController()
+      let begin
+      const started = new Promise((resolve) => {
+        begin = resolve
+      })
+      const pending = Effect.runPromiseExit(
+        f.driver.driveDeliveryEffect(receipt, function* () {
+          begin()
+          yield effectNative(Effect.never)
+          throw new Error("Interrupted construction resumed")
+        }),
+        { signal: cancellation.signal }
+      )
+      await started
+      cancellation.abort()
+      const exit = await pending
+      assert.equal(exit._tag, "Failure")
+      assert.equal(f.registry.size, 0)
+      assert.equal(f.registry.pendingCleanup, 1)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.driver.pendingCancellationCleanups, 0)
+    }
+    {
+      const f = fixture({ closePrepare: true }),
+        receipt = await f.issue()
+      await assert.rejects(
+        Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)),
+        /delivery close fault/
+      )
+      const successor = f.physical.handoffs.at(-1)
+      assert.equal(m.child_active(m.find(successor.handoff, f.driver.state.children).value), false)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    {
+      let running, release
+      const gate = new Promise((resolve) => {
+        release = resolve
+      })
+      const f = fixture({
+        closePrepare: true,
+        afterTransfer(receipt, driver) {
+          running = Effect.runPromise(
+            driver.driveDeliveryEffect(receipt, function* (projection, invocation) {
+              yield awaitNative(gate)
+              return yield* f.construct(projection, invocation)
+            })
+          )
+        }
+      })
+      const receipt = await f.issue()
+      await assert.rejects(
+        Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)),
+        /delivery close fault/
+      )
+      const successor = f.physical.handoffs.at(-1)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(m.child_active(m.find(successor.handoff, f.driver.state.children).value), true)
+      assert.equal(f.physical.releases, 0)
+      assert.equal(f.physical.attempts, 0)
+      release()
+      const result = await running
+      assert.equal(result.result, f.physical)
+      assert.equal(f.driver.resources.payloads, 0)
+    }
+    assertions += 10
+  }
   {
     const context = {
       $: "DeliveryContext",
