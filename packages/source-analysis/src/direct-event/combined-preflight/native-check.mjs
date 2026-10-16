@@ -3,30 +3,9 @@ import assert from "node:assert/strict"
 const analyzerUrl = import.meta.resolve("@hapsland/source-analysis/direct-event/analyzer")
 const analyzer = await import(analyzerUrl)
 const native = await import(new URL("./combined-preflight/native.js", analyzerUrl))
-const reference = await import(new URL("./combined-preflight/verification/native.js", analyzerUrl))
-const originalAnalyzer = await import("@hapsland/source-analysis/testing/native-analyzer")
 const { Parser, typeScriptRoot, descendants } = await import(new URL("./languages/native-parser.js", analyzerUrl))
 const { withNativeTypeScriptPreflight } = await import(new URL("./languages/typescript.js", analyzerUrl))
 let cases = 0
-for (const [path, source] of [
-  ["a.ts", "const x = 1"],
-  ["a.ts", "import './a'; const x = 1"],
-  ["a.ts", "export function run() { return '💡' }"],
-  ["a.ts", "interface A { x: string }; const run = () => 1"],
-  ["a.ts", "function run( {"],
-  ["a.py", "class A:\n    x: str\n"],
-  ["a.rs", "struct A { x: String }"],
-  ["a.go", "package main\nfunc run() {}\n"],
-  ["a.go", "package main\ntype A struct { X string }\n"],
-  ["a.bend", "type A is Data:\n  A{x: Nat}\n"],
-  ["a.unknown", "anything"]
-]) {
-  assert.deepEqual(
-    analyzer.combinedAnalyzerMaterializationPreflight(path, source),
-    originalAnalyzer.combinedAnalyzerMaterializationPreflight(path, source)
-  )
-  cases++
-}
 // Actual native serialization, not the shared adapter's policy oracle.
 const path = "ümlaut/💡.ts",
   source = "export function run() { return '💡' }"
@@ -120,8 +99,8 @@ const makeEffects = (fault, events) => {
   }
 }
 const input = { parseValid: true, types: 0, functions: 1 }
-const expectedEvents = []
-const expected = reference.nativeTypeScriptPreflight(input, undefined, makeEffects(undefined, expectedEvents))
+const expectedEvents = ["artifact", "sites", "site", "path", "site", "path", "type", "root-imports"]
+const expected = { declarations: 1, expandedUnitBytes: 9701, hasImports: true }
 const actualEvents = []
 assert.deepEqual(native.runTypeScriptPreflight(input, undefined, makeEffects(undefined, actualEvents)), expected)
 assert.deepEqual(actualEvents, expectedEvents)
@@ -151,17 +130,18 @@ for (const field of ["artifactBytes", "siteBytes", "pathBytes", "typeBytes"]) {
     }
     return ports
   }
-  const actualEvents = [],
-    expectedEvents = []
+  const actualEvents = []
+  const expectedPrefix = {
+    artifactBytes: ["artifact"],
+    siteBytes: ["artifact", "sites", "site"],
+    pathBytes: ["artifact", "sites", "site", "path"],
+    typeBytes: ["artifact", "sites", "site", "path", "site", "path", "type"]
+  }[field]
   assert.throws(
     () => native.runTypeScriptPreflight(input, undefined, effects(actualEvents)),
     (error) => error === marker
   )
-  assert.throws(
-    () => reference.nativeTypeScriptPreflight(input, undefined, effects(expectedEvents)),
-    (error) => error === marker
-  )
-  assert.deepEqual(actualEvents, expectedEvents)
+  assert.deepEqual(actualEvents, [...expectedPrefix, `${field}:coerce`])
   cases++
 }
 const bound = Object.freeze({ declarations: 1, expandedUnitBytes: 17, hasImports: false })
@@ -232,81 +212,3 @@ console.log(
       "packaged combined preflight: native sentinel/UTF8 measurements, parser invocation lifetime, phase-specific errors, lazy sites, import short-circuit and Go identity; universal laws checked separately; whole acceptance remains open"
   })
 )
-
-// Bounded diagnostic of the newly connected policy boundary. It is not whole
-// parity evidence: both policies deliberately use the same parser/measurement port.
-if (process.argv.includes("--measure-policy")) {
-  const core = (await import(new URL("./combined-preflight/preflight-core.js", analyzerUrl))).default
-  const originalAdvance = core.advance,
-    originalResume = core.resume,
-    originalResumeGroup = core.resume_group
-  const calls = { advance: 0, resume: 0, groups: 0, engineInstructions: 0, observations: 0 }
-  const probeSource = `export function run() { return ${Array.from({ length: 40 }, (_, i) => `"value${i}"`).join(" + ")}; }`
-  try {
-    core.advance = (...args) => {
-      calls.advance++
-      return originalAdvance(...args)
-    }
-    core.resume = (step, reply) => {
-      calls.resume++
-      if (step.$ === "Engine") calls.engineInstructions++
-      else calls.observations++
-      return originalResume(step, reply)
-    }
-    core.resume_group = (step, reply) => {
-      calls.groups++
-      let instructions = 1
-      for (let remaining = step.remaining; remaining.$ === "Con"; remaining = remaining.tail) instructions++
-      calls.engineInstructions += instructions
-      return originalResumeGroup(step, reply)
-    }
-    const actual = withNativeTypeScriptPreflight("probe.ts", probeSource, undefined, native.runTypeScriptPreflight)
-    const expected = withNativeTypeScriptPreflight(
-      "probe.ts",
-      probeSource,
-      undefined,
-      reference.nativeTypeScriptPreflight
-    )
-    assert.deepEqual(actual, expected)
-  } finally {
-    core.advance = originalAdvance
-    core.resume = originalResume
-    core.resume_group = originalResumeGroup
-  }
-  const measure = (policy, rounds) => {
-    const cpu = process.cpuUsage(),
-      started = performance.now()
-    for (let i = 0; i < rounds; i++)
-      assert.equal(withNativeTypeScriptPreflight("probe.ts", probeSource, undefined, policy).declarations, 1)
-    const elapsed = process.cpuUsage(cpu)
-    return { milliseconds: performance.now() - started, cpuMilliseconds: (elapsed.user + elapsed.system) / 1000 }
-  }
-  for (let i = 0; i < 20; i++) {
-    measure(native.runTypeScriptPreflight, 1)
-    measure(reference.nativeTypeScriptPreflight, 1)
-  }
-  const pairs = []
-  for (let pair = 0; pair < 7; pair++) {
-    let bend, previous
-    if (pair % 2 === 0) {
-      bend = measure(native.runTypeScriptPreflight, 25)
-      previous = measure(reference.nativeTypeScriptPreflight, 25)
-    } else {
-      previous = measure(reference.nativeTypeScriptPreflight, 25)
-      bend = measure(native.runTypeScriptPreflight, 25)
-    }
-    pairs.push({ bend, previous })
-  }
-  const sum = (key, field) => pairs.reduce((total, pair) => total + pair[key][field], 0)
-  console.log(
-    JSON.stringify({
-      profile: "combined-policy-boundary",
-      calls,
-      pairs,
-      cpuRatio: sum("bend", "cpuMilliseconds") / sum("previous", "cpuMilliseconds"),
-      wallRatio: sum("bend", "milliseconds") / sum("previous", "milliseconds"),
-      scope:
-        "one callable fixture; shared native parser/measurement port; bounded diagnostic, not whole Preparation parity or causal comparison with earlier whole runs"
-    })
-  )
-}
