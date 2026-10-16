@@ -179,7 +179,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Original proof formatting | Closed: formatter0.1.23 (`55e106a`), nine proofs conform; attachment unchanged. |
 | Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 16:21 UTC qualifies **1.4334×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Earlier current-native runs are historical; their oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing references and 928 closed Graph diagnostic lines , three native entry/expansion runners. Explicit-fixture/native-fact consumers pass: public Preparation13, Post23360/sizing131, Source59/6687+34 physical, resident52/11316+893Post, resident Graph13/629, public Graph76, owned Graph113/4847:58 full trees/effects/caches, rollback/targets/budgets, mixed/Rust and3capture faults, Python composition18/7125 fences, pure result4, clock4/cancellation7, Python session9/1547, local657/signed4378. Deletion: build46/46, fast, 23 receipts, Canonical113/4847 pass. Spec20/protocol25 now have no native oracle; remaining: Go authority and host audit. |
+| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing references and 928 Graph diagnostic lines, three native entry/expansion runners. Explicit-fixture/native-fact consumers pass: public Preparation13, Post23360/sizing131, Source59/6687+34 physical, resident52/11316+893Post, resident Graph13/629, public Graph76, owned Graph113/4847:58 full trees/effects/caches, rollback/targets/budgets, mixed/Rust and3capture faults, Python composition18/7125 fences, pure result4, clock4/cancellation7, Python session9/1547, local657/signed4378. Deletion: build46/46, fast, 23 receipts, Canonical113/4847 pass. Spec20/protocol25 now have no native oracle; remaining: Go authority/package policy, host audit. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
 Acks/three observations. One-callable CPU ratio 1.3570 is diagnostic only. Whole
@@ -202,8 +202,8 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- `098426e5` execution at 2026-10-16 18:01 UTC qualifies **0.6323×**.
-  Build at 18:01 qualifies **0.8839×**: 17 frozen pairs, all samples 23/46 cached.
+- `9b37e071` execution at 2026-10-16 18:24 UTC qualifies **0.6325×**.
+  Build at 18:25 qualifies **0.8906×**: 17 frozen pairs, all samples 23/46 cached.
   New build series retains ordinary scheduler/parallelism in both lanes; earlier
   CPU11 series is not directly comparable.
   First 17:31 build refused a leaked candidate producer in baseline; corrected environment passed. The 04:54 CPU11 baseline admission-lock
