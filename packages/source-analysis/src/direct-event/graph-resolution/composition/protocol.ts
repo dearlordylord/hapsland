@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect"
 import { createChildExecutionDriver } from "@hapsland/canonical-policy/canonical/child-execution"
 import type { Protocol, Outcome } from "@hapsland/canonical-policy/canonical/child-execution"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
@@ -121,11 +122,16 @@ export type GraphDriver = Pick<
   | "state"
   | "stats"
   | "resources"
-> & { drive: (...args: Parameters<SharedDriver["drive"]>) => Promise<GraphOutcome> }
+> & {
+  drive: (...args: Parameters<SharedDriver["drive"]>) => Promise<GraphOutcome>
+  driveEffect: (...args: Parameters<SharedDriver["driveEffect"]>) => Effect.Effect<GraphOutcome>
+}
 export function createGraphDriver(options: Options): GraphDriver {
   const shared = createChildExecutionDriver({ ...options, protocol: graphProtocol })
-  const drive = shared.drive
+  const drive = shared.drive,
+    driveEffect = shared.driveEffect
   return Object.assign(shared, {
-    drive: async (...args: Parameters<typeof drive>): Promise<GraphOutcome> => acceptedGraph(await drive(...args))
+    drive: async (...args: Parameters<typeof drive>): Promise<GraphOutcome> => acceptedGraph(await drive(...args)),
+    driveEffect: (...args: Parameters<typeof driveEffect>) => driveEffect(...args).pipe(Effect.map(acceptedGraph))
   })
 }

@@ -1,7 +1,7 @@
 import { symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { resolveCanonicalGraphFixture } from "@hapsland/source-analysis/testing/canonical-graph"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
@@ -587,7 +587,7 @@ describe("Bend cross-file review evidence", () => {
         { ...GRAPH_LIMIT_CEILINGS, files: 1 },
         { ...GRAPH_LIMIT_CEILINGS, sourceBytes, readBytes: capture.byteLength + libraryBytes - 1 }
       ]) {
-        const unit = yield* resolveGraphUnit("model.bend", capture, "Root", {
+        const unit = yield* resolveCanonicalGraphFixture("model.bend", capture, "Root", {
           root,
           rootIdentity: observation.rootIdentity,
           policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -595,7 +595,7 @@ describe("Bend cross-file review evidence", () => {
         })
         expect(unit && omitted(unit.root)).toBe(true)
       }
-      const complete = yield* resolveGraphUnit("model.bend", capture, "Root", {
+      const complete = yield* resolveCanonicalGraphFixture("model.bend", capture, "Root", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -633,7 +633,7 @@ describe("Bend cross-file review evidence", () => {
         { ...GRAPH_LIMIT_CEILINGS, work: 1 }
       ]) {
         const reads: string[] = []
-        const unit = yield* resolveGraphUnit("model.bend", capture, "Root", {
+        const unit = yield* resolveCanonicalGraphFixture("model.bend", capture, "Root", {
           root,
           rootIdentity: observation.rootIdentity,
           policy: DEFAULT_DIRECT_FILE_POLICY,

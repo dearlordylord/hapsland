@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import { addEvent, makeGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { resolveCanonicalGraphFixture } from "@hapsland/source-analysis/testing/canonical-graph"
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "@hapsland/native-observation/direct-event/selection"
 
 describe("bounded function graph candidate", () => {
@@ -24,7 +24,7 @@ describe("bounded function graph candidate", () => {
       const captureResult = yield* captureStable(root, selected, undefined, observation.rootIdentity)
       if (captureResult.status !== "captured") throw new Error("capture failed")
       const capture = captureResult.capture
-      const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "run", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -55,7 +55,7 @@ describe("bounded function graph candidate", () => {
       const captureResult = yield* captureStable(root, selected, undefined, observation.rootIdentity)
       if (captureResult.status !== "captured") throw new Error("capture failed")
       const capture = captureResult.capture
-      const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "run", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -84,7 +84,7 @@ describe("bounded function graph candidate", () => {
       if (captureResult.status !== "captured") throw new Error("capture failed")
       const capture = captureResult.capture
       const reads: string[] = []
-      const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "run", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,

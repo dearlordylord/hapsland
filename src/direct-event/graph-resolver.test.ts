@@ -22,7 +22,7 @@ import {
   type CaptureDiagnostic,
   type StableCapture
 } from "@hapsland/native-observation/direct-event/capture"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
+import { resolveCanonicalGraphFixture } from "@hapsland/source-analysis/testing/canonical-graph"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
@@ -156,7 +156,7 @@ describe("cross-file graph preparation", () => {
           if (captured === undefined) throw new Error("fixture root capture missing")
           const reads: string[] = []
           const diagnostics: { sourcePath: string; diagnostic: CaptureDiagnostic }[] = []
-          const unit = yield* resolveGraphUnit("a.ts", captured, "A", {
+          const unit = yield* resolveCanonicalGraphFixture("a.ts", captured, "A", {
             root,
             rootIdentity: observation.rootIdentity,
             policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -282,7 +282,7 @@ describe("cross-file graph preparation", () => {
       if (captureResult.status !== "captured") throw new Error("root capture failed")
       const capture = captureResult.capture
       const reads: string[] = []
-      const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -314,7 +314,7 @@ describe("cross-file graph preparation", () => {
       if (captureResult.status !== "captured") throw new Error("root capture failed")
       const capture = captureResult.capture
       const reads: string[] = []
-      const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -361,14 +361,14 @@ describe("cross-file graph preparation", () => {
           }
         }
       }
-      const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const exhausted = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         ...base,
         limits: { ...GRAPH_LIMIT_CEILINGS, work: 3 }
       })
       expect(exhausted && hasOmitted(exhausted.root)).toBe(true)
       expect(reads).toEqual(["b.ts", "b.ts", "d.ts", "d.ts"])
       reads.length = 0
-      const enough = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const enough = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         ...base,
         limits: { ...GRAPH_LIMIT_CEILINGS, work: 4 }
       })
@@ -402,13 +402,13 @@ describe("cross-file graph preparation", () => {
           }
         }
       }
-      const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const exhausted = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         ...base,
         limits: { ...GRAPH_LIMIT_CEILINGS, work: 1 }
       })
       expect(exhausted && hasOmitted(exhausted.root)).toBe(true)
       expect(reads).toEqual([])
-      const sufficient = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const sufficient = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         ...base,
         limits: { ...GRAPH_LIMIT_CEILINGS, work: 2 }
       })
@@ -428,7 +428,7 @@ describe("cross-file graph preparation", () => {
       const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
       if (captureResult.status !== "captured") throw new Error("root capture failed")
       const capture = captureResult.capture
-      const complete = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const complete = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -454,7 +454,7 @@ describe("cross-file graph preparation", () => {
       const captureResult = yield* captureStable(root, selected, {}, observation.rootIdentity)
       if (captureResult.status !== "captured") throw new Error("root capture failed")
       const capture = captureResult.capture
-      const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -468,7 +468,7 @@ describe("cross-file graph preparation", () => {
         }
       })
       for (const tighter of [{ depth: 1 }, { work: 1 }, { treeBytes: 1 }] as const) {
-        const denied = yield* resolveGraphUnit("a.ts", capture, "A", {
+        const denied = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
           root,
           rootIdentity: observation.rootIdentity,
           policy: DEFAULT_DIRECT_FILE_POLICY,
@@ -500,7 +500,7 @@ describe("cross-file graph preparation", () => {
       if (captureResult.status !== "captured") throw new Error("root capture failed")
       const capture = captureResult.capture
       const reads: string[] = []
-      const unit = yield* resolveGraphUnit("a.ts", capture, "A", {
+      const unit = yield* resolveCanonicalGraphFixture("a.ts", capture, "A", {
         root,
         rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY,
