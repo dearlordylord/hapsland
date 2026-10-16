@@ -156,13 +156,17 @@ export function fixtureExpectation(fixture, sources) {
       return child("a.cts")
     case "bend-qualified-import":
       return result(unit([expand("A.A", "a.bend", "A")]), 8, [capture(5, "a.bend")])
+    case "mixed-file-bundle":
     case "bend-bundled-list": {
       const declarations = [...languageForPath(path).supportingTypes(path, sources.get(path)).values()]
       const matches = declarations.filter((value) => value.artifact.name === "List")
       assert.equal(matches.length, 1, "one authored bundled List declaration")
       const artifact = matches[0].artifact
       const bundled = { artifact, references: [{ kind: "included", site: { symbol: "List" }, target: artifact.id }] }
-      return result(unit([{ kind: "expanded", site: { symbol: "List" }, node: bundled }]), 8)
+      const references = [{ kind: "expanded", site: { symbol: "List" }, node: bundled }]
+      if (fixture.name === "mixed-file-bundle")
+        return result(unit([...references, expand("A.A", "a.bend", "A")]), 12, [capture(9, "a.bend")])
+      return result(unit(references), 8)
     }
     case "large-local-reuse": {
       const shared = (i) => (i === 6 ? expand("Shared", path, "Shared") : include("Shared", path, "Shared"))
@@ -200,6 +204,11 @@ export function fixtureExpectation(fixture, sources) {
         [...children, "shared.ts"]
       )
     }
+    case "rust-malformed-cargo-port":
+      return rootRefusal(undefined, 11, ["Cargo.toml"], [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
+    case "rust-function-binding-unsupported":
+      return noUnit(9, [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
+    case "rust-private-preparation-cache":
     case "rust-context-read-policy":
     case "rust-date-library":
     case "rust-cargo-root":
@@ -381,4 +390,29 @@ export function physicalRootExpectation(path, source, name, configuration) {
     },
     sourceDependencies: python ? [] : ["go.mod", dependency]
   }
+}
+
+// Failure prefixes are authored independently of both drivers. A failed capture
+// must preserve the original defect, stop all suffix effects and retain only
+// captures completed before the failure.
+export function assertProviderFailureOutcome({ fixture, events, cache, stable }) {
+  let expectedEvents, expectedCache
+  switch (fixture.name) {
+    case "expansion-capture-provider-error":
+      expectedEvents = clocks(10, [capture(5, "a0.ts"), capture(9, "a1.ts")])
+      expectedCache = [["a0.ts", stable("a0.ts")]]
+      break
+    case "preparation-capture-provider-error":
+      expectedEvents = clocks(5, [capture(4, "Cargo.toml")])
+      expectedCache = [["src/lib.rs", stable("src/lib.rs")]]
+      break
+    case "private-preparation-capture-provider-error":
+      expectedEvents = clocks(13, [capture(4, "Cargo.toml"), capture(12, "src/a.rs")])
+      assert.equal(cache, undefined, "private preparation never exposes its effective cache")
+      break
+    default:
+      throw new Error("Unknown capture failure fixture: " + fixture.name)
+  }
+  assert.deepEqual(events, expectedEvents, fixture.name + " exact prefix and no effects after failure")
+  if (cache) assert.deepEqual([...cache], expectedCache, fixture.name + " retained successful captures only")
 }

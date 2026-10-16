@@ -79,6 +79,36 @@ export function assertOwnedAttachmentFrame(name, terminal, transcript) {
       "refused artifact never published"
     )
     assert.deepEqual([frame.next_node, frame.next_edge, frame.next_target], [2, 3, 3])
+    assert.deepEqual(entries(frame.visited), [["root.ts:interface:Root", true]], "refused A is not visited")
+    assert.deepEqual(
+      entries(frame.captured).map(([path]) => path),
+      ["root.ts"],
+      "tentative A capture is not published"
+    )
+    const rootCapture = entries(frame.captured)[0][1]
+    assert.equal(rootCapture.$, "Some")
+    assert.equal(rootCapture.value.source_bytes, 60)
+    const budget = frame.budget
+    assert.deepEqual([budget.max_targets, budget.work, budget.graph_work, budget.max_depth], [1, 0, 1, 2])
+    assert.deepEqual(
+      entries(budget.targets_by_path).map(([path, targets]) => [path, entries(targets)]),
+      [
+        ["a.ts", [["a.ts\0./b\0B", true]]],
+        ["root.ts", [["root.ts\0./a\0A", true]]]
+      ],
+      "retained local work accounting includes detached owner"
+    )
+    assert.deepEqual(unlist(frame.graph.visited), [2, 1], "attempted target remains charged")
+    assert.deepEqual(
+      [frame.graph.files, frame.graph.read_bytes, frame.graph.tree_bytes, frame.graph.work],
+      [2, 2130, 372, 1]
+    )
+    assert.equal(frame.graph.phase.$.split(".").at(-1), "Incomplete")
+    assert.equal(frame.graph.phase.reason.$.split(".").at(-1), "TreeLimit")
+    assert.deepEqual(
+      [frame.graph.skipped_tree, frame.graph.skipped_excluded, frame.graph.skipped_other],
+      [true, false, false]
+    )
     return
   }
   const roots = Array.from({ length: 6 }, (_, i) => pending(0, i, "root.ts", `A${i}`, `./a${i}`, 0))

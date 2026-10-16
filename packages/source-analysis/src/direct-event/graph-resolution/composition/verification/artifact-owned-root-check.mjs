@@ -14,9 +14,15 @@ import { dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Cause from "effect/Cause"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { assertOwnedAttachmentFrame } from "../../attachment/checks/owned-frame-expectations.mjs"
-import { assertFixtureOutcome, physicalRootExpectation } from "./owned-fixture-expectations.mjs"
+import {
+  assertFixtureOutcome,
+  assertProviderFailureOutcome,
+  physicalRootExpectation
+} from "./owned-fixture-expectations.mjs"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
@@ -440,7 +446,59 @@ try {
     },
     limits: { treeBytes: 900 }
   }
-  for (const fixture of [...graphFixtures, finalDeadlineFixture, rollbackFixture]) {
+  const retainedEntryFixtures = [
+    {
+      name: "rust-malformed-cargo-port",
+      path: "src/lib.rs",
+      source: "mod a; pub struct Root {}",
+      files: { "Cargo.toml": "[package\nname=bad", "src/a.rs": "pub struct A {}" },
+      cache: new Map()
+    },
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "rust-private-preparation-cache",
+      cache: undefined
+    },
+    {
+      name: "rust-function-binding-unsupported",
+      path: "src/lib.rs",
+      branch: "function",
+      source: "mod a; pub fn Root() {}",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/a.rs": "pub struct A {}" },
+      cache: new Map()
+    },
+    {
+      name: "mixed-file-bundle",
+      path: "root.bend",
+      source: "import Base\nimport ./a.bend as A\ntype Root is Data:\n  Root{flags: List<&2,U32>, a: A.A}",
+      files: { "a.bend": "type A is Data:\n  A{}" }
+    }
+  ]
+  const providerFailureFixtures = [
+    {
+      ...graphFixtures.find((f) => f.name === "large-import-diamond-cycle"),
+      name: "expansion-capture-provider-error",
+      throwCaptureAfter: 1
+    },
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "preparation-capture-provider-error",
+      throwCaptureAfter: 0
+    },
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "private-preparation-capture-provider-error",
+      cache: undefined,
+      throwCaptureAfter: 1
+    }
+  ]
+  for (const fixture of [
+    ...graphFixtures,
+    finalDeadlineFixture,
+    rollbackFixture,
+    ...retainedEntryFixtures,
+    ...providerFailureFixtures
+  ]) {
     console.log(JSON.stringify({ graphFixture: fixture.name }))
     const fixtureRoot = join(temp, "whole-" + fixture.name)
     await mkdir(fixtureRoot)
@@ -467,8 +525,10 @@ try {
     }
     const bendEvents = []
     const bendCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
+    const injectedError = new Error("fixture provider failure", { cause: new Error("underlying capture fault") })
     const contextFor = (events, cache) => {
-      let ticks = 0
+      let ticks = 0,
+        captures = 0
       return {
         root: fixtureRoot,
         policy: fixture.policy ?? DEFAULT_DIRECT_FILE_POLICY,
@@ -482,6 +542,7 @@ try {
         },
         captureSource: (_root, selected) => {
           events.push(["capture", selected.relativePath])
+          if (captures++ === fixture.throwCaptureAfter) return Effect.die(injectedError)
           return Effect.succeed(
             fixture.unavailable
               ? { status: "unavailable", diagnostic: { stage: "capture", code: "fixture-unavailable", args: {} } }
@@ -547,14 +608,30 @@ try {
       onConstructionFailure: driver.constructionFailed
     })
     try {
-      const product = await Effect.runPromise(resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache)))
+      const exit = await Effect.runPromiseExit(resolver(path, stable(path), "Root", contextFor(bendEvents, bendCache)))
+      if (Exit.isFailure(exit)) {
+        if (fixture.throwCaptureAfter !== undefined) {
+          assert.equal(Cause.squash(exit.cause), injectedError)
+          assert.equal(Cause.squash(exit.cause).cause, injectedError.cause)
+          assert.deepEqual(
+            exit.cause.reasons.map((reason) => ({ kind: reason._tag, defect: reason.defect })),
+            [{ kind: "Die", defect: injectedError }]
+          )
+        }
+        throw Cause.squash(exit.cause)
+      }
+      const product = exit.value
       assert.equal(product, acceptedProduct, fixture.name + " must retain the exact accepted Graph tree")
       actual = product === undefined ? undefined : fromProductValue(product)
     } catch (error) {
       bendError = error
     }
-    assertFixtureOutcome({ fixture, sources, stable, actual, error: bendError, events: bendEvents, cache: bendCache })
-    if (!fixture.technicalFailure) {
+    if (fixture.throwCaptureAfter !== undefined) {
+      assert.equal(bendError, injectedError)
+      assertProviderFailureOutcome({ fixture, events: bendEvents, cache: bendCache, stable })
+    } else
+      assertFixtureOutcome({ fixture, sources, stable, actual, error: bendError, events: bendEvents, cache: bendCache })
+    if (!fixture.technicalFailure && fixture.throwCaptureAfter === undefined) {
       if (fixture.requireUnit) {
         assert.ok(actual, fixture.name + " must return a ReviewUnit")
         if (fixture.name === "large-local-reuse" || fixture.name === "large-import-diamond-cycle")
@@ -629,6 +706,8 @@ try {
     assert.deepEqual(directTerminal, ownedTerminal, fixture.name + " accepted full terminal projection")
     assert.deepEqual(directResult, actual, fixture.name + " IO terminal result")
     assert.equal(directError?.message, bendError?.message, fixture.name + " IO error")
+    if (fixture.throwCaptureAfter !== undefined)
+      assert.equal(directError, injectedError, fixture.name + " IO defect identity")
     assert.deepEqual(directEvents, bendEvents, fixture.name + " IO effects")
     if (bendCache) assert.deepEqual([...directCache], [...bendCache], fixture.name + " IO cache")
     assert.equal(directMachine.retainedHandles, 0, fixture.name + " IO artifact cleanup")
@@ -652,7 +731,10 @@ try {
       finalPublicationDeadlineCases: 1,
       attachmentRollbackCases: 1,
       attachmentTargetOrderCases: 1,
-      completeRequestReplyAndAcceptedTerminalComparisons: graphFixtures.length + 2,
+      retainedEntryCases: retainedEntryFixtures.length,
+      captureProviderFailureCases: providerFailureFixtures.length,
+      completeRequestReplyAndAcceptedTerminalComparisons:
+        graphFixtures.length + 2 + retainedEntryFixtures.length + providerFailureFixtures.length,
       scope:
         "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original fixtures assert full authored trees/refusals, native declaration facts, explicit effects/cache/errors; driver refinement compares full request/reply IO and accepted terminal with the dispatcher verification loop, not an independent Graph algorithm; standalone generic pure-chain/Cause qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })
