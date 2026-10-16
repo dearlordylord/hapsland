@@ -13,12 +13,9 @@ parser.add_argument("lane", choices=["build", "execution", "preparation"])
 parser.add_argument("--baseline", required=True, type=Path)
 parser.add_argument("--environment", type=Path)
 parser.add_argument("--baseline-environment", type=Path)
-parser.add_argument("--preparation-reference", choices=["fixed-baseline", "current-native"], default="fixed-baseline")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[2]
 baseline = args.baseline.resolve()
-if args.preparation_reference == "current-native" and (args.lane != "preparation" or baseline != root):
-    parser.error("current-native is supplemental preparation only; --baseline must name the current checkout")
 if args.baseline_environment and args.lane != "build":
     parser.error("--baseline-environment is supported only for build")
 environment_inputs = {}
@@ -41,7 +38,7 @@ if args.baseline_environment:
     env["HAPSLAND_PERFORMANCE_BASELINE_ENV"] = json.dumps(environment_overrides(args.baseline_environment))
 else:
     env.pop("HAPSLAND_PERFORMANCE_BASELINE_ENV", None)
-env.update(HAPSLAND_PERFORMANCE_BASELINE_ROOT=str(baseline), HAPSLAND_PERFORMANCE_CANDIDATE_ROOT=str(root), HAPSLAND_PREPARATION_REFERENCE=args.preparation_reference)
+env.update(HAPSLAND_PERFORMANCE_BASELINE_ROOT=str(baseline), HAPSLAND_PERFORMANCE_CANDIDATE_ROOT=str(root))
 
 def git(checkout, *options):
     return subprocess.check_output(["git", *options], cwd=checkout)
@@ -123,7 +120,7 @@ qualified = environments_unchanged and result.returncode == 0 and heads_unchange
 parity = qualified and bool(measurement.get(args.lane + "Parity"))
 ratio_limit = 3 if args.lane == "preparation" else 1
 performance_accepted = qualified and isinstance(measurement.get("meanRatio"), (int, float)) and measurement["meanRatio"] <= ratio_limit
-record = {"environmentFileHashes": environment_inputs, "environmentFilesUnchanged": environments_unchanged, "startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "supplemental current-native whole preparation" if args.lane == "preparation" and args.preparation_reference == "current-native" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
+record = {"environmentFileHashes": environment_inputs, "environmentFilesUnchanged": environments_unchanged, "startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
 (output / "qualification.json").write_text(json.dumps(record, indent=2) + "\n")
-print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "preparationReference": args.preparation_reference if args.lane == "preparation" else None, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
+print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "preparationReference": "fixed-baseline" if args.lane == "preparation" else None, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
 raise SystemExit(0 if performance_accepted else 1)

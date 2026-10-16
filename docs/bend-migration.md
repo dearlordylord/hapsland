@@ -207,7 +207,6 @@ that only bridges helper names.
   deadline; warm preparation repeats it. Stopped-writer custody reconciled.
   No successful resumed build ratio; unchanged retries closed.
   Prior primary execution/build pass 0.7761/0.8300 (23:22/23:23 UTC).
-  Prior 22:55/22:56 pass 0.7085/0.8612 started 4m52s/4m55s late.
   Prior 21:01 execution failed 1.1571; later passes do not erase that result.
   Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS
@@ -215,12 +214,9 @@ that only bridges helper names.
   78 local cases/468 contexts pass; grouped fast selects four files; 363 public tests pass.
   Earlier whole 1.2650/1.5301/1.4098/1.6743 are separate runs, not causal comparisons.
   Unchanged capture, rope, shared-extraction, empty-root and connected preflight trials are closed.
-- Full attachment BendTT is unchanged by formatting. Shared-witness
-  and reply-dispatch factorization do not yet pass current hard10 qualification.
-  Build, 23 receipts and compiled Source (59/6687, 34 physical cases) pass.
-  Renderer/pending-key, runtime attribution,
-  attachment formatter alias/hoist, fused validate/plan and compiler sequence
-  and unchanged rope performance trials are closed; renaming does not reset them.
+- Attachment factorization and renderer/compiler/rope performance trials are
+  closed; renaming does not reset them. Full attachment now qualifies under its
+  owner-approved 20s deadline (11.35s); other roots retain 10s.
 
 ### Check and source owners
 
@@ -235,6 +231,13 @@ Primary [cadence](../scripts/performance/production-cadence.py): baseline
 workspaces, frozen HEAD/sources/artifacts/receipts/environment files. Build:
 `--environment` for candidate; `--baseline-environment` for baseline only.
 Start build and execution measurements at least every 30 minutes. Run whole Preparation parity separately; diagnostics are not parity.
+Whole Preparation baseline is TS `a0773f79` (origin/master): all five languages
+and original TS orchestration. Primary analyzer/build stays `8948343b`, which
+lacks Go. Public runner: exact result/control equality, 17 pairs, parity ≤1,
+owner-approved acceptance ≤3. Current-native/profiling paths are removed;
+earlier results remain historical.
+2026-10-16 16:21 UTC: 17 frozen pairs pass exact equality, ratio **1.4334**;
+performance accepted (≤3), strict parity false.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
