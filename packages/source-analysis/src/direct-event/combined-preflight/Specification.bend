@@ -1,6 +1,8 @@
 import Base
 import ./Model.bend as M
 
+# Temporary migration verification. At whole Preparation acceptance, delete this
+# module with the laws/proofs/runner under the cleanup condition in LAWS.bend.
 # Draft independent equations of the existing combined materialization preflight.
 # This is a verification owner, never a production dependency. Native arithmetic
 # remains JS IEEE arithmetic; the specification pins its ordered primitive trace.

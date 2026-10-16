@@ -3,6 +3,8 @@ import ./Model.bend as M
 import ./Core.bend as C
 import ./Specification.bend as S
 
+# Temporary migration verification. At whole Preparation acceptance, delete this
+# module with the laws/proofs/runner under the cleanup condition in LAWS.bend.
 # Independent protocol equations. These do not call Core's queue, admission,
 # acceptance helpers, advance or resume. Wrong reply constructors/ids reject.
 def queued(operations: List<&2, M.Operation>, next: C.Phase, request: Nat) -> C.Step:

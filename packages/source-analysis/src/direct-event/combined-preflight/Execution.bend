@@ -2,6 +2,8 @@ import Base
 import ./Model.bend as M
 import ./Core.bend as C
 
+# Temporary migration verification. At whole Preparation acceptance, delete this
+# module with the laws/proofs/runner under the cleanup condition in LAWS.bend.
 # Verification only: execute the actual grouped production protocol. Recursion
 # consumes the supplied function list and each observed site's Nat count. There
 # is no caller fuel premise; an unexpected stage returns None, never a successful
