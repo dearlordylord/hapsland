@@ -75,7 +75,8 @@ const suites = {
   },
   "delivery-protocol": () => [
     "packages/resident-runtime/src/resident/advice-delivery/verification/batch-fitting.test.mjs",
-    "packages/resident-runtime/src/resident/advice-delivery/verification/collection.test.mjs"
+    "packages/resident-runtime/src/resident/advice-delivery/verification/collection.test.mjs",
+    "packages/resident-runtime/src/resident/advice-delivery/verification/collection-native.test.mjs"
   ],
   "preparation-protocol": () => [
     "packages/review-execution/src/direct-event/preparation/unit-evidence-query-check.mjs",

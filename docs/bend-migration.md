@@ -186,12 +186,11 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Native custody (parent `24bb2493`), 2026-10-16 21:57/58 UTC: execution/build
-  qualify **0.5151×/0.7961×**; 17 frozen pairs each, build23/46 cached, all inputs
-  unchanged. Mean ratios; no causal speedup claim. TS/Bend median[range], seconds:
-  execution .0921[.0641,.2994]/.0558[.0447,.0906];
-  build4.733[3.698,12.141]/3.921[3.157,10.789]. Last Preparation at34b2e70b:
-  .3537[.2330,.5698]/.4717[.3907,.5776]. Cadence: prior32.5,31.3,42.1min; latest22.2/22.3min.
+- `16965d0b`, 2026-10-16 22:23 UTC: analyzer/build **.7966×/.8056×**, 17 pairs each;
+  build23/46 cached, inputs unchanged. Mean ratios; no causal speedup claim.
+  TS/Bend median[range] seconds: execution .0802[.0575,.1370]/.0672[.0400,.1107];
+  build3.739[3.450,5.897]/3.075[2.840,3.948].
+  Cadence: prior32.5,31.3,42.1min; latest25.6/25.5min.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
@@ -241,8 +240,9 @@ Preserve both canWrite observations, local/IPC differences and all async boundar
 
 Current path:
 1. BatchFitting and both Collection passes run production Bend; replaced TS passes
-   are deleted, but native bridge adds net TS. Protocol13, public120/5, fast41 and23
-   receipts PASS. Server/controls98/99:30s timeout, isolated PASS18.86s. Remaining:
+   are deleted, but native bridge adds net TS. Protocol17 (four native Effect cases),
+   public120/5, fast41 and23 receipts PASS; missing-mask mutant rejected.
+   Server/controls98/99:30s timeout, isolated PASS18.86s. Remaining:
    prelude, eligibility/order, final handoff and Canonical root wiring.
 2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
    interruption, close/observer faults and cleanup retry. Claimed successors survive
