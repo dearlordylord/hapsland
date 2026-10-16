@@ -128,6 +128,12 @@ for (const file of selected) {
   if (Date.now() >= deadline) throw new Error("Capability suite deadline expired")
   const path = resolve(root, file)
   const isProof = path.endsWith(".bend")
+  // Owner-authorized exception, 2026-10-16: complete attachment proof measured
+  // at 11.35s. Keep every other proof at its existing ten-second deadline.
+  const proofTimeout =
+    file === "packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend"
+      ? 30000
+      : 10000
   const isPython = path.endsWith(".py")
   const syntax = suite === "preparation-sources" && !isProof
   const command = isProof ? "taskset" : isPython ? "python3" : process.execPath
@@ -187,7 +193,7 @@ for (const file of selected) {
     stdio: ["inherit", "pipe", "inherit"],
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
-    timeout: Math.min(deadline - Date.now(), isProof ? 10000 : syntax ? 5000 : 120000)
+    timeout: Math.min(deadline - Date.now(), isProof ? proofTimeout : syntax ? 5000 : 120000)
   })
   if (runtimeOutput) rmSync(runtimeOutput, { recursive: true, force: true })
   process.stdout.write(result.stdout ?? "")
