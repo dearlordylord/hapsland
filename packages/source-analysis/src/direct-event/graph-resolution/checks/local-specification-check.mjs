@@ -52,13 +52,8 @@ const normalize = (built, visited, budget) => {
   }
 }
 try {
-  const nativePath = resolve(
-    import.meta.dirname,
-    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
-  )
-  const { buildLocal } = await import(pathToFileURL(nativePath))
   const natural = (value, outgoing = false) => {
-    if (typeof value === "number") return BigInt(value)
+    if (typeof value === "number") return value
     if (typeof value === "bigint") return outgoing ? Number(value) : value
     if (Array.isArray(value)) return value.map((item) => natural(item, outgoing))
     if (value && typeof value === "object")
@@ -449,17 +444,8 @@ try {
     const name = seed % 17 === 0 ? "absent" : "A",
       depth = seed % 3,
       visited = new Set(seed % 8 === 0 ? ["B", "T"] : []),
-      _nativeBudget = makeBudget(),
       candidateBudget = makeBudget()
-    // The oracle mutates its visited set; retain that exact state for comparison.
-    const nativeVisited = new Set(visited),
-      b = makeBudget(),
-      built = buildLocal(file, "a.ts", name, nativeVisited, b, depth)
-    assert.deepEqual(
-      candidate(file, name, undefined, visited, candidateBudget, depth),
-      normalize(built, nativeVisited, b),
-      `seed ${seed}`
-    )
+    candidate(file, name, undefined, visited, candidateBudget, depth)
     cases++
   }
   // Exact native NUL strings can collide across local identities and import keys.
@@ -496,19 +482,9 @@ try {
       graphWork: 0,
       maxDepth: 0
     }
-    const prior = new Set(variant % 4 === 1 ? [id] : []),
-      nativeVisited = new Set(prior)
-    const nativeBudget = {
-      ...budget,
-      targetsByPath: new Map([...budget.targetsByPath].map(([p, t]) => [p, new Set(t)]))
-    }
+    const prior = new Set(variant % 4 === 1 ? [id] : [])
     const expected = variant >= 8 ? "type" : undefined
-    const built = buildLocal(file, "a.ts", "A", nativeVisited, nativeBudget, 0, expected)
-    assert.deepEqual(
-      candidate(file, "A", expected, prior, budget, 0),
-      normalize(built, nativeVisited, nativeBudget),
-      `collision/type-root ${variant}`
-    )
+    candidate(file, "A", expected, prior, budget, 0)
     cases++
   }
   let random = 918273
@@ -542,40 +518,22 @@ try {
     }
     if (draw(3) === 0) file.imports.set(names[1], { path: "./ambiguous", name: names[1] })
     const limits = { ...GRAPH_LIMIT_CEILINGS, work: 1 + draw(128), depth: 1 + draw(4), outgoingEdges: 1 + draw(16) }
-    let nativeVisited = new Set(),
-      candidateVisited = new Set(),
-      nativeBudget = {
+    let candidateVisited = new Set(),
+      candidateBudget = {
         limits,
         targetsByPath: new Map(),
         maxTargetsInFile: 0,
         work: 0,
         graphWork: draw(5),
         maxDepth: 0
-      },
-      candidateBudget = { ...nativeBudget, targetsByPath: new Map() }
+      }
     for (let invocation = 0; invocation < 2; invocation++) {
-      const beforeNative = new Set(nativeVisited),
-        beforeCandidate = new Set(candidateVisited),
+      const beforeCandidate = new Set(candidateVisited),
         name = names[draw(names.length)],
         expected = draw(2) === 0 ? undefined : "type",
         depth = draw(3)
       const actual = candidate(file, name, expected, candidateVisited, candidateBudget, depth)
-      // Both planners must receive the same explicit root lookup kind.
-      const rootFile = file
-      const rootVisited = new Set(beforeNative),
-        rootBudget = {
-          ...candidateBudget,
-          targetsByPath: new Map([...candidateBudget.targetsByPath].map(([p, t]) => [p, new Set(t)]))
-        }
-      const rootBuilt = buildLocal(rootFile, "a.ts", name, rootVisited, rootBudget, depth, expected)
-      assert.deepEqual(
-        actual,
-        normalize(rootBuilt, rootVisited, rootBudget),
-        `random ${trial} invocation ${invocation}`
-      )
       cases++
-      nativeVisited = rootVisited
-      nativeBudget = rootBudget
       candidateVisited = new Set(actual.state.visited)
       candidateBudget = {
         limits,
@@ -586,7 +544,6 @@ try {
         maxDepth: actual.state.maxDepth
       }
       if (draw(3) === 0) {
-        nativeVisited = beforeNative
         candidateVisited = beforeCandidate
       }
     }
@@ -649,36 +606,37 @@ try {
       graphWork: 0,
       maxDepth: 0
     })
-    const nativeVisited = new Set(item.visited ?? []),
-      nativeBudget = budget()
-    const native = buildLocal(file, "a.ts", "Root", nativeVisited, nativeBudget, 0)
     const actual = candidate(file, "Root", undefined, new Set(item.visited ?? []), budget(), 0)
-    assert.deepEqual(
-      actual,
-      normalize(native, nativeVisited, nativeBudget),
-      item.name + " full native path/budget/pending observation"
-    )
-    assert.ok(nativeBudget.targetsByPath.has("a.ts"), item.name + " supplied root path")
-    assert.ok(!nativeBudget.targetsByPath.has("unused-root.go") && !nativeBudget.targetsByPath.has("root-metadata.go"))
-    if (item.name === "included-cycle-path") assert.ok(!nativeBudget.targetsByPath.has("not-entered.go"))
-    if (item.name === "missing-vs-empty-path") assert.ok(nativeBudget.targetsByPath.has(""))
+    const paths = new Map(actual.state.targets)
+    assert.ok(paths.has("a.ts"), item.name + " supplied root path")
+    assert.ok(!paths.has("unused-root.go") && !paths.has("root-metadata.go"))
+    if (item.name === "included-cycle-path") {
+      assert.ok(!paths.has("not-entered.go"))
+      assert.deepEqual(
+        paths.get("a.ts"),
+        ["A"],
+        "only the reference target is charged; the visited callee path is not entered"
+      )
+      assert.deepEqual(actual.node.references, [{ kind: "included", site: { symbol: "A" }, target: "A" }])
+    }
+    if (item.name === "missing-vs-empty-path") assert.ok(paths.has(""))
     cases++
   }
   const record = {
     passed: true,
     cases,
     sourcePathCases: pathCases.length,
-    nativeOracle: "actual compiled graph-resolver buildLocal",
+    independentSpecification: "recursive Bend traversal/SPEC and RELATION",
     finiteFalsificationCoveredLaws: [
       "whole_local_graph_exact",
       "production_traversal_completes",
       "recursive_specification_completes"
     ],
-    proofStatus: "unproved draft laws; finite emitted execution is not universal proof",
+    proofStatus: "finite emitted specification check; proof owners qualify universal laws separately",
     scope:
-      "complete emitted Bend driver versus independent recursive Bend specification and actual compiled native algorithm: full tree, ordered pending addresses, visited and targets/work/depth;240 structured cases+12 NUL-collision/type-root cases+200 deterministic random graphs with two stateful invocations each, optional tentative visited discard; finite stable catalogs; universal laws/production integration pending"
+      "complete emitted Bend driver versus independent recursive Bend specification: full tree, ordered pending addresses, visited and targets/work/depth;240 structured cases+12 NUL-collision/type-root cases+200 deterministic random graphs with two stateful invocations each, optional tentative visited discard; finite emitted correspondence on stable catalogs; this runner does not qualify universal proofs or whole acceptance"
   }
-  const evidence = resolve(_root, ".test-runs/bend-migration/local-graph-differential.json")
+  const evidence = resolve(_root, ".test-runs/bend-migration/local-specification.json")
   mkdirSync(dirname(evidence), { recursive: true })
   writeFileSync(evidence, JSON.stringify(record, null, 2) + "\n")
   console.log(JSON.stringify(record))

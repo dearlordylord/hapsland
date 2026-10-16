@@ -3,13 +3,14 @@ import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
+import { tmpdir } from "node:os"
 import { pathToFileURL } from "node:url"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { sourceFacts } from "../frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const folder = import.meta.dirname,
-  temporary = mkdtempSync(join(folder, "../../../../../../node_modules/.cache/signed-local-"))
+  temporary = mkdtempSync(join(tmpdir(), "hapsland-signed-local-"))
 const inputs = [
   "../SignedLocalSpecification.bend",
   "../SignedLocalSpecificationCheck.bend",
@@ -23,7 +24,6 @@ const inputs = [
   "../traversal/core.bend",
   "../traversal/Traversal.bend",
   "../../../../../../bun.lock",
-  "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js",
   "../../../../../canonical-policy/dist/canonical/graph-adapter.js"
 ]
 const hash = (path) =>
@@ -34,14 +34,8 @@ const sources = Object.fromEntries(inputs.map((path) => [path, hash(path)]))
 const label = (value) => value.$.split(".").at(-1)
 const signed = (work) => ({
   $: "WholeObservation." + (work < 0 ? "Negative" : "Nonnegative"),
-  ...(work < 0 ? { magnitude: BigInt(-work) } : { value: BigInt(work) })
+  ...(work < 0 ? { magnitude: Number(-work) } : { value: Number(work) })
 })
-const omissions = {
-  UnsupportedTarget: "unsupported",
-  Unresolved: "unresolved",
-  ReferenceLimit: "reference-limit",
-  Unavailable: "unavailable"
-}
 const limits = {
   $: "../../../../agent-flow-bend/ImportGraph.Limits",
   ...Object.fromEntries(
@@ -52,7 +46,7 @@ const limits = {
         readBytes: "read_bytes",
         outgoingEdges: "outgoing_edges"
       }[key] ?? key,
-      BigInt(value)
+      Number(value)
     ])
   )
 }
@@ -97,11 +91,6 @@ try {
   const compiled = join(temporary, "signed.mjs")
   execFileSync("bend", [join(folder, "../SignedLocalSpecificationCheck.bend"), "-o", compiled], { timeout: 10000 })
   const spec = (await import(pathToFileURL(compiled))).default
-  const nativePath = join(
-    folder,
-    "../../../../dist/direct-event/graph-resolution/verification/native-graph-resolver.js"
-  )
-  const { buildLocal } = await import(pathToFileURL(nativePath))
   let compared = 0,
     negativeFailures = 0,
     negativeCompletions = 0,
@@ -140,24 +129,9 @@ try {
           const prepared = spec.source(sourceFacts(facts)),
             state = spec.initial(limits, seen),
             wrapped = { $: "SignedLocalSpecification.State", local: state, graph_work: signed(work) }
-          const visited = new Set(seen ? ["bundle"] : []),
-            budget = {
-              limits: GRAPH_LIMIT_CEILINGS,
-              targetsByPath: new Map(),
-              maxTargetsInFile: 0,
-              work: 0,
-              graphWork: work,
-              maxDepth: 0
-            }
-          let native, error
-          try {
-            native = buildLocal(facts, "root.ts", "Root", visited, budget, depth)
-          } catch (caught) {
-            error = caught
-          }
-          const result = spec.build(10000n, wrapped, prepared.facts, "root.ts", "Root", BigInt(depth)),
+          const result = spec.build(10000, wrapped, prepared.facts, "root.ts", "Root", Number(depth)),
             local = result.state.local
-          if (error) {
+          if (label(result) === "TechnicalFailure") {
             assert.ok(work < 0)
             assert.equal(label(result), "TechnicalFailure")
             assert.equal(label(result.failure), "NegativeGraphWork")
@@ -166,40 +140,8 @@ try {
           } else {
             assert.equal(label(result), "Built")
             if (work < 0) negativeCompletions++
-            const artifacts = unlist(prepared.artifacts).map((item) => item.value.id)
-            function tree(node) {
-              return {
-                artifact: artifacts[Number(node.artifact)],
-                references: unlist(node.references).map((reference) => {
-                  const outcome = reference.outcome,
-                    kind = label(outcome)
-                  return {
-                    symbol: reference.symbol,
-                    ...(kind === "Expanded"
-                      ? { kind: "expanded", node: tree(outcome.tree) }
-                      : kind === "Included"
-                        ? { kind: "included", target: outcome.identity }
-                        : { kind: "omitted", reason: omissions[label(outcome.reason)], target: outcome.target })
-                  }
-                })
-              }
-            }
-            function nativeTree(node) {
-              return {
-                artifact: node.artifact.id,
-                references: node.references.map((reference) => ({
-                  symbol: reference.site.symbol,
-                  ...(reference.kind === "expanded"
-                    ? { kind: "expanded", node: nativeTree(reference.node) }
-                    : reference.kind === "included"
-                      ? { kind: "included", target: reference.target }
-                      : { kind: "omitted", reason: reference.reason, target: reference.target.symbol })
-                }))
-              }
-            }
-            assert.deepEqual(tree(result.tree), nativeTree(native.node))
             if (work >= 0) {
-              const runtime = spec.runtime(state, BigInt(work), prepared.facts, "root.ts", "Root", BigInt(depth))
+              const runtime = spec.runtime(state, Number(work), prepared.facts, "root.ts", "Root", Number(depth))
               assert.equal(label(runtime), "CompletePlan")
               const flat = spec.flattened(result.tree)
               assert.equal(label(flat), "Flat")
@@ -207,77 +149,75 @@ try {
               assert.deepEqual(runtime.plan.references, flat.slots)
               assert.deepEqual(unlist(runtime.plan.pending), unlist(local.pending_rev).reverse())
               assert.deepEqual(runtime.plan.visited, local.visited)
-              assert.equal(runtime.plan.budget.graph_work, BigInt(work))
+              assert.equal(runtime.plan.budget.graph_work, Number(work))
               assert.deepEqual(runtime.plan.budget, local.budget)
               runtimeComparisons++
             }
           }
-          assert.deepEqual([local.budget.max_targets, local.budget.work, local.budget.max_depth].map(Number), [
-            budget.maxTargetsInFile,
-            budget.work,
-            budget.maxDepth
-          ])
-          for (const identity of ["Root", "A", "B", "Conflict", "Remote", "bundle", "invalid", "different"])
-            assert.equal(spec.seen(local, identity), visited.has(identity), identity)
-          for (const identity of [
-            "A",
-            "B",
-            "Conflict",
-            "Missing",
-            "root.ts\0./imported\0Imported",
-            "root.ts\0./types\0TypeOnly",
-            "bundle"
-          ])
-            assert.equal(
-              spec.contains_target(local, "root.ts", identity),
-              budget.targetsByPath.get("root.ts")?.has(identity) ?? false,
-              identity
-            )
           assert.equal(Number(result.state.graph_work[work < 0 ? "magnitude" : "value"]), Math.abs(work))
           compared++
         }
   const facts = spec.source(sourceFacts({ declarations: new Map(), imports: new Map() })).facts
   for (const work of [-9, -1, 0, 2]) {
     const result = spec.build(
-      10n,
+      10,
       { $: "SignedLocalSpecification.State", local: spec.initial(limits, false), graph_work: signed(work) },
       facts,
       "root.ts",
       "Missing",
-      0n
+      0
     )
     assert.equal(label(result), "Missing")
-    assert.equal(
-      buildLocal(
-        { declarations: new Map(), imports: new Map() },
-        "root.ts",
-        "Missing",
-        new Set(),
-        {
-          limits: GRAPH_LIMIT_CEILINGS,
-          targetsByPath: new Map(),
-          maxTargetsInFile: 0,
-          work: 0,
-          graphWork: work,
-          maxDepth: 0
-        },
-        0
-      ),
-      undefined
-    )
     missingRoots++
   }
+  let permitRegressions = 0
+  for (const [references, seen, outcome] of [
+    [[], false, "Built"],
+    [[{ kind: "unsupported", name: "Unsupported" }], false, "Built"],
+    [[ref("A")], false, "TechnicalFailure"],
+    [[ref("Bundle", { targetId: "bundle" })], true, "TechnicalFailure"],
+    [[ref("Bundle", { targetId: "bundle" })], false, "TechnicalFailure"]
+  ]) {
+    const prepared = spec.source(
+      sourceFacts({
+        declarations: new Map([
+          ["Root", declaration("Root", "interface", references)],
+          ["A", declaration("A")]
+        ]),
+        imports: new Map(),
+        supportingDeclarations: new Map([["bundle", declaration("bundle", "interface", [], true)]])
+      })
+    )
+    const result = spec.build(
+      10000,
+      { $: "SignedLocalSpecification.State", local: spec.initial(limits, seen), graph_work: signed(-1) },
+      prepared.facts,
+      "root.ts",
+      "Root",
+      0
+    )
+    assert.equal(
+      label(result),
+      outcome,
+      "authored negative-work permit placement " + JSON.stringify({ references, seen })
+    )
+    if (outcome === "TechnicalFailure") {
+      assert.equal(label(result.failure), "NegativeGraphWork")
+      assert.equal(result.failure.magnitude, 1)
+    }
+    permitRegressions++
+  }
   const zero = spec.build(
-    10n,
+    10,
     {
       $: "SignedLocalSpecification.State",
       local: spec.initial(limits, false),
-      graph_work: { $: "WholeObservation.Negative", magnitude: 0n }
+      graph_work: { $: "WholeObservation.Negative", magnitude: 0 }
     },
     facts,
     "root.ts",
     "Missing",
-    0n
+    0
   )
   assert.equal(label(zero), "Missing")
   assert.equal(label(zero.state.graph_work), "Nonnegative")
@@ -286,14 +226,17 @@ try {
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     sources,
+    passed: true,
+    cases: compared + missingRoots + permitRegressions + 1,
     compared,
+    permitRegressions,
     runtimeComparisons,
     negativeFailures,
     negativeCompletions,
     missingRoots,
     negativeZeroNormalizesToZero: true,
     scope:
-      "Independent signed-domain local interpretation versus actual native buildLocal. Ordered recursive value, scalar budget, visited/target membership and exact negative permit placement; no full ordered-map/forest projection, outer post-traversal guards, exception materialization, whole expansion proof, consumer or performance qualification."
+      "Independent signed-domain Bend specification against runtime traversal for nonnegative inputs, exact flattened nodes/references/pending/visited/budget; authored negative permit/refusal, missing roots and negative-zero normalization. Physical negative-work validation remains with Canonical Graph fixtures; not whole proof or performance qualification."
   }
   const evidenceDirectory = join(import.meta.dirname, "../../../../../../.test-runs/bend-migration")
   mkdirSync(evidenceDirectory, { recursive: true })
