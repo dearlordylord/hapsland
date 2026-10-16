@@ -1,3 +1,4 @@
+import { runFindingBatch, runNoticeBatch } from "./batch-fitting.ts"
 import { findingCollectionOutcome, collectionOrdering } from "./collection-decisions.ts"
 import type { CodexDirectEventOutput, Finding } from "@hapsland/delivery-output/direct-event/output"
 import { toCodexDirectEventOutput } from "@hapsland/delivery-output/direct-event/output"
@@ -184,6 +185,10 @@ export const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUn
   }
 }
 
+const fittingIterator = function* <A>(values: Iterable<A>) {
+  yield* values
+}
+
 export const selectBendFindings = Effect.fn("Collection.selectBendFindings")(
   function* (
     retained: ReadonlyArray<Finding>,
@@ -193,34 +198,37 @@ export const selectBendFindings = Effect.fn("Collection.selectBendFindings")(
     onLimited?: (finding: Finding) => void,
     canonicalOffer?: CanonicalFindingOffer
   ): Effect.fn.Return<ReadonlyArray<Finding>> {
-    try {
-      const staged: Array<Finding> = []
-      const selected: Array<Finding> = []
-      const offer = Effect.fn("Collection.offerFinding")(function* (finding: Finding, validated: boolean) {
-        const prospectiveBytes = encodedBytes([...staged, finding])
-        const current = validated ? previouslyValidated : facts
-        const soloBytes = encodedBytes([finding])
-        const decision = yield* (canonicalOffer ?? standaloneFindingOffer)({
-          selectionPartition: facts.partition,
-          selectionRound: facts.round,
-          facts: { ...current, partition: facts.partition, round: facts.round },
-          selectedCount: staged.length,
-          soloBytes,
-          prospectiveBytes
-        })
-        if (decision === "limited" && !validated) onLimited?.(finding)
-        if (decision !== "selected") return false
-        staged.push(finding)
-        return true
-      })
-      for (const finding of retained) if (!(yield* offer(finding, true))) return []
-      for (const finding of candidates) if (yield* offer(finding, false)) selected.push(finding)
-      return selected
-    } catch {
-      return []
-    }
-  },
-  (effect) => effect.pipe(Effect.catchDefect(() => Effect.succeed([])))
+    const items: Finding[] = []
+    const streams = { Retained: fittingIterator(retained), Candidates: fittingIterator(candidates) }
+    const item = (index: number) => items[index]!
+    const selected = yield* runFindingBatch(
+      { $: "Findings" },
+      {
+        beginCurrent: () => { throw new Error("Current prelude in retained finding batch") },
+        pull: (stream) => {
+          if (stream.$ !== "Retained" && stream.$ !== "Candidates") throw new Error("Wrong finding stream")
+          const next = streams[stream.$].next()
+          return next.done ? undefined : items.push(next.value) - 1
+        },
+        prospective: (staged, index) => encodedBytes([...staged.map(item), item(index)]),
+        solo: (index) => encodedBytes([item(index)]),
+        offer: (command, prospectiveBytes, soloBytes) => {
+          const current = command.retained ? previouslyValidated : facts
+          return (canonicalOffer ?? standaloneFindingOffer)({
+            selectionPartition: facts.partition,
+            selectionRound: facts.round,
+            facts: { ...current, partition: facts.partition, round: facts.round },
+            selectedCount: command.selected_count,
+            soloBytes,
+            prospectiveBytes
+          })
+        },
+        limited: (index) => onLimited?.(item(index)),
+        close: () => { streams.Retained.return(); streams.Candidates.return() }
+      }
+    )
+    return selected.map(item)
+  }
 )
 
 /** Final writer barrier: every offered finding carries its own current facts. */
@@ -240,34 +248,42 @@ export const selectFittingCurrentFindingIndices = Effect.fn("Collection.selectFi
     onLimited?: (index: number) => void,
     canonicalOffer?: CanonicalFindingOffer
   ): Effect.fn.Return<ReadonlyArray<number>> {
-    if (offers.length === 0) return []
-    try {
-      const first = offers[0]!.facts
-      const staged: Array<Finding> = []
-      const selected: Array<number> = []
-      for (const [index, { finding, facts }] of offers.entries()) {
-        const next = [...staged, finding]
-        const prospectiveBytes = collectionFindingsBytes(mode, next)
-        const soloBytes = collectionFindingsBytes(mode, [finding])
-        const decision = yield* (canonicalOffer ?? standaloneFindingOffer)({
-          selectionPartition: first.partition,
-          selectionRound: first.round,
-          facts,
-          selectedCount: staged.length,
+    type Entry = { readonly index: number; readonly finding: Finding; readonly facts: FindingSelectionFacts }
+    const items: Entry[] = []
+    let first: FindingSelectionFacts | undefined
+    const iterator = (function* () { yield* offers.entries() })()
+    const item = (index: number) => items[index]!
+    const selected = yield* runFindingBatch(
+      { $: "CurrentFindings" },
+      {
+        beginCurrent: () => {
+          if (offers.length === 0) return false
+          first = offers[0]!.facts
+          return true
+        },
+        pull: (stream) => {
+          if (stream.$ !== "CurrentOffers") throw new Error("Wrong current finding stream")
+          const next = iterator.next()
+          if (next.done) return undefined
+          const [index, { finding, facts }] = next.value
+          return items.push({ index, finding, facts }) - 1
+        },
+        prospective: (staged, index) => collectionFindingsBytes(mode, [...staged.map((i) => item(i).finding), item(index).finding]),
+        solo: (index) => collectionFindingsBytes(mode, [item(index).finding]),
+        offer: (command, prospectiveBytes, soloBytes) => (canonicalOffer ?? standaloneFindingOffer)({
+          selectionPartition: first!.partition,
+          selectionRound: first!.round,
+          facts: item(command.index).facts,
+          selectedCount: command.selected_count,
           soloBytes,
           prospectiveBytes
-        })
-        if (decision === "limited") onLimited?.(index)
-        if (decision !== "selected") continue
-        staged.push(finding)
-        selected.push(index)
+        }),
+        limited: (index) => onLimited?.(item(index).index),
+        close: () => iterator.return()
       }
-      return selected
-    } catch {
-      return []
-    }
-  },
-  (effect) => effect.pipe(Effect.catchDefect(() => Effect.succeed([])))
+    )
+    return selected.map((index) => item(index).index)
+  }
 )
 
 export const fitsClaudeReviewResponse = (
@@ -299,28 +315,41 @@ export const selectFittingClaudeFindings = Effect.fn("Collection.selectFittingCl
     )
 )
 
+const selectNoticeBatch = (
+  findings: ReadonlyArray<Finding>,
+  retained: ReadonlyArray<OperationalNotice>,
+  candidates: ReadonlyArray<OperationalNotice>,
+  encodedBytes: (notices: ReadonlyArray<OperationalNotice>) => number,
+  skipUnfitting: boolean,
+  canonicalOffer: CanonicalNoticeOffer | undefined
+): ReadonlyArray<OperationalNotice> => {
+  const items: OperationalNotice[] = []
+  const iterator = fittingIterator(candidates)
+  const item = (index: number) => items[index]!
+  const selected = runNoticeBatch(skipUnfitting, {
+    pull: () => {
+      const next = iterator.next()
+      return next.done ? undefined : items.push(next.value) - 1
+    },
+    measure: (staged, index) => {
+      const next = [...retained, ...staged.map(item), item(index)]
+      const count = findings.length + next.length
+      const bytes = encodedBytes(next)
+      return { items: count, bytes }
+    },
+    offer: canonicalOffer ?? standaloneNoticeOffer,
+    close: () => iterator.return()
+  })
+  return selected.map(item)
+}
+
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<OperationalNotice>,
   mode: ClaudeOutputMode,
   canonicalOffer?: CanonicalNoticeOffer
-): ReadonlyArray<OperationalNotice> => {
-  const selected: Array<OperationalNotice> = []
-  try {
-    for (const notice of candidates) {
-      const next = [...selected, notice]
-      const items = findings.length + next.length
-      const bytes = encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, next, mode))
-      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true)
-      if (offer === "include") selected.push(notice)
-      else if (offer === "stop") break
-      else if (offer !== "skip") return []
-    }
-  } catch {
-    return []
-  }
-  return selected
-}
+): ReadonlyArray<OperationalNotice> => selectNoticeBatch(findings, [], candidates,
+  (notices) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)), true, canonicalOffer)
 
 export const fitsCombinedReviewResponse = (
   findings: ReadonlyArray<Finding>,
@@ -375,23 +404,8 @@ export const selectFittingClaudeStopNotices = (
   findings: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<OperationalNotice>,
   canonicalOffer?: CanonicalNoticeOffer
-): ReadonlyArray<OperationalNotice> => {
-  const selected: Array<OperationalNotice> = []
-  try {
-    for (const notice of candidates) {
-      const next = [...selected, notice]
-      const items = findings.length + next.length
-      const bytes = encodedClaudeStopOutputBytes(findings, next)
-      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true)
-      if (offer === "include") selected.push(notice)
-      else if (offer === "stop") break
-      else if (offer !== "skip") return []
-    }
-  } catch {
-    return []
-  }
-  return selected
-}
+): ReadonlyArray<OperationalNotice> => selectNoticeBatch(findings, [], candidates,
+  (notices) => encodedClaudeStopOutputBytes(findings, notices), true, canonicalOffer)
 
 /** Findings are passed as already retained so notices can never displace them. */
 export const selectFittingNotices = (
@@ -399,23 +413,8 @@ export const selectFittingNotices = (
   retained: ReadonlyArray<OperationalNotice>,
   candidates: ReadonlyArray<OperationalNotice>,
   canonicalOffer?: CanonicalNoticeOffer
-): ReadonlyArray<OperationalNotice> => {
-  const selected: Array<OperationalNotice> = []
-  try {
-    for (const notice of candidates) {
-      const next = [...retained, ...selected, notice]
-      const items = findings.length + next.length
-      const bytes = encodedHostOutputBytes(combinedReviewOutput(findings, next))
-      const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, false)
-      if (offer === "include") selected.push(notice)
-      else if (offer === "stop") break
-      else if (offer !== "skip") return []
-    }
-  } catch {
-    return []
-  }
-  return selected
-}
+): ReadonlyArray<OperationalNotice> => selectNoticeBatch(findings, retained, candidates,
+  (notices) => encodedHostOutputBytes(combinedReviewOutput(findings, notices)), false, canonicalOffer)
 
 export type {
   OperationalNoticeKind,

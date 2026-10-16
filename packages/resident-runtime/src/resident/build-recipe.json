@@ -13,5 +13,10 @@
     "source": "work-ownership/workspace/WorkspaceSizing.bend",
     "output": "work-ownership/workspace/workspace-sizing-core.js",
     "declaration": "work-ownership/workspace/workspace-sizing-core.d.ts"
+  },
+  {
+    "source": "advice-delivery/BatchFitting.bend",
+    "output": "advice-delivery/batch-fitting-core.js",
+    "declaration": "advice-delivery/batch-fitting-core.d.ts"
   }
 ]

@@ -16,6 +16,7 @@ const proofRejections = new Map(
   )
 )
 const sourceOwners = [
+  "packages/resident-runtime/src/resident/advice-delivery",
   "packages/source-artifacts/src/direct-event/value",
   "packages/source-analysis/src/direct-event/graph-resolution",
   "packages/source-analysis/src/direct-event/local-analysis",

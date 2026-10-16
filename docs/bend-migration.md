@@ -164,15 +164,15 @@ Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad
 Preparation/Finalization and Graph Effect forward Bend trees directly; native
 projection/freeze and lifecycle boundaries remain.
 
-### Preparation acceptance evidence and next obstacle
+### Preparation acceptance evidence
 
 | Obstacle | Required change or evidence |
 | --- | --- |
-| Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Retained checks use explicit fixtures and the independent Bend specification; whole performance qualifies separately. |
+| Analyzer and preflight | Packaged Bend owns traversal, budgets, first failure and callable/Go preflight through Canonical. Superseded TS algorithms and native oracle chains are deleted; physical consumers, laws and mutation checks pass. |
 | Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
-| Combined preflight | Production Core owns callable policy/Go fallback in Canonical Preflight. After five laws/kernel controls and ten proof mutants passed, removed the eight temporary Bend/spec/proof/runner files under the owner’s deletion condition. 21 physical regressions, build46/46, 23 receipts and compiled Source pass after deletion. The old TS preflight oracle and its whole-Preparation caller chain are deleted. |
+
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:24 UTC qualifies **1.4441×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
-| Final consumers and deletion | Deleted TS Source/Post, analyzer/preflight, plan/sizing, native Graph/local/Go/Python/Rust orchestration and reference drivers. Full consumers: Preparation13, Post23360/enrollment793, Source59/6687+34, resident52/11316+893Post, Graph120/5200, composition18/7125. Build46/46, fast41, receipts23, Go public75 and final public181/7 files pass. Protocol19 and five additional consumers pass. Source gate:248 checks,473 Bend files/108 roots, including14 exact-location mutant rejections. Six unproved declaration copies removed; identical law signatures remain in proved owners. Final changes affect proofs/checks only; production is unchanged since consumer qualification. |
+| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust orchestration/reference drivers are deleted. Production Source/Graph/resident consumers, public181/7 files and protocol19 pass. Source gate248/248 covers473 Bend files/108 roots, including14 exact mutant rejections. Six duplicate declarations removed; identical proved laws retained. Build46/46, fast41, receipts23 and Go public75 pass. |
 
 Whole1.4448 failed strict parity; unchanged performance experiments are closed.
 
@@ -233,9 +233,26 @@ earlier results remain historical.
 Latest whole ratio **1.4441×** accepts the ≤3 limit; strict parity remains false.
 Scope: Linux offline physical consumers; native parser/Unicode/IEEE/hash/IO engines
 remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is claimed.
-Next whole unit: resident advice collection through final delivery handoff, including
-freshness/authority, fitting, lease/finish and IPC cleanup. Agree the full path with
-Astra before implementation; acceptance here permits that unit, not global completion.
+
+## Current unit: resident collection through final handoff
+
+Astra agreed collection → interruptible freshness → uninterruptible finalization
+using Canonical-issued handoff receipts, not a paused child or another ledger.
+Existing Collection/Handoff/Delivery state owns advice, leases and finish slots.
+Native code retains capabilities, IO, capture/encoding and atomic resource receipts.
+Preserve both canWrite observations, local/IPC differences and all async boundaries.
+
+Concrete obstacles, in order:
+1. Replace whole shared finding/notice fitting and collection passes; delete TS loops.
+2. Issue/consume one-use receipt bound to invocation, request/recipient/round, token
+   and selected ownership; preserve cancellation/error prefixes and token/cache cleanup.
+3. Connect prepare/finalize, reuse evaluated-input freshness, delete workflow/policy
+   loops. Prove whole ordered trace, reply fencing and lease/finish accounting using
+   existing atomic primitives.
+4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
+   and output regressions, plus current performance policy. Baseline2e73cc47:
+   collection/terminal/Claude/composed delivery102 tests in4 files PASS. Unit not accepted.
+
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
