@@ -47,5 +47,5 @@ finally:
     owner.write_bytes(original)
 if owner.read_bytes() != original:
     raise RuntimeError("Lifecycle owner source changed")
-print(json.dumps({"pristineVerdict": True, "mutants": records, "sourcesUnchanged": True,
+print(json.dumps({"passed": True, "cases": len(records) + 1, "pristineVerdict": True, "mutants": records, "sourcesUnchanged": True,
                   "scope": "universal public lifecycle sequence only; no whole preparation acceptance"}))

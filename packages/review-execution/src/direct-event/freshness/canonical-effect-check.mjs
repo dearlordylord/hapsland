@@ -240,6 +240,7 @@ for (const shared of [false, true]) {
 }
 console.log(
   JSON.stringify({
+    passed: true,
     owner: "freshness-caller-fiber",
     cases,
     qualified: true,

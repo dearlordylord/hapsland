@@ -18,6 +18,7 @@ const naturalOracle = (value) => {
     ])
   )
 }
+let closedReplyCases = 0
 fc.assert(
   fc.property(fc.nat(), fc.nat(), fc.array(fc.nat(), { maxLength: 12 }), (invocation, id, sizes) => {
     const token = (name) => tag(name, { invocation, id })
@@ -45,6 +46,7 @@ fc.assert(
       const reply = tag("Reply", { invocation, id, outcome })
       assert.deepEqual(encodeGraphReply(reply), naturalOracle(reply))
       assert.deepEqual(encodeGraphReply(encodeGraphReply(reply)), naturalOracle(reply))
+      closedReplyCases++
     }
     assert.deepEqual(encodeGraphToken(token("CaptureToken")), naturalOracle(token("CaptureToken")))
     assert.deepEqual(
@@ -81,9 +83,6 @@ await assert.rejects(performGraphServiceRequest(invalid, request), RangeError)
 const exit = await Effect.runPromiseExit(performGraphServiceEffect(invalid, request))
 assert.equal(exit._tag, "Failure", "conversion remains outside provider rejection recovery")
 invalid.close()
-console.log(
-  JSON.stringify({ closedReplyCases: 2600, unchangedFacts: true, conversionFailureOutsideProviderCatch: true })
-)
 
 const { parseGoFileFacts } = await import("../go-module/parser-facts.ts")
 const { parsePythonSyntax } = await import("../frontends.ts")
@@ -107,4 +106,14 @@ for (const outcome of [
   const reply = tag("Reply", { invocation: 1, id: 2, outcome })
   assert.deepEqual(encodeGraphReply(reply), naturalOracle(reply))
 }
-console.log(JSON.stringify({ realGoPythonSyntaxIds: true, neighboringNumericFieldsPreserved: true }))
+console.log(
+  JSON.stringify({
+    passed: true,
+    cases: closedReplyCases + 2,
+    closedReplyCases,
+    unchangedFacts: true,
+    conversionFailureOutsideProviderCatch: true,
+    realGoPythonSyntaxIds: true,
+    neighboringNumericFieldsPreserved: true
+  })
+)

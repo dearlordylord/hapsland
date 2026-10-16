@@ -215,7 +215,7 @@ for (const file of selected) {
       !(tests > 0 && passedTests === tests) &&
       !summaries.some((summary) => summary.passed === true && Number(summary.cases ?? summary.assertions) > 0)
     )
-      throw new Error(`Consumer executed no verified cases: ${file}`)
+      throw new Error(`Consumer did not report a passing non-empty summary or complete TAP result: ${file}`)
   }
   passed++
 }

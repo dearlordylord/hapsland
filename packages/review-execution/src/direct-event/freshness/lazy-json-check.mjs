@@ -281,4 +281,4 @@ qualify(
   ],
   "compare"
 )
-console.log(JSON.stringify({ owner: "freshness-lazy-json", cases, qualified: true }))
+console.log(JSON.stringify({ passed: true, owner: "freshness-lazy-json", cases, qualified: true }))
