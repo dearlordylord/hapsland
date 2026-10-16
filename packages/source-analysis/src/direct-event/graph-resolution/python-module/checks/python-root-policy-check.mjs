@@ -13,61 +13,55 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const { staticRoot: reference } = await import(
-    pathToFileURL(
-      join(
-        import.meta.dirname,
-        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-preparation.js"
-      )
-    )
-  )
   const fixtures = [
-    "",
-    '[project]\nname="x"',
-    "[tool.poetry]",
-    "tool.hatch=false",
-    'tool.pdm="x"',
-    "tool=1979-05-27T07:32:00Z",
-    "tool.setuptools.package-dir=1979-05-27T07:32:00Z",
-    "tool.setuptools.package-dir=[]",
-    "tool.setuptools.package-dir={}",
-    'tool.setuptools.package-dir={""="src","other"="lib"}',
-    'tool.setuptools.package-dir={"named"="src"}',
-    "tool.setuptools.packages.find.where=[]",
-    'tool.setuptools.packages.find.where=["src","lib"]',
-    "tool.setuptools.packages.find.where=[false]",
-    'tool.setuptools.packages.find.where="src"'
+    ["", "."],
+    ['[project]\nname="x"', "."],
+    ["[tool.poetry]", undefined],
+    ["tool.hatch=false", undefined],
+    ['tool.pdm="x"', undefined],
+    ["tool=1979-05-27T07:32:00Z", "."],
+    ["tool.setuptools.package-dir=1979-05-27T07:32:00Z", undefined],
+    ["tool.setuptools.package-dir=[]", "."],
+    ["tool.setuptools.package-dir={}", undefined],
+    ['tool.setuptools.package-dir={""="src","other"="lib"}', undefined],
+    ['tool.setuptools.package-dir={"named"="src"}', undefined],
+    ["tool.setuptools.packages.find.where=[]", undefined],
+    ['tool.setuptools.packages.find.where=["src","lib"]', undefined],
+    ["tool.setuptools.packages.find.where=[false]", undefined],
+    ['tool.setuptools.packages.find.where="src"', undefined]
   ]
+  // Finite authored normalization/authority outcomes; no resolver policy oracle.
   const paths = [
-    ".",
-    "src",
-    "src/",
-    "./src",
-    "src/../lib",
-    "../src",
-    "/src",
-    "a/b/c/d",
-    "a/b/c/d/e",
-    "",
-    "..",
-    "a//b",
-    "a/../../../b"
+    [".", "."],
+    ["src", "src"],
+    ["src/", `src${sep}`],
+    ["./src", "src"],
+    ["src/../lib", "lib"],
+    ["../src", undefined],
+    ["/src", undefined],
+    ["a/b/c/d", ["a", "b", "c", "d"].join(sep)],
+    ["a/b/c/d/e", undefined],
+    ["", "."],
+    ["..", undefined],
+    ["a//b", ["a", "b"].join(sep)],
+    ["a/../../../b", undefined]
   ]
-  for (const path of paths) {
-    fixtures.push(`tool.setuptools.packages.find.where=[${JSON.stringify(path)}]`)
-    fixtures.push(`tool.setuptools.package-dir={""=${JSON.stringify(path)}}`)
-    fixtures.push(
-      `tool.setuptools.packages.find.where=[${JSON.stringify(path)}]\ntool.setuptools.package-dir={""=${JSON.stringify(path)}}`
-    )
-    fixtures.push(
-      `tool.setuptools.packages.find.where=[${JSON.stringify(path)}]\ntool.setuptools.package-dir={""="other"}`
-    )
+  for (const [path, expected] of paths) {
+    fixtures.push([`tool.setuptools.packages.find.where=[${JSON.stringify(path)}]`, expected])
+    fixtures.push([`tool.setuptools.package-dir={""=${JSON.stringify(path)}}`, expected])
+    fixtures.push([
+      `tool.setuptools.packages.find.where=[${JSON.stringify(path)}]\ntool.setuptools.package-dir={""=${JSON.stringify(path)}}`,
+      expected
+    ])
+    fixtures.push([
+      `tool.setuptools.packages.find.where=[${JSON.stringify(path)}]\ntool.setuptools.package-dir={""="other"}`,
+      undefined
+    ])
   }
   let effects = 0
-  for (const [index, source] of fixtures.entries()) {
-    const expected = reference(source),
-      io = createServiceSession({ invocation: index + 1, root: temp })
-    let step = child.declared_root(tomlValue(parse(source)), sep, BigInt(index + 1), 0n)
+  for (const [index, [source, expected]] of fixtures.entries()) {
+    const io = createServiceSession({ invocation: index + 1, root: temp })
+    let step = child.declared_root(tomlValue(parse(source)), sep, index + 1, 0)
     while (step.$.endsWith(".Await")) {
       effects++
       step = child.resume_declared_root(step, await io.perform(step.request))
@@ -78,10 +72,11 @@ try {
   }
   console.log(
     JSON.stringify({
-      status: "PASS",
+      passed: true,
       cases: fixtures.length,
       pathEffects: effects,
-      scope: "exact current production staticRoot over raw native TOML; excludes absoluteRoots and composed resolver"
+      scope:
+        "authored declared-root authority and normalization outcomes over native TOML/path effects; excludes composed resolver"
     })
   )
 } finally {

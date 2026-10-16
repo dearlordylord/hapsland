@@ -1,15 +1,11 @@
-import * as Effect from "effect/Effect"
-import { referenceIo } from "./native-reference-io.mjs"
 import { artifactValueTag, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, symlink } from "node:fs/promises"
-import { join, dirname, isAbsolute, sep } from "node:path"
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises"
+import { join, dirname, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { createServiceSession } from "../../service-session.ts"
 import { parsePythonSyntax } from "../../frontends.ts"
-import { Parser, Python } from "@hapsland/source-analysis/direct-event/languages/native-parser"
-import { projectPythonSyntax } from "../syntax-projection.ts"
 const t = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields }),
   s = (name, fields = {}) => ({ $: "python-module/Session." + name, ...fields })
 const temp = await mkdtemp("/tmp/hapsland-python-parents-")
@@ -19,14 +15,6 @@ try {
     timeout: 10000
   })
   const { default: child } = await import(pathToFileURL(emitted))
-  const { createPythonModuleResolution } = await import(
-    pathToFileURL(
-      join(
-        import.meta.dirname,
-        "../../../../../dist/direct-event/graph-resolution/python-module/verification/native-module-resolution.js"
-      )
-    )
-  )
   const fixtures = [
     { name: "root-direct", path: "leaf.py", files: {}, valid: true },
     { name: "one-parent", files: { "pkg/__init__.py": "" }, valid: true },
@@ -77,6 +65,67 @@ try {
       valid: true
     }
   ]
+  const probe = (path) => ["clock", "probe:" + path]
+  const capture = (path) => ["clock", "access:" + path, "capture:" + path, "clock", "parse"]
+  const outer = ["select:pkg/__init__.py", ...probe("pkg"), ...probe("pkg/__init__.py")]
+  const inner = ["select:pkg/sub/__init__.py", ...probe("pkg/sub"), ...probe("pkg/sub/__init__.py")]
+  const outerCapture = capture("pkg/__init__.py")
+  const innerCapture = capture("pkg/sub/__init__.py")
+  const outerMembership = ["pkg", "pkg/__init__.py"]
+  const bothMembership = [...outerMembership, "pkg/sub", "pkg/sub/__init__.py"]
+  // Finite plans preserve ordered authority publication, including a captured
+  // initializer whose syntax subsequently refuses package authority.
+  const plans = [
+    [true, [], [], []],
+    [true, outerMembership, ["pkg/__init__.py"], [...outer, ...outerCapture]],
+    [
+      true,
+      [...outerMembership, "pkg/__init__.pyi"],
+      ["pkg/__init__.pyi"],
+      [...outer, "select:pkg/__init__.pyi", ...probe("pkg/__init__.pyi"), ...capture("pkg/__init__.pyi")]
+    ],
+    [true, outerMembership, ["pkg/__init__.py"], [...outer, ...outerCapture]],
+    [
+      true,
+      bothMembership,
+      ["pkg/__init__.py", "pkg/sub/__init__.py"],
+      [...outer, ...outerCapture, ...inner, ...innerCapture]
+    ],
+    [true, outerMembership, ["pkg/__init__.py"], [...outer, ...outerCapture]],
+    [
+      true,
+      bothMembership,
+      ["pkg/__init__.py", "pkg/sub/__init__.py"],
+      [...outer, ...outerCapture, ...inner, ...innerCapture]
+    ],
+    [true, ["pkg"], [], ["select:pkg/__init__.py", ...probe("pkg"), "select:pkg/__init__.pyi"]],
+    [true, outerMembership, [], outer],
+    [false, [], [], ["select:pkg/__init__.py"]],
+    [false, ["pkg"], [], ["select:pkg/__init__.py", ...probe("pkg")]],
+    [
+      true,
+      ["src", "src/pkg", "src/pkg/__init__.py"],
+      ["src/pkg/__init__.py"],
+      [
+        "select:src/pkg/__init__.py",
+        ...probe("src"),
+        ...probe("src/pkg"),
+        ...probe("src/pkg/__init__.py"),
+        ...capture("src/pkg/__init__.py")
+      ]
+    ],
+    [true, [], [], []],
+    [
+      true,
+      bothMembership,
+      ["pkg/__init__.py", "pkg/sub/__init__.py"],
+      [...outer, ...outerCapture, ...inner, ...innerCapture]
+    ],
+    [true, [], [], []],
+    [true, outerMembership, ["pkg/__init__.py"], [...outer, ...outerCapture]],
+    [true, outerMembership, ["pkg/__init__.py"], [...outer, ...outerCapture]]
+  ]
+  assert.equal(plans.length, fixtures.length)
   let requests = 0
   for (const [index, fixture] of fixtures.entries()) {
     const root = join(temp, String(index))
@@ -87,103 +136,10 @@ try {
     }
     if (fixture.directory) await mkdir(join(root, fixture.directory))
     if (fixture.link) await symlink(fixture.link[0], join(root, fixture.link[1]))
-    let available = true,
-      work = 0,
-      started = false
-    const membership = new Map(),
-      authority = new Map(),
-      deps = [],
-      expected = [],
-      actual = [],
+    let started = false
+    const actual = [],
       depth = fixture.depth ?? 4
-    const within = (path) => !isAbsolute(path) && path !== ".." && !path.startsWith(".." + sep),
-      selected = (path) => path !== fixture.excluded
-    const permit = () => {
-      if (!available) return false
-      expected.push("clock")
-      return work <= 40
-    }
-    function* observe(path) {
-      if (membership.has(path)) return membership.get(path)
-      if (!within(path) || !permit() || work >= 40) {
-        available = false
-        return undefined
-      }
-      work++
-      expected.push("probe:" + path)
-      let status
-      try {
-        status = yield lstat(join(root, path))
-      } catch (error) {
-        if (error.code !== "ENOENT") available = false
-      }
-      if (status?.isSymbolicLink()) available = false
-      membership.set(path, status)
-      return status
-    }
-    function* stat(path) {
-      if (!within(path)) {
-        available = false
-        return undefined
-      }
-      expected.push("select:" + path)
-      if (!selected(path)) {
-        available = false
-        return undefined
-      }
-      const dirs = []
-      let directory = dirname(path)
-      while (directory !== ".") {
-        if (dirs.length > depth + 1) {
-          available = false
-          return undefined
-        }
-        dirs.push(directory)
-        directory = dirname(directory)
-      }
-      for (const dir of dirs.reverse()) {
-        const status = yield* observe(dir)
-        if (!available || !status) return undefined
-        if (!status.isDirectory()) {
-          available = false
-          return undefined
-        }
-      }
-      return yield* observe(path)
-    }
-    function* readAuthority(path) {
-      if (authority.has(path)) return authority.get(path)
-      if (!permit()) return undefined
-      expected.push("access:" + path)
-      expected.push("capture:" + path)
-      const text = yield readFile(join(root, path), "utf8")
-      const capture = { text, byteLength: Buffer.byteLength(text) }
-      if (!permit()) return undefined
-      authority.set(path, capture)
-      deps.push(path)
-      return capture
-    }
-    // Parser engines are reused; policy is independently evaluated by the exact
-    // production authority consumer above, while this reference isolates chronology.
-    const staticPackageAuthority = (text) => {
-      expected.push("parse")
-      const parser = new Parser()
-      try {
-        parser.setLanguage(Python)
-        return child.static_package_authority(projectPythonSyntax(parser.parse(text).rootNode))
-      } finally {
-        parser.reset()
-      }
-    }
-    const { packageParents: reference } = createPythonModuleResolution({
-      limits: { depth },
-      stat: referenceIo(stat),
-      readAuthority: referenceIo(readAuthority),
-      staticPackageAuthority,
-      isAvailable: () => available
-    })
-    const result = await Effect.runPromise(reference(fixture.path ?? "pkg/leaf.py", fixture.root ?? "."))
-    assert.equal(result, fixture.valid, fixture.name + " fixture")
+    const [available, membership, deps, expected] = plans[index]
     const io = createServiceSession({
       invocation: index + 1,
       root,
@@ -193,7 +149,7 @@ try {
       },
       selectContextPath: (path) => {
         actual.push("select:" + path)
-        return selected(path)
+        return path !== fixture.excluded
       },
       access: async (path) => {
         actual.push("access:" + path)
@@ -218,12 +174,12 @@ try {
       started = true
       const state = child.initial_session(
         "root.py",
-        1024n,
-        BigInt(depth),
+        1024,
+        depth,
         s("Remaining", {
-          files: s("Nonnegative", { value: 10n }),
-          read_bytes: s("Nonnegative", { value: 10000n }),
-          work: s("Nonnegative", { value: 40n })
+          files: s("Nonnegative", { value: 10 }),
+          read_bytes: s("Nonnegative", { value: 10000 }),
+          work: s("Nonnegative", { value: 40 })
         })
       )
       let step = child.package_parents(
@@ -233,8 +189,8 @@ try {
         clock,
         cache,
         sep,
-        BigInt(index + 1),
-        2n
+        index + 1,
+        2
       )
       while (step.$.endsWith(".Await")) {
         requests++
@@ -242,19 +198,19 @@ try {
         step = child.resume_parents(step, await io.perform(step.request))
       }
       assert.equal(step.$, "python-module/PackageParentsMachine.Returned", fixture.name)
-      assert.equal(step.valid, result, fixture.name)
+      assert.equal(step.valid, fixture.valid, fixture.name)
       assert.deepEqual(actual, expected, fixture.name + " ordered effects")
       assert.equal(step.session.available, available, fixture.name)
-      assert.equal(step.session.work, BigInt(work), fixture.name)
+      assert.equal(step.session.work, membership.length, fixture.name)
       assert.deepEqual(
         unlist(step.session.membership).map((row) => row.path),
-        [...membership.keys()],
+        membership,
         fixture.name
       )
       assert.deepEqual(unlist(step.session.dependencies), deps, fixture.name)
       assert.deepEqual(
         unlist(step.session.authority).map((row) => [row.path, Number(row.bytes)]),
-        [...authority].map(([path, capture]) => [path, capture.byteLength]),
+        deps.map((path) => [path, Buffer.byteLength(fixture.files[path])]),
         fixture.name
       )
     } finally {
@@ -263,11 +219,11 @@ try {
   }
   console.log(
     JSON.stringify({
-      status: "PASS",
+      passed: true,
       cases: fixtures.length,
       requests,
       scope:
-        "exact native packageParents chronology + physical membership/native syntax; capture adapter readFile and authority reused qualified candidate; not independent policy equivalence or GraphSession acceptance"
+        "authored parent outcomes, ordered physical observations and authority/dependency publication; native parser facts; not whole GraphSession acceptance"
     })
   )
 } finally {
