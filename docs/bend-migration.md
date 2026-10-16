@@ -243,8 +243,8 @@ Current path:
 1. Full Collection loop flow calls compiled Bend: prelude, eligibility/order,
    both passes and final handoff loops are deleted from TS; native bridge grows TS.
    Owner23/native happy/64-item PASS; fast41 and23 receipts PASS.
-   Seven-file public run aborted300s; next: verbose file-level isolation.
-   Prior saturated30s timeout→18.86s PASS; current29.97s.
+   Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
+   Prior aborted300s; saturated30s timeout→18.86s PASS; latest26.69s.
    Canonical root and whole laws remain open.
 2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
    interruption, close/observer faults and cleanup retry. Claimed successors survive

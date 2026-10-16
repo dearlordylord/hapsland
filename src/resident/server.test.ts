@@ -3699,6 +3699,8 @@ describe("resident delivery lease", () => {
       }
     }
     const entered: Array<string> = []
+    const firstEntered = await Effect.runPromise(Deferred.make<void>())
+    const secondEntered = await Effect.runPromise(Deferred.make<void>())
     const releases = new Map<string, Effect.Effect<void>>()
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       reviewControls: reviewControlsLayer({
@@ -3707,6 +3709,7 @@ describe("resident delivery lease", () => {
             const release = yield* Deferred.make<void>()
             entered.push(id)
             releases.set(id, Deferred.succeed(release, undefined).pipe(Effect.asVoid))
+            yield* Deferred.succeed(entered.length === 1 ? firstEntered : secondEntered, undefined)
             yield* Deferred.await(release)
           })
       })
@@ -3720,9 +3723,9 @@ describe("resident delivery lease", () => {
     await put(root, "a.ts", "type FirstShape = string\n")
 
     const collectFirst = Effect.runPromise(server.collect(root, advicee({ turnId: "c1", toolUseId: "c1" }), dispatch))
-    while (entered.length < 1) await Promise.resolve()
+    await Effect.runPromise(Deferred.await(firstEntered))
     const collectSecond = Effect.runPromise(server.collect(root, advicee({ turnId: "c2", toolUseId: "c2" }), dispatch))
-    while (entered.length < 2) await Promise.resolve()
+    await Effect.runPromise(Deferred.await(secondEntered))
     expect(entered).toEqual([first.id, second.id])
 
     Effect.runSync(releases.get(second.id) ?? Effect.void)
