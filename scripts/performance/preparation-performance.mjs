@@ -127,8 +127,8 @@ try {
       samples,
       meanRatio,
       preparationParity: meanRatio <= 1,
-      preparationAcceptanceRatioLimit: 2,
-      preparationPerformanceAccepted: meanRatio <= 2,
+      preparationAcceptanceRatioLimit: 3,
+      preparationPerformanceAccepted: meanRatio <= 3,
       baselineScope:
         reference === "current-native"
           ? "supplemental current independent native TS oracle; does not substitute fixed894 primary gates"

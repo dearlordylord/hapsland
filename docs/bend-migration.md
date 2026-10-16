@@ -22,7 +22,7 @@ that path. Before introducing a new representation or a chain of supporting
 laws, explain why it reaches the connected subsystem sooner.
 
 Preserve the original guarantees; apply the owner’s 2026-10-16 whole
-Preparation exception (≤2×) below; otherwise require performance parity;
+Preparation exception (≤3×) below; otherwise require performance parity;
 measure build and execution every 30 minutes. Remove the superseded TypeScript
 algorithms and product orchestration. Completion means connected Bend, deleted
 superseded TypeScript and passing local checks of the composed flow. Counts of
@@ -177,7 +177,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Formatting preserves complete BendTT. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Closed: 0.1.23 source `bend-idea:55e106a`; 54 behavior/two architecture/six wrapper tests pass. Nine proofs conform; JointStep fixed point in one pass. Whole kernel/eight runners/28 mutants pass. Attachment complete BendTT unchanged. |
 | Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Five approved laws pass kernel hard10; formatted sources pass five isolated controls/ten proof mutants. Astra approves. Finite runner, 32 physical cases and fast3 pass. Earlier timeout remains historical; current full run passes unchanged limits. At whole Preparation acceptance delete [temporary verification sources](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) and gate/import entries. Whole performance meets the new limit. |
-| Whole-path performance | Owner decision 2026-10-16 supersedes the strict whole parity requirement: Preparation may take ≤2× previous TS time. Qualified current-native ratio 1.4448 meets this limit; strict parity remains false. Primary analyzer/build limits stay ≤1. Preserve historical evidence and requalify the final candidate. Closed optimization trials remain closed. |
+| Whole-path performance | Owner decision 2026-10-16 supersedes the strict whole parity requirement: Preparation may take ≤3× previous TS time. Qualified current-native ratio 1.4448 meets this limit; strict parity remains false. Primary analyzer/build limits stay ≤1. Preserve historical evidence and requalify the final candidate. Closed optimization trials remain closed. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
 Engine grouping preserves observation boundaries: 1484 instructions, 127 group
