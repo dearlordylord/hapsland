@@ -240,10 +240,10 @@ Host retains native capabilities, IO and capture/encoding.
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
 Current path:
-1. Shared finding/notice fitting now uses compiled BatchFitting and native engine ports;
-   six protocol scenarios, public120/5 files, fast41 and23 receipts PASS. A callback
-   receiver regression failed before its wrapper fix and passed after. Collection passes
-   still require transfer; this does not accept the whole unit.
+1. BatchFitting and both Collection passes run production Bend; replaced TS passes
+   are deleted, but native bridge adds net TS. Protocol13, public120/5, fast41 and23
+   receipts PASS. Server/controls98/99:30s timeout, isolated PASS18.86s. Remaining:
+   prelude, eligibility/order, final handoff and Canonical root wiring.
 2. Receipt/native custody PASS1408 assertions: pending cancellation, registration/
    interruption, close/observer faults and cleanup retry. Claimed successors survive
    predecessor cleanup. Whole laws and production delivery caller remain open.

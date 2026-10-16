@@ -3,10 +3,12 @@ import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-obs
 import type { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { collectionOrdering } from "./collection-decisions.ts"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice } from "../state/advice-records.ts"
+import type { Advice, AdviceContent } from "../state/advice-records.ts"
 import { type WorkRevision } from "../state/revision.ts"
 import * as Effect from "effect/Effect"
 import { randomUUID } from "node:crypto"
+import collectionCore, { type Command, type Response, type Step, type Disposition } from "./collection-core.js"
+import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
 import {
   DELIVERY_LEASE_MS,
@@ -363,37 +365,6 @@ const residentSelectCollectionFindings = (
         onLimited,
         deps.residentCollectionFindingOffer
       )
-const residentFittingCollectionFindings = Effect.fn("ResidentRuntime.fittingCollectionFindings")(function* (
-  deps: Dependencies,
-  frame: CollectionFrame,
-  retained: ReadonlyArray<Finding>,
-  candidates: ReadonlyArray<Finding>,
-  advice: Advice
-) {
-  const facts = yield* deps.residentFindingSelectionFacts(
-    advice,
-    frame.partition,
-    frame.credentialGeneration,
-    deps.residentNow(),
-    frame.composed
-  )
-  let limited = 0
-  const fitting = yield* residentSelectCollectionFindings(deps, frame, retained, candidates, facts, () => {
-    limited++
-  })
-  for (let index = 0; index < limited; index++)
-    yield* deps.residentRecordOperationalFailure(advice.observation, "output-limit")
-  return fitting
-}, Effect.uninterruptible)
-const residentDisposeCollectionCandidate = Effect.fn("ResidentRuntime.disposeCollectionCandidate")(function* (
-  deps: Dependencies,
-  advice: Advice,
-  token: string,
-  route: string
-) {
-  if (route === "retireCandidate") yield* deps.residentRemoveAdvice(advice.id, token)
-  else yield* residentReleaseAdviceLease(deps, advice)
-})
 const residentCollectionBarrier = Effect.fn("ResidentRuntime.collectionBarrier")(function* (
   deps: Dependencies,
   advice: Advice,
@@ -411,80 +382,263 @@ const residentCollectionBarrier = Effect.fn("ResidentRuntime.collectionBarrier")
     )
   )
 })
-const residentCollectionPostCheck = Effect.fn("ResidentRuntime.collectionPostCheck")(function* (
-  deps: Dependencies,
-  advice: Advice,
-  token: string,
-  event: Extract<CanonicalEvent, { kind: "postValidationCheck" }>
-) {
-  const route = yield* residentCandidateRoute(deps, event)
-  if (route === "retainCandidate") return true
-  yield* residentDisposeCollectionCandidate(deps, advice, token, route)
-  return false
-})
-const residentCollectionPassAdvice = Effect.fn("ResidentRuntime.collectionPassAdvice")(function* (
-  deps: Dependencies,
-  candidate: Advice,
-  token: string,
-  final: boolean
-) {
-  if (final) return candidate
-  const advice = (yield* deps.residentLedger.advice.snapshots()).find(
-    ({ capability, content }) => capability.id === candidate.id && content.delivery === undefined
-  )?.capability
-  if (advice === undefined) return undefined
-  return (yield* residentReserveAdviceLease(deps, advice, token)) ? advice : undefined
-})
-const residentCollectionPassFindings = Effect.fn("ResidentRuntime.collectionPassFindings")(function* (
+type CollectionStream = (
+  | {
+      readonly kind: "fresh"
+      readonly iterator: Iterator<{ readonly capability: Advice; readonly content: AdviceContent }>
+    }
+  | { readonly kind: "retained"; readonly iterator: Iterator<Advice> }
+  | { readonly kind: "findings"; readonly iterator: Iterator<Finding>; readonly partition: string }
+) & { closed: boolean }
+const collectionHandle = <Value>(values: readonly Value[], handle: number): Value => {
+  const value = values[handle]
+  if (value === undefined) throw new Error("invalid native collection capability")
+  return value
+}
+const collectionDispositions: Record<CandidateRoute, Disposition> = {
+  retainCandidate: { $: "Retain" },
+  retireCandidate: { $: "Retire" },
+  releaseCandidate: { $: "ReleaseCandidate" },
+  ignoreCandidate: { $: "Other" },
+  continueCandidate: { $: "Other" }
+}
+const residentCollectSelection = Effect.fn("ResidentRuntime.collectSelection")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
-  token: string,
-  retained: ReadonlyArray<Finding>,
-  final: boolean
+  eligible: ReadonlyArray<Advice>,
+  onToken: (token: string) => void
 ) {
-  yield* residentCollectionBarrier(deps, advice, final)
-  const retainedAdvice = (yield* deps.residentAdvice()).find((item) => item.id === advice.id)
-  if (retainedAdvice !== advice) return undefined
-  const content = yield* deps.residentLedger.advice.current(advice)
-  if (content.delivery?.token !== token) return undefined
-  if (!(yield* deps.residentIsCurrentWork(advice.revision, advice.prepared))) {
-    yield* deps.residentRemoveAdvice(advice.id, token, { fate: "stale", reason: "resident-stale" })
-    return undefined
+  const advice: Advice[] = [],
+    findings: Finding[] = [],
+    contents: AdviceContent[] = [],
+    tokens: string[] = []
+  const adviceHandles = new Map<Advice, number>(),
+    streams: CollectionStream[] = []
+  const adviceHandle = (value: Advice): number => {
+    const existing = adviceHandles.get(value)
+    if (existing !== undefined) return existing
+    const handle = advice.push(value) - 1
+    adviceHandles.set(value, handle)
+    return handle
   }
-  const candidates = yield* residentUnsuppressedFindings(deps, advice, content.findings, frame.stopCollector)
-  const fitting = yield* residentFittingCollectionFindings(deps, frame, retained, candidates, advice)
-  if (
-    !(yield* residentCollectionPostCheck(deps, advice, token, {
-      kind: "postValidationCheck",
-      workAccepted: true,
-      expired: false,
-      hasFitting: fitting.length > 0
-    }))
+  const close = (stream: CollectionStream) => {
+    if (!stream.closed) {
+      stream.closed = true
+      stream.iterator.return?.()
+    }
+  }
+  const native = Effect.fn("ResidentRuntime.collectionPrimitive")(function* (
+    command: Command
+  ): Effect.fn.Return<Response, ResidentAdapterError> {
+    switch (command.$) {
+      case "AllocateToken": {
+        const token = randomUUID()
+        onToken(token)
+        return { $: "Handle", handle: tokens.push(token) - 1 }
+      }
+      case "OpenFresh":
+        return {
+          $: "Handle",
+          handle:
+            streams.push({
+              kind: "fresh",
+              iterator: (yield* deps.residentLedger.advice.snapshots())[Symbol.iterator](),
+              closed: false
+            }) - 1
+        }
+      case "PullFresh": {
+        const stream = collectionHandle(streams, command.stream)
+        if (stream.kind !== "fresh") throw new Error("wrong collection snapshot stream")
+        const item = stream.iterator.next()
+        if (item.done) return { $: "Exhausted" }
+        const { capability, content } = item.value
+        const same = capability.id === collectionHandle(advice, command.candidate).id
+        return {
+          $: "Fresh",
+          advice: adviceHandle(capability),
+          same_id: same,
+          unleased: same && content.delivery === undefined
+        }
+      }
+      case "CloseStream":
+        close(collectionHandle(streams, command.stream))
+        return { $: "Ack" }
+      case "Reserve":
+        return {
+          $: "Truth",
+          value: yield* residentReserveAdviceLease(
+            deps,
+            collectionHandle(advice, command.advice),
+            collectionHandle(tokens, command.token)
+          )
+        }
+      case "Barrier":
+        yield* residentCollectionBarrier(deps, collectionHandle(advice, command.advice), command.final)
+        return { $: "Ack" }
+      case "OpenRetained":
+        return {
+          $: "Handle",
+          handle:
+            streams.push({
+              kind: "retained",
+              iterator: (yield* deps.residentAdvice())[Symbol.iterator](),
+              closed: false
+            }) - 1
+        }
+      case "PullRetained": {
+        const stream = collectionHandle(streams, command.stream)
+        if (stream.kind !== "retained") throw new Error("wrong collection identity stream")
+        const item = stream.iterator.next()
+        if (item.done) return { $: "Exhausted" }
+        const expected = collectionHandle(advice, command.advice)
+        return { $: "Owner", same_id: item.value.id === expected.id, same_pointer: item.value === expected }
+      }
+      case "ReadDelivery": {
+        const content = yield* deps.residentLedger.advice.current(collectionHandle(advice, command.advice))
+        return {
+          $: "Content",
+          handle: contents.push(content) - 1,
+          owned: content.delivery?.token === collectionHandle(tokens, command.token)
+        }
+      }
+      case "CheckWork": {
+        const value = collectionHandle(advice, command.advice)
+        return { $: "Truth", value: yield* deps.residentIsCurrentWork(value.revision, value.prepared) }
+      }
+      case "RemoveStale":
+        yield* deps.residentRemoveAdvice(
+          collectionHandle(advice, command.advice).id,
+          collectionHandle(tokens, command.token),
+          { fate: "stale", reason: "resident-stale" }
+        )
+        return { $: "Ack" }
+      case "OpenFindings": {
+        const values = collectionHandle(contents, command.content).findings
+        const partition = recipientPartition(collectionHandle(advice, command.advice).observation.advicee)
+        return {
+          $: "Handle",
+          handle: streams.push({ kind: "findings", iterator: values[Symbol.iterator](), partition, closed: false }) - 1
+        }
+      }
+      case "PullFinding": {
+        const stream = collectionHandle(streams, command.stream)
+        if (stream.kind !== "findings") throw new Error("wrong collection finding stream")
+        const value = stream.iterator.next()
+        return value.done ? { $: "Exhausted" } : { $: "Handle", handle: findings.push(value.value) - 1 }
+      }
+      case "Suppressed": {
+        const value = collectionHandle(advice, command.advice)
+        const stream = collectionHandle(streams, command.stream)
+        if (stream.kind !== "findings") throw new Error("wrong collection suppression stream")
+        return {
+          $: "Truth",
+          value: yield* deps.residentComposedDelivery.suppresses(
+            value.id,
+            stream.partition,
+            collectionHandle(findings, command.finding),
+            frame.stopCollector ? "stop" : undefined
+          )
+        }
+      }
+      case "ObserveSuppressed":
+        deps.residentInspection.observeAdviceFate(
+          collectionHandle(advice, command.advice),
+          [collectionHandle(findings, command.finding)],
+          "suppressed",
+          "collection-suppression"
+        )
+        return { $: "Ack" }
+      case "Fit": {
+        const value = collectionHandle(advice, command.advice)
+        const facts = yield* deps.residentFindingSelectionFacts(
+          value,
+          frame.partition,
+          frame.credentialGeneration,
+          deps.residentNow(),
+          frame.composed
+        )
+        let limited = 0
+        const fitting = yield* residentSelectCollectionFindings(
+          deps,
+          frame,
+          unlist(command.retained).map((id) => collectionHandle(findings, id)),
+          unlist(command.candidates).map((id) => collectionHandle(findings, id)),
+          facts,
+          () => {
+            limited++
+          }
+        )
+        return { $: "Fitting", findings: list(fitting.map((finding) => findings.push(finding) - 1)), limited }
+      }
+      case "RecordLimited":
+        yield* deps.residentRecordOperationalFailure(
+          collectionHandle(advice, command.advice).observation,
+          "output-limit"
+        )
+        return { $: "Ack" }
+      case "PostCheck":
+        return {
+          $: "Route",
+          disposition:
+            collectionDispositions[
+              yield* residentCandidateRoute(deps, {
+                kind: "postValidationCheck",
+                workAccepted: true,
+                expired: false,
+                hasFitting: command.has_fitting
+              })
+            ]
+        }
+      case "Remove":
+        yield* deps.residentRemoveAdvice(
+          collectionHandle(advice, command.advice).id,
+          collectionHandle(tokens, command.token)
+        )
+        return { $: "Ack" }
+      case "Release":
+        yield* residentReleaseAdviceLease(deps, collectionHandle(advice, command.advice))
+        return { $: "Ack" }
+      case "Update":
+        yield* deps.residentLedger.advice.updateDelivery(
+          collectionHandle(advice, command.advice),
+          collectionHandle(tokens, command.token),
+          { findings: unlist(command.findings).map((id) => collectionHandle(findings, id)) }
+        )
+        return { $: "Ack" }
+      default: {
+        const exhaustive: never = command
+        throw new Error(`unknown collection command: ${exhaustive}`)
+      }
+    }
+  })
+  let step: Step = collectionCore.initial(1, list(eligible.map(adviceHandle)))
+  const advance = Effect.fn("ResidentRuntime.advanceCollection")(function* () {
+    if (step.$ !== "Await") throw new Error("collection cursor has no request")
+    const { request } = step
+    const response = yield* native(request.command)
+    step = collectionCore.resume(step, { $: "Reply", invocation: request.invocation, id: request.id, response })
+  })
+  return yield* Effect.gen(function* () {
+    while (step.$ === "Await") {
+      if (collectionCore.atomic(step)) {
+        yield* Effect.gen(function* () {
+          while (step.$ === "Await" && collectionCore.atomic(step)) yield* advance()
+        }).pipe(Effect.uninterruptible)
+      } else yield* advance()
+    }
+    if (step.$ === "Empty") return undefined
+    if (step.$ !== "Selected") throw new Error("Bend collection protocol refused")
+    return {
+      token: collectionHandle(tokens, step.token),
+      selected: unlist(step.advice).map((id) => collectionHandle(advice, id))
+    }
+  }).pipe(
+    Effect.ensuring(
+      Effect.sync(() => {
+        for (const stream of streams) close(stream)
+      })
+    )
   )
-    return undefined
-  if (final && (yield* deps.residentLedger.advice.current(advice)).delivery?.token !== token) return undefined
-  yield* deps.residentLedger.advice.updateDelivery(advice, token, { findings: fitting })
-  return fitting
-})
-const residentCollectionPass = Effect.fn("ResidentRuntime.collectionPass")(function* (
-  deps: Dependencies,
-  frame: CollectionFrame,
-  token: string,
-  candidates: ReadonlyArray<Advice>,
-  final: boolean
-) {
-  const selected: Array<Advice> = []
-  let findings: Array<Finding> = []
-  for (const candidate of candidates) {
-    const advice = yield* residentCollectionPassAdvice(deps, candidate, token, final)
-    if (advice === undefined) continue
-    const fitting = yield* residentCollectionPassFindings(deps, frame, advice, token, findings, final)
-    if (fitting === undefined) continue
-    findings = [...findings, ...fitting]
-    selected.push(advice)
-  }
-  return selected
 })
 const residentCollectionCredentialStateValid = (
   state: ReturnType<typeof readCredentialState>,
@@ -686,11 +840,11 @@ const residentCollect = Effect.fn("ResidentRuntime.collect")(
         if (initial === undefined) return residentResponse({ status: "empty" })
         const frame = yield* residentCollectionPrelude(deps, initial)
         const eligible = yield* residentEligibleCollectionAdvice(deps, frame)
-        const token = (collectionToken = randomUUID())
-        const selected = yield* residentCollectionPass(deps, frame, token, eligible, false)
-        if (selected.length === 0) return residentResponse({ status: "empty" })
-        const final = yield* residentCollectionPass(deps, frame, token, selected, true)
-        if (final.length === 0) return residentResponse({ status: "empty" })
+        const selection = yield* residentCollectSelection(deps, frame, eligible, (token) => {
+          collectionToken = token
+        })
+        if (selection === undefined) return residentResponse({ status: "empty" })
+        const { token, selected: final } = selection
         // Selection does not read source. The response boundary performs the
         // single final source check before handing findings to its caller.
         const handoffNow = deps.residentNow()

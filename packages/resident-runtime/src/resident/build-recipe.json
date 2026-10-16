@@ -18,5 +18,10 @@
     "source": "advice-delivery/BatchFitting.bend",
     "output": "advice-delivery/batch-fitting-core.js",
     "declaration": "advice-delivery/batch-fitting-core.d.ts"
+  },
+  {
+    "source": "advice-delivery/Collection.bend",
+    "output": "advice-delivery/collection-core.js",
+    "declaration": "advice-delivery/collection-core.d.ts"
   }
 ]
