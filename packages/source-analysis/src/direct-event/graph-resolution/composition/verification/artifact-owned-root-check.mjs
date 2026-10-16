@@ -447,6 +447,28 @@ try {
     limits: { treeBytes: 900 }
   }
   const retainedEntryFixtures = [
+    ...[
+      ["rust-absolute-cargo-library", "/absolute.rs"],
+      ["rust-escaping-cargo-library", "../outside.rs"],
+      ["rust-non-rs-cargo-library", "custom.RS"]
+    ].map(([name, library]) => ({
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name,
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"\n[lib]\npath=' + JSON.stringify(library) },
+      requiredExpanded: undefined
+    })),
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "rust-flat-automatic-cargo-binary",
+      path: "src/bin/tool.rs",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/bin/a.rs": "pub struct A {}" }
+    },
+    {
+      ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
+      name: "rust-directory-automatic-cargo-binary",
+      path: "src/bin/tool/main.rs",
+      files: { "Cargo.toml": '[package]\nname="fixture"\nedition="2024"', "src/bin/tool/a.rs": "pub struct A {}" }
+    },
     {
       ...graphFixtures.find((f) => f.name === "rust-context-read-policy"),
       name: "rust-preparation-observer-error",

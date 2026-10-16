@@ -1,159 +1,196 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
-import { dirname, join, relative, extname, isAbsolute, sep } from "node:path"
+import { mkdtemp, rm } from "node:fs/promises"
+import { join, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { stringify, parse } from "smol-toml"
 import { tomlValue } from "../frontend-codec.ts"
 import { unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
-const folder = import.meta.dirname,
-  root = join(folder, "../../../../../.."),
-  cache = join(root, "node_modules/.cache")
-mkdirSync(cache, { recursive: true })
-const temporary = mkdtempSync(join(cache, "cargo-specification-"))
-const native = join(
-  root,
-  "packages/source-analysis/dist/direct-event/graph-resolution/verification/native-rust-module-context.js"
-)
-const inputs = [
-  "../CargoSpecification.bend",
-  "../CargoSpecificationCheck.bend",
-  "../Types.bend",
-  "./cargo-specification-check.mjs",
-  "../frontend-codec.ts",
-  native
-]
-const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex")
-const sources = Object.fromEntries(inputs.map((path) => [path, hash(isAbsolute(path) ? path : join(folder, path))]))
+
+const temporary = await mkdtemp("/tmp/hapsland-cargo-authored-")
 try {
-  assert.equal(sep, "/", "this check qualifies Linux path algebra only")
-  const emitted = join(temporary, "spec.mjs")
-  execFileSync("bend", [join(folder, "../CargoSpecificationCheck.bend"), "-o", emitted], { timeout: 10000 })
-  const spec = (await import(pathToFileURL(emitted))).default
-  const { cargoTargetRoots } = await import(pathToFileURL(native))
-  const within = (path) => path !== ".." && !path.startsWith("../") && !isAbsolute(path)
-  // Mechanical path realization of the returned ordered raw plan. The full
-  // Bend roots/path driver is not qualified by this selection-only check.
-  function realize(plan, base, path) {
-    if (plan.$ === "None") return undefined
-    const value = plan.value,
-      paths = unlist(value.raw_targets).map((path) => join(base, path))
-    if (value.automatic_binary) {
-      const tail = relative(join(base, "src/bin"), path)
-      if (within(tail) && tail !== "") {
-        const first = tail.split(sep)[0]
-        paths.splice(
-          Number(value.automatic_index),
-          0,
-          join(base, "src/bin", first.endsWith(".rs") ? first : join(first, "main.rs"))
-        )
-      }
-    }
-    return paths.some((path) => !within(path) || extname(path) !== ".rs") ? undefined : paths
+  assert.equal(sep, "/", "qualifies Linux path spelling only")
+  const modules = {}
+  for (const [name, source] of [
+    ["spec", "CargoSpecificationCheck"],
+    ["production", "Cargo"]
+  ]) {
+    const emitted = join(temporary, name + ".mjs")
+    execFileSync("bend", [join(import.meta.dirname, "../" + source + ".bend"), "-o", emitted], { timeout: 10000 })
+    modules[name] = (await import(pathToFileURL(emitted))).default
   }
-  const packages = [
-    { name: "demo", edition: "2024" },
-    { name: "demo", edition: "2018", autolib: false },
-    { name: "demo", edition: "2021", autobins: false },
-    { name: "", edition: "2024" },
-    { name: "demo", edition: "2015" },
-    { name: "demo", edition: "2024", build: false },
-    { name: "demo", edition: "2024", build: "script.rs" },
-    { name: "demo", edition: "2024", autolib: "false" },
-    { name: "demo", edition: "2024", autobins: "true" },
-    { name: "demo", edition: 2024 }
-  ]
-  const libraries = [
-    undefined,
-    {},
-    false,
-    { path: "custom.rs" },
-    { path: "" },
-    { path: "/absolute.rs" },
-    { path: "../outside.rs" },
-    { path: "custom.RS" },
-    { edition: "2024" },
-    new Date("2024-01-01T00:00:00Z")
-  ]
-  const binaries = [
-    undefined,
-    [],
-    [{ name: "one", path: "one.rs" }],
+  const pkg = { name: "demo", edition: "2024" }
+  const defaultPlan = { raw: ["src/lib.rs", "src/main.rs"], automatic: true, index: 2 }
+  const libraryOnly = { raw: ["src/lib.rs"], automatic: false, index: 2 }
+  const fixtures = [
+    ["default", { package: pkg }, defaultPlan],
+    ["edition-2018", { package: { ...pkg, edition: "2018" } }, defaultPlan],
+    ["edition-2021", { package: { ...pkg, edition: "2021" } }, defaultPlan],
+    ["build-disabled", { package: { ...pkg, build: false } }, defaultPlan],
+    ["no-library", { package: { ...pkg, autolib: false } }, { raw: ["src/main.rs"], automatic: true, index: 1 }],
+    ["no-auto-binaries", { package: { ...pkg, autobins: false } }, libraryOnly],
     [
-      { name: "one", path: "one.rs" },
-      { name: "one", path: "two.rs" }
+      "no-auto-targets",
+      { package: { ...pkg, autolib: false, autobins: false } },
+      { raw: [], automatic: false, index: 1 }
+    ],
+    ["empty-library", { package: pkg, lib: {} }, defaultPlan],
+    ["date-library", { package: pkg, lib: new Date("2024-01-01T00:00:00Z") }, defaultPlan],
+    ["explicit-library-overrides-disable", { package: { ...pkg, autolib: false }, lib: {} }, defaultPlan],
+    [
+      "custom-library",
+      { package: pkg, lib: { path: "custom.rs" } },
+      { raw: ["custom.rs", "src/main.rs"], automatic: true, index: 2 }
+    ],
+    ["empty-explicit-binaries", { package: pkg, bin: [] }, libraryOnly],
+    [
+      "one-binary",
+      { package: pkg, bin: [{ name: "one", path: "one.rs" }] },
+      { raw: ["src/lib.rs", "one.rs"], automatic: false, index: 2 }
     ],
     [
-      { name: "one", path: "one.rs" },
-      { name: "two", path: "two.rs" }
+      "ordered-binaries",
+      {
+        package: pkg,
+        bin: [
+          { name: "one", path: "one.rs" },
+          { name: "two", path: "two.rs" }
+        ]
+      },
+      { raw: ["src/lib.rs", "one.rs", "two.rs"], automatic: false, index: 2 }
     ],
-    [{ name: "one", path: "/one.rs" }],
-    [{ name: "one", path: "one.rs", edition: "2024" }],
-    [{ name: "", path: "one.rs" }],
-    [{}],
-    false
+    ["zero-limit-defaults", { package: pkg }, defaultPlan, "src/lib.rs", 0],
+    ["zero-limit-explicit", { package: pkg, bin: [{ name: "one", path: "one.rs" }] }, undefined, "src/lib.rs", 0],
+    [
+      "exact-explicit-limit",
+      { package: pkg, bin: [{ name: "one", path: "one.rs" }] },
+      { raw: ["src/lib.rs", "one.rs"], automatic: false, index: 2 },
+      "src/lib.rs",
+      1
+    ],
+    [
+      "over-explicit-limit",
+      {
+        package: pkg,
+        bin: [
+          { name: "one", path: "one.rs" },
+          { name: "two", path: "two.rs" }
+        ]
+      },
+      undefined,
+      "src/lib.rs",
+      1
+    ],
+    ["missing-package", {}, undefined],
+    ["package-nonrecord", { package: false }, undefined],
+    ["empty-name", { package: { ...pkg, name: "" } }, undefined],
+    ["name-nontext", { package: { ...pkg, name: false } }, undefined],
+    ["edition-2015", { package: { ...pkg, edition: "2015" } }, undefined],
+    ["edition-nontext", { package: { ...pkg, edition: 2024 } }, undefined],
+    ["build-script", { package: { ...pkg, build: "script.rs" } }, undefined],
+    ["build-true", { package: { ...pkg, build: true } }, undefined],
+    ["autolib-nonbool", { package: { ...pkg, autolib: "false" } }, undefined],
+    ["autobins-nonbool", { package: { ...pkg, autobins: "true" } }, undefined],
+    ["library-nonrecord", { package: pkg, lib: false }, undefined],
+    ["empty-library-path", { package: pkg, lib: { path: "" } }, undefined],
+    ["library-path-nontext", { package: pkg, lib: { path: false } }, undefined],
+    ["library-edition", { package: pkg, lib: { edition: "2024" } }, undefined],
+    ["binary-nonarray", { package: pkg, bin: false }, undefined],
+    ["binary-nonrecord", { package: pkg, bin: [false] }, undefined],
+    ["empty-binary", { package: pkg, bin: [{}] }, undefined],
+    ["unnamed-binary", { package: pkg, bin: [{ name: "", path: "one.rs" }] }, undefined],
+    ["binary-edition", { package: pkg, bin: [{ name: "one", path: "one.rs", edition: "2024" }] }, undefined],
+    [
+      "duplicate-binary-name",
+      {
+        package: pkg,
+        bin: [
+          { name: "one", path: "one.rs" },
+          { name: "one", path: "two.rs" }
+        ]
+      },
+      undefined
+    ],
+    // The production selector returns a raw plan; its actual Rust path driver
+    // rejects absolute/escaping/non-rs targets. Canonical fixtures own that check.
+    [
+      "absolute-library",
+      { package: pkg, lib: { path: "/absolute.rs" } },
+      undefined,
+      "src/lib.rs",
+      4,
+      { raw: ["/absolute.rs", "src/main.rs"], automatic: true, index: 2 }
+    ],
+    [
+      "absolute-binary",
+      { package: pkg, bin: [{ name: "one", path: "/one.rs" }] },
+      undefined,
+      "src/lib.rs",
+      4,
+      { raw: ["src/lib.rs", "/one.rs"], automatic: false, index: 2 }
+    ],
+    [
+      "escaping-raw-library",
+      { package: pkg, lib: { path: "../outside.rs" } },
+      { raw: ["../outside.rs", "src/main.rs"], automatic: true, index: 2 }
+    ],
+    [
+      "non-rs-raw-library",
+      { package: pkg, lib: { path: "custom.RS" } },
+      { raw: ["custom.RS", "src/main.rs"], automatic: true, index: 2 }
+    ]
   ]
-  const selected = [
-    "src/lib.rs",
-    "src/bin/tool.rs",
-    "src/bin/tool/deep.rs",
-    "tests/check.rs",
+  for (const kind of ["test", "example", "bench"])
+    fixtures.push(["explicit-" + kind, { package: pkg, [kind]: [] }, undefined])
+  for (const selected of [
     "build.rs",
-    "src/bin",
-    "../outside.rs"
-  ]
-  let comparisons = 0,
-    accepted = 0
-  for (const pkg of packages)
-    for (const lib of libraries)
-      for (const bin of binaries)
-        for (const path of selected)
-          for (const limit of [0, 1, 4]) {
-            const manifest = {
-              package: pkg,
-              ...(lib === undefined ? {} : { lib }),
-              ...(bin === undefined ? {} : { bin })
-            }
-            const source = stringify(manifest),
-              syntax = parse(source),
-              task = "Cargo.toml",
-              base = dirname(task)
-            const expected = cargoTargetRoots(task, source, path, limit)
-            const actual = realize(spec.select(tomlValue(syntax), relative(base, path), BigInt(limit)), base, path)
-            assert.deepEqual(actual, expected, JSON.stringify({ manifest, path, limit }))
-            comparisons++
-            if (actual) accepted++
-          }
-  for (const kind of ["test", "example", "bench"]) {
-    const manifest = { package: { name: "demo", edition: "2024" }, [kind]: [] },
-      source = stringify(manifest)
+    "tests",
+    "tests/check.rs",
+    "examples",
+    "examples/main.rs",
+    "benches",
+    "benches/main.rs"
+  ])
+    fixtures.push(["excluded-selection-" + selected, { package: pkg }, undefined, selected])
+  for (const selected of ["src/bin/tool.rs", "src/bin/tool/main.rs", "src/bin/tool/deep.rs", "../outside.rs"])
+    fixtures.push(["raw-selection-" + selected, { package: pkg }, defaultPlan, selected])
+  const project = (result) =>
+    result.$ === "None"
+      ? undefined
+      : {
+          raw: unlist(result.value.raw_targets),
+          automatic: result.value.automatic_binary,
+          index: result.value.automatic_index
+        }
+  for (const [
+    name,
+    manifest,
+    expected,
+    selected = "src/lib.rs",
+    limit = 4,
+    productionExpected = expected
+  ] of fixtures) {
+    const syntax = tomlValue(parse(stringify(manifest)))
     assert.deepEqual(
-      realize(spec.select(tomlValue(parse(source)), "src/lib.rs", 4n), ".", "src/lib.rs"),
-      cargoTargetRoots("Cargo.toml", source, "src/lib.rs", 4)
+      project(modules.spec.select(syntax, selected, limit)),
+      expected,
+      name + " independent specification"
     )
-    comparisons++
+    assert.deepEqual(
+      project(modules.production.select(syntax, selected, sep, limit)),
+      productionExpected,
+      name + " production raw policy"
+    )
   }
-  assert.deepEqual(
-    Object.fromEntries(inputs.map((path) => [path, hash(isAbsolute(path) ? path : join(folder, path))])),
-    sources
+  console.log(
+    JSON.stringify({
+      passed: true,
+      cases: fixtures.length,
+      comparisons: fixtures.length * 2,
+      scope:
+        "authored Cargo field/selection/raw-plan outcomes on existing production and independent Bend specification; actual Canonical fixtures qualify full path realization, not a JS policy simulator"
+    })
   )
-  const record = {
-    at: new Date().toISOString(),
-    runtime: typeof Bun === "undefined" ? "node" : "bun",
-    sources,
-    comparisons,
-    accepted,
-    scope:
-      "Independent Cargo relative target policy versus actual native cargoTargetRoots, with mechanical host path realization. Linux only; does not qualify full Bend path realization, Rust driver, ordered effects, universal laws, proofs or performance."
-  }
-  const evidence = join(root, ".test-runs/bend-migration")
-  mkdirSync(evidence, { recursive: true })
-  writeFileSync(
-    join(evidence, "cargo-specification-" + record.runtime + "-evidence.json"),
-    JSON.stringify(record, null, 2) + "\n"
-  )
-  console.log(JSON.stringify(record))
 } finally {
-  rmSync(temporary, { recursive: true, force: true })
+  await rm(temporary, { recursive: true, force: true })
 }

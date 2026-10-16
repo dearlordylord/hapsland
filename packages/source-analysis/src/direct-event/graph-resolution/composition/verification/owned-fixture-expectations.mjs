@@ -208,6 +208,14 @@ export function fixtureExpectation(fixture, sources) {
       return rootRefusal(undefined, 11, ["Cargo.toml"], [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
     case "rust-function-binding-unsupported":
       return noUnit(9, [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
+    case "rust-absolute-cargo-library":
+    case "rust-escaping-cargo-library":
+    case "rust-non-rs-cargo-library":
+      return rootRefusal("A", 11, ["Cargo.toml"], [capture(4, "Cargo.toml")], [path, "Cargo.toml"])
+    case "rust-flat-automatic-cargo-binary":
+      return rustImport("src/bin/a.rs")
+    case "rust-directory-automatic-cargo-binary":
+      return rustImport("src/bin/tool/a.rs")
     case "rust-preparation-observer-error":
     case "rust-preparation-capture-unavailable":
       return rootRefusal(
