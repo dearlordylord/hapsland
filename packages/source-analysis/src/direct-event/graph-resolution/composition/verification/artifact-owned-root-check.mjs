@@ -15,6 +15,7 @@ import { pathToFileURL } from "node:url"
 import { deserialize } from "node:v8"
 import * as Effect from "effect/Effect"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
+import { assertOwnedAttachmentFrame } from "../../attachment/checks/owned-frame-expectations.mjs"
 import { assertFixtureOutcome, physicalRootExpectation } from "./owned-fixture-expectations.mjs"
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
@@ -430,7 +431,16 @@ try {
     name: "bend-final-publication-deadline",
     expireAt: 3
   }
-  for (const fixture of [...graphFixtures, finalDeadlineFixture]) {
+  const rollbackFixture = {
+    name: "rollback-pending-owner",
+    source: "import type { A } from './a'; export interface Root { a: A }",
+    files: {
+      "a.ts": "import type { B } from './b'; export interface A { b: B; payload: '" + "x".repeat(2000) + "' }",
+      "b.ts": "export interface B {}"
+    },
+    limits: { treeBytes: 900 }
+  }
+  for (const fixture of [...graphFixtures, finalDeadlineFixture, rollbackFixture]) {
     console.log(JSON.stringify({ graphFixture: fixture.name }))
     const fixtureRoot = join(temp, "whole-" + fixture.name)
     await mkdir(fixtureRoot)
@@ -576,6 +586,7 @@ try {
       if (fixture.name === "tree-refusal")
         assert.equal(operationTrace.filter((operation) => operation === "Types.EncodeProduct").length, 4)
     }
+    assertOwnedAttachmentFrame(fixture.name, ownedTerminal, ownedTranscript)
     const directEvents = []
     const directCache = fixture.cache === undefined ? undefined : new Map(fixture.cache)
     const directRegistry = createServiceRegistry()
@@ -639,7 +650,9 @@ try {
       requests: totalRequests,
       graphConsumerFixtures: graphFixtures.length,
       finalPublicationDeadlineCases: 1,
-      completeRequestReplyAndAcceptedTerminalComparisons: graphFixtures.length + 1,
+      attachmentRollbackCases: 1,
+      attachmentTargetOrderCases: 1,
+      completeRequestReplyAndAcceptedTerminalComparisons: graphFixtures.length + 2,
       scope:
         "actual Canonical admission/Prepare + split resolver children with physical native service/session, two roots under one preparation, cancellation/retirement/late rejection/provisional refusal/throw cleanup; all 58 original fixtures assert full authored trees/refusals, native declaration facts, explicit effects/cache/errors; driver refinement compares full request/reply IO and accepted terminal with the dispatcher verification loop, not an independent Graph algorithm; standalone generic pure-chain/Cause qualification, real resident preparation progression/retention/revision and universal proofs remain open"
     })

@@ -287,6 +287,8 @@ export function fixtureExpectation(fixture, sources) {
         capture(5, "a.ts"),
         capture(9, "b.ts")
       ])
+    case "rollback-pending-owner":
+      return result(unit([omit("A", "reference-limit")]), 8, [capture(5, "a.ts")])
     case "tree-refusal":
       return result(unit([omit("A", "reference-limit")]), 8, [capture(5, "a.ts")])
     case "missing":
