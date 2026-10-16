@@ -23,5 +23,10 @@
     "source": "advice-delivery/Collection.bend",
     "output": "advice-delivery/collection-core.js",
     "declaration": "advice-delivery/collection-core.d.ts"
+  },
+  {
+    "source": "advice-delivery/handoff/Handoff.bend",
+    "output": "advice-delivery/handoff/handoff-core.js",
+    "declaration": "advice-delivery/handoff/handoff-core.d.ts"
   }
 ]

@@ -248,9 +248,9 @@ Current path:
 2. Canonical root custody/empty terminal PASS1416 across Await; cancellation precedes cleanup,
    retained across launch/registration faults. Claimed successors survive old cleanup.
    Production root caller and whole laws remain open.
-3. Thread receipts via request-local ResponseContext/local Effect scope; connect
-   prepare/finalize, reuse freshness and delete workflow/policy loops. Prove whole
-   ordered trace/reply fencing/lease/finish using existing atomic primitives.
+3. Finalize runs Bend;512 old TS lines removed,89 public tests PASS. Source-current
+   and reconcileFinish remain TS. Connect receipts via request-local ResponseContext/
+   local scope; prove whole ordered trace/reply fencing/lease/finish.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
    and output regressions plus whole-path performance. Unit not accepted.
 

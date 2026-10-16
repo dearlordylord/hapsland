@@ -10,27 +10,7 @@ import * as Effect from "effect/Effect"
 import { type ResidentRequest, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import type { ComposedDelivery } from "../../state/delivery/operations.ts"
 import { recipientPartition } from "../../recipient/identity.ts"
-import { type HandoffContext, type Dependencies } from "./context.ts"
-import { residentEditCollectRequest } from "./workflow.ts"
-import { residentEditCollectionStatus } from "./collection-status.ts"
-
-export const finishEditHandoff = Effect.fn("ResidentRuntime.finishEditHandoff")(function* (
-  context: HandoffContext<"residentAdvice" | "residentAdviceExpired" | "residentCollectionWorkCount">,
-  selected: ResidentResponse
-): Effect.fn.Return<ResidentResponse> {
-  if (!residentEditCollectRequest(context.request)) return selected
-  if (context.authority === undefined) return { requestRoute: "edit", status: "unavailable", reason: "lost" }
-  return selected.status === "advice"
-    ? { ...selected, requestRoute: "edit" }
-    : yield* residentEditCollectionStatus(
-        context.deps,
-        context.authority,
-        context.request.root,
-        context.request.advicee,
-        context.request.composed === true,
-        context.now
-      )
-})
+import { type Dependencies } from "./context.ts"
 
 const residentFinishWriteMatches = (canWrite: boolean, response: ResidentResponse, token: string): boolean =>
   canWrite && response.status === "advice" && response.token === token
