@@ -175,8 +175,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Source/resident/FrozenInput pass against independent verification-only TS; whole parity remains. |
 | Attachment hard10 | Reply proof dispatch now factors 37 incompatible applications through one exhaustive 39-constructor eliminator; Astra source review approves unchanged guarantee. Frontend/full TT emission pass, no OOS (7,431,252 bytes). Formatting preserves complete BendTT. Current full verdict still times out at CPU10/hard10; no acceptance and no unchanged retry. Need a different source-supported proof-shape hypothesis. |
 | Original proof formatting | Closed: 0.1.23 source `bend-idea:55e106a`; 54 behavior/two architecture/six wrapper tests pass. Nine proofs conform; JointStep fixed point in one pass. Whole kernel/eight runners/28 mutants pass. Attachment complete BendTT unchanged. |
-| Shared extraction | Five adapters share one invocation-local parser without cross-command cache. Astra approves; physical consumers pass. Whole 1.5301 fails; unchanged trial closed. |
-| Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Owner approved [five laws](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) on 2026-10-15 **as temporary migration artifacts**. Immediately at whole Preparation acceptance delete laws, proofs/helpers, verification modules, runner and TS oracle; update gates/imports per LAWS cleanup. 384 traces/612 reply pairs/51 advances/16 queues/ten mutants and 32 physical cases pass. Proofs/whole parity remain open. |
+| Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Five approved laws pass kernel hard10, five controls/ten proof mutants passed before formatting; Astra approves. Post-format kernel passes; mutant rerun times out. At whole Preparation acceptance delete [temporary verification sources](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) and gate/import entries. Whole parity remains open. |
 | Whole-path parity | Empty-root Core skips inventory/cursor; original Root/Whole proofs, eight whole mutants, exact leaf queue/Acks and 78 cases pass. Whole grouped current-native ratio is 1.4448; ≤ 1 remains required including conversion/effects/process costs. Collect/sort/dedup closed: unsupported payoff/UTF16 proofs. Binary64 allocation failed twice; trial closed, production codec restored, 20 cases retained. Object.fromEntries rejected: getter/error order. |
 | Final consumers and deletion | Requalify Source/resident/Post/Advice, fencing, cancellation, failures and result acceptance on the final candidate. Then remove the local analyzer verification oracle and [the native TS verification oracle](../packages/review-execution/src/direct-event/preparation/verification/native-preparation.ts) and its superseded consumers/performance reference. Audit remaining host branches for product policy. |
 
@@ -201,11 +200,13 @@ that only bridges helper names.
   pinned format and compiled consumers pass. Post removes three TS algorithms
   (27 laws/four mutants/23360 cases). Workspace removes both TS sizing formulas
   (18 laws/four mutants/6930 cases), preserving IEEE/coercion order.
-- Primary `6424fd52`: execution/build pass 0.7761 / 0.8300
-  (23:22:10 / 23:23:09 UTC, 17 frozen pairs, cache 23/46); cadence met.
+- Resumed `18cd39a8` execution passes 0.9347 (2026-10-16 04:53:44 UTC,
+  17 frozen pairs). Build at 04:54:39 is unqualified: baseline admission-lock
+  deadline; warm preparation repeats it. Stopped-writer custody reconciled.
+  No successful resumed build ratio; unchanged retries closed.
+  Prior primary execution/build pass 0.7761/0.8300 (23:22/23:23 UTC).
   Prior 22:55/22:56 pass 0.7085/0.8612 started 4m52s/4m55s late.
   Prior 21:01 execution failed 1.1571; later passes do not erase that result.
-  Prior f8ce cadence also missed (+10s/+48s).
   Function execution does not measure the local type analyzer.
   Grouped preflight whole at 23:20 UTC **fails parity at 1.4448**:
   equal outputs, 17 frozen pairs, seven fixtures/five languages, independent TS

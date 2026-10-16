@@ -6,11 +6,12 @@ import ./Specification.bend as S
 import ./ProtocolReference.bend as P
 
 # Owner-approved 2026-10-15, conditional on deletion at the trigger below.
-# Proofs remain to be completed. These are temporary migration acceptance laws.
+# Proofs are implemented in PROOF.bend. These are temporary migration acceptance laws.
 # Cleanup trigger: acceptance of the whole Preparation migration unit. Immediately
 # delete this LAWS.bend, its proofs and verification-only proof helpers,
 # Execution.bend, ProtocolReference.bend, Specification.bend,
-# specification-check.mjs and the superseded verification/native.ts TS oracle.
+# specification-check.mjs, proof-check.mjs, mutations.mjs and the superseded
+# verification/native.ts TS oracle.
 # Remove their imports/gate registrations and old-oracle profiling paths.
 # Keep production Core/Model/native bindings and ordinary regression/binding tests;
 # still-required behavior remains with its product contract and test owners.
