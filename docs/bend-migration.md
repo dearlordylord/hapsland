@@ -36,7 +36,7 @@ or changing its executor does not reset this limit.
 ## Bend check and emission deadline
 
 Default migration Bend proof/check/emission deadline: ten seconds. Owner exception
-2026-10-16: complete attachment transaction proof may take 30 seconds; measured
+2026-10-16: complete attachment transaction proof may take 20 seconds; measured
 checker+kernel PASS in 11.35s wall/11.04s CPU. All other limits stay unchanged.
 Historical ten-second timeouts remain failures under their original deadline.
 
@@ -175,7 +175,7 @@ native projection/freeze and lifecycle boundaries remain. Full consumers pass.
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Local analyzer physical acceptance | Public Trees/Preflight and Source Outcomes now use packaged Core in the existing Canonical lease. Production analyzer.ts DFS, sets/limit/first-failure and preflight equations removed; host retains slots/materialization/postfix effects. 30 laws/45 mutants and 78 packaged modes pass. Source/resident/FrozenInput pass against independent verification-only TS; whole parity remains. |
-| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original complete law passes checker+kernel: ALL PROOFS CHECK, 11.35s wall/11.04s CPU, unchanged source SHA073e9514. Ordinary capability runner now permits 30s for this root only; other roots keep 10s. No guarantee or premise changed. |
+| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original complete law passes checker+kernel: ALL PROOFS CHECK, 11.35s wall/11.04s CPU, unchanged source SHA073e9514. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 | Original proof formatting | Closed: 0.1.23 source `bend-idea:55e106a`; 54 behavior/two architecture/six wrapper tests pass. Nine proofs conform; JointStep fixed point in one pass. Whole kernel/eight runners/28 mutants pass. Attachment complete BendTT unchanged. |
 | Combined preflight | Core replaces TS callable policy/Go fallback through Canonical Preflight. Five approved laws pass kernel hard10; formatted sources pass five isolated controls/ten proof mutants. Astra approves. Finite runner, 32 physical cases and fast3 pass. Earlier timeout remains historical; current full run passes unchanged limits. At whole Preparation acceptance delete [temporary verification sources](../packages/source-analysis/src/direct-event/combined-preflight/LAWS.bend) and gate/import entries. Whole performance meets the new limit. |
 | Whole-path performance | Owner accepts ≤3×. Current 2c292111 whole qualification at 2026-10-16 15:58 UTC passes 1.2145×: 17 frozen pairs, equal outputs, actual Canonical consumer. Strict parity false. Earlier 15:55 public-worker timeout retained; diagnostic public/native finish 6.47s/7.09s, then one requalification passes unchanged deadlines. Build46/46 and 23 receipts pass. |

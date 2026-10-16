@@ -132,7 +132,7 @@ for (const file of selected) {
   // at 11.35s. Keep every other proof at its existing ten-second deadline.
   const proofTimeout =
     file === "packages/source-analysis/src/direct-event/graph-resolution/attachment/ATTACHMENT_TRANSACTION_LAWS.bend"
-      ? 30000
+      ? 20000
       : 10000
   const isPython = path.endsWith(".py")
   const syntax = suite === "preparation-sources" && !isProof
