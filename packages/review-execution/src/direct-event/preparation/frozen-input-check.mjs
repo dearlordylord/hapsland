@@ -12,7 +12,6 @@ import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { REVIEW_PROVIDERS } from "@hapsland/runtime-environment/runtime/backend"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 import { initialCanonical, stepCanonical } from "@hapsland/canonical-policy/canonical/adapter"
-import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import {
   productValue,
   fromProductValue,
@@ -148,21 +147,42 @@ try {
             ...(provider.id === "cloudflare" ? { accountId: "0123456789abcdef0123456789abcdef" } : {})
           }
           const supplied = { provider: "openai", model: "gpt-6-luna", destination: "supplied" }
-          const settings = {
-            rules: [rule],
-            providerIdentity: supplied,
-            ...(configured
-              ? { configuration: { policy: { layers: [{ name: "user", document: { reviewBackend: selected } }] } } }
-              : {})
+          // Explicit fixture identities: no retired provider/preparation oracle.
+          const identities = {
+            jev: { provider: "jev", model: "jev-latest", destination: "https://api.typesafe.ai/v1/systemone" },
+            cloudflare: {
+              provider: "cloudflare",
+              model: "clef",
+              destination:
+                "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/run/@cf/cloudflare/clef"
+            },
+            openai: { provider: "openai", model: "gpt-6-luna", destination: "https://api.openai.com/v1/decisions" }
           }
-          const expected = nativePrepareReadyUnits([unit], declarations, path, {
+          const expected = {
             contract: TYPE_INPUT_CONTRACT,
+            providerIdentity: configured ? identities[provider.id] : supplied,
             graphLimits: GRAPH_LIMIT_CEILINGS,
-            supportingCaptures: captures,
-            observation: { root: "/workspace" },
-            context: { settings }
-          })
-          assert.equal(expected.length, 1)
+            candidateProjection: true,
+            rootLocation: location,
+            sourceFingerprints: [{ path, contentHash: "hash:" + path, byteLength: 42 }],
+            completeness: partial ? "incomplete-irrelevant" : "complete",
+            path,
+            declaration: artifact,
+            unit,
+            rules: [
+              {
+                id: rule.id,
+                source: rule.source,
+                definitionDigest: rule.definitionDigest,
+                threshold: rule.threshold,
+                message: rule.message,
+                rank: rule.rank,
+                decision: rule.decision,
+                target: { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: [] }
+              }
+            ],
+            interpretation: "probability-strictly-greater-than-threshold"
+          }
           let evidence = modules.UnitEvidence.initial(wire(unit))
           while (label(evidence) === "Continue") evidence = modules.UnitEvidence.advance(evidence.state, list([]))
           const metadata = modules.UnitEvidence.metadata(
@@ -393,10 +413,9 @@ try {
             engineRequests++
           }
           const input = fromProductValue(step.input)
-          assert.deepEqual(input, expected[0].prepared.input)
-          assert.deepEqual(Object.keys(input), Object.keys(expected[0].prepared.input))
-          assert.equal(JSON.stringify(input), JSON.stringify(expected[0].prepared.input))
-          assert.equal(step.identity, expected[0].prepared.identity)
+          assert.deepEqual(input, expected)
+          assert.deepEqual(Object.keys(input), Object.keys(expected))
+          assert.equal(JSON.stringify(input), JSON.stringify(expected))
           assert.equal(step.identity, semanticIdentity(input))
           cases++
         }
@@ -409,7 +428,7 @@ try {
       rejectedReplies,
       batchBoundaryCases,
       scope:
-        "Compiled evidence/rules/provider/frozen-input/identity stages versus full native ready consumer; stage composition remains in test harness, whole production lifecycle and laws are open"
+        "Compiled evidence/rules/provider/frozen-input against fixture-authored ordered input; exact identity, request fencing, serialization and coercion regressions; not whole Preparation acceptance"
     })
   )
 } finally {

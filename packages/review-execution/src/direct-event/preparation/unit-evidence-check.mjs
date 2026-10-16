@@ -4,11 +4,8 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { languageForPath } from "@hapsland/source-analysis/direct-event/languages/registry"
-import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
-import { nativePrepareReadyUnits } from "./verification/native-preparation.ts"
 import { productValue, fromProductValue, list, unlist } from "@hapsland/source-artifacts/direct-event/value/codec"
 
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-unit-evidence-"))
@@ -39,17 +36,6 @@ const unwire = (value) => {
     )
   return value
 }
-const rule = compileRule(
-  {
-    version: 1,
-    id: "unit-evidence",
-    question: "Is the unit relevant?",
-    criteria: { false: "No", true: "Yes" },
-    message: "Relevant unit",
-    inputs: [{ languages: ["typescript", "rust", "bend", "python", "go"], kind: "type", requires: [] }]
-  },
-  "unit-evidence-rule"
-)
 const catalog = [...languageForPath("unit.bend").supportingTypes().values()].map(({ artifact }) => artifact)
 assert.ok(catalog.length > 0)
 const root = {
@@ -69,6 +55,15 @@ const omitted = {
   reason: "unresolved"
 }
 const location = { start: { line: 1, column: 1 }, end: { line: 1, column: 18 } }
+// Expectations are fixture data, independent of the retired Preparation algorithm.
+const ready = (paths, partial = false) => ({ paths, partial })
+const expectations = [
+  ready(["root.ts"]),
+  ready(["root.ts"], true),
+  ready(["child.ts", "extra.ts", "root.ts"]),
+  ready(["root.ts"]),
+  undefined
+]
 const units = [
   { root: node(root) },
   { root: node(root, [omitted]) },
@@ -88,14 +83,18 @@ for (const change of [
   { origin: { ...catalog[0].origin, extra: "forged" } },
   { origin: { ...catalog[0].origin, moduleHash: "forged" } },
   { origin: null }
-])
+]) {
   units.push({ root: node(root, [expanded(node({ ...catalog[0], ...change }))]) })
+  expectations.push(undefined)
+}
 units.push({
   root: node(root, [
     expanded(node({ ...catalog[0], origin: Object.fromEntries(Object.entries(catalog[0].origin).reverse()) }))
   ])
 })
+expectations.push(ready(["root.ts"]))
 for (let index = 0; index < 40; index++) {
+  expectations.push(ready(["child.ts", "extra.ts", "root.ts", "😀", "\ue000"], index % 2 !== 0))
   let child = node({ ...root, id: "leaf", path: "child.ts" }, index % 2 ? [omitted] : [])
   for (let depth = 0; depth < index % 12; depth++) child = node({ ...root, id: "child" + depth }, [expanded(child)])
   units.push({
@@ -119,7 +118,12 @@ try {
   const stage = (await import(pathToFileURL(output))).default
   const bundled = wire(list(catalog.map(productValue)))
   let nodeSteps = 0
-  const cases = units.map((unit) => ({ unit, declarations: [{ artifact: unit.root.artifact, location }], captures }))
+  const cases = units.map((unit, index) => ({
+    unit,
+    declarations: [{ artifact: unit.root.artifact, location }],
+    captures,
+    expected: expectations[index]
+  }))
   cases.push(
     { unit: units[0], declarations: [], captures },
     { unit: units[0], declarations: [{ artifact: root }, { artifact: root, location }], captures },
@@ -129,16 +133,15 @@ try {
       declarations: [{ artifact: { ...root, id: "other-id" }, location }],
       captures: new Map([...captures].filter(([path]) => path !== "extra.ts"))
     },
-    { unit: units[0], declarations: [{ artifact: { ...root, id: "other-id" }, location }], captures }
+    {
+      unit: units[0],
+      declarations: [{ artifact: { ...root, id: "other-id" }, location }],
+      captures,
+      expected: ready(["root.ts"])
+    }
   )
-  for (const { unit, declarations, captures: currentCaptures } of cases) {
-    const expected = nativePrepareReadyUnits([unit], declarations, "root.ts", {
-      contract: TYPE_INPUT_CONTRACT,
-      graphLimits: GRAPH_LIMIT_CEILINGS,
-      supportingCaptures: currentCaptures,
-      observation: { root: "/workspace" },
-      context: { settings: { rules: [rule] } }
-    })
+  assert.equal(expectations.length, units.length)
+  for (const { unit, declarations, captures: currentCaptures, expected } of cases) {
     let step = stage.initial(wire(productValue(unit)))
     for (let count = 0; label(step) === "Continue"; count++) {
       assert.ok(count < 10000)
@@ -154,19 +157,19 @@ try {
       ),
       wire(productValue(unit))
     )
-    if (expected.length === 0) assert.equal(label(metadata), "EvidenceMissing")
+    if (expected === undefined) assert.equal(label(metadata), "EvidenceMissing")
     else {
       assert.equal(label(step), "Inspected")
-      assert.deepEqual(
-        unlist(step.paths),
-        expected[0].prepared.input.sourceFingerprints.map(({ path }) => path)
-      )
-      assert.equal(step.partial, expected[0].prepared.input.completeness === "incomplete-irrelevant")
+      assert.deepEqual(unlist(step.paths), expected.paths)
+      assert.equal(step.partial, expected.partial)
       assert.equal(label(metadata), "EvidenceReady")
       assert.equal(metadata.partial, step.partial)
       assert.equal(metadata.root_location.$, "Some")
-      assert.deepEqual(fromProductValue(unwire(metadata.root_location.value)), expected[0].prepared.input.rootLocation)
-      assert.deepEqual(fromProductValue(unwire(metadata.fingerprints)), expected[0].prepared.input.sourceFingerprints)
+      assert.deepEqual(fromProductValue(unwire(metadata.root_location.value)), location)
+      assert.deepEqual(
+        fromProductValue(unwire(metadata.fingerprints)),
+        expected.paths.map((path) => ({ path, contentHash: "hash:" + path, byteLength: 42 }))
+      )
     }
   }
   console.log(
@@ -175,7 +178,7 @@ try {
       cases: cases.length,
       nodeSteps,
       scope:
-        "Compiled whole-unit evidence traversal and metadata versus existing native finalization; not full finalization or production acceptance"
+        "Compiled evidence traversal and metadata against fixture-authored paths, fingerprints, partial status, location and missing-evidence cases; not whole Preparation acceptance"
     })
   )
 } finally {
