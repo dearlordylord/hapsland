@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import { observeRetainedAdvice } from "../post-observation.ts"
 import { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { selectPostValue } from "../post-selection.mjs"
-import { observePlannedEvaluation as observeNativePlan } from "./native-evaluation-observation.ts"
 import { execFileSync } from "node:child_process"
 import { mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
@@ -40,15 +39,6 @@ try {
     assert.equal(value.$, "Some")
     return value.value
   }
-  // Independent old pump: exhaustion is observed before terminal inspection.
-  const oldPump = (fuel, initial) => {
-    let step = initial
-    for (let count = 0; count < fuel; count++) {
-      if (step.$ !== "Internal") return some(step)
-      step = core.advance(step.state)
-    }
-    return none
-  }
   const finishedState = {
     $: "State",
     invocation: 1,
@@ -66,7 +56,12 @@ try {
     core.initial(1, true, list([]), false)
   ]) {
     for (const fuel of [0, 1, 2, 10000]) {
-      assert.deepEqual(core.settle(Number(BigInt(fuel)), step), oldPump(fuel, step))
+      assert.deepEqual(
+        core.settle(Number(BigInt(fuel)), step),
+        fuel === 0 || (fuel === 1 && step.$ === "Internal")
+          ? none
+          : some(step.$ === "Internal" ? { $: "Finished" } : step)
+      )
       cases++
     }
   }
@@ -95,10 +90,15 @@ try {
   for (const bound of [false, true])
     for (const incomplete of [false, true]) {
       const initial = core.initial(3, bound, list(outcomes), incomplete)
-      assert.deepEqual(core.initial_settled(3, bound, list(outcomes), incomplete), oldPump(10000, initial))
+      assert.deepEqual(core.initial_settled(3, bound, list(outcomes), incomplete), some(initial))
       for (const response of [{ $: "Ack" }, { $: "Failed", token: 7 }]) {
         const reply = { $: "Reply", invocation: 3, id: initial.request.id, response }
-        assert.deepEqual(core.resume_settled(initial, reply), oldPump(10000, core.resume(initial, reply)))
+        const resumed = settledValue(core.resume_settled(initial, reply))
+        assert.equal(resumed.$, "Await")
+        assert.equal(resumed.request.invocation, 3)
+        assert.equal(resumed.request.id, 1)
+        assert.equal(resumed.request.command.$, response.$ === "Ack" ? "CheckActive" : "Cleanup")
+        if (response.$ === "Failed") assert.deepEqual(resumed.state.phase.reason, { $: "TechnicalFailure", token: 7 })
         cases++
       }
     }
@@ -136,19 +136,165 @@ try {
       })
       cases++
     }
-  const nativeRetainedObservation = (tail, readInspection) => {
-    const value = tail.unit
-    if (value.inspectionReceipt !== undefined && readInspection().isEnabled(value.inspectionReceipt.scope.root))
-      readInspection().offer(
-        value.inspectionReceipt.scope,
-        {
-          ...value.inspectionReceipt.correlation,
-          ...(value.inspectionEvaluationId === undefined ? {} : { evaluationId: value.inspectionEvaluationId })
-        },
-        captureInspectionFate(tail.evaluation.findings, "retained", "pending-advice", tail.receipt.capability.id)
-      )
-    value.completed = true
-  }
+  const observationTraces = [
+    ["tail.get:unit", "tail.unit.get:inspectionReceipt", "tail.unit.set:completed", "tail.unit.descriptor:completed"],
+    [
+      "tail.get:unit",
+      "tail.unit.get:inspectionReceipt",
+      "inspection",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.inspectionReceipt.scope.get:root",
+      "isEnabled:/repo",
+      "tail.unit.set:completed",
+      "tail.unit.descriptor:completed"
+    ],
+    [
+      "tail.get:unit",
+      "tail.unit.get:inspectionReceipt",
+      "inspection",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.inspectionReceipt.scope.get:root",
+      "isEnabled:/repo",
+      "inspection",
+      "offerMethod",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:correlation",
+      "tail.unit.inspectionReceipt.correlation.keys",
+      "tail.unit.inspectionReceipt.correlation.descriptor:stale",
+      "tail.unit.inspectionReceipt.correlation.get:stale",
+      "tail.unit.inspectionReceipt.correlation.descriptor:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.get:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.descriptor:__proto__",
+      "tail.unit.inspectionReceipt.correlation.get:__proto__",
+      "tail.unit.inspectionReceipt.correlation.descriptor:Symbol(post-observation-marker)",
+      "tail.unit.inspectionReceipt.correlation.get:Symbol(post-observation-marker)",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.get:evaluation",
+      "tail.evaluation.get:findings",
+      "tail.get:receipt",
+      "tail.receipt.get:capability",
+      "tail.receipt.capability.get:id",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:map",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:constructor",
+      "offer",
+      "tail.unit.set:completed",
+      "tail.unit.descriptor:completed"
+    ],
+    [
+      "tail.get:unit",
+      "tail.unit.get:inspectionReceipt",
+      "inspection",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.inspectionReceipt.scope.get:root",
+      "isEnabled:/repo",
+      "inspection",
+      "offerMethod",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:correlation",
+      "tail.unit.inspectionReceipt.correlation.keys",
+      "tail.unit.inspectionReceipt.correlation.descriptor:stale",
+      "tail.unit.inspectionReceipt.correlation.get:stale",
+      "tail.unit.inspectionReceipt.correlation.descriptor:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.get:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.descriptor:__proto__",
+      "tail.unit.inspectionReceipt.correlation.get:__proto__",
+      "tail.unit.inspectionReceipt.correlation.descriptor:Symbol(post-observation-marker)",
+      "tail.unit.inspectionReceipt.correlation.get:Symbol(post-observation-marker)",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.get:evaluation",
+      "tail.evaluation.get:findings",
+      "tail.get:receipt",
+      "tail.receipt.get:capability",
+      "tail.receipt.capability.get:id",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:map",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:constructor"
+    ],
+    [
+      "tail.get:unit",
+      "tail.unit.get:inspectionReceipt",
+      "inspection",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.inspectionReceipt.scope.get:root",
+      "isEnabled:/repo",
+      "inspection",
+      "offerMethod",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:correlation",
+      "tail.unit.inspectionReceipt.correlation.keys",
+      "tail.unit.inspectionReceipt.correlation.descriptor:stale",
+      "tail.unit.inspectionReceipt.correlation.get:stale",
+      "tail.unit.inspectionReceipt.correlation.descriptor:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.get:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.descriptor:__proto__",
+      "tail.unit.inspectionReceipt.correlation.get:__proto__",
+      "tail.unit.inspectionReceipt.correlation.descriptor:Symbol(post-observation-marker)",
+      "tail.unit.inspectionReceipt.correlation.get:Symbol(post-observation-marker)",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.get:evaluation",
+      "tail.evaluation.get:findings",
+      "tail.get:receipt",
+      "tail.receipt.get:capability",
+      "tail.receipt.capability.get:id",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:map",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:constructor",
+      "offer",
+      "tail.unit.set:completed",
+      "tail.unit.descriptor:completed"
+    ],
+    [
+      "tail.get:unit",
+      "tail.unit.get:inspectionReceipt",
+      "inspection",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.inspectionReceipt.scope.get:root",
+      "isEnabled:/repo",
+      "inspection",
+      "offerMethod",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:scope",
+      "tail.unit.get:inspectionReceipt",
+      "tail.unit.inspectionReceipt.get:correlation",
+      "tail.unit.inspectionReceipt.correlation.keys",
+      "tail.unit.inspectionReceipt.correlation.descriptor:stale",
+      "tail.unit.inspectionReceipt.correlation.get:stale",
+      "tail.unit.inspectionReceipt.correlation.descriptor:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.get:evaluationId",
+      "tail.unit.inspectionReceipt.correlation.descriptor:__proto__",
+      "tail.unit.inspectionReceipt.correlation.get:__proto__",
+      "tail.unit.inspectionReceipt.correlation.descriptor:Symbol(post-observation-marker)",
+      "tail.unit.inspectionReceipt.correlation.get:Symbol(post-observation-marker)",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.unit.get:inspectionEvaluationId",
+      "tail.get:evaluation",
+      "tail.evaluation.get:findings",
+      "tail.get:receipt",
+      "tail.receipt.get:capability",
+      "tail.receipt.capability.get:id",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:map",
+      "tail.evaluation.findings.get:length",
+      "tail.evaluation.findings.get:constructor"
+    ]
+  ]
+  const observationTraceCases = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5]
   const observationFixture = (options, faultAt = 0, thrown) => {
     const trace = [],
       memo = new WeakMap(),
@@ -239,22 +385,42 @@ try {
         for (const noncallable of [false, true]) {
           const options = { receipt, enabled, evaluation, noncallable }
           const candidate = (tail, inspection) => observeRetainedAdvice(core, tail, inspection)
-          const original = runObservation(nativeRetainedObservation, options)
+          const traceIndex =
+            (Number(receipt) << 3) | (Number(enabled) << 2) | (Number(evaluation) << 1) | Number(noncallable)
+          const trace = observationTraces[observationTraceCases[traceIndex]]
           const current = runObservation(candidate, options)
-          assert.deepEqual(current.trace, original.trace)
-          assert.equal(current.completed, original.completed)
-          assert.equal(current.failed, original.failed)
-          if (original.failed) assert.equal(current.error.constructor, original.error.constructor)
-          else assert.deepEqual(current.offers, original.offers)
+          const active = receipt && enabled
+          const failed = active && noncallable
+          assert.deepEqual(current.trace, trace)
+          assert.equal(current.completed, failed ? undefined : true)
+          assert.equal(current.failed, failed)
+          if (failed) assert.ok(current.error instanceof TypeError)
+          else
+            assert.deepEqual(
+              current.offers,
+              active
+                ? [
+                    {
+                      scope: { root: "/repo" },
+                      metadata: {
+                        stale: "kept",
+                        evaluationId: evaluation ? "evaluation" : "old",
+                        ["__proto__"]: "data",
+                        [Symbol.for("post-observation-marker")]: "symbol"
+                      },
+                      fate: captureInspectionFate([], "retained", "pending-advice", "advice")
+                    }
+                  ]
+                : []
+            )
           cases++
-          for (let faultAt = 1; faultAt <= original.trace.length; faultAt++)
+          for (let faultAt = 1; faultAt <= trace.length; faultAt++)
             for (const thrown of [undefined, null, false, 0, "", Symbol("raw"), {}]) {
-              const expected = runObservation(nativeRetainedObservation, options, faultAt, thrown)
               const actual = runObservation(candidate, options, faultAt, thrown)
-              assert.deepEqual(actual.trace, expected.trace)
+              assert.deepEqual(actual.trace, trace.slice(0, faultAt))
               assert.equal(actual.failed, true)
-              assert.equal(actual.error, thrown)
-              assert.equal(actual.completed, expected.completed)
+              assert.strictEqual(actual.error, thrown)
+              assert.equal(actual.completed, undefined)
               assert.equal(actual.aborted, true)
               cases++
             }
@@ -584,53 +750,93 @@ try {
   }
   assert.equal(finish.$, "CleanupFinishDone")
   cases++
-  // Independent native ordering oracle for the four original compound releases.
-  // Every primitive can fail before or after its receipt; no later action runs.
-  const nativeRelease = (kind, operation) => {
-    if (kind === "UnspawnedRelease") {
-      if (operation("ReleaseReadTransfer")) return
-      if (operation("ReleaseReadOwner")) {
-        if (operation("ReleaseReadPlanClaim")) operation("ReleasePlanClaim")
-        operation("ReleaseForgetPlanClaim")
-      }
-      operation("ReleaseSlotReservation")
-      operation("ReleaseForgetReservation")
-      operation("ReleaseAcquisition")
-    } else if (kind === "AttachedRelease") {
-      if (operation("ReleaseReadTransfer")) return
-      operation("ReleaseBuildUnit")
-      if (operation("ReleaseReadUnitClaim")) operation("ReleaseCapacityClaim")
-      operation("ReleaseUnitReservation")
-      operation("ReleaseCurrentWork")
-      operation("ReleaseForgetAcquisition")
-      operation("ReleaseMarkUnit")
-      operation("ReleaseForgetUnitClaim")
-      operation("ReleaseForgetReservation")
-    } else if (kind === "CachedRelease") {
-      operation("ReleaseSlotReservation")
-      operation("ReleaseAcquisition")
-      operation("ReleaseBuildUnit")
-      operation("ReleaseMarkUnit")
-      operation("ReleaseForgetReservation")
-    } else {
-      operation("ReleaseBuildUnit")
-      const workBound = operation("ReleaseReadWorkBound")
-      if (!operation("ReleaseReadCompleted") && operation("ReleaseReadRound") && workBound) {
-        operation("ReleaseRetireWork")
-        if (!operation("ReleaseReadReleased")) {
-          operation("ReleaseUnitReservation")
-          operation("ReleaseCurrentWork")
-          operation("ReleaseForgetAcquisition")
-          operation("ReleaseMarkUnit")
-        }
-      }
-    }
+  // Fixed operation fixtures cover every original fact-axis combination.
+  const releasePlans = [
+    ["ReleaseReadTransfer"],
+    [
+      "ReleaseReadTransfer",
+      "ReleaseReadOwner",
+      "ReleaseSlotReservation",
+      "ReleaseForgetReservation",
+      "ReleaseAcquisition"
+    ],
+    [
+      "ReleaseReadTransfer",
+      "ReleaseReadOwner",
+      "ReleaseReadPlanClaim",
+      "ReleaseForgetPlanClaim",
+      "ReleaseSlotReservation",
+      "ReleaseForgetReservation",
+      "ReleaseAcquisition"
+    ],
+    [
+      "ReleaseReadTransfer",
+      "ReleaseReadOwner",
+      "ReleaseReadPlanClaim",
+      "ReleasePlanClaim",
+      "ReleaseForgetPlanClaim",
+      "ReleaseSlotReservation",
+      "ReleaseForgetReservation",
+      "ReleaseAcquisition"
+    ],
+    [
+      "ReleaseReadTransfer",
+      "ReleaseBuildUnit",
+      "ReleaseReadUnitClaim",
+      "ReleaseUnitReservation",
+      "ReleaseCurrentWork",
+      "ReleaseForgetAcquisition",
+      "ReleaseMarkUnit",
+      "ReleaseForgetUnitClaim",
+      "ReleaseForgetReservation"
+    ],
+    [
+      "ReleaseReadTransfer",
+      "ReleaseBuildUnit",
+      "ReleaseReadUnitClaim",
+      "ReleaseCapacityClaim",
+      "ReleaseUnitReservation",
+      "ReleaseCurrentWork",
+      "ReleaseForgetAcquisition",
+      "ReleaseMarkUnit",
+      "ReleaseForgetUnitClaim",
+      "ReleaseForgetReservation"
+    ],
+    ["ReleaseSlotReservation", "ReleaseAcquisition", "ReleaseBuildUnit", "ReleaseMarkUnit", "ReleaseForgetReservation"],
+    ["ReleaseBuildUnit", "ReleaseReadWorkBound", "ReleaseReadCompleted"],
+    ["ReleaseBuildUnit", "ReleaseReadWorkBound", "ReleaseReadCompleted", "ReleaseReadRound"],
+    [
+      "ReleaseBuildUnit",
+      "ReleaseReadWorkBound",
+      "ReleaseReadCompleted",
+      "ReleaseReadRound",
+      "ReleaseRetireWork",
+      "ReleaseReadReleased"
+    ],
+    [
+      "ReleaseBuildUnit",
+      "ReleaseReadWorkBound",
+      "ReleaseReadCompleted",
+      "ReleaseReadRound",
+      "ReleaseRetireWork",
+      "ReleaseReadReleased",
+      "ReleaseUnitReservation",
+      "ReleaseCurrentWork",
+      "ReleaseForgetAcquisition",
+      "ReleaseMarkUnit"
+    ]
+  ]
+  const releasePlanCases = {
+    UnspawnedRelease: [1, 0, 2, 0, 1, 0, 3, 0],
+    AttachedRelease: [4, 0, 4, 0, 5, 0, 5, 0],
+    CachedRelease: [6, 6, 6, 6, 6, 6, 6, 6],
+    FinalizedRelease: [8, 7, 8, 7, 8, 7, 10, 7, 8, 7, 8, 7, 8, 7, 9, 7, 8, 7, 8, 7, 8, 7, 9, 7, 8, 7, 8, 7, 8, 7, 9, 7]
   }
   for (let mask = 0; mask < 512; mask++) {
     const bit = (index) => Boolean(mask & (1 << index))
     for (const kind of ["UnspawnedRelease", "AttachedRelease", "CachedRelease", "FinalizedRelease"]) {
       const fault = new Error("release primitive fault")
-      const exercise = (bend, failAt, after) => {
+      const exercise = (plan, failAt, after) => {
         const trace = [],
           state = {
             claim: bit(2),
@@ -712,7 +918,7 @@ try {
           return value
         }
         try {
-          if (!bend) nativeRelease(kind, operation)
+          if (plan) for (const name of plan) operation(name)
           else {
             let release = core.release_initial({ $: kind })
             while (release.$ === "ReleaseAwait") {
@@ -729,14 +935,18 @@ try {
         }
         return { trace, state, failure }
       }
-      const native = exercise(false, 0, false)
-      assert.deepEqual(exercise(true, 0, false), native)
+      const fixtureIndex = kind === "FinalizedRelease" ? ((mask >> 3) & 15) | (((mask >> 8) & 1) << 4) : mask & 7
+      const plan = releasePlans[releasePlanCases[kind][fixtureIndex]]
+      const expected = exercise(plan, 0, false)
+      assert.deepEqual(expected.trace, plan)
+      assert.deepEqual(exercise(undefined, 0, false), expected)
       cases++
-      for (let index = 1; index <= native.trace.length; index++)
+      for (let index = 1; index <= plan.length; index++)
         for (const after of [false, true]) {
-          const expected = exercise(false, index, after),
-            actual = exercise(true, index, after)
-          assert.strictEqual(expected.failure, fault)
+          const expected = exercise(plan, index, after),
+            actual = exercise(undefined, index, after)
+          assert.strictEqual(actual.failure, fault)
+          assert.deepEqual(actual.trace, plan.slice(0, index))
           assert.deepEqual(actual, expected, `${kind} primitive ${index}, after=${after}, mask=${mask}`)
           cases++
         }
@@ -751,7 +961,7 @@ try {
     ["JoinedPending", "joined", "pending", "joined-pending", "PendingInspection"],
     ["JoinedClaimed", "joined", "claimed", "joined-claimed", "ClaimedInspection"]
   ]
-  const nativeRouteNames = Object.fromEntries(routeCases.map((entry) => [entry[4], entry[3]]))
+  const routeNames = Object.fromEntries(routeCases.map((entry) => [entry[4], entry[3]]))
   for (const [tag, kind, join] of routeCases) {
     const route = tag === "CachedFinding" ? { $: tag, evaluation: 99 } : { $: tag }
     assert.equal(core.route_cached(route), kind === "cached")
@@ -779,7 +989,7 @@ try {
       for (const enabled of [false, true])
         for (const id of [undefined, "", "id"]) {
           const fault = new Error("plan observation fault")
-          const exercise = (bend, failAt) => {
+          const exercise = (failAt) => {
             const trace = [],
               offers = []
             const call = (name, value) => {
@@ -820,8 +1030,7 @@ try {
             }
             let failure
             try {
-              if (!bend) observeNativePlan(context, item)
-              else {
+              {
                 let step = core.plan_observation_initial(route),
                   heldReceipt,
                   evaluationId
@@ -853,7 +1062,7 @@ try {
                         { ...heldReceipt.correlation, ...(evaluationId === undefined ? {} : { evaluationId }) },
                         {
                           kind: "evaluation-route",
-                          route: nativeRouteNames[op.route.$],
+                          route: routeNames[op.route.$],
                           semanticIdentity: item.outcome.prepared.identity,
                           path: item.outcome.path,
                           declaration: item.outcome.prepared.input.declaration.name,
@@ -874,14 +1083,39 @@ try {
             }
             return { trace, offers, failure }
           }
-          const expected = exercise(false, 0)
-          assert.deepEqual(exercise(true, 0), expected)
+          const active = receiptPresent && enabled
+          const trace = [
+            "receipt",
+            ...(kind === "owner" ? ["forget"] : []),
+            ...(receiptPresent ? ["enabled"] : []),
+            ...(active ? [...(kind === "owner" ? ["register"] : []), "evaluation", "offer"] : [])
+          ]
+          const offers = active
+            ? [
+                [
+                  { root: "root" },
+                  { invocation: "test", ...(id === undefined ? {} : { evaluationId: id }) },
+                  {
+                    kind: "evaluation-route",
+                    route: routeCases.find((entry) => entry[0] === tag)[3],
+                    semanticIdentity: "identity",
+                    path: "path",
+                    declaration: "declaration",
+                    original:
+                      id === undefined
+                        ? { status: "missing", reason: "not-captured" }
+                        : { status: "linked", evaluationId: id }
+                  }
+                ]
+              ]
+            : []
+          assert.deepEqual(exercise(0), { trace, offers, failure: undefined })
           cases++
-          for (let fail = 1; fail <= expected.trace.length; fail++) {
-            const native = exercise(false, fail),
-              bend = exercise(true, fail)
-            assert.strictEqual(native.failure, fault)
-            assert.deepEqual(bend, native)
+          for (let fail = 1; fail <= trace.length; fail++) {
+            const actual = exercise(fail)
+            assert.strictEqual(actual.failure, fault)
+            assert.deepEqual(actual.trace, trace.slice(0, fail))
+            assert.deepEqual(actual.offers, [], "a failed read/offer cannot publish")
             cases++
           }
         }
@@ -1088,7 +1322,7 @@ try {
       cases,
       requests,
       scope:
-        "finite source-free whole postflow candidate; actual retained-observation interpreter getter/spread/callee/receiver and raw-fault chronology, exact bounded settlement and entrypoint coupling; native plan/inspection ordering and lazy sparse/UTF16 first-match correspondence, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not full resident integration or universal correspondence"
+        "finite source-free whole postflow candidate; actual retained-observation interpreter getter/spread/callee/receiver and raw-fault chronology, exact bounded settlement and entrypoint coupling; fixture-authored plan/inspection ordering and lazy sparse/UTF16 first-match correspondence, four original release sequences across native fact axes and failure before/after every primitive, six reuse routes, round-bound/standalone, capacity and enqueue refusal, failures/cancellation at every Await, persistent cleanup obligation and transferred-owner exclusion; independent post-insert advice tail with cutoff retention, correlated replies and error-preserving cleanup retry; simulated semantic owner replies, not full resident integration or universal correspondence"
     })
   )
 } finally {

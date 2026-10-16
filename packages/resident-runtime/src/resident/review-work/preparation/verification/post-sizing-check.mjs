@@ -1,8 +1,4 @@
 import assert from "node:assert/strict"
-import {
-  residentUnitWorstOutcomeBytes as nativeWorst,
-  residentUnitReservationBytes as nativeReservation
-} from "./native-reservation.ts"
 const production = await import(new URL("../../../../../dist/resident/work-ownership/reservation.js", import.meta.url))
 const observation = {
   root: "/fixture",
@@ -16,9 +12,20 @@ const capture = (run) => {
     return { error: error.constructor.name, message: error.message }
   }
 }
+// Fixture data pins the original independent TS byte totals and getter order.
+// No sizing policy or old implementation is retained as a runtime oracle.
+const expectedBytes = [
+  [[110, 2948], [350, 3318], [110, 3059], [516, 3812], null, null],
+  [[110, 2988], [375, 3403], [110, 3114], [566, 3957], null, null],
+  [[110, 3011], [380, 3435], [110, 3140], [576, 4001], null, null],
+  [[110, 2996], [380, 3420], [110, 3125], [576, 3986], null, null],
+  [[110, 2999], [380, 3423], [110, 3128], [576, 3989], null, null],
+  [[110, 2162948], [1350350, 4593321], [110, 2973059], [2700516, 7833816], null, null]
+]
+const invalidProbability = { error: "RangeError", message: "probability must be finite in [0, 1]" }
 let cases = 0
-for (const text of ["", "plain", '"\\\n', "λ😀", "\ud800", "x".repeat(270000)]) {
-  for (const thresholds of [[], [0], [1], [0.5, 1, 0], [1.1], [NaN]]) {
+for (const [textIndex, text] of ["", "plain", '"\\\n', "λ😀", "\ud800", "x".repeat(270000)].entries()) {
+  for (const [thresholdIndex, thresholds] of [[], [0], [1], [0.5, 1, 0], [1.1], [NaN]].entries()) {
     const prepared = {
       identity: "identity:" + text,
       input: {
@@ -27,17 +34,18 @@ for (const text of ["", "plain", '"\\\n', "λ😀", "\ud800", "x".repeat(270000)
         rules: thresholds.map((threshold, index) => ({ threshold, id: String(index), message: text }))
       }
     }
+    const expected = expectedBytes[textIndex][thresholdIndex]
     assert.deepEqual(
       capture(() => production.residentUnitWorstOutcomeBytes(prepared)),
-      capture(() => nativeWorst(prepared))
+      expected === null ? invalidProbability : { value: expected[0] }
     )
     assert.deepEqual(
       capture(() => production.residentUnitReservationBytes(observation, dispatch, prepared)),
-      capture(() => nativeReservation(observation, dispatch, prepared))
+      expected === null ? invalidProbability : { value: expected[1] }
     )
     assert.deepEqual(
       capture(() => production.residentUnitFits(prepared)),
-      capture(() => nativeWorst(prepared) <= 262144 - 1024)
+      expected === null ? invalidProbability : { value: expected[0] <= 262144 - 1024 }
     )
     cases++
   }
@@ -73,35 +81,121 @@ const traceInput = (faultAt) => {
     )
   }
 }
-for (const [actual, expected] of [
-  [production.residentUnitWorstOutcomeBytes, nativeWorst],
-  [
-    (prepared) => production.residentUnitReservationBytes(observation, dispatch, prepared),
-    (prepared) => nativeReservation(observation, dispatch, prepared)
-  ]
-]) {
-  for (let faultAt = 0; faultAt <= 20; faultAt++) {
-    const left = traceInput(faultAt),
-      right = traceInput(faultAt)
-    let leftResult,
-      rightResult,
-      leftFailed = false,
-      rightFailed = false
-    try {
-      leftResult = actual(left.prepared)
-    } catch (error) {
-      assert.equal(error, left.sentinel)
-      leftFailed = true
-    }
-    try {
-      rightResult = expected(right.prepared)
-    } catch (error) {
-      assert.equal(error, right.sentinel)
-      rightFailed = true
-    }
-    assert.equal(leftFailed, rightFailed)
-    assert.equal(leftResult, rightResult)
-    assert.deepEqual(left.trace, right.trace)
+const expectedReads = [
+  {
+    value: 319,
+    trace: [
+      "prepared.input",
+      "prepared.input.rules",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.threshold",
+      "prepared.input",
+      "prepared.input.path",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.identity"
+    ]
+  },
+  {
+    value: 3203,
+    trace: [
+      "prepared.input",
+      "prepared.input.rules",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.threshold",
+      "prepared.input",
+      "prepared.input.path",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.identity",
+      "prepared.identity",
+      "prepared.input",
+      "prepared.input.path",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.path",
+      "prepared.input.rules",
+      "prepared.input.rules.map",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.input.rules.0.threshold",
+      "prepared.identity",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.path",
+      "prepared.input.rules",
+      "prepared.input.rules.map",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.input.rules.0.threshold",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.path",
+      "prepared.input.rules",
+      "prepared.input.rules.map",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.input.rules.0.threshold",
+      "prepared.identity",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.path",
+      "prepared.input.rules",
+      "prepared.input.rules.map",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.input.rules.0.threshold",
+      "prepared.identity",
+      "prepared.input",
+      "prepared.input.declaration",
+      "prepared.input.declaration.name",
+      "prepared.input.path",
+      "prepared.input.rules",
+      "prepared.input.rules.map",
+      "prepared.input.rules.length",
+      "prepared.input.rules.0",
+      "prepared.input.rules.0.id",
+      "prepared.input.rules.0.message",
+      "prepared.input.rules.0.threshold"
+    ]
+  }
+]
+for (const [index, actual] of [
+  production.residentUnitWorstOutcomeBytes,
+  (prepared) => production.residentUnitReservationBytes(observation, dispatch, prepared)
+].entries()) {
+  const expected = expectedReads[index]
+  for (let faultAt = 0; faultAt <= expected.trace.length; faultAt++) {
+    const input = traceInput(faultAt)
+    if (faultAt === 0) assert.equal(actual(input.prepared), expected.value)
+    else
+      assert.throws(
+        () => actual(input.prepared),
+        (error) => error === input.sentinel
+      )
+    assert.deepEqual(input.trace, faultAt === 0 ? expected.trace : expected.trace.slice(0, faultAt))
     cases++
   }
 }
@@ -123,11 +217,8 @@ for (const status of ["ready", "incomplete"]) {
       return prepared
     }
   }
-  assert.equal(postSizing.postOutcomeFits(outcome), status === "ready" && nativeWorst(prepared) <= 262144 - 1024)
-  assert.equal(
-    postSizing.postOutcomeReservationBytes(outcome, observation, dispatch),
-    status === "ready" ? Number(BigInt(nativeReservation(observation, dispatch, prepared))) : 0
-  )
+  assert.equal(postSizing.postOutcomeFits(outcome), status === "ready")
+  assert.equal(postSizing.postOutcomeReservationBytes(outcome, observation, dispatch), status === "ready" ? 2857 : 0)
   assert.equal(statusReads, 2)
   assert.equal(preparedReads, status === "ready" ? 2 : 0)
   cases++
@@ -137,12 +228,12 @@ const boundary = {
   input: { path: "p", declaration: { name: "D" }, rules: [{ threshold: 0, id: "r", message: "m" }] }
 }
 const payloadLimit = 262144 - 1024
-const initialBytes = nativeWorst(boundary)
+const initialBytes = 315
 boundary.identity = "x".repeat(payloadLimit - initialBytes)
-assert.equal(nativeWorst(boundary), payloadLimit)
+assert.equal(production.residentUnitWorstOutcomeBytes(boundary), payloadLimit)
 assert.equal(production.residentUnitFits(boundary), true)
 boundary.identity += "x"
-assert.equal(nativeWorst(boundary), payloadLimit + 1)
+assert.equal(production.residentUnitWorstOutcomeBytes(boundary), payloadLimit + 1)
 assert.equal(production.residentUnitFits(boundary), false)
 cases += 2
 console.log(
@@ -150,6 +241,6 @@ console.log(
     passed: true,
     cases,
     scope:
-      "compiled Post sizing recipe versus independent native sizing: threshold/empty/multiple findings, arbitrary dispatch payload, escaping/Unicode/lone surrogate, oversized envelope, property-read trace and first20 read faults; finite evidence, universal correspondence and adoption remain open"
+      "Compiled Post sizing versus fixture-authored byte totals and getter sequences: thresholds, Unicode/escaping, large envelopes, exact IPC boundary and original sentinel at every getter position; finite regression evidence"
   })
 )
