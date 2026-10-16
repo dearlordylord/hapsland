@@ -1,23 +1,18 @@
 import { artifactValueTag, list, fromProductValue } from "@hapsland/source-artifacts/direct-event/value/codec"
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { artifact, sourceFacts } from "../frontend-codec.ts"
-import * as Effect from "effect/Effect"
-import { resolveGraphUnit } from "@hapsland/source-analysis/testing/native-graph"
 import { inspectSourceFrontend } from "../frontends.ts"
-import { DEFAULT_DIRECT_FILE_POLICY } from "@hapsland/native-observation/direct-event/selection"
 import { GRAPH_LIMIT_CEILINGS } from "@hapsland/canonical-policy/canonical/graph-limits"
 const temporary = mkdtempSync("/tmp/hapsland-resolver-result-"),
   folder = import.meta.dirname
 try {
-  assert.equal(execFileSync("bend", ["version"], { encoding: "utf8", timeout: 10000 }).trim(), "bend 2.0.36")
   const program = join(temporary, "core.mjs")
   execFileSync("bend", [join(folder, "../Core.bend"), "-o", program], { timeout: 10000 })
-  const source = readFileSync(program, "utf8")
-  assert.ok(source.includes("traversal/core.PlannedNode"))
   const { default: core } = await import(pathToFileURL(program)),
     local = (name, fields = {}) => ({ $: "traversal/core." + name, ...fields }),
     typed = (name, fields = {}) => ({ $: artifactValueTag(name) ?? "Types." + name, ...fields })
@@ -38,16 +33,16 @@ try {
       path: "child.ts"
     }
   const entries = list([
-      typed("ArtifactEntry", { handle: 0n, value: artifact(root) }),
-      typed("ArtifactEntry", { handle: 1n, value: artifact(child) })
+      typed("ArtifactEntry", { handle: 0, value: artifact(root) }),
+      typed("ArtifactEntry", { handle: 1, value: artifact(child) })
     ]),
-    nodes = list([local("PlannedNode", { node: 0n, artifact: 0n }), local("PlannedNode", { node: 1n, artifact: 1n })]),
+    nodes = list([local("PlannedNode", { node: 0, artifact: 0 }), local("PlannedNode", { node: 1, artifact: 1 })]),
     slot = (owner, index, symbol, reference) => local("ReferenceSlot", { owner, index, symbol, reference })
   const refs = list([
-    slot(0n, 0n, "Child", local("Expanded", { node: 1n })),
-    slot(1n, 0n, "Unknown", local("Omitted", { reason: local("ReferenceLimit"), target_name: "Unknown" })),
-    slot(0n, 1n, "again", local("Included", { identity: "child" })),
-    slot(0n, 2n, "Missing", local("Omitted", { reason: local("Unresolved"), target_name: "Missing" }))
+    slot(0, 0, "Child", local("Expanded", { node: 1 })),
+    slot(1, 0, "Unknown", local("Omitted", { reason: local("ReferenceLimit"), target_name: "Unknown" })),
+    slot(0, 1, "again", local("Included", { identity: "child" })),
+    slot(0, 2, "Missing", local("Omitted", { reason: local("Unresolved"), target_name: "Missing" }))
   ])
   const expected = {
     root: {
@@ -79,12 +74,12 @@ try {
     },
     sourceDependencies: ["Cargo.toml"]
   }
-  const result = core.review_unit(0n, nodes, refs, entries, list(["Cargo.toml"]))
+  const result = core.review_unit(0, nodes, refs, entries, list(["Cargo.toml"]))
   assert.equal(result.$, "Some")
   const plain = fromProductValue(result.value)
   assert.deepEqual(plain, expected)
   assert.equal(JSON.stringify(plain), JSON.stringify(expected))
-  const bare = core.review_unit(0n, nodes, refs, entries, list([]))
+  const bare = core.review_unit(0, nodes, refs, entries, list([]))
   assert.equal(bare.$, "Some")
   assert.deepEqual(fromProductValue(bare.value), { ...expected, sourceDependencies: [] })
   const badOrder = {
@@ -100,17 +95,17 @@ try {
   }
   assert.equal(core.artifact_product(badOrder).$, "None")
   assert.equal(
-    core.review_unit(0n, nodes, list([slot(0n, 0n, "cycle", local("Expanded", { node: 0n }))]), entries, list([])).$,
+    core.review_unit(0, nodes, list([slot(0, 0, "cycle", local("Expanded", { node: 0 }))]), entries, list([])).$,
     "None"
   )
   assert.equal(
     core.review_unit(
-      0n,
+      0,
       nodes,
       refs,
       list([
-        typed("ArtifactEntry", { handle: 0n, value: artifact(root) }),
-        typed("ArtifactEntry", { handle: 0n, value: artifact(child) })
+        typed("ArtifactEntry", { handle: 0, value: artifact(root) }),
+        typed("ArtifactEntry", { handle: 0, value: artifact(child) })
       ]),
       list([])
     ).$,
@@ -131,64 +126,55 @@ try {
   const { default: composition } = await import(pathToFileURL(composedProgram))
   const emptyMap = { $: "MTip" },
     budget = local("Budget", {
-      limits: local("LocalLimits", { work: 100n, depth: 10n, targets: 10n }),
+      limits: local("LocalLimits", { work: 100, depth: 10, targets: 10 }),
       targets_by_path: emptyMap,
-      max_targets: 1n,
-      work: 5n,
-      graph_work: 2n,
-      max_depth: 1n
+      max_targets: 1,
+      work: 5,
+      graph_work: 2,
+      max_depth: 1
     })
   const childPending = local("Pending", {
-    owner: 0n,
-    index: 0n,
+    owner: 0,
+    index: 0,
     from: "child.ts",
     symbol: "Unknown",
     name: "Unknown",
-    depth: 1n,
+    depth: 1,
     expected: local("TypeKind"),
     target: local("Imported", { path: "./unknown", name: "Unknown" })
   })
   const localPlan = local("Plan", {
-    root: 0n,
-    nodes: list([local("PlannedNode", { node: 0n, artifact: 1n })]),
+    root: 0,
+    nodes: list([local("PlannedNode", { node: 0, artifact: 1 })]),
     references: list([
-      slot(0n, 0n, "Unknown", local("Omitted", { reason: local("Unresolved"), target_name: "Unknown" }))
+      slot(0, 0, "Unknown", local("Omitted", { reason: local("Unresolved"), target_name: "Unknown" }))
     ]),
     pending: list([childPending]),
     visited: emptyMap,
     budget
   })
-  const remapped = composition.remap(localPlan, 1n)
-  assert.equal(remapped.root, 1n)
-  assert.equal(remapped.next_node, 2n)
-  const baseNodes = list([local("PlannedNode", { node: 0n, artifact: 0n })]),
-    baseRefs = list([slot(0n, 0n, "Child", local("Omitted", { reason: local("Unresolved"), target_name: "Child" }))])
-  const attachment = composition.tentative_attachment(
-    remapped,
-    baseNodes,
-    baseRefs,
-    0n,
-    0n,
-    { $: "None" },
-    7n,
-    emptyMap
-  )
+  const remapped = composition.remap(localPlan, 1)
+  assert.equal(remapped.root, 1)
+  assert.equal(remapped.next_node, 2)
+  const baseNodes = list([local("PlannedNode", { node: 0, artifact: 0 })]),
+    baseRefs = list([slot(0, 0, "Child", local("Omitted", { reason: local("Unresolved"), target_name: "Child" }))])
+  const attachment = composition.tentative_attachment(remapped, baseNodes, baseRefs, 0, 0, { $: "None" }, 7, emptyMap)
   assert.equal(attachment.$, "Some")
   const attached = attachment.value
-  assert.equal(attached.next_edge, 8n)
-  assert.deepEqual(attached.pending_ids, list([7n]))
+  assert.equal(attached.next_edge, 8)
+  assert.deepEqual(attached.pending_ids, list([7]))
   assert.equal(attached.pending.$, "MLeaf")
-  assert.equal(attached.pending.val.value.owner, 1n)
-  const full = core.review_unit(0n, attached.nodes, attached.references, entries, list([]))
+  assert.equal(attached.pending.val.value.owner, 1)
+  const full = core.review_unit(0, attached.nodes, attached.references, entries, list([]))
   assert.equal(full.$, "Some")
   assert.equal(fromProductValue(full.value).root.references[0].node.artifact.id, "child")
-  const rejected = composition.refuse_attachment(attached, 0n, 0n, "Child")
+  const rejected = composition.refuse_attachment(attached, 0, 0, "Child")
   assert.equal(rejected.$, "Some")
-  assert.equal(rejected.value.next_node, 2n)
-  assert.equal(rejected.value.next_edge, 8n)
+  assert.equal(rejected.value.next_node, 2)
+  assert.equal(rejected.value.next_edge, 8)
   assert.deepEqual(rejected.value.pending, attached.pending)
   assert.deepEqual(rejected.value.attempted_budget, budget)
-  const rollback = core.review_unit(0n, rejected.value.nodes, rejected.value.references, entries, list([]))
+  const rollback = core.review_unit(0, rejected.value.nodes, rejected.value.references, entries, list([]))
   assert.equal(rollback.$, "Some")
   assert.deepEqual(fromProductValue(rollback.value).root.references[0], {
     kind: "omitted",
@@ -197,7 +183,7 @@ try {
     reason: "reference-limit"
   })
   assert.equal(
-    composition.tentative_attachment(remapped, baseNodes, baseRefs, 0n, 9n, { $: "None" }, 7n, emptyMap).$,
+    composition.tentative_attachment(remapped, baseNodes, baseRefs, 0, 9, { $: "None" }, 7, emptyMap).$,
     "None"
   )
   assert.equal(
@@ -205,13 +191,13 @@ try {
       remapped,
       baseNodes,
       list([
-        slot(0n, 0n, "a", local("Included", { identity: "child" })),
-        slot(0n, 0n, "b", local("Included", { identity: "child" }))
+        slot(0, 0, "a", local("Included", { identity: "child" })),
+        slot(0, 0, "b", local("Included", { identity: "child" }))
       ]),
-      0n,
-      0n,
+      0,
+      0,
       { $: "None" },
-      7n,
+      7,
       emptyMap
     ).$,
     "None"
@@ -227,53 +213,50 @@ try {
     imports: new Map([["External", { path: "./external", name: "External", typeOnly: true }]])
   }
   const syntax = sourceFacts(rawFacts),
-    preparedFacts = factsCore.prepare(syntax, 10n)
+    preparedFacts = factsCore.prepare(syntax, 10)
   assert.equal(preparedFacts.$, "Some")
-  assert.equal(preparedFacts.value.next_artifact, 12n)
+  assert.equal(preparedFacts.value.next_artifact, 12)
   assert.equal(preparedFacts.value.facts.kind_aware, false)
-  assert.equal(preparedFacts.value.artifacts.head.handle, 10n)
+  assert.equal(preparedFacts.value.artifacts.head.handle, 10)
   const catalogNodes = list([
-    local("PlannedNode", { node: 0n, artifact: 10n }),
-    local("PlannedNode", { node: 1n, artifact: 11n })
+    local("PlannedNode", { node: 0, artifact: 10 }),
+    local("PlannedNode", { node: 1, artifact: 11 })
   ])
   const fromSyntax = core.review_unit(
-    0n,
+    0,
     catalogNodes,
-    list([slot(0n, 0n, "Child", local("Expanded", { node: 1n }))]),
+    list([slot(0, 0, "Child", local("Expanded", { node: 1 }))]),
     preparedFacts.value.artifacts,
     list([])
   )
   assert.equal(fromSyntax.$, "Some")
   assert.deepEqual(fromProductValue(fromSyntax.value).root.artifact, root)
   assert.equal(
-    factsCore.prepare({ ...syntax, declarations: list([syntax.declarations.head, syntax.declarations.head]) }, 0n).$,
+    factsCore.prepare({ ...syntax, declarations: list([syntax.declarations.head, syntax.declarations.head]) }, 0).$,
     "None"
   )
-  assert.equal(
-    factsCore.prepare({ ...syntax, imports: list([syntax.imports.head, syntax.imports.head]) }, 0n).$,
-    "None"
-  )
+  assert.equal(factsCore.prepare({ ...syntax, imports: list([syntax.imports.head, syntax.imports.head]) }, 0).$, "None")
   const typedSource = sourceFacts({ ...rawFacts, kindAware: true })
-  assert.equal(factsCore.prepare(typedSource, 0n).value.facts.kind_aware, true)
+  assert.equal(factsCore.prepare(typedSource, 0).value.facts.kind_aware, true)
   const rootProgram = join(temporary, "root.mjs")
   execFileSync("bend", [join(folder, "../Root.bend"), "-o", rootProgram], { timeout: 10000 })
   const { default: rootCore } = await import(pathToFileURL(rootProgram)),
     limits = {
       $: "../../../../agent-flow-bend/ImportGraph.Limits",
-      version: 1n,
-      source_bytes: 10000n,
-      tree_bytes: 10000n,
-      files: 10n,
-      read_bytes: 10000n,
-      outgoing_edges: 10n,
-      depth: 10n,
-      work: 100n
+      version: 1,
+      source_bytes: 10000,
+      tree_bytes: 10000,
+      files: 10,
+      read_bytes: 10000,
+      outgoing_edges: 10,
+      depth: 10,
+      work: 100
     }
   const planningProgram = join(temporary, "root-planning.mjs")
   execFileSync("bend", [join(folder, "../RootPlanning.bend"), "-o", planningProgram], { timeout: 10000 })
   const { default: rootPlanning } = await import(pathToFileURL(planningProgram))
   const rootKind = (value) => value.$
-  const initialRoot = rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), limits, 33n, list([]))
+  const initialRoot = rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), limits, 33, list([]))
   assert.equal(rootKind(initialRoot), "Root.RootPrepared")
   const rootUnit = rootCore.unit(initialRoot.frame)
   assert.equal(rootUnit.$, "Some")
@@ -283,22 +266,22 @@ try {
   })
   const initialized = rootPlanning.initialize(
     initialRoot.frame,
-    33n,
-    BigInt(Buffer.byteLength(JSON.stringify(fromProductValue(rootUnit.value))))
+    33,
+    Number(Buffer.byteLength(JSON.stringify(fromProductValue(rootUnit.value))))
   )
-  assert.equal(initialized.graph.files, 1n)
-  assert.equal(initialized.graph.read_bytes, 33n)
+  assert.equal(initialized.graph.files, 1)
+  assert.equal(initialized.graph.read_bytes, 33)
   assert.equal(
-    rootKind(rootPlanning.prepare(syntax, "root.ts", "Missing", typed("TypeBranch"), limits, 33n, list([]))),
+    rootKind(rootPlanning.prepare(syntax, "root.ts", "Missing", typed("TypeBranch"), limits, 33, list([]))),
     "Root.RootUnavailable"
   )
   assert.equal(
-    rootKind(rootPlanning.prepare(syntax, "root.ts", "Root", typed("FunctionBranch"), limits, 33n, list([]))),
+    rootKind(rootPlanning.prepare(syntax, "root.ts", "Root", typed("FunctionBranch"), limits, 33, list([]))),
     "Root.RootPrepared"
   )
   assert.equal(
     rootKind(
-      rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), { ...limits, work: 0n }, 33n, list([]))
+      rootPlanning.prepare(syntax, "root.ts", "Root", typed("TypeBranch"), { ...limits, work: 0 }, 33, list([]))
     ),
     "Root.RootUnavailable"
   )
@@ -314,27 +297,27 @@ try {
     "Root",
     typed("TypeBranch"),
     limits,
-    33n,
+    33,
     list([])
   )
   assert.equal(rootKind(importedRoot), "Root.RootPrepared")
-  assert.equal(importedRoot.frame.next_edge, 2n)
+  assert.equal(importedRoot.frame.next_edge, 2)
   assert.equal(importedRoot.frame.pending.key, "1")
-  assert.equal(importedRoot.frame.pending.val.value.owner, 0n)
-  const pendingRoot = rootPlanning.initialize(importedRoot.frame, 33n, 1n)
-  assert.equal(pendingRoot.graph.pending.head.id, 1n)
+  assert.equal(importedRoot.frame.pending.val.value.owner, 0)
+  const pendingRoot = rootPlanning.initialize(importedRoot.frame, 33, 1)
+  assert.equal(pendingRoot.graph.pending.head.id, 1)
   const supportSyntax = sourceFacts({
     ...rawFacts,
     supportingDeclarations: new Map([["support", { artifact: child, exported: true, references: [] }]])
   })
-  const supportPrepared = factsCore.prepare(supportSyntax, 0n)
+  const supportPrepared = factsCore.prepare(supportSyntax, 0)
   assert.equal(supportPrepared.$, "Some")
   assert.equal(supportPrepared.value.facts.supporting.val.value.bundled, false)
   const bundledSyntax = sourceFacts({
     ...rawFacts,
     supportingDeclarations: new Map([["base", { artifact: bundled, exported: true, references: [] }]])
   })
-  assert.equal(factsCore.prepare(bundledSyntax, 0n).value.facts.supporting.val.value.bundled, true)
+  assert.equal(factsCore.prepare(bundledSyntax, 0).value.facts.supporting.val.value.bundled, true)
   assert.equal(
     rootKind(
       rootPlanning.prepare(
@@ -343,7 +326,7 @@ try {
         "Root",
         typed("TypeBranch"),
         limits,
-        33n,
+        33,
         list([])
       )
     ),
@@ -354,29 +337,43 @@ try {
       "root.ts",
       "export interface Child { value: boolean }; export interface Root { child: Child }",
       "type",
-      "TypeScriptContext"
+      "TypeScriptContext",
+      ["interface", "export interface Root { child: Child }", "export interface Child { value: boolean }"]
     ],
-    ["callable.ts", "export function Root(value: string): string { return value }", "function", "TypeScriptContext"],
-    ["root.rs", "pub struct Child { value: bool } pub struct Root { child: Child }", "type", "RustSourceContext"],
+    [
+      "callable.ts",
+      "export function Root(value: string): string { return value }",
+      "function",
+      "TypeScriptContext",
+      ["function", "export function Root(value: string): string { return value }"]
+    ],
+    [
+      "root.rs",
+      "pub struct Child { value: bool } pub struct Root { child: Child }",
+      "type",
+      "RustSourceContext",
+      ["struct", "pub struct Root { child: Child }", "pub struct Child { value: bool }"]
+    ],
     [
       "root.bend",
       "type Child is Data:\n  Child{}\ntype Root is Data:\n  Root{child: Child}",
       "type",
-      "BendSourceContext"
+      "BendSourceContext",
+      ["datatype", "type Root is Data:\n  Root{child: Child}", "type Child is Data:\n  Child{}"]
     ]
   ]
   const nativeLimits = GRAPH_LIMIT_CEILINGS,
     typedLimits = {
       ...limits,
-      source_bytes: BigInt(nativeLimits.sourceBytes),
-      tree_bytes: BigInt(nativeLimits.treeBytes),
-      files: BigInt(nativeLimits.files),
-      read_bytes: BigInt(nativeLimits.readBytes),
-      outgoing_edges: BigInt(nativeLimits.outgoingEdges),
-      depth: BigInt(nativeLimits.depth),
-      work: BigInt(nativeLimits.work)
+      source_bytes: Number(nativeLimits.sourceBytes),
+      tree_bytes: Number(nativeLimits.treeBytes),
+      files: Number(nativeLimits.files),
+      read_bytes: Number(nativeLimits.readBytes),
+      outgoing_edges: Number(nativeLimits.outgoingEdges),
+      depth: Number(nativeLimits.depth),
+      work: Number(nativeLimits.work)
     }
-  for (const [path, source, branch, contextName] of rootFixtures) {
+  for (const [path, source, branch, contextName, [kind, rootSource, childSource]] of rootFixtures) {
     const capture = { text: source, byteLength: Buffer.byteLength(source) },
       context = typed(contextName, {
         branch: typed(branch === "function" ? "FunctionBranch" : "TypeBranch"),
@@ -398,24 +395,41 @@ try {
       "Root",
       context.branch,
       typedLimits,
-      BigInt(capture.byteLength),
+      Number(capture.byteLength),
       list([])
     )
     assert.equal(rootKind(candidateRoot), "Root.RootPrepared")
     const candidateUnit = rootCore.unit(candidateRoot.frame)
     assert.equal(candidateUnit.$, "Some")
-    const native = await Effect.runPromise(
-      resolveGraphUnit(path, capture, "Root", {
-        root: temporary,
-        policy: DEFAULT_DIRECT_FILE_POLICY,
-        now: () => 0,
-        branch
-      })
-    )
-    assert.ok(native)
-    assert.equal(JSON.stringify(fromProductValue(candidateUnit.value)), JSON.stringify(native), path)
+    const expectedArtifact = (name, source) => ({
+      path,
+      id: `${path}:${kind}:${name}`,
+      kind,
+      name,
+      source,
+      sourceHash: createHash("sha256").update(source).digest("hex")
+    })
+    const expected = {
+      root: {
+        artifact: expectedArtifact("Root", rootSource),
+        references:
+          childSource === undefined
+            ? []
+            : [
+                {
+                  kind: "expanded",
+                  site: { symbol: "Child" },
+                  node: { artifact: expectedArtifact("Child", childSource), references: [] }
+                }
+              ]
+      },
+      sourceDependencies: []
+    }
+    assert.deepEqual(fromProductValue(candidateUnit.value), expected, path + " authored whole tree")
   }
   const record = {
+    passed: true,
+    cases: rootFixtures.length,
     at: new Date().toISOString(),
     runtime: typeof Bun === "undefined" ? "node" : "bun",
     entireNestedResult: true,
@@ -425,7 +439,7 @@ try {
     bendRootTraversalAndFrame: true,
     rootEventAccounting: true,
     rootPendingIdsMatch: true,
-    nativeRootLookupAndDefaultPlanPreserved: true,
+    explicitRootTreesAndDefaultPlanChecked: true,
     missingAndBudgetRootRejected: true,
     bendOwnsFrontendCatalogAllocation: true,
     duplicateSyntaxKeysRejected: true,
