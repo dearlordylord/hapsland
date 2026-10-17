@@ -257,13 +257,13 @@ original Cause with controlled authorization/observation ports, not full server
 acceptance. No universal evaluation proofs or whole-unit acceptance claimed.
 Native publication fixed the missing lock binding. Expanded consumers exposed
 cancelled Prepare lease cleanup and a missing safe recovery diagnostic; both are
-fixed. The three affected files pass20; Delivery9 and fast23 pass. Final combined
-consumers/transport remain open.
+fixed. Combined production/IPC/collection consumers pass233/12 files; Source59,
+Delivery9 and fast23 pass. No current consumer failure is known.
 
 Concrete remaining obstacles:
-1. Complete current physical server/security/controls/reuse/revision/ownership/
-   inspection/transport checks and shared Preparation consumers, plus matching
-   fast/build. Resolve actual failures without weakening product deadlines.
+1. Preserve the qualified production/IPC/collection consumer and shared
+   Preparation coverage while closing the remaining proof/performance gates.
+   Revalidate changed boundaries without weakening product deadlines.
 2. Review correspondence/lifecycle/retention laws before proving; reuse existing
    outcome/advice-tail proofs. Owner approval precedes new proofs.
 3. Qualify full admission→provider→settlement→collection against fixed TS for
