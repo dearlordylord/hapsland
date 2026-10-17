@@ -1,4 +1,5 @@
 import Base
+import ../../../vendor/bendlib/packages/bend-mathlib/nat.bend as N
 import ./CanonicalResolverOwner.bend as O
 import ./EvaluationAdviceSpecification.bend as S
 import ../Canonical.bend as C
@@ -447,6 +448,727 @@ def selected_cleanup_exact(
   : O.Step
 }:
   {==}
+
+def retire_exact(+inv: Nat, +handle: Nat) -> {
+  O.retire(inv, handle) == S.retire(inv, handle) : List<&2, O.Action>
+}:
+  match handle:
+    case 0n: {==}
+    case 1n++value:
+      %N.add_comm(value, 1n) : {
+        O.RetireHandle{inv, Nat.add(value, 1n)} <> Nil{}
+        == O.RetireHandle{inv, _} <> Nil{} : List<&2, O.Action>
+      }
+      {==}
+
+def cancel_root_exact(
+  +state: O.State,
+  +context: O.EvaluationContext,
+  +phase: O.Phase,
+  +permission: O.EvaluationPermission,
+  +lease: Maybe<&2, O.Lease>,
+  +custody: Nat,
+  +origin: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending: Maybe<&2, Nat>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.cancel_scope(
+    state,
+    O.Child{
+      O.EvaluationScope{custody, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    O.EvaluationScope{custody, context, permission}
+  )
+  == S.cancel_child(
+    state,
+    O.Child{
+      O.EvaluationScope{custody, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }
+  )
+  : O.Step
+}:
+  match phase:
+    case O.ChildInstalling{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildInstalling{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationScope{custody, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildReady{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildReady{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationScope{custody, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAwaiting{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationScope{custody, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildResuming{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildResuming{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationScope{custody, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAccepted{}: {==}
+    case O.ChildCancelled{}: {==}
+
+def cancel_cleanup_exact(
+  +state: O.State,
+  +context: O.EvaluationContext,
+  +phase: O.Phase,
+  +permission: O.EvaluationPermission,
+  +lease: Maybe<&2, O.Lease>,
+  +custody: Nat,
+  +origin: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending: Maybe<&2, Nat>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.cancel_scope(
+    state,
+    O.Child{
+      O.EvaluationCleanupScope{custody, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    O.EvaluationCleanupScope{custody, origin, context, permission}
+  )
+  == S.cancel_child(
+    state,
+    O.Child{
+      O.EvaluationCleanupScope{custody, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }
+  )
+  : O.Step
+}:
+  match phase:
+    case O.ChildInstalling{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildInstalling{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationCleanupScope{custody, origin, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildReady{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildReady{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationCleanupScope{custody, origin, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAwaiting{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationCleanupScope{custody, origin, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildResuming{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildResuming{},
+            pending,
+            lease,
+            parent
+          },
+          O.EvaluationCleanupScope{custody, origin, context, permission}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAccepted{}: {==}
+    case O.ChildCancelled{}: {==}
+
+def find_head_exact(+child: O.Child, +tail: List<&2, O.Child>) -> {
+  O.find(O.child_invocation(child), child <> tail) == Some{child} : Maybe<&2, O.Child>
+}:
+  match child:
+    case O.Child{_, +inv, _, _, _, _, _, _}:
+      %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+        Bool.pick(Maybe<&2, O.Child>, _, Some{child}, O.find(inv, tail))
+        == Some{child}
+        : Maybe<&2, O.Child>
+      }
+      {==}
+
+def cancel_lookup_exact(
+  +state: O.State,
+  +inv: Nat,
+  +child: O.Child,
+  found: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  found_right: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  selected: {
+    O.cancel_scope(state, child, O.child_scope_value(child))
+    == S.cancel_child(state, child)
+    : O.Step
+  }
+) -> {
+  O.cancel(state, inv) == S.cancel_evaluation(state, inv) : O.Step
+}:
+  match state:
+    case O.State{_, _, _, _}:
+        %Equal.sym(
+          Maybe<&2, O.Child>,
+          O.find(inv, O.state_children(state)),
+          Some{child},
+          found_right
+        ) : {
+          O.cancel_found(state, O.find(inv, O.state_children(state)))
+          == S.cancel_found(state, _)
+          : O.Step
+        }
+        %Equal.sym(Maybe<&2, O.Child>, O.find(inv, O.state_children(state)), Some{child}, found) : {
+          O.cancel_found(state, _) == S.cancel_found(state, Some{child}) : O.Step
+        }
+        selected
+
+def cancel_root_entry_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +context: O.EvaluationContext,
+  +phase: O.Phase,
+  +permission: O.EvaluationPermission,
+  +lease: Maybe<&2, O.Lease>,
+  +custody: Nat,
+  +origin: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending: Maybe<&2, Nat>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.cancel(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv
+  )
+  == S.cancel_evaluation(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv
+  )
+  : O.Step
+}:
+  cancel_lookup_exact(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv,
+    O.Child{
+      O.EvaluationScope{custody, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      rest
+    ),
+    cancel_root_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        } <> rest
+      },
+      context,
+      phase,
+      permission,
+      lease,
+      custody,
+      origin,
+      inv,
+      epoch,
+      handle,
+      pending,
+      parent
+    )
+  )
+
+def cancel_cleanup_entry_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +context: O.EvaluationContext,
+  +phase: O.Phase,
+  +permission: O.EvaluationPermission,
+  +lease: Maybe<&2, O.Lease>,
+  +custody: Nat,
+  +origin: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending: Maybe<&2, Nat>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.cancel(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv
+  )
+  == S.cancel_evaluation(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv
+  )
+  : O.Step
+}:
+  cancel_lookup_exact(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      } <> rest
+    },
+    inv,
+    O.Child{
+      O.EvaluationCleanupScope{custody, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      rest
+    ),
+    cancel_cleanup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        } <> rest
+      },
+      context,
+      phase,
+      permission,
+      lease,
+      custody,
+      origin,
+      inv,
+      epoch,
+      handle,
+      pending,
+      parent
+    )
+  )
 
 def main() -> Unit:
   Unit{}
