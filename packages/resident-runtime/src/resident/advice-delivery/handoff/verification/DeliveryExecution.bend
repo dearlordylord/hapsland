@@ -59,3 +59,18 @@ def run_commit(+replies: List<&2, Handoff.KReply>, +step: Handoff.KStep) -> Trac
     case +reply <> +rest Handoff.KAwait{_, _, _, +request}:
       commit_prepend(request, run_commit(rest, Handoff.prepare_commit_resume(step, reply)))
     case _ _: Trace.CommitTrace{[], replies, step}
+
+def reconcile_prepend(
+  +request: Handoff.RRequest,
+  +trace: Trace.ReconcileTrace
+) -> Trace.ReconcileTrace:
+  match trace:
+    case Trace.ReconcileTrace{+requests, +remaining, +final}:
+      Trace.ReconcileTrace{request <> requests, remaining, final}
+
+def run_reconcile(+replies: List<&2, Handoff.RReply>, +step: Handoff.RStep) -> Trace.ReconcileTrace:
+  match replies step:
+    case Nil{} _: Trace.ReconcileTrace{[], [], step}
+    case +reply <> +rest Handoff.RAwait{_, _, _, +request}:
+      reconcile_prepend(request, run_reconcile(rest, Handoff.reconcile_resume(step, reply)))
+    case _ _: Trace.ReconcileTrace{[], replies, step}

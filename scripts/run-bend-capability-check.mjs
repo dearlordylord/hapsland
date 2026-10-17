@@ -75,6 +75,7 @@ const suites = {
   },
   "delivery-protocol": () => [
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/delivery-trace-check.mjs",
+    "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/finalize-trace-check.mjs",
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/handoff.test.mjs",
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/prepare-native.test.mjs",
     "packages/resident-runtime/src/resident/advice-delivery/verification/batch-fitting.test.mjs",

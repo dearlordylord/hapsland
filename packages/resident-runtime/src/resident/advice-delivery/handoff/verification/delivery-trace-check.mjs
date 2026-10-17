@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawnSync } from "node:child_process"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -16,6 +16,8 @@ try {
   }
   const actual = await compile("DeliveryExecution"),
     specification = await compile("PrepareSpecification")
+  const mutant = process.argv.includes("--mutant=skip-barrier")
+  if (mutant) actual["../Handoff.prepare_resume"] = (await compile("DeliveryMutants")).prepare_without_barrier
   const h = (name, fields = {}) => ({ $: "../Handoff." + name, ...fields })
   const list = (values) => values.reduceRight((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" })
   const values = (items) => {
@@ -184,6 +186,14 @@ try {
       .map((name) => h(name).$)
       .sort()
   )
+  assert.equal(mutant, false, "skip-barrier mutant escaped the independent checker")
+  const rejected = spawnSync(process.execPath, [import.meta.filename, "--mutant=skip-barrier"], {
+    encoding: "utf8",
+    timeout: 20000
+  })
+  assert.equal(rejected.status, 1, rejected.stdout + rejected.stderr)
+  assert.match(rejected.stderr, /AssertionError/)
+  assert.doesNotMatch(rejected.stderr, /mutant escaped/)
   console.log(
     JSON.stringify({
       passed: true,
@@ -193,6 +203,7 @@ try {
       refusals,
       callbacks,
       phases: phases.size,
+      rejectedMutants: ["skip-response-barrier"],
       scope:
         "independent full Prepare and commit traces, finite exhaustion and terminal remainder; callback routing; finite evidence, not universal proof or nested callback wiring"
     })

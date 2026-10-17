@@ -30,3 +30,9 @@ type CommitTrace is Data:
     remaining: List<&2, Handoff.KReply>,
     final: Handoff.KStep
   }
+type ReconcileTrace is Data:
+  ReconcileTrace{
+    requests: List<&2, Handoff.RRequest>,
+    remaining: List<&2, Handoff.RReply>,
+    final: Handoff.RStep
+  }
