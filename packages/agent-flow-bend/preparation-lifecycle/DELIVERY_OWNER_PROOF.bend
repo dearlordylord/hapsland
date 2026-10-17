@@ -5,8 +5,9 @@ import ./CanonicalResolverOwner.bend as O
 import ./DeliveryOwnerSpecification.bend as S
 import ./DELIVERY_OWNER_LAWS.bend as Laws
 
-# Temporary correspondence proof; delete with its laws/specification at whole
-# delivery acceptance after retaining the accepted semantic properties.
+# Checked implementation contract for the current Bend delivery Owner API.
+# On API replacement, transfer current lifecycle guarantees to its successor
+# and delete the superseded equations/specification/proofs.
 
 def free_exact(+next: Nat, +found: Maybe<&2, O.Child>) -> {
   O.settings_next_free(next, found) == S.free(next, found) : Bool
@@ -2525,3 +2526,2847 @@ def Laws.delivery_completion_exact(state, invocation, generation, result, select
         selection,
         {==}
       )
+
+def can_install_exact(+permission: O.DeliveryPermission) -> {
+  O.delivery_installable(permission) == S.can_install(permission) : Bool
+}:
+  match permission:
+    case O.CollectDelivery{}: {==}
+    case O.PrepareDeliveryIssued{_}: {==}
+    case O.PrepareDelivery{_}: {==}
+    case O.FinalizeDeliveryIssued{_}: {==}
+    case O.FinalizeDelivery{_}: {==}
+
+def install_allowed_exact(
+  +valid: Bool,
+  +state: O.State,
+  +child: O.Child,
+  +handle: Nat,
+  +request: Nat
+) -> {
+  O.install_allowed(valid, state, child, handle, request)
+  == S.install_valid(valid, state, child, handle, request)
+  : O.Step
+}:
+  match valid child:
+    case False{} _: {==}
+    case True{} O.Child{_, _, _, _, _, _, _, _}: {==}
+
+def start_allowed_exact(+valid: Bool, +state: O.State, +child: O.Child) -> {
+  O.provider_allowed(valid, state, child) == S.start_valid(valid, state, child) : O.Step
+}:
+  match valid state child:
+    case False{} _ _: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildInstalling{}, _, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildAwaiting{}, _, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildResuming{}, _, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildAccepted{}, _, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildCancelled{}, _, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildReady{}, None{}, _, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildReady{}, Some{_}, None{}, _}: {==}
+    case True{} O.State{_, _, _, _} O.Child{_, _, _, _, O.ChildReady{}, Some{_}, Some{_}, _}: {==}
+
+def install_whole_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +new_handle: Nat,
+  +request: Nat
+) -> {
+  O.install(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    inv,
+    generation,
+    new_handle,
+    request
+  )
+  == S.install_delivery(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    generation,
+    new_handle,
+    request
+  )
+  : O.Step
+}:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      inv,
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      )
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    state_head_exact(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+  ) : {
+    O.install_found(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      _,
+      generation,
+      new_handle,
+      request
+    )
+    == S.install_delivery(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      generation,
+      new_handle,
+      request
+    )
+    : O.Step
+  }
+  %and_exact(
+    O.child_live(
+      O.state_canonical(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      ),
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    S.live(
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    Bool.and(
+      O.delivery_installable(perm),
+      O.install_matches(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        generation
+      )
+    ),
+    Bool.and(
+      S.can_install(perm),
+      S.installable(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        generation
+      )
+    ),
+    delivery_live_exact(
+      state,
+      op,
+      origin,
+      ctx,
+      perm,
+      input,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    ),
+    and_exact(
+      O.delivery_installable(perm),
+      S.can_install(perm),
+      O.install_matches(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        generation
+      ),
+      S.installable(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        generation
+      ),
+      can_install_exact(perm),
+      install_matches_exact(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        generation
+      )
+    )
+  ) : {
+      O.install_allowed(
+        Bool.and(
+          O.child_live(
+            O.state_canonical(
+              S.state_with(
+                state,
+                O.Child{
+                  O.DeliveryScope{op, origin, ctx, perm, input},
+                  inv,
+                  epoch,
+                  handle,
+                  phase,
+                  pending,
+                  lease,
+                  parent
+                }
+              )
+            ),
+            O.state_children(
+              S.state_with(
+                state,
+                O.Child{
+                  O.DeliveryScope{op, origin, ctx, perm, input},
+                  inv,
+                  epoch,
+                  handle,
+                  phase,
+                  pending,
+                  lease,
+                  parent
+                }
+              )
+            ),
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          ),
+          Bool.and(
+            O.delivery_installable(perm),
+            O.install_matches(
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              },
+              generation
+            )
+          )
+        ),
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        new_handle,
+        request
+      )
+      == S.install_valid(
+        _,
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        new_handle,
+        request
+      )
+      : O.Step
+    }
+  install_allowed_exact(
+    Bool.and(
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      Bool.and(
+        O.delivery_installable(perm),
+        O.install_matches(
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          generation
+        )
+      )
+    ),
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    new_handle,
+    request
+  )
+
+def start_whole_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.provider_start(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    inv
+  )
+  == S.provider_start(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }
+  )
+  : O.Step
+}:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      inv,
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      )
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    state_head_exact(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+  ) : {
+    O.provider_found(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      _
+    )
+    == S.provider_start(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+    : O.Step
+  }
+  %delivery_live_exact(
+    state,
+    op,
+    origin,
+    ctx,
+    perm,
+    input,
+    inv,
+    epoch,
+    handle,
+    phase,
+    pending,
+    lease,
+    parent
+  ) : {
+    O.provider_allowed(
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+    == S.start_valid(
+      _,
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+    : O.Step
+  }
+  start_allowed_exact(
+    O.child_live(
+      O.state_canonical(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      ),
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }
+  )
+
+def permit_present_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending_value: Nat,
+  +actual_lease: Nat,
+  +expected_request: Nat,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +requested_lease: Nat,
+  +requested_request: Nat
+) -> {
+  O.provider_permit_found(
+    O.state_canonical(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      )
+    ),
+    O.state_children(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      )
+    ),
+    inv,
+    generation,
+    requested_lease,
+    requested_request,
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending_value},
+        Some{O.Lease{actual_lease, expected_request}},
+        parent
+      }
+    }
+  )
+  == S.provider_live(
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      O.ChildAwaiting{},
+      Some{pending_value},
+      Some{O.Lease{actual_lease, expected_request}},
+      parent
+    },
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  : Bool
+}:
+  Equal.trans(
+    Bool,
+    Bool.and(
+      O.provider_permit_matches(
+        inv,
+        generation,
+        requested_lease,
+        requested_request,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      )
+    ),
+    Bool.and(
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      O.provider_permit_matches(
+        inv,
+        generation,
+        requested_lease,
+        requested_request,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      )
+    ),
+    S.provider_live(
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending_value},
+        Some{O.Lease{actual_lease, expected_request}},
+        parent
+      },
+      inv,
+      generation,
+      requested_lease,
+      requested_request
+    ),
+    B.and_comm(
+      O.provider_permit_matches(
+        inv,
+        generation,
+        requested_lease,
+        requested_request,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      )
+    ),
+    and_exact(
+      O.child_live(
+        O.state_canonical(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.state_children(
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending_value},
+              Some{O.Lease{actual_lease, expected_request}},
+              parent
+            }
+          )
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      S.live(
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      O.provider_permit_matches(
+        inv,
+        generation,
+        requested_lease,
+        requested_request,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      O.provider_permit_matches(
+        inv,
+        generation,
+        requested_lease,
+        requested_request,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          Some{O.Lease{actual_lease, expected_request}},
+          parent
+        }
+      ),
+      delivery_live_exact(
+        state,
+        op,
+        origin,
+        ctx,
+        perm,
+        input,
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending_value},
+        Some{O.Lease{actual_lease, expected_request}},
+        parent
+      ),
+      {==}
+    )
+  )
+
+def permit_lease_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending_value: Nat,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +requested_lease: Nat,
+  +requested_request: Nat
+) -> {
+  O.provider_permit_found(
+    O.state_canonical(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          lease,
+          parent
+        }
+      )
+    ),
+    O.state_children(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending_value},
+          lease,
+          parent
+        }
+      )
+    ),
+    inv,
+    generation,
+    requested_lease,
+    requested_request,
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending_value},
+        lease,
+        parent
+      }
+    }
+  )
+  == S.provider_live(
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      O.ChildAwaiting{},
+      Some{pending_value},
+      lease,
+      parent
+    },
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  : Bool
+}:
+  match lease:
+    case None{}: {==}
+    case Some{O.Lease{+actual_lease, +expected_request}}:
+      permit_present_exact(
+        state,
+        op,
+        origin,
+        ctx,
+        perm,
+        input,
+        inv,
+        epoch,
+        handle,
+        pending_value,
+        actual_lease,
+        expected_request,
+        parent,
+        generation,
+        requested_lease,
+        requested_request
+      )
+
+def permit_pending_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +requested_lease: Nat,
+  +requested_request: Nat
+) -> {
+  O.provider_permit_found(
+    O.state_canonical(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          pending,
+          lease,
+          parent
+        }
+      )
+    ),
+    O.state_children(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          pending,
+          lease,
+          parent
+        }
+      )
+    ),
+    inv,
+    generation,
+    requested_lease,
+    requested_request,
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        pending,
+        lease,
+        parent
+      }
+    }
+  )
+  == S.provider_live(
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      O.ChildAwaiting{},
+      pending,
+      lease,
+      parent
+    },
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  : Bool
+}:
+  match pending:
+    case None{}: {==}
+    case Some{+pending_value}: permit_lease_exact(
+      state,
+      op,
+      origin,
+      ctx,
+      perm,
+      input,
+      inv,
+      epoch,
+      handle,
+      pending_value,
+      lease,
+      parent,
+      generation,
+      requested_lease,
+      requested_request
+    )
+
+def permit_phase_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +requested_lease: Nat,
+  +requested_request: Nat
+) -> {
+  O.provider_permit_found(
+    O.state_canonical(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      )
+    ),
+    O.state_children(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      )
+    ),
+    inv,
+    generation,
+    requested_lease,
+    requested_request,
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    }
+  )
+  == S.provider_live(
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  : Bool
+}:
+  match phase:
+    case O.ChildInstalling{}: {==}
+    case O.ChildReady{}: {==}
+    case O.ChildAwaiting{}: permit_pending_exact(
+      state,
+      op,
+      origin,
+      ctx,
+      perm,
+      input,
+      inv,
+      epoch,
+      handle,
+      pending,
+      lease,
+      parent,
+      generation,
+      requested_lease,
+      requested_request
+    )
+    case O.ChildResuming{}: {==}
+    case O.ChildAccepted{}: {==}
+    case O.ChildCancelled{}: {==}
+
+def permit_whole_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +requested_lease: Nat,
+  +requested_request: Nat
+) -> {
+  O.provider_live(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  == S.provider_live(
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    inv,
+    generation,
+    requested_lease,
+    requested_request
+  )
+  : Bool
+}:
+  match state:
+    case O.State{_, _, _, _}:
+      %Equal.sym(
+        Maybe<&2, O.Child>,
+        O.find(
+          inv,
+          O.state_children(
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            )
+          )
+        ),
+        Some{
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        },
+        state_head_exact(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      ) : {
+        O.provider_permit_found(
+          O.state_canonical(
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            )
+          ),
+          O.state_children(
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            )
+          ),
+          inv,
+          generation,
+          requested_lease,
+          requested_request,
+          _
+        )
+        == S.provider_live(
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          inv,
+          generation,
+          requested_lease,
+          requested_request
+        )
+        : Bool
+      }
+      permit_phase_exact(
+        state,
+        op,
+        origin,
+        ctx,
+        perm,
+        input,
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent,
+        generation,
+        requested_lease,
+        requested_request
+      )
+
+def completed_some_active_exact(
+  +valid: Bool,
+  +state: O.State,
+  +scope: O.Scope,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +actual_lease: Nat,
+  +expected_request: Nat,
+  +parent: Maybe<&2, O.Parent>,
+  +reply: Nat
+) -> {
+  O.completion_active(
+    valid,
+    state,
+    O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      Some{O.Lease{actual_lease, expected_request}},
+      parent
+    },
+    reply
+  )
+  == S.completed_active(
+    valid,
+    state,
+    O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      Some{O.Lease{actual_lease, expected_request}},
+      parent
+    },
+    reply
+  )
+  : O.Step
+}:
+  match valid phase:
+    case False{} _:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildInstalling{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildReady{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildAwaiting{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, Nat.add(epoch, 1n), 0n, O.ChildResuming{}, None{}, None{}, parent},
+            O.Resume{
+              inv,
+              Nat.add(epoch, 1n),
+              handle,
+              reply
+            } <> List.append(&2, O.Action, _, O.CleanupProvider{inv, actual_lease} <> Nil{})
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildResuming{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildAccepted{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+    case True{} O.ChildCancelled{}:
+      %retire_exact(inv, handle) : {
+        O.completion_active(
+          valid,
+          state,
+          O.Child{
+            scope,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            Some{O.Lease{actual_lease, expected_request}},
+            parent
+          },
+          reply
+        )
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+            O.CleanupProvider{inv, actual_lease} <> _
+          }
+        )
+        : O.Step
+      }
+      {==}
+
+def completed_active_exact(+valid: Bool, +state: O.State, +child: O.Child, +reply: Nat) -> {
+  O.completion_active(valid, state, child, reply)
+  == S.completed_active(valid, state, child, reply)
+  : O.Step
+}:
+  match valid child:
+    case False{} O.Child{_, _, _, _, _, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildInstalling{}, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildReady{}, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildAwaiting{}, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildResuming{}, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildAccepted{}, _, None{}, _}: {==}
+    case True{} O.Child{_, _, _, _, O.ChildCancelled{}, _, None{}, _}: {==}
+    case False{} O.Child{
+      +scope,
+      +inv,
+      +epoch,
+      +handle,
+      +phase,
+      +pending,
+      Some{O.Lease{+actual_lease, +expected_request}},
+      +parent
+    }:
+      completed_some_active_exact(
+        False{},
+        state,
+        scope,
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        actual_lease,
+        expected_request,
+        parent,
+        reply
+      )
+    case True{} O.Child{
+      +scope,
+      +inv,
+      +epoch,
+      +handle,
+      +phase,
+      +pending,
+      Some{O.Lease{+actual_lease, +expected_request}},
+      +parent
+    }:
+      completed_some_active_exact(
+        True{},
+        state,
+        scope,
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        actual_lease,
+        expected_request,
+        parent,
+        reply
+      )
+
+def completed_matched_exact(
+  +matched: Bool,
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +reply: Nat
+) -> {
+  O.completion_matched(
+    matched,
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    reply
+  )
+  == S.completed_valid(
+    matched,
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    reply
+  )
+  : O.Step
+}:
+  match matched:
+    case False{}: {==}
+    case True{}:
+      %delivery_live_exact(
+        state,
+        op,
+        origin,
+        ctx,
+        perm,
+        input,
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      ) : {
+        O.reconcile_cancel(
+          O.completion_active(
+            O.child_live(
+              O.state_canonical(
+                S.state_with(
+                  state,
+                  O.Child{
+                    O.DeliveryScope{op, origin, ctx, perm, input},
+                    inv,
+                    epoch,
+                    handle,
+                    phase,
+                    pending,
+                    lease,
+                    parent
+                  }
+                )
+              ),
+              O.state_children(
+                S.state_with(
+                  state,
+                  O.Child{
+                    O.DeliveryScope{op, origin, ctx, perm, input},
+                    inv,
+                    epoch,
+                    handle,
+                    phase,
+                    pending,
+                    lease,
+                    parent
+                  }
+                )
+              ),
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            ),
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            ),
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            },
+            reply
+          )
+        )
+        == O.reconcile_cancel(
+          S.completed_active(
+            _,
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            ),
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            },
+            reply
+          )
+        )
+        : O.Step
+      }
+      %completed_active_exact(
+        O.child_live(
+          O.state_canonical(
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            )
+          ),
+          O.state_children(
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            )
+          ),
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        },
+        reply
+      ) : {
+        O.reconcile_cancel(
+          O.completion_active(
+            O.child_live(
+              O.state_canonical(
+                S.state_with(
+                  state,
+                  O.Child{
+                    O.DeliveryScope{op, origin, ctx, perm, input},
+                    inv,
+                    epoch,
+                    handle,
+                    phase,
+                    pending,
+                    lease,
+                    parent
+                  }
+                )
+              ),
+              O.state_children(
+                S.state_with(
+                  state,
+                  O.Child{
+                    O.DeliveryScope{op, origin, ctx, perm, input},
+                    inv,
+                    epoch,
+                    handle,
+                    phase,
+                    pending,
+                    lease,
+                    parent
+                  }
+                )
+              ),
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            ),
+            S.state_with(
+              state,
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                lease,
+                parent
+              }
+            ),
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            },
+            reply
+          )
+        )
+        == O.reconcile_cancel(_)
+        : O.Step
+      }
+      {==}
+
+def completed_after_head_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +requested_lease: Nat,
+  +requested_request: Nat,
+  +reply: Nat
+) -> {
+  O.completion_found(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    requested_lease,
+    requested_request,
+    reply
+  )
+  == S.provider_completed(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    requested_lease,
+    requested_request,
+    reply
+  )
+  : O.Step
+}:
+  match lease:
+    case None{}: {==}
+    case Some{O.Lease{+actual_lease, +expected_request}}:
+      %and_exact(
+        Nat.is_eq(actual_lease, requested_lease),
+        Nat.is_eq(requested_lease, actual_lease),
+        Nat.is_eq(expected_request, requested_request),
+        Nat.is_eq(requested_request, expected_request),
+        N.is_eq_comm(actual_lease, requested_lease),
+        N.is_eq_comm(expected_request, requested_request)
+      ) : {
+        O.completion_matched(
+          Bool.and(
+            Nat.is_eq(actual_lease, requested_lease),
+            Nat.is_eq(expected_request, requested_request)
+          ),
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          ),
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          reply
+        )
+        == S.completed_valid(
+          _,
+          S.state_with(
+            state,
+            O.Child{
+              O.DeliveryScope{op, origin, ctx, perm, input},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              lease,
+              parent
+            }
+          ),
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          reply
+        )
+        : O.Step
+      }
+      completed_matched_exact(
+        Bool.and(
+          Nat.is_eq(actual_lease, requested_lease),
+          Nat.is_eq(expected_request, requested_request)
+        ),
+        state,
+        op,
+        origin,
+        ctx,
+        perm,
+        input,
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent,
+        reply
+      )
+
+def completed_whole_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +requested_lease: Nat,
+  +requested_request: Nat,
+  +reply: Nat
+) -> {
+  O.provider_completed(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    inv,
+    requested_lease,
+    requested_request,
+    reply
+  )
+  == S.provider_completed(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    requested_lease,
+    requested_request,
+    reply
+  )
+  : O.Step
+}:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      inv,
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      )
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    state_head_exact(
+      state,
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+  ) : {
+    O.completion_found(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      _,
+      requested_lease,
+      requested_request,
+      reply
+    )
+    == S.provider_completed(
+      S.state_with(
+        state,
+        O.Child{
+          O.DeliveryScope{op, origin, ctx, perm, input},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      ),
+      O.Child{
+        O.DeliveryScope{op, origin, ctx, perm, input},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      },
+      requested_lease,
+      requested_request,
+      reply
+    )
+    : O.Step
+  }
+  completed_after_head_exact(
+    state,
+    op,
+    origin,
+    ctx,
+    perm,
+    input,
+    inv,
+    epoch,
+    handle,
+    phase,
+    pending,
+    lease,
+    parent,
+    requested_lease,
+    requested_request,
+    reply
+  )
+
+def Laws.delivery_provider_cycle_exact(
+  state,
+  operation,
+  origin,
+  context,
+  permission,
+  input,
+  invocation,
+  generation,
+  handle,
+  phase,
+  pending,
+  lease,
+  parent,
+  attempt_generation,
+  new_handle,
+  request,
+  lease_id,
+  reply
+):
+  (
+    install_whole_exact(
+      state,
+      operation,
+      origin,
+      context,
+      permission,
+      input,
+      invocation,
+      generation,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent,
+      attempt_generation,
+      new_handle,
+      request
+    ),
+    (
+      start_whole_exact(
+        state,
+        operation,
+        origin,
+        context,
+        permission,
+        input,
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      ),
+      (
+        permit_whole_exact(
+          state,
+          operation,
+          origin,
+          context,
+          permission,
+          input,
+          invocation,
+          generation,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent,
+          attempt_generation,
+          lease_id,
+          request
+        ),
+        completed_whole_exact(
+          state,
+          operation,
+          origin,
+          context,
+          permission,
+          input,
+          invocation,
+          generation,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent,
+          lease_id,
+          request,
+          reply
+        )
+      )
+    )
+  )

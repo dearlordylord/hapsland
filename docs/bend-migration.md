@@ -186,11 +186,11 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `e47617bd`,2026-10-17 05:50/51 UTC analyzer/build **.7956×/.9466×**,
+- `02bec4bb`,2026-10-17 06:18/19 UTC analyzer/build **.7976×/.9068×**,
   17 frozen pairs, strict PASS/PASS; every build23/46 cached. HEAD, sources,
   artifacts, workspace resolutions and environment files unchanged.
-  TS/Bend medians[ranges] s: execution.1155[.0964,.1487]/.0882[.0753,.1197];
-  build3.002[2.782,3.508]/2.796[2.520,3.717]. Shared load; no causal claim.
+  TS/Bend medians[ranges] s: execution.1157[.0483,.2396]/.0947[.0371,.1411];
+  build2.989[2.814,4.001]/2.715[2.536,3.552]. Shared load; no causal claim.
   Analyzer/build only; whole delivery performance is a separate obstacle.
   Prior strict failures (execution1.1571/1.4448; build1.0153/1.0561/1.0675)
   remain historical failures. Timeout, unequal-cache, leaked-producer and
@@ -233,11 +233,12 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:15 draft laws;1 approved proof pending; final qualification.
-   At whole acceptance move semantic properties to domain laws; delete
-   temporary exact equations/specs/proofs.
+3. Open: final source/protocol and performance qualification.
+   Six approved Bend Owner implementation laws pass full verdict2.03s/10s;
+   no public State-layout requirement. Withdraw15 unapproved trace/frame drafts;
+   retain independent specifications, finite comparisons and typed mutants.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
-   Build46/46,owner60941,fast44/2; current e6928b73 physical187 PASS.
+   Build46/46,owner60941,protocol9/9,fast44/1; current e6928b73 physical187 PASS.
    Custody reads avoid Canonical conversion; native24/41+80 metadata reads PASS.
    Whole delivery e47617bd:17 frozen pairs, exact results/cleanup; total2.9108×,
    strict false. TS/Bend total medians[ranges] s:.0986[.0749,.1592]/.2479[.2146,.6520].
@@ -247,7 +248,7 @@ Current path / obstacles:
    Earlier pair11 IPC2.5s failure remains unqualified; runner now uses product4s.
    Profile45s stop under load45/12 retained; corrected5ms diagnostic passed.
    Per-call unchanged-graph reuse has native/fast/physical187 PASS, no persistent cache.
-   ABI caches discarded. Canonical proof fills5/6; root still1 TODO, not a pass.
+   ABI caches discarded. Canonical proof fills6/6; no TODO or added State premise.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.

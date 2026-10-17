@@ -74,6 +74,7 @@ const suites = {
     return roots
   },
   "delivery-protocol": () => [
+    "packages/agent-flow-bend/preparation-lifecycle/DELIVERY_OWNER_PROOF.bend",
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/root-collection-trace-check.mjs",
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/delivery-trace-check.mjs",
     "packages/resident-runtime/src/resident/advice-delivery/handoff/verification/finalize-trace-check.mjs",
@@ -240,7 +241,10 @@ for (const file of selected) {
     process.exitCode = result.status ?? 1
     break
   }
-  if (suite && suite !== "preparation-sources") {
+  if (isProof) {
+    if (!/^ALL PROOFS CHECK$/mu.test(result.stdout))
+      throw new Error(`Proof did not report a complete positive verdict: ${file}`)
+  } else if (suite && suite !== "preparation-sources") {
     const summaries = result.stdout
       .split("\n")
       .filter((line) => line.startsWith('{"passed":'))

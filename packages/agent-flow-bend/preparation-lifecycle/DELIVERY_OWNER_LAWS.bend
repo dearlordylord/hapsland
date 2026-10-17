@@ -2,9 +2,10 @@ import Base
 import ./CanonicalResolverOwner.bend as O
 import ./DeliveryOwnerSpecification.bend as S
 
-# Six statements approved by the owner on 2026-10-17 at ce04c4a1; proofs pending.
-# Temporary exact correspondence: at whole delivery acceptance, move retained
-# semantic properties to Canonical laws and delete these equations/specs/proofs.
+# Six statements approved by the owner on 2026-10-17 at ce04c4a1; proved in DELIVERY_OWNER_PROOF.
+# These check the current Bend Owner API, not a permanent public State layout.
+# Maintain them with that API; on replacement, transfer current lifecycle guarantees
+# to its successor and delete superseded equations/specification/proofs.
 # Exact pure lifecycle of the connected Collect -> Prepare -> Finalize family.
 # Native pointer custody, cleanup retries, masking and physical lifetime checks
 # remain real-consumer obligations; these equations pin the actions they execute.

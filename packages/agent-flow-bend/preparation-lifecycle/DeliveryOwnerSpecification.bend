@@ -1,7 +1,8 @@
 import Base
 import ./CanonicalResolverOwner.bend as O
 
-# Draft independent delivery lifecycle equations; no proof claim.
+# Independent delivery lifecycle equations for the current Bend Owner API.
+# DELIVERY_OWNER_PROOF checks the owner-approved implementation correspondence.
 # Reuses Owner nominal data, first-match child lookup, state replacement, and
 # reconcile_cancel (shared cross-family invalidation). Delivery permissions,
 # phase/lease fences, receipt equality and action order are specified here.
