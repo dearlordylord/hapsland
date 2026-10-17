@@ -7,6 +7,7 @@ import { makeReviewGitFixture, put } from "@hapsland/build-tooling/test-support/
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { reviewControlsLayer } from "@hapsland/build-tooling/test-support/review-controls"
 import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
+import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
 import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
@@ -89,6 +90,39 @@ const send = (server: ResidentRuntime, observation: DirectObservation, dispatch:
   )
 
 describe("edit-owned settings", () => {
+  it("keeps collection pending after finding settlement until native advice exists", async () => {
+    const settled = nativeDeferred()
+    const release = nativeDeferred()
+    const f = await fixture({
+      reviewControls: reviewControlsLayer({
+        afterRequestSettled: () => settled.complete().pipe(Effect.andThen(release.wait))
+      })
+    })
+    await register(f.server, f.observation, f.user)
+    expect((await Effect.runPromise(f.server.admit(f.observation, f.dispatch, true, true))).status).toBe("accepted")
+    try {
+      await settled.promise
+      expect(await Effect.runPromise(f.server.pendingAdviceMetadata())).toHaveLength(0)
+      const response = await Effect.runPromise(
+        f.server.handle({
+          requestRoute: "shared",
+          operation: "collect",
+          lifetime: f.server.lifetime,
+          root: f.root,
+          advicee: f.observation.advicee,
+          dispatch: f.dispatch,
+          composed: true,
+          reportWorkState: true
+        })
+      )
+      expect(response.status).toBe("pending")
+    } finally {
+      release.resolve()
+      await Effect.runPromise(f.server.whenIdle())
+    }
+    expect(await Effect.runPromise(f.server.pendingAdviceMetadata())).toHaveLength(1)
+  })
+
   it("retains registration rules and feedback through review, socket handoff and later collection", async () => {
     const observations: unknown[] = []
     const f = await fixture({ jevRequestObserver: (observation) => observations.push(observation) })

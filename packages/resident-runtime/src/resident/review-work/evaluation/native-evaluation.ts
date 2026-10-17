@@ -246,6 +246,9 @@ export function createNativeEvaluationIO(options: {
           outcomes[command.outcome.$],
           command.outcome.$ === "Clear" || command.outcome.$ === "Finding" ? evaluation().findings : []
         )
+        yield* deps.residentReviewControls
+          .afterRequestSettled()
+          .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "request settlement barrier" })))
         return ack()
       case "ObserveEscaped": {
         const actual = yield* currentRequest()
