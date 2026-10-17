@@ -82,14 +82,18 @@ export function createResidentOwnerTransaction({
   const evaluationBinding = (draft, credential, binding) => {
     const child = owner.find(credential.invocation, draft.resolverCustody.children)
     if (child.$ !== "Some" || child.value.scope.$ !== "EvaluationScope") return undefined
-    const context = child.value.scope.context
-    return context.partition === draft.partitionIds.get(binding.partition) &&
-      context.operation === binding.operation &&
-      context.round === binding.round &&
-      binding.reservation.partition === binding.partition
-      ? child.value.scope
-      : undefined
+    return evaluationContextBinding(draft, child.value.scope.context, binding) ? child.value.scope : undefined
   }
+  /**
+   * @param {import("../capacity/model.ts").CapacityDraft} draft
+   * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").EvaluationContext} context
+   * @param {import("./provider-authority.ts").EvaluationBinding} binding
+   */
+  const evaluationContextBinding = (draft, context, binding) =>
+    context.partition === draft.partitionIds.get(binding.partition) &&
+    context.operation === binding.operation &&
+    context.round === binding.round &&
+    binding.reservation.partition === binding.partition
   /**
    * @param {import("../capacity/model.ts").CapacityDraft} draft
    * @param {Extract<import("./provider-authority.ts").OwnerPublication["raw"], {$: "Published"}>} raw
@@ -100,6 +104,40 @@ export function createResidentOwnerTransaction({
   const staleEvaluationReady = { value: { status: "stale" }, actions: [] }
   /** @type {{ readonly value: ReturnType<typeof recordSettledJevRequest>, readonly actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[] }} */
   const staleEvaluationSettlement = { value: "stale", actions: [] }
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("./provider-authority.ts").EvaluationBinding} binding
+   */
+  const evaluationStart = (credential, binding) =>
+    finish(
+      transaction.commitAllEffect((draft, records) => {
+        const child = owner.find(credential.invocation, draft.resolverCustody.children)
+        if (
+          child.$ !== "Some" ||
+          child.value.scope.$ !== "EvaluationDispatchScope" ||
+          !evaluationContextBinding(draft, child.value.scope.context, binding)
+        )
+          return [{ value: false, actions: staleEvaluationReady.actions }, records]
+        const identity = draft.requestRounds.get(child.value.scope.request)
+        if (
+          identity?.partition !== binding.partition ||
+          identity.round !== binding.round ||
+          identity.operation !== binding.operation ||
+          identity.reservation !== binding.reservation
+        )
+          return [{ value: false, actions: staleEvaluationReady.actions }, records]
+        const published = publication(
+          draft,
+          owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
+            $: "EvaluationStartRequestEvent",
+            ...credential
+          })
+        )
+        if (published.raw.$ !== "Published") return [{ ...published, value: false }, records]
+        const result = evaluationResult(draft, published.raw)
+        return [{ ...published, value: result.outputs[0]?.kind === "jevRequestStartRecorded" }, records]
+      })
+    )
   /**
    * @param {import("./provider-authority.ts").ProviderLease} credential
    * @param {import("./provider-authority.ts").EvaluationBinding} binding
@@ -144,7 +182,8 @@ export function createResidentOwnerTransaction({
     finish(
       transaction.commitAllEffect((draft, records) => {
         const scope = evaluationBinding(draft, credential, binding)
-        if (!scope || scope.permission.$ !== "EvaluationIssued") return [staleEvaluationSettlement, records]
+        if (!scope || (scope.permission.$ !== "EvaluationIssued" && scope.permission.$ !== "EvaluationAtProvider"))
+          return [staleEvaluationSettlement, records]
         const request = scope.permission.request
         const identity = draft.requestRounds.get(request)
         if (
@@ -619,6 +658,36 @@ export function createResidentOwnerTransaction({
     launch_collection: (context, input_handle) => ({ $: "LaunchCollectionEvent", context, input_handle }),
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").EvaluationContext} context @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchEvaluationEvent"}>} */
     launch_evaluation: (context, input_handle) => ({ $: "LaunchEvaluationEvent", context, input_handle }),
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} parent @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchEvaluationDispatchEvent"}>} */
+    launch_evaluation_dispatch: (parent, input_handle) => ({
+      $: "LaunchEvaluationDispatchEvent",
+      parent,
+      input_handle
+    }),
+    /** @param {number} invocation @param {number} generation @param {number} handle @param {number} request @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "InstallEvaluationProviderEvent"}>} */
+    install_evaluation_provider: (invocation, generation, handle, request) => ({
+      $: "InstallEvaluationProviderEvent",
+      invocation,
+      generation,
+      handle,
+      request
+    }),
+    /** @param {number} invocation @param {number} generation @param {number} lease @param {number} request @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "EvaluationStartRequestEvent"}>} */
+    evaluation_start_request: (invocation, generation, lease, request) => ({
+      $: "EvaluationStartRequestEvent",
+      invocation,
+      generation,
+      lease,
+      request
+    }),
+    /** @param {number} invocation @param {number} generation @param {number} result @param {boolean} success @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "CompleteEvaluationDispatchEvent"}>} */
+    complete_evaluation_dispatch: (invocation, generation, result, success) => ({
+      $: "CompleteEvaluationDispatchEvent",
+      invocation,
+      generation,
+      result,
+      success
+    }),
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryReceipt} receipt @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "ClaimDeliveryEvent"}>} */
     claim_delivery: (receipt) => ({ $: "ClaimDeliveryEvent", receipt }),
     /** @param {number} invocation @param {number} generation @param {number} result_handle @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliverySelection} selection @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "CompleteDeliveryEvent"}>} */
@@ -849,6 +918,7 @@ export function createResidentOwnerTransaction({
     event,
     evaluationReady,
     evaluationSettle,
+    evaluationStart,
     bindSourceReservation,
     forgetSourceReservation,
     releaseSourceReservation,

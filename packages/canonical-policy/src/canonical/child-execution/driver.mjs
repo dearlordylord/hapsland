@@ -285,8 +285,8 @@ export function createChildExecutionDriver({
         const requestId = Number(BigInt(request.id))
         const installation = protocol.installation(projected, child.scope)
         const step =
-          installation.method === "install"
-            ? invoke("install", invocation, generation, id, requestId)
+          installation.method === "install" || installation.method === "install_evaluation_provider"
+            ? invoke(installation.method, invocation, generation, id, requestId)
             : installation.method === "install_source"
               ? invoke("install_source", invocation, generation, id, requestId, installation.permission)
               : installation.method === "install_after_source"
@@ -307,7 +307,9 @@ export function createChildExecutionDriver({
         const outcome = applyOutcome(
           typeof method === "string"
             ? invoke(method, invocation, generation, id)
-            : invoke("complete_delivery", invocation, generation, id, method.selection)
+            : method.method === "complete_evaluation_dispatch"
+              ? invoke("complete_evaluation_dispatch", invocation, generation, id, method.success)
+              : invoke("complete_delivery", invocation, generation, id, method.selection)
         )
         // A transfer action may succeed before an observer throws. Its resource
         // already belongs to the successor; retain cleanup under that child.
@@ -1091,6 +1093,27 @@ export function createChildExecutionDriver({
             throw nativeFailureAggregate([error, cleanup], "Invocation publication and cleanup failed", {
               cause: error
             })
+          }
+        } else resources.delete(inputId)
+        throw error
+      }
+    },
+    /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} parent @returns {number} */
+    allocateEvaluationDispatchInvocation(parent) {
+      const invocation = currentCustody().next_invocation
+      if (!Number.isSafeInteger(invocation) || invocation < 1)
+        throw new RangeError("Invocation exceeds exact native ID range")
+      const inputId = save(invocation, { kind: "input", value: undefined })
+      try {
+        apply(invoke("launch_evaluation_dispatch", parent, inputId))
+        return invocation
+      } catch (error) {
+        const child = owner.find(invocation, currentCustody().children)
+        if (child.$ === "Some") {
+          try {
+            driver.constructionFailed(invocation, { inputHandle: inputId })
+          } catch (cleanup) {
+            throw nativeFailureAggregate([error, cleanup], "Dispatch publication and cleanup failed", { cause: error })
           }
         } else resources.delete(inputId)
         throw error

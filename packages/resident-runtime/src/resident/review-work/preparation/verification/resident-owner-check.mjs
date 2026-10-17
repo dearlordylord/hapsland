@@ -301,6 +301,72 @@ const postCore = (
         owner.find(evaluationInvocation, bridge.control.readCustody().children).value.phase.$,
         "ChildCancelled"
       )
+      const nextBinding = {
+        ...binding,
+        operation: completed.value[1].operation,
+        reservation: completed.value[1].reservation
+      }
+      const nextContext = { ...evaluationContext, operation: nextBinding.operation }
+      const nextInvocation = bridge.control.readCustody().next_invocation
+      bridge.control.invoke("launch_evaluation", [nextContext, 910])
+      bridge.control.invoke("install", [nextInvocation, 0, 911, 0])
+      bridge.control.invoke("provider_start", [nextInvocation])
+      const leaseOf = (invocation) => owner.find(invocation, bridge.control.readCustody().children).value.lease.value.id
+      const firstLease = leaseOf(nextInvocation)
+      assert.equal(
+        run(
+          bridge.evaluationReady(
+            { invocation: nextInvocation, generation: 0, lease: firstLease, request: 0 },
+            nextBinding,
+            facts
+          )
+        ).value.status,
+        "issued"
+      )
+      bridge.control.invoke("provider_completed", [nextInvocation, firstLease, 0, 912])
+      bridge.control.invoke("install_evaluation_provider", [nextInvocation, 1, 913, 1])
+      bridge.control.invoke("provider_start", [nextInvocation])
+      const providerLease = leaseOf(nextInvocation)
+      const dispatchInvocation = bridge.control.readCustody().next_invocation
+      bridge.control.invoke("launch_evaluation_dispatch", [
+        { $: "Parent", invocation: nextInvocation, generation: 1, request: 1 },
+        914
+      ])
+      bridge.control.invoke("install", [dispatchInvocation, 0, 915, 0])
+      bridge.control.invoke("provider_start", [dispatchInvocation])
+      const dispatchLease = leaseOf(dispatchInvocation)
+      const dispatchCredential = { invocation: dispatchInvocation, generation: 0, lease: dispatchLease, request: 0 }
+      assert.equal(
+        run(bridge.evaluationStart(dispatchCredential, { ...nextBinding, reservation: binding.reservation })).value,
+        false
+      )
+      assert.equal(
+        run(bridge.evaluationStart({ ...dispatchCredential, lease: dispatchLease + 1 }, nextBinding)).value,
+        false
+      )
+      assert.equal(run(bridge.evaluationStart(dispatchCredential, nextBinding)).value, true)
+      assert.equal(run(bridge.evaluationStart(dispatchCredential, nextBinding)).value, false)
+      bridge.control.invoke("provider_completed", [dispatchInvocation, dispatchLease, 0, 916])
+      assert.equal(
+        bridge.control.invoke("complete_evaluation_dispatch", [dispatchInvocation, 1, 917, true]).$,
+        "Advanced"
+      )
+      bridge.control.invoke("provider_completed", [nextInvocation, providerLease, 1, 918])
+      bridge.control.invoke("install", [nextInvocation, 2, 919, 2])
+      bridge.control.invoke("provider_start", [nextInvocation])
+      assert.equal(
+        run(
+          bridge.evaluationSettle(
+            { invocation: nextInvocation, generation: 2, lease: leaseOf(nextInvocation), request: 2 },
+            nextBinding,
+            "clear",
+            true
+          )
+        ).value,
+        "clearSettled"
+      )
+      assert.equal(run(transaction.read).requestRounds.size, 0)
+      assert.equal(run(transaction.read).reservations.size, 0)
     } else {
       if (variant === "interrupted")
         run(

@@ -10,6 +10,10 @@ export type Method =
   | "launch_freshness"
   | "launch_collection"
   | "launch_evaluation"
+  | "launch_evaluation_dispatch"
+  | "evaluation_start_request"
+  | "install_evaluation_provider"
+  | "complete_evaluation_dispatch"
   | "claim_delivery"
   | "complete_delivery"
   | "launch_source"
@@ -44,6 +48,7 @@ export type Control = {
 }
 export type Installation =
   | { readonly method: "install" }
+  | { readonly method: "install_evaluation_provider" }
   | { readonly method: "install_source"; readonly permission: Owner.SourcePermission }
   | { readonly method: "install_after_source"; readonly permission: Owner.AfterSourcePermission }
   | { readonly method: "install_advice"; readonly permission: Owner.AdvicePermission }
@@ -128,7 +133,10 @@ export type Protocol<
   terminal(
     projection: P,
     scope: Owner.Scope
-  ): TerminalMethod | { readonly method: "complete_delivery"; readonly selection: Owner.DeliverySelection }
+  ):
+    | TerminalMethod
+    | { readonly method: "complete_delivery"; readonly selection: Owner.DeliverySelection }
+    | { readonly method: "complete_evaluation_dispatch"; readonly success: boolean }
   deliveryHandoff?(
     projection: P,
     session: S,

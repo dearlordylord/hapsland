@@ -27,10 +27,12 @@ export type EvaluationContext = { readonly $: "EvaluationContext"; readonly part
 export type EvaluationPermission =
   | { readonly $: "EvaluationUnissued" }
   | { readonly $: "EvaluationIssued"; readonly request: number }
+  | { readonly $: "EvaluationAtProvider"; readonly request: number; readonly parent: Parent }
   | { readonly $: "EvaluationSettled" }
 export type EvaluationFacts = { readonly $: "EvaluationFacts"; readonly root_valid: boolean; readonly configuration_valid: boolean; readonly credential_ready: boolean; readonly selected: boolean; readonly current_work: boolean; readonly physical_available: boolean }
 
 export type Scope =
+  | { readonly $: "EvaluationDispatchScope"; readonly operation: number; readonly context: EvaluationContext; readonly request: number }
   | { readonly $: "EvaluationScope"; readonly operation: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
   | { readonly $: "DeliveryScope"; readonly operation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
   | { readonly $: "SettingsScope"; readonly operation: number }
@@ -111,6 +113,10 @@ export type Refusal =
   | { readonly $: "CanonicalRejected"; readonly reason: OwnerTransport<Canonical_Reason> }
 
 export type ResidentEvent =
+  | { readonly $: "InstallEvaluationProviderEvent"; readonly invocation: number; readonly generation: number; readonly handle: number; readonly request: number }
+  | { readonly $: "LaunchEvaluationDispatchEvent"; readonly parent: Parent; readonly input_handle: number }
+  | { readonly $: "EvaluationStartRequestEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number }
+  | { readonly $: "CompleteEvaluationDispatchEvent"; readonly invocation: number; readonly generation: number; readonly result: number; readonly success: boolean }
   | { readonly $: "LaunchEvaluationEvent"; readonly context: EvaluationContext; readonly input_handle: number }
   | { readonly $: "EvaluationReadyEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly facts: EvaluationFacts }
   | { readonly $: "EvaluationSettleEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly outcome: OwnerTransport<Canonical_RequestOutcome>; readonly current: boolean }
@@ -162,6 +168,10 @@ export interface CanonicalResolverOwner {
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
   launch_settings(state: State, input_handle: number): Step
   launch_freshness(state: State, input_handle: number): Step
+  install_evaluation_provider(state: State, invocation: number, generation: number, handle: number, request: number): Step
+  launch_evaluation_dispatch(state: State, parent: Parent, input_handle: number): Step
+  evaluation_start_request(state: State, invocation: number, generation: number, lease: number, request: number): Step
+  complete_evaluation_dispatch(state: State, invocation: number, generation: number, result: number, success: boolean): Step
   launch_evaluation(state: State, context: EvaluationContext, input_handle: number): Step
   evaluation_ready(state: State, invocation: number, generation: number, lease: number, request: number, facts: EvaluationFacts): Step
   evaluation_settle(state: State, invocation: number, generation: number, lease: number, request: number, outcome: OwnerTransport<Canonical_RequestOutcome>, current: boolean): Step

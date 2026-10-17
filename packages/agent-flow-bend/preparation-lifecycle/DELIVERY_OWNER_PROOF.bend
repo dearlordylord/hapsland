@@ -472,6 +472,7 @@ def receipt_scope(
       parent,
       receipt
     )
+    case O.EvaluationDispatchScope{_, _, _}: {==}
     case O.EvaluationScope{_, _, _}: {==}
     case O.SettingsScope{_}: {==}
     case O.FreshnessScope{_}: {==}
@@ -576,6 +577,7 @@ def claim_scope_exact(
       lease,
       parent
     )
+    case O.EvaluationDispatchScope{_, _, _}: {==}
     case O.EvaluationScope{_, _, _}: {==}
     case O.SettingsScope{_}: {==}
     case O.FreshnessScope{_}: {==}
@@ -2317,6 +2319,25 @@ def complete_scope_exact(
         parent,
         result,
         selection
+      )
+    case O.EvaluationDispatchScope{_, _, _}:
+      complete_rejected_if(
+        Bool.and(
+          O.child_live(
+            O.state_canonical(state),
+            O.state_children(state),
+            O.Child{scope, inv, epoch, handle, phase, pending, lease, parent}
+          ),
+          O.install_matches(
+            O.Child{scope, inv, epoch, handle, phase, pending, lease, parent},
+            attempt_generation
+          )
+        ),
+        state,
+        O.Child{scope, inv, epoch, handle, phase, pending, lease, parent},
+        result,
+        selection,
+        {==}
       )
     case O.EvaluationScope{_, _, _}:
       complete_rejected_if(

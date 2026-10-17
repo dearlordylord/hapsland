@@ -162,6 +162,115 @@ try {
     reject(m.launch_evaluation(state, context, 81), "NotPreparing")
     evaluationCases++
   }
+  let evaluationDispatchCases = 0
+  for (const revoked of ["none", "before-start", "after-start", "never-called"]) {
+    const context = { $: "EvaluationContext", partition: 1, lifetime: 1, round: 1, operation: 3 }
+    let state = advanced(
+      m.canonical_event(
+        fresh(),
+        c("PreparationCompleted", {
+          partition: 1,
+          lifetime: 1,
+          round: 1,
+          operation: 2,
+          unit_bytes: { $: "Con", head: 100, tail: { $: "Nil" } }
+        })
+      )
+    )
+    state = advanced(m.launch_evaluation(state, context, 80))
+    state = advanced(m.install(state, 1, 0, 81, 0))
+    state = advanced(m.provider_start(state, 1))
+    state = advanced(
+      m.evaluation_ready(state, 1, 0, 1, 0, {
+        $: "EvaluationFacts",
+        root_valid: true,
+        configuration_valid: true,
+        credential_ready: true,
+        selected: true,
+        current_work: true,
+        physical_available: true
+      })
+    )
+    const jev = m.find(1, state.children).value.scope.permission.request
+    reject(
+      m.launch_evaluation_dispatch(state, { $: "Parent", invocation: 1, generation: 0, request: 0 }, 90),
+      "WrongPhase"
+    )
+    state = advanced(m.provider_completed(state, 1, 1, 0, 82))
+    reject(m.install_evaluation_provider(state, 1, 2, 83, 1), "WrongGeneration")
+    state = advanced(m.install_evaluation_provider(state, 1, 1, 83, 1))
+    reject(m.install_evaluation_provider(state, 1, 1, 84, 1), "WrongPhase")
+    state = advanced(m.provider_start(state, 1))
+    const parent = { $: "Parent", invocation: 1, generation: 1, request: 1 }
+    for (const key of ["generation", "request"])
+      reject(m.launch_evaluation_dispatch(state, { ...parent, [key]: parent[key] + 1 }, 90), "WrongPhase")
+    reject(m.launch_nested(state, parent, 90), "WrongPhase")
+    if (revoked === "never-called") {
+      state = advanced(m.provider_completed(state, 1, 2, 1, 96))
+      state = advanced(m.install(state, 1, 2, 97, 2))
+      state = advanced(m.provider_start(state, 1))
+      reject(m.launch_evaluation_dispatch(state, { ...parent, generation: 2, request: 2 }, 90), "WrongPhase")
+      state = advanced(m.evaluation_settle(state, 1, 2, 3, 2, c("NeverSent"), false))
+      assert.equal(m.find(1, state.children).value.scope.permission.$, "EvaluationSettled")
+      evaluationDispatchCases++
+      continue
+    }
+    state = advanced(m.launch_evaluation_dispatch(state, parent, 90))
+    const dispatch = m.find(2, state.children).value
+    assert.deepEqual(dispatch.parent, { $: "Some", value: parent })
+    assert.deepEqual(dispatch.scope, { $: "EvaluationDispatchScope", operation: 2, context, request: jev })
+    reject(m.launch_evaluation_dispatch(state, parent, 91), "WrongPhase")
+    reject(m.terminal(state, 2, 0, 99), "WrongPhase")
+    reject(m.complete_evaluation_dispatch(state, 2, 0, 99, true), "WrongPhase")
+    state = advanced(m.install(state, 2, 0, 92, 0))
+    state = advanced(m.provider_start(state, 2))
+    const revoke = () =>
+      advanced(
+        m.canonical_event(
+          state,
+          c("ReviewCompleted", { partition: 1, lifetime: 1, round: 1, operation: 3, outcome: c("Unavailable") })
+        )
+      )
+    if (revoked === "before-start") {
+      state = revoke()
+      assert.equal(m.find(2, state.children).value.phase.$, "ChildCancelled")
+      reject(m.evaluation_start_request(state, 2, 0, 3, 0), "WrongPhase")
+      state = advanced(m.provider_completed(state, 2, 3, 0, 94))
+    } else {
+      reject(m.evaluation_start_request(state, 1, 1, 2, 1), "WrongPhase")
+      for (const args of [
+        [2, 1, 3, 0],
+        [2, 0, 4, 0],
+        [2, 0, 3, 1]
+      ])
+        reject(m.evaluation_start_request(state, ...args), "WrongPhase")
+      state = advanced(m.evaluation_start_request(state, 2, 0, 3, 0))
+      reject(m.evaluation_start_request(state, 2, 0, 3, 0), "WrongPhase")
+      if (revoked === "after-start") {
+        state = revoke()
+        assert.equal(m.provider_live(state, 2, 0, 3, 0), true)
+      }
+      state = advanced(m.provider_completed(state, 2, 3, 0, 94))
+      state = advanced(m.complete_evaluation_dispatch(state, 2, 1, 95, true))
+      reject(m.complete_evaluation_dispatch(state, 2, 1, 96, true), "WrongPhase")
+    }
+    state = advanced(m.provider_completed(state, 1, 2, 1, 96))
+    state = advanced(m.install(state, 1, 2, 97, 2))
+    state = advanced(m.provider_start(state, 1))
+    state = advanced(
+      m.evaluation_settle(
+        state,
+        1,
+        2,
+        4,
+        2,
+        c(revoked === "before-start" ? "NeverSent" : "RequestBackendFailure"),
+        false
+      )
+    )
+    assert.equal(m.find(1, state.children).value.scope.permission.$, "EvaluationSettled")
+    evaluationDispatchCases++
+  }
   // Unknown recipients need no capacity identity allocation. Absence is exact
   // receipt context, never a wildcard shared by different recipient keys.
   for (const partition of [{ $: "None" }, { $: "Some", value: 1 }]) {
@@ -2692,6 +2801,7 @@ try {
       passed: true,
       assertions,
       evaluationCases,
+      evaluationDispatchCases,
       scope:
         "actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open"
     })

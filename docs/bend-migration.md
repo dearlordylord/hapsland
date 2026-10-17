@@ -235,18 +235,19 @@ Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
 registry and advice tail; add evaluation scope and a nested Dispatch child.
 Native sessions retain jobs, credentials, results and original Effect Causes.
 
-Implemented candidate: authorization/dispatch cursors pass49152+16 finite tapes;
-no universal proof claimed. Canonical issues exact Reviewing-bound evaluation
-custody; readiness and settlement publish request/child state atomically. Only
-its bound issued request survives work removal for settlement; duplicate issuance,
-settlement and forged invocation/generation/lease/request are rejected. Actual
-owner and native transaction cases pass. Build46/46,delivery protocol9/9,
-fast44/4 and existing six delivery proofs pass after adding the scope.
-Native ready/settle now apply the same Canonical result to reservation/request
-metadata in one transaction, without replay. Request map binds exact operation
-and reservation capability. Actual bridge rejects forged capabilities/leases and
-repeated readiness/settlement; native24, Jev/capacity63,build46/46,fast44/5 pass.
-Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
+Candidate: authorization/dispatch cursors pass49152+16 finite tapes, not
+universal proofs. Canonical binds evaluation to Reviewing and atomically publishes
+readiness/settlement with native metadata. Request map retains exact operation
+and reservation capability, including settlement after work removal.
+
+Nested dispatch is bound to the exact provider await; no later await can call a
+skipped callback. Canonical start is one-use, requires live work, and only the
+started request may complete successfully. Four reducer cases cover ordinary,
+revoked-before/after-start and never-called callback. Actual native transaction
+covers bound child start, parent continuation and clear/never-sent settlement.
+Build46/46,delivery9/9,fast44/5 and six existing delivery proofs pass. Prior
+Jev/capacity63 pass with shared metadata. Production evaluation still uses TS;
+no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
 1. Connect nested Dispatch to the waiting parent invocation/generation/request.
