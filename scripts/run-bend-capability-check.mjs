@@ -104,6 +104,7 @@ const suites = {
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/evaluation-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/evaluation-advice-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/evaluation/EVALUATION_PROOF.bend",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/evaluation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/protocol-correspondence-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/dispatch-native-check.mjs",
