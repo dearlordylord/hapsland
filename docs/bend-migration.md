@@ -268,7 +268,7 @@ Remaining obligations (Astra,2026-10-17):
    resume correspondence: full independent tables; finite checks, proofs open.
 2. Exact Canonical evaluation lifecycle, context/lease/request and dispatch-parent
    fences; cleanup authority, cancellation and reconciliation.
-3. Exact one-claim advice transfer, pending-finding authority and parent=None.
+3. Exact advice transfer: independent table/check/mutant; proof open.
 Use existing types/policies and flat independent steps; falsify, approve,
 prove/recheck.
 Whole evaluation is not accepted.
