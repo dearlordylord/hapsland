@@ -176,13 +176,13 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-`02bec4bb`,2026-10-17 06:18/19 UTC analyzer/build **.7976×/.9068×**,
-17 frozen pairs, strict PASS/PASS, build23/46 cached. All five freeze checks pass.
-TS/Bend medians[ranges] s: execution.1157[.0483,.2396]/.0947[.0371,.1411];
-build2.989[2.814,4.001]/2.715[2.536,3.552]. Shared load; no causal claim.
-These lanes do not qualify whole evaluation performance. Historical strict
-failures/timeouts and noncomparable environments remain failures in Git and
-ignored diagnostics; subsequent passes do not relabel them.
+`a9ff3412`,2026-10-17 06:47 UTC analyzer/build **.7014×/1.0026×**,
+17 frozen pairs, strict PASS/FAIL, build23/46 cached. All five freeze checks pass;
+all34 build executions succeed. TS/Bend medians[ranges] s:
+execution.0658[.0499,.0759]/.0403[.0360,.0637];
+build3.269[2.845,4.314]/2.829[2.521,10.662]. Shared load; no causal claim.
+These lanes do not qualify whole evaluation performance. Historical failures
+remain failures; later passes do not relabel them.
 
 ### Check and source owners
 
@@ -244,11 +244,12 @@ Concrete obstacles, in execution order:
 1. Move complete authorization/request/settlement/retention orchestration into
    evaluation-owned Bend. Authorization candidate now includes both root reads,
    both generation checks around credential suspension, readiness and ordered
-   issued/unavailable observations. It is not production-connected yet.
+   issued/unavailable observations. Emitted authorization/dispatch checks pass
+   49152+16 tapes with correlation/failure refusals. Neither is connected yet.
 2. Add exact evaluation scope and nested Dispatch child bound to the waiting
    parent invocation/generation/request. Keep beforeDispatch inside the existing
    provider-input validation and total-call deadline: credential reread → budget
-   claim → Canonical start → started observation. Issued is not started.
+   claim → Canonical start → started observation; dispatch cursor is checked. Issued is not started.
 3. Drain cancellation/defects through physical settlement. Revocation prohibits
    new requests/advice, but retains only exact interrupt/settle/observe/release
    authority. No generic live=true or preparing-scope fallback. Preserve Cause.

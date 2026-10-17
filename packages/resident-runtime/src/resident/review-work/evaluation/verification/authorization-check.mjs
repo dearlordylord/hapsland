@@ -144,6 +144,64 @@ try {
     }
   }
   assert.equal(commandsCovered.size, 22)
+  const dispatchOutput = join(temporary, "dispatch.mjs")
+  execFileSync("taskset", ["-c", "10", "bend", join(import.meta.dirname, "../Dispatch.bend"), "-o", dispatchOutput], {
+    timeout: 10000
+  })
+  const dispatch = (await import(pathToFileURL(dispatchOutput))).default
+  let dispatchCases = 0
+  const dispatchCommands = new Set()
+  for (let mask = 0; mask < 16; mask++) {
+    const valid = Boolean(mask & 1),
+      accepted = Boolean(mask & 2),
+      aborted = Boolean(mask & 4),
+      interruptionAccepted = Boolean(mask & 8)
+    const tape = [["CheckCredentialGeneration", tag("Flag", { value: valid })]]
+    let terminal = tag("CredentialChanged")
+    if (valid) {
+      tape.push(["ClaimDemoBudget", tag("Ack")], ["StartRequest", tag("Flag", { value: accepted })])
+      terminal = tag("StartRefused")
+      if (accepted) {
+        tape.push(["ObserveStarted", tag("Ack")], ["ReadAborted", tag("Flag", { value: aborted })])
+        terminal = tag("Dispatched")
+        if (aborted) {
+          tape.push(["InterruptRequest", tag("Flag", { value: interruptionAccepted })])
+          if (interruptionAccepted) tape.push(["ObserveInterrupted", tag("Ack")])
+        }
+      }
+    }
+    let state = dispatch.initial(83)
+    for (const [id, [command, response]] of tape.entries()) {
+      assert.equal(state.$, "Await")
+      assert.deepEqual(state.request, tag("Request", { invocation: 83, id, command: tag(command) }))
+      dispatchCommands.add(command)
+      const reply = tag("Reply", { invocation: 83, id, response })
+      for (const malformed of [
+        { ...reply, invocation: 84 },
+        { ...reply, id: id + 1 }
+      ])
+        assert.equal(dispatch.resume(state, malformed).$, "Rejected")
+      assert.equal(dispatch.resume({ ...state, request: { ...state.request, invocation: 84 } }, reply).$, "Rejected")
+      assert.equal(dispatch.resume({ ...state, request: { ...state.request, id: id + 1 } }, reply).$, "Rejected")
+      assert.deepEqual(
+        dispatch.resume(state, { ...reply, response: tag("Failed", { token: 29 }) }),
+        tag("Aborted", { token: 29 })
+      )
+      assert.equal(
+        dispatch.resume(state, { ...reply, response: response.$ === "Ack" ? tag("Flag", { value: true }) : tag("Ack") })
+          .$,
+        "Rejected"
+      )
+      state = dispatch.resume(state, reply)
+      comparisons += 8
+      prefixes++
+    }
+    assert.deepEqual(state, terminal)
+    assert.equal(dispatch.resume(state, tag("Reply", { invocation: 83, id: 0, response: tag("Ack") })).$, "Rejected")
+    dispatchCases++
+    comparisons += 2
+  }
+  assert.equal(dispatchCommands.size, 7)
   console.log(
     JSON.stringify({
       passed: true,
@@ -151,8 +209,10 @@ try {
       prefixes,
       comparisons,
       commands: commandsCovered.size,
+      dispatchCases,
+      dispatchCommands: dispatchCommands.size,
       scope:
-        "emitted authorization candidate, independent ordered finite specification and identity/failure refusals; not production connection or universal proof"
+        "emitted authorization and nested dispatch candidates, independent ordered finite specifications and identity/failure refusals; not production connection or universal proof"
     })
   )
 } finally {
