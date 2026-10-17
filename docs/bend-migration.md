@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: production `c108cb88`,10:34 UTC: execution **.8502×**;
-build **.9040×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: candidate `2d7067fa`,10:57 UTC: execution **.7145×**;
+build **.9032×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0618[.0504,.0804]/.0543[.0344,.0946];
-build3.281[2.844,4.187]/2.887[2.578,4.143]. Shared load; no causal claim.
+execution.0652[.0489,.0733]/.0391[.0350,.0660];
+build2.987[2.857,3.609]/2.743[2.533,2.987]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -251,7 +251,7 @@ the committed tail and original Cause.
 `de0fb23d`: sources281/281; protocol26/26; fast4.
 Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
 Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
-build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
+`2d7067fa` build46/46, receipts23. Native cleanup6/73 and registry5 check drain/retry/Cause
 with controlled authorization/observation ports. Expanded consumers found and
 fixed cancelled Prepare lease cleanup and missing safe recovery diagnostics.
 
