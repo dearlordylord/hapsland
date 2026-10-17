@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: production `870a453a`,10:08 UTC: execution **.7312×**;
-build **.9197×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: production `c108cb88`,10:34 UTC: execution **.8502×**;
+build **.9040×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0620[.0500,.0996]/.0403[.0357,.0582];
-build3.004[2.833,3.504]/2.745[2.605,2.958]. Shared load; no causal claim.
+execution.0618[.0504,.0804]/.0543[.0344,.0946];
+build3.281[2.844,4.187]/2.887[2.578,4.143]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
