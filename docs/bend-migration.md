@@ -172,7 +172,7 @@ projection/freeze and lifecycle boundaries remain.
 | Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:56 UTC (`34b2e70b`) qualifies **1.3378×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
-| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers are deleted. Accepted Preparation checks: public181/7 files, protocol19, source248/248 (473 Bend files/108 roots;14 exact mutant refusals), build46/46, fast41, receipts23 and Go75. Six duplicate declarations removed; proved laws retained. |
+| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers are deleted. Accepted Preparation checks: public181/7 files, protocol19, source248/248 (473 Bend files/108 roots;14 exact mutant refusals), build46/46, fast41, receipts23 and Go75. |
 
 Accepted Preparation candidate: `299e7894`. RANK source-gate10s timeout
 remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU.
@@ -243,7 +243,7 @@ Current path / obstacles:
    reuses status: fixed now, both matching modes, expiry short-circuit. Masked
    publication/context cancellation preserve custody. Astra reviewed.
 3. Remaining: whole Root/C/P/D trace laws, receipt custody and whole-delivery
-   timing. Unit not accepted. Latest: build46/46,receipts23,protocol50,fast44/1,
+   timing (one equal-output probe ~5.8×; unqualified). Unit not accepted. Latest: build46/46,receipts23,protocol50,fast44/1,
    server92 PASS; connected consumers95/5 and fast44/8 PASS before cutoff fix.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
