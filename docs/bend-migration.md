@@ -235,8 +235,7 @@ Native sessions retain jobs, credentials, results and original Effect Causes.
 
 Candidate: whole evaluation Bend cursor composes admission, authorization,
 provider return, settlement, retention and recovery/finalization. Private ABI
-exposes commands and opaque continuations, including cleanup entry; normal build
-and ABI gate cover it. Source/packaged consumers pass1719 tapes,49131 prefixes
+exposes commands and opaque continuations with cleanup entry; build/ABI cover it. Source/packaged consumers pass1719 tapes,49131 prefixes
 and3 typed mutants, including cleanup faults and two-fault recovery/finalization.
 Finite evidence does not establish universal proofs or whole production cleanup.
 
