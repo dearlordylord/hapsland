@@ -9,15 +9,15 @@ import subprocess
 import tempfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument("lane", choices=["build", "execution", "preparation", "delivery"])
+parser.add_argument("lane", choices=["build", "execution", "preparation", "delivery", "evaluation"])
 parser.add_argument("--baseline", required=True, type=Path)
 parser.add_argument("--environment", type=Path)
 parser.add_argument("--baseline-environment", type=Path)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[2]
 baseline = args.baseline.resolve()
-if args.baseline_environment and args.lane not in ["build", "delivery"]:
-    parser.error("--baseline-environment is supported only for build and delivery")
+if args.baseline_environment and args.lane not in ["build", "delivery", "evaluation"]:
+    parser.error("--baseline-environment is supported only for build, delivery and evaluation")
 environment_inputs = {}
 def environment_overrides(path):
     content = path.read_bytes()
@@ -105,10 +105,10 @@ output = root / ".test-runs/bend-migration/performance" / started.replace(":", "
 output.mkdir(parents=True)
 measurement_path = output / "measurement.json"
 env["HAPSLAND_PERFORMANCE_OUTPUT"] = str(measurement_path)
-runner = root / {"build": "scripts/performance/build-performance.mjs", "execution": "packages/source-analysis/src/direct-event/analysis-checks/reference-isolated-performance.mjs", "preparation": "scripts/performance/preparation-performance.mjs", "delivery": "scripts/performance/delivery-performance.mjs"}[args.lane]
-deadline = 610 if args.lane in ["build", "delivery"] else 190
+runner = root / {"build": "scripts/performance/build-performance.mjs", "execution": "packages/source-analysis/src/direct-event/analysis-checks/reference-isolated-performance.mjs", "preparation": "scripts/performance/preparation-performance.mjs", "delivery": "scripts/performance/delivery-performance.mjs", "evaluation": "scripts/performance/delivery-performance.mjs"}[args.lane]
+deadline = 610 if args.lane in ["build", "delivery", "evaluation"] else 190
 with (output / "run.log").open("w") as log:
-    result = subprocess.run(["timeout", "--signal=KILL", str(deadline) + "s", "node", str(runner)], cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
+    result = subprocess.run(["timeout", "--signal=KILL", str(deadline) + "s", "node", str(runner), *(["--evaluation"] if args.lane == "evaluation" else [])], cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
 measurement = json.loads(measurement_path.read_text()) if measurement_path.exists() else None
 heads_unchanged = all(git(Path(p), "rev-parse", "HEAD").decode().strip() == value for p, value in heads.items())
 sources_unchanged = all(sources(Path(p)) == value for p, value in frozen_sources.items())
@@ -119,11 +119,11 @@ environments_unchanged = all(hashlib.sha256(Path(path).read_bytes()).hexdigest()
 build_preparation_matches = args.lane != "build" or (measurement or {}).get("warmPreparationMatched") is True
 qualified = environments_unchanged and result.returncode == 0 and heads_unchanged and sources_unchanged and artifacts_unchanged and workspaces_unchanged and complete and build_preparation_matches
 parity = qualified and bool(measurement.get(args.lane + "Parity"))
-ratio_limit = 3 if args.lane in ["preparation", "delivery"] else 1
+ratio_limit = 3 if args.lane in ["preparation", "delivery", "evaluation"] else 1
 performance_accepted = qualified and isinstance(measurement.get("meanRatio"), (int, float)) and measurement["meanRatio"] <= ratio_limit
-if args.lane == "delivery":
-    performance_accepted = performance_accepted and bool(measurement.get("deliveryPerformanceAccepted"))
-record = {"buildPreparationMatched": build_preparation_matches if args.lane == "build" else None, "environmentFileHashes": environment_inputs, "environmentFilesUnchanged": environments_unchanged, "startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "whole public delivery against fixed TS baseline" if args.lane == "delivery" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
+if args.lane in ["delivery", "evaluation"]:
+    performance_accepted = performance_accepted and bool(measurement.get(args.lane + "PerformanceAccepted"))
+record = {"buildPreparationMatched": build_preparation_matches if args.lane == "build" else None, "environmentFileHashes": environment_inputs, "environmentFilesUnchanged": environments_unchanged, "startedAt": started, "terminalAt": datetime.datetime.now(datetime.timezone.utc).isoformat(), "lane": args.lane, "deadlineSeconds": deadline, "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "roots": heads, "headsUnchanged": heads_unchanged, "sourcesUnchanged": sources_unchanged, "sourceHashes": frozen_sources, "workspaceResolutions": frozen_workspaces, "workspaceResolutionsUnchanged": workspaces_unchanged, "artifactTreesUnchanged": artifacts_unchanged, "artifactHashes": frozen_artifacts, "scope": "whole public evaluation against fixed TS baseline" if args.lane == "evaluation" else "whole public delivery against fixed TS baseline" if args.lane == "delivery" else "compiled public preparation against fixed baseline" if args.lane == "preparation" else "existing production analyzer/build; whole preparation measured separately", "measurement": measurement}
 (output / "qualification.json").write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps({"evidence": str(output / "qualification.json"), "exitCode": result.returncode, "qualified": qualified, "parity": parity, "performanceAccepted": performance_accepted, "acceptanceRatioLimit": ratio_limit, "preparationReference": "fixed-baseline" if args.lane == "preparation" else None, "ratio": measurement.get("meanRatio") if measurement else None}), flush=True)
 raise SystemExit(0 if performance_accepted else 1)

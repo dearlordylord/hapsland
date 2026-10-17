@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: production `9c42a671`,09:15 UTC: execution **.6434×**;
-build **.8846×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: production `1511b2f3`,09:38 UTC: execution **.6925×**;
+build **.9055×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0652[.0509,.0922]/.0377[.0350,.0597];
-build2.911[2.705,3.587]/2.679[2.497,3.126]. Shared load; no causal claim.
+execution.0646[.0492,.0963]/.0444[.0357,.0617];
+build2.946[2.781,3.503]/2.652[2.536,3.256]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -261,13 +261,12 @@ fixed. Combined production/IPC/collection consumers pass233/12 files; Source59,
 Delivery9 and fast23 pass. No current consumer failure is known.
 
 Concrete remaining obstacles:
-1. Preserve the qualified production/IPC/collection consumer and shared
-   Preparation coverage while closing the remaining proof/performance gates.
-   Revalidate changed boundaries without weakening product deadlines.
-2. Review correspondence/lifecycle/retention laws before proving; reuse existing
+1. Review correspondence/lifecycle/retention laws before proving; reuse existing
    outcome/advice-tail proofs. Owner approval precedes new proofs.
-3. Qualify full admission→provider→settlement→collection against fixed TS for
+2. Qualify full admission→provider→settlement→collection against fixed TS for
    clear/finding/refusal/cancellation/failure, ≤3×; strict parity separately.
+   The evaluation-owned worker and existing pair runner pass a diagnostic pair;
+   17 frozen pairs remain.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

@@ -14,13 +14,17 @@ assert.equal(
   execFileSync("git", ["rev-parse", "HEAD"], { cwd: roots.typescript, encoding: "utf8" }).trim(),
   "a0773f79ffa4babdba219c773832fa3a61cc803c"
 )
-const profile = process.argv.includes("--profile"),
+const evaluation = process.argv.includes("--evaluation"),
+  flow = evaluation ? "evaluation" : "delivery",
+  profile = process.argv.includes("--profile"),
   probe = profile || process.argv.includes("--probe"),
   stop = Date.now() + 600_000
 const temporary = mkdtempSync(join(tmpdir(), "haps-delivery-bench-"))
 const worker = resolve(
   import.meta.dirname,
-  "../../packages/resident-runtime/src/resident/advice-delivery/verification/delivery-performance-worker.mjs"
+  evaluation
+    ? "../../packages/resident-runtime/src/resident/review-work/evaluation/verification/evaluation-performance-worker.mjs"
+    : "../../packages/resident-runtime/src/resident/advice-delivery/verification/delivery-performance-worker.mjs"
 )
 const golden = join(temporary, "golden.json"),
   fixture = join(temporary, "fixture.json")
@@ -124,17 +128,18 @@ try {
       expectedResultsSha256: createHash("sha256").update(readFileSync(golden)).digest("hex"),
       measuredPairs: 17,
       meanRatio,
-      deliveryParity: meanRatio <= 1,
-      deliveryAcceptanceRatioLimit: 3,
+      [flow + "Parity"]: meanRatio <= 1,
+      [flow + "AcceptanceRatioLimit"]: 3,
       // The owner budget applies to the whole fixed consumer, as in Preparation.
       // Keep every scenario ratio visible; an extra per-scenario gate was not accepted.
-      deliveryPerformanceAccepted: meanRatio <= 3,
-      scope:
-        "public local empty/ready, actual IPC empty/ready and single-pass ready edit; real source freshness and final authorization; fresh runtime per invocation; actual controlled preparation and verified release/Scope cleanup outside timers"
+      [flow + "PerformanceAccepted"]: meanRatio <= 3,
+      scope: evaluation
+        ? "public admission through preparation, controlled provider, settlement and local collection for clear/finding/refusal/backend failure; cancellation through physical drain and Scope cleanup; runtime construction and other Scope cleanup outside timers"
+        : "public local empty/ready, actual IPC empty/ready and single-pass ready edit; real source freshness and final authorization; fresh runtime per invocation; actual controlled preparation and verified release/Scope cleanup outside timers"
     }
     assert.ok(process.env.HAPSLAND_PERFORMANCE_OUTPUT)
     writeFileSync(process.env.HAPSLAND_PERFORMANCE_OUTPUT, JSON.stringify(record, null, 2) + "\n")
-    console.log(JSON.stringify({ meanRatio, fixtureRatios, deliveryParity: record.deliveryParity }))
+    console.log(JSON.stringify({ meanRatio, fixtureRatios, [flow + "Parity"]: record[flow + "Parity"] }))
   }
 } finally {
   rmSync(temporary, { recursive: true, force: true })
