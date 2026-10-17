@@ -28,5 +28,10 @@
     "source": "freshness/LazyJson.bend",
     "output": "freshness/lazy-json-core.js",
     "declaration": "freshness/lazy-json-core.d.ts"
+  },
+  {
+    "source": "freshness/HandoffSources.bend",
+    "output": "freshness/handoff-sources-core.js",
+    "declaration": "freshness/handoff-sources-core.d.ts"
   }
 ]

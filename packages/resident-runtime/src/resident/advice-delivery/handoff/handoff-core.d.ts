@@ -191,7 +191,97 @@ export type RStep =
     }
   | { readonly $: "RFinal" | "REmpty" | "RRejected" }
 
+export type PItem = {
+  readonly $: "PItem"
+  readonly handle: number
+  readonly identity: number
+  readonly root: number
+  readonly partition: number
+  readonly work: boolean
+}
+export type PFrame = {
+  readonly $: "PFrame"
+  readonly eligible: List<PItem>
+  readonly owners: List<number>
+  readonly unavailable: List<number>
+}
+export type PCommand =
+  | { readonly $: "PAdvice" }
+  | { readonly $: "PFacts" | "PStartWorkspace"; readonly advice: number }
+  | { readonly $: "PCheckWorkspace"; readonly advice: number; readonly workspace: number }
+  | { readonly $: "PReservePartition"; readonly advice: number; readonly members: List<number> }
+  | { readonly $: "PVerifyAll"; readonly frame: PFrame; readonly admitted: List<number> }
+  | { readonly $: "PDeleteUnavailable"; readonly members: List<number> }
+export type PResponse =
+  | { readonly $: "PHandles"; readonly values: List<number> }
+  | { readonly $: "PAdviceFacts"; readonly item: PItem; readonly owned: boolean }
+  | { readonly $: "PWorkspace"; readonly workspace: Maybe<number> }
+  | { readonly $: "PTruth"; readonly value: boolean }
+  | { readonly $: "PVerifiedAll"; readonly frame: PFrame }
+  | { readonly $: "PAck" }
+export type PReply = {
+  readonly $: "PReply"
+  readonly invocation: number
+  readonly id: number
+  readonly response: PResponse
+}
+export type PStep =
+  | {
+      readonly $: "PAwait"
+      readonly invocation: number
+      readonly id: number
+      readonly phase: unknown
+      readonly request: {
+        readonly $: "PRequest"
+        readonly invocation: number
+        readonly id: number
+        readonly command: PCommand
+      }
+    }
+  | { readonly $: "PDone" | "PRejected" }
+export type PValidation = { readonly $: "PCurrentValidation" | "PUnavailableValidation" | "PStaleValidation" }
+export type PValidationRoute = { readonly $: "PNoResult" | "PStaleResult" | "PCommitResult" }
+export type PReservation = { readonly $: "PCaptureAdmitted" | "PCaptureRefused"; readonly frame: PFrame }
+export type KCommand =
+  | { readonly $: "KReviseWork" | "KReviseAdvice" | "KFindingKeys" | "KObserve" }
+  | { readonly $: "KUpdateDelivery"; readonly indices: List<number> }
+export type KResponse =
+  | { readonly $: "KAck" }
+  | { readonly $: "KTruth"; readonly value: boolean }
+  | { readonly $: "KKeys"; readonly retained: List<string>; readonly delivery: List<string> }
+export type KReply = {
+  readonly $: "KReply"
+  readonly invocation: number
+  readonly id: number
+  readonly response: KResponse
+}
+export type KStep =
+  | {
+      readonly $: "KAwait"
+      readonly invocation: number
+      readonly id: number
+      readonly phase: unknown
+      readonly request: {
+        readonly $: "KRequest"
+        readonly invocation: number
+        readonly id: number
+        readonly command: KCommand
+      }
+    }
+  | { readonly $: "KDone"; readonly accepted: boolean }
+  | { readonly $: "KRejected" }
+
 declare const core: {
+  prepare_initial(invocation: number, advice: boolean): PStep
+  prepare_resume(step: PStep, reply: PReply): PStep
+  prepare_member(frame: PFrame, identity: number): Maybe<PItem>
+  prepare_source(frame: PFrame, root: number): Maybe<PItem>
+  prepare_validation(capacity_unavailable: boolean, validation: PValidation): PValidationRoute
+  prepare_capacity(previous: boolean, resized: boolean): boolean
+  prepare_reservation(resized: boolean, frame: PFrame, partition: number): PReservation
+  prepare_commit_initial(invocation: number, work: boolean): KStep
+  prepare_commit_resume(step: KStep, reply: KReply): KStep
+
   reconcile_initial(invocation: number, input: RInput): RStep
   reconcile_resume(step: RStep, reply: RReply): RStep
   finalize_initial(invocation: number, input: FInput): FStep

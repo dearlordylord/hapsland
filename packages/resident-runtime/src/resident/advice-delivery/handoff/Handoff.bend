@@ -1545,3 +1545,497 @@ def reconcile_resume(+step: RStep, +reply: RReply) -> RStep:
         response
       )
     case _ _: RRejected{}
+
+# Interruptible source preparation. The three passes finish selection and all
+# workspace barriers before admitting the shared delivery-local source cache.
+type PItem is Data:
+  PItem{handle: Nat, identity: Nat, root: Nat, partition: Nat, work: Bool}
+type PFrame is Data:
+  PFrame{eligible: List<&2, PItem>, owners: List<&2, Nat>, unavailable: List<&2, Nat>}
+type PCommand is Data:
+  PAdvice{}
+  PFacts{advice: Nat}
+  PStartWorkspace{advice: Nat}
+  PCheckWorkspace{advice: Nat, workspace: Nat}
+  PReservePartition{advice: Nat, members: List<&2, Nat>}
+  PVerifyAll{frame: PFrame, admitted: List<&2, Nat>}
+  PDeleteUnavailable{members: List<&2, Nat>}
+type PResponse is Data:
+  PHandles{values: List<&2, Nat>}
+  PAdviceFacts{item: PItem, owned: Bool}
+  PWorkspace{workspace: Maybe<&2, Nat>}
+  PTruth{value: Bool}
+  PVerifiedAll{frame: PFrame}
+  PAck{}
+type PPhase is Data:
+  PAdviceRead{}
+  PFactsRead{remaining: List<&2, Nat>, selected: List<&2, PItem>}
+  PWorkspaceStarted{item: PItem, remaining: List<&2, PItem>, eligible: List<&2, PItem>}
+  PWorkspaceChecked{item: PItem, remaining: List<&2, PItem>, eligible: List<&2, PItem>}
+  PPartitionReserved{frame: PFrame, remaining: List<&2, PItem>, partition: Nat}
+  PAllVerified{}
+  PUnavailableDeleted{}
+type PRequest is Data:
+  PRequest{invocation: Nat, id: Nat, command: PCommand}
+type PReply is Data:
+  PReply{invocation: Nat, id: Nat, response: PResponse}
+type PStep is Data:
+  PAwait{invocation: Nat, id: Nat, phase: PPhase, request: PRequest}
+  PDone{}
+  PRejected{}
+
+def p_handle(+item: PItem) -> Nat:
+  match item:
+    case PItem{+handle, _, _, _, _}: handle
+
+def p_partition(+item: PItem) -> Nat:
+  match item:
+    case PItem{_, _, _, +partition, _}: partition
+
+def p_eligible(+frame: PFrame) -> List<&2, PItem>:
+  match frame:
+    case PFrame{+eligible, _, _}: eligible
+
+def p_owners(+frame: PFrame) -> List<&2, Nat>:
+  match frame:
+    case PFrame{_, +owners, _}: owners
+
+def p_has(+values: List<&2, Nat>, +value: Nat) -> Bool:
+  List.contains(~Nat, ~Nat.is_eq, values, value)
+
+def p_partition_seen(+frame: PFrame, +partition: Nat) -> Bool:
+  match frame:
+    case PFrame{_, +owners, +unavailable}: Bool.or(
+      p_has(owners, partition),
+      p_has(unavailable, partition)
+    )
+
+def p_identity_in_partition(+items: List<&2, PItem>, +identity: Nat, +partition: Nat) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case PItem{_, +other_id, _, +other_partition, _} <> +rest:
+      Bool.or(
+        Bool.and(Nat.is_eq(identity, other_id), Nat.is_eq(partition, other_partition)),
+        p_identity_in_partition(rest, identity, partition)
+      )
+
+def p_keep_handle(+keep: Bool, +handle: Nat, +rest: List<&2, Nat>) -> List<&2, Nat>:
+  match keep:
+    case True{}: handle <> rest
+    case False{}: rest
+
+def p_partition_members(
+  +items: List<&2, PItem>,
+  +eligible: List<&2, PItem>,
+  +partition: Nat
+) -> List<&2, Nat>:
+  match items:
+    case Nil{}: []
+    case PItem{+handle, +identity, _, _, _} <> +rest:
+      p_keep_handle(
+        p_identity_in_partition(eligible, identity, partition),
+        handle,
+        p_partition_members(rest, eligible, partition)
+      )
+
+def p_identity_owned(+items: List<&2, PItem>, +owners: List<&2, Nat>, +identity: Nat) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case PItem{_, +other, _, +partition, _} <> +rest:
+      Bool.or(
+        Bool.and(Nat.is_eq(identity, other), p_has(owners, partition)),
+        p_identity_owned(rest, owners, identity)
+      )
+
+def p_admitted(
+  +items: List<&2, PItem>,
+  +eligible: List<&2, PItem>,
+  +owners: List<&2, Nat>
+) -> List<&2, Nat>:
+  match items:
+    case Nil{}: []
+    case PItem{+handle, +identity, _, _, _} <> +rest:
+      p_keep_handle(
+        p_identity_owned(eligible, owners, identity),
+        handle,
+        p_admitted(rest, eligible, owners)
+      )
+
+def p_unavailable_handles(+items: List<&2, PItem>, +unavailable: List<&2, Nat>) -> List<&2, Nat>:
+  match items:
+    case Nil{}: []
+    case PItem{+handle, _, _, +partition, _} <> +rest:
+      p_keep_handle(p_has(unavailable, partition), handle, p_unavailable_handles(rest, unavailable))
+
+def prepare_unavailable(+frame: PFrame, +partition: Nat) -> PFrame:
+  match frame:
+    case PFrame{+eligible, +owners, +unavailable}: PFrame{
+      eligible,
+      owners,
+      partition <> unavailable
+    }
+
+def p_reserved(+accepted: Bool, +frame: PFrame, +partition: Nat) -> PFrame:
+  match accepted frame:
+    case True{} PFrame{+eligible, +owners, +unavailable}: PFrame{
+      eligible,
+      partition <> owners,
+      unavailable
+    }
+    case False{} +current: prepare_unavailable(current, partition)
+
+def p_issue(+invocation: Nat, +id: Nat, +phase: PPhase, +command: PCommand) -> PStep:
+  PAwait{invocation, id, phase, PRequest{invocation, id, command}}
+
+def p_unseen(+items: List<&2, PItem>, +frame: PFrame) -> List<&2, PItem>:
+  match items:
+    case Nil{}: []
+    case +item <> +rest:
+      Bool.pick(
+        List<&2, PItem>,
+        p_partition_seen(frame, p_partition(item)),
+        p_unseen(rest, frame),
+        item <> rest
+      )
+
+def p_partition_current(
+  +items: List<&2, PItem>,
+  +frame: PFrame,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  match items:
+    case Nil{}: p_issue(
+      invocation,
+      next,
+      PAllVerified{},
+      PVerifyAll{frame, p_admitted(p_eligible(frame), p_eligible(frame), p_owners(frame))}
+    )
+    case +item <> +rest:
+      p_issue(
+        invocation,
+        next,
+        PPartitionReserved{frame, rest, p_partition(item)},
+        PReservePartition{
+          p_handle(item),
+          p_partition_members(p_eligible(frame), p_eligible(frame), p_partition(item))
+        }
+      )
+
+def p_partitions(+items: List<&2, PItem>, +frame: PFrame, +invocation: Nat, +next: Nat) -> PStep:
+  p_partition_current(p_unseen(items, frame), frame, invocation, next)
+
+def p_begin_partitions(+eligible: List<&2, PItem>, +invocation: Nat, +next: Nat) -> PStep:
+  p_partitions(eligible, PFrame{eligible, [], []}, invocation, next)
+
+def p_workspaces(
+  +items: List<&2, PItem>,
+  +eligible: List<&2, PItem>,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  match items:
+    case Nil{}: p_begin_partitions(List.reverse(&2, PItem, eligible), invocation, next)
+    case +item <> +rest: p_issue(
+      invocation,
+      next,
+      PWorkspaceStarted{item, rest, eligible},
+      PStartWorkspace{p_handle(item)}
+    )
+
+def p_workspace_keep(
+  +available: Bool,
+  +item: PItem,
+  +remaining: List<&2, PItem>,
+  +eligible: List<&2, PItem>,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  match available:
+    case True{}: p_workspaces(remaining, item <> eligible, invocation, next)
+    case False{}: p_workspaces(remaining, eligible, invocation, next)
+
+def p_facts(
+  +items: List<&2, Nat>,
+  +selected: List<&2, PItem>,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  match items:
+    case Nil{}: p_workspaces(List.reverse(&2, PItem, selected), [], invocation, next)
+    case +item <> +rest: p_issue(invocation, next, PFactsRead{rest, selected}, PFacts{item})
+
+def p_selected(
+  +owned: Bool,
+  +item: PItem,
+  +remaining: List<&2, Nat>,
+  +selected: List<&2, PItem>,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  match owned:
+    case True{}: p_facts(remaining, item <> selected, invocation, next)
+    case False{}: p_facts(remaining, selected, invocation, next)
+
+def prepare_initial(+invocation: Nat, +advice: Bool) -> PStep:
+  match advice:
+    case False{}: PDone{}
+    case True{}: p_issue(invocation, 1n, PAdviceRead{}, PAdvice{})
+
+def p_after_reserved(
+  +frame: PFrame,
+  +remaining: List<&2, PItem>,
+  +invocation: Nat,
+  +next: Nat
+) -> PStep:
+  p_partitions(remaining, frame, invocation, next)
+
+def p_phase(+invocation: Nat, +next: Nat, +phase: PPhase, +response: PResponse) -> PStep:
+  match phase response:
+    case PAdviceRead{} PHandles{+advice}: p_facts(advice, [], invocation, next)
+    case PFactsRead{+remaining, +selected} PAdviceFacts{+item, +owned}: p_selected(
+      owned,
+      item,
+      remaining,
+      selected,
+      invocation,
+      next
+    )
+    case PWorkspaceStarted{+item, +remaining, +eligible} PWorkspace{None{}}: p_workspaces(
+      remaining,
+      eligible,
+      invocation,
+      next
+    )
+    case PWorkspaceStarted{+item, +remaining, +eligible} PWorkspace{Some{+workspace}}:
+      p_issue(
+        invocation,
+        next,
+        PWorkspaceChecked{item, remaining, eligible},
+        PCheckWorkspace{p_handle(item), workspace}
+      )
+    case PWorkspaceChecked{+item, +remaining, +eligible} PTruth{+available}: p_workspace_keep(
+      available,
+      item,
+      remaining,
+      eligible,
+      invocation,
+      next
+    )
+    case PPartitionReserved{+frame, +remaining, +partition} PTruth{+accepted}: p_after_reserved(
+      p_reserved(accepted, frame, partition),
+      remaining,
+      invocation,
+      next
+    )
+    case PAllVerified{} PVerifiedAll{PFrame{+eligible, _, +unavailable}}:
+      p_issue(
+        invocation,
+        next,
+        PUnavailableDeleted{},
+        PDeleteUnavailable{p_unavailable_handles(eligible, unavailable)}
+      )
+    case PUnavailableDeleted{} PAck{}: PDone{}
+    case _ _: PRejected{}
+
+def p_accept(
+  +valid: Bool,
+  +invocation: Nat,
+  +id: Nat,
+  +phase: PPhase,
+  +response: PResponse
+) -> PStep:
+  match valid:
+    case False{}: PRejected{}
+    case True{}: p_phase(invocation, Nat.add(id, 1n), phase, response)
+
+def prepare_resume(+step: PStep, +reply: PReply) -> PStep:
+  match step reply:
+    case PAwait{+invocation, +id, +phase, PRequest{+owner, +request, _}} PReply{
+      +other,
+      +received,
+      +response
+    }:
+      p_accept(
+        Bool.and(
+          Nat.is_eq(invocation, other),
+          Bool.and(
+            Nat.is_eq(owner, other),
+            Bool.and(Nat.is_eq(id, received), Nat.is_eq(request, received))
+          )
+        ),
+        invocation,
+        id,
+        phase,
+        response
+      )
+    case _ _: PRejected{}
+
+def p_first_choice(+same: Bool, +item: PItem, +rest: Maybe<&2, PItem>) -> Maybe<&2, PItem>:
+  match same:
+    case True{}: Some{item}
+    case False{}: rest
+
+def p_first_identity(+items: List<&2, PItem>, +identity: Nat) -> Maybe<&2, PItem>:
+  match items:
+    case Nil{}: None{}
+    case PItem{+handle, +other, +root, +partition, +work} <> +rest:
+      p_first_choice(
+        Nat.is_eq(identity, other),
+        PItem{handle, other, root, partition, work},
+        p_first_identity(rest, identity)
+      )
+
+def p_first_root(+items: List<&2, PItem>, +root: Nat) -> Maybe<&2, PItem>:
+  match items:
+    case Nil{}: None{}
+    case PItem{+handle, +identity, +other, +partition, +work} <> +rest:
+      p_first_choice(
+        Nat.is_eq(root, other),
+        PItem{handle, identity, other, partition, work},
+        p_first_root(rest, root)
+      )
+
+def p_owned_item(+owned: Bool, +item: PItem) -> Maybe<&2, PItem>:
+  match owned:
+    case True{}: Some{item}
+    case False{}: None{}
+
+def p_owner(+item: Maybe<&2, PItem>, +owners: List<&2, Nat>) -> Maybe<&2, PItem>:
+  match item:
+    case None{}: None{}
+    case Some{+value}: p_owned_item(p_has(owners, p_partition(value)), value)
+
+def prepare_member(+frame: PFrame, +identity: Nat) -> Maybe<&2, PItem>:
+  p_owner(p_first_identity(p_eligible(frame), identity), p_owners(frame))
+
+def prepare_source(+frame: PFrame, +root: Nat) -> Maybe<&2, PItem>:
+  p_owner(p_first_root(p_eligible(frame), root), p_owners(frame))
+
+type PValidation is Data:
+  PCurrentValidation{}
+  PUnavailableValidation{}
+  PStaleValidation{}
+type PValidationRoute is Data:
+  PNoResult{}
+  PStaleResult{}
+  PCommitResult{}
+
+def p_validation_status(+validation: PValidation) -> PValidationRoute:
+  match validation:
+    case PCurrentValidation{}: PCommitResult{}
+    case PUnavailableValidation{}: PNoResult{}
+    case PStaleValidation{}: PStaleResult{}
+
+def prepare_validation(+capacity_unavailable: Bool, +validation: PValidation) -> PValidationRoute:
+  match capacity_unavailable:
+    case True{}: PNoResult{}
+    case False{}: p_validation_status(validation)
+
+def prepare_capacity(+previous: Bool, +resized: Bool) -> Bool:
+  Bool.or(previous, Bool.not(resized))
+
+type PReservation is Data:
+  PCaptureAdmitted{frame: PFrame}
+  PCaptureRefused{frame: PFrame}
+
+def prepare_reservation(+resized: Bool, +frame: PFrame, +partition: Nat) -> PReservation:
+  match resized:
+    case True{}: PCaptureAdmitted{frame}
+    case False{}: PCaptureRefused{prepare_unavailable(frame, partition)}
+
+# Revalidation commit stays inside the member's existing catch/ensuring scope.
+type KCommand is Data:
+  KReviseWork{}
+  KReviseAdvice{}
+  KFindingKeys{}
+  KUpdateDelivery{indices: List<&2, Nat>}
+  KObserve{}
+type KResponse is Data:
+  KAck{}
+  KTruth{value: Bool}
+  KKeys{retained: List<&2, String>, delivery: List<&2, String>}
+type KPhase is Data:
+  KWorkRevised{}
+  KAdviceRevised{}
+  KKeysRead{}
+  KDeliveryUpdated{}
+  KObserved{}
+type KReply is Data:
+  KReply{invocation: Nat, id: Nat, response: KResponse}
+type KRequest is Data:
+  KRequest{invocation: Nat, id: Nat, command: KCommand}
+type KStep is Data:
+  KAwait{invocation: Nat, id: Nat, phase: KPhase, request: KRequest}
+  KDone{accepted: Bool}
+  KRejected{}
+
+def k_issue(+invocation: Nat, +id: Nat, +phase: KPhase, +command: KCommand) -> KStep:
+  KAwait{invocation, id, phase, KRequest{invocation, id, command}}
+
+def prepare_commit_initial(+invocation: Nat, +work: Bool) -> KStep:
+  match work:
+    case True{}: k_issue(invocation, 1n, KWorkRevised{}, KReviseWork{})
+    case False{}: k_issue(invocation, 1n, KAdviceRevised{}, KReviseAdvice{})
+
+def k_indices(
+  +delivery: List<&2, String>,
+  +retained: List<&2, String>,
+  +index: Nat
+) -> List<&2, Nat>:
+  match delivery:
+    case Nil{}: []
+    case +key <> +rest:
+      p_keep_handle(
+        List.contains(~String, ~String.eq, retained, key),
+        index,
+        k_indices(rest, retained, Nat.add(index, 1n))
+      )
+
+def k_phase(+invocation: Nat, +next: Nat, +phase: KPhase, +response: KResponse) -> KStep:
+  match phase response:
+    case KWorkRevised{} KTruth{False{}}: KDone{False{}}
+    case KWorkRevised{} KTruth{True{}}: k_issue(invocation, next, KAdviceRevised{}, KReviseAdvice{})
+    case KAdviceRevised{} KAck{}: k_issue(invocation, next, KKeysRead{}, KFindingKeys{})
+    case KKeysRead{} KKeys{+retained, +delivery}: k_issue(
+      invocation,
+      next,
+      KDeliveryUpdated{},
+      KUpdateDelivery{k_indices(delivery, retained, 0n)}
+    )
+    case KDeliveryUpdated{} KAck{}: k_issue(invocation, next, KObserved{}, KObserve{})
+    case KObserved{} KAck{}: KDone{True{}}
+    case _ _: KRejected{}
+
+def k_accept(
+  +valid: Bool,
+  +invocation: Nat,
+  +id: Nat,
+  +phase: KPhase,
+  +response: KResponse
+) -> KStep:
+  match valid:
+    case False{}: KRejected{}
+    case True{}: k_phase(invocation, Nat.add(id, 1n), phase, response)
+
+def prepare_commit_resume(+step: KStep, +reply: KReply) -> KStep:
+  match step reply:
+    case KAwait{+invocation, +id, +phase, KRequest{+owner, +request, _}} KReply{
+      +other,
+      +received,
+      +response
+    }:
+      k_accept(
+        Bool.and(
+          Nat.is_eq(invocation, other),
+          Bool.and(
+            Nat.is_eq(owner, other),
+            Bool.and(Nat.is_eq(id, received), Nat.is_eq(request, received))
+          )
+        ),
+        invocation,
+        id,
+        phase,
+        response
+      )
+    case _ _: KRejected{}

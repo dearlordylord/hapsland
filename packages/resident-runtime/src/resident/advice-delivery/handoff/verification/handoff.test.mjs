@@ -321,3 +321,92 @@ it("finish refusal releases only final advice and preserves allowed reasons; non
       assert.equal(result.trace.at(-1).$, "RAllow")
     }
 })
+
+it("prepare completes every workspace barrier before partition admission and removes unavailable partitions", () => {
+  const items = [0, 1, 2].map((handle) => ({
+    $: "PItem",
+    handle,
+    identity: handle,
+    root: handle,
+    partition: handle < 2 ? 0 : 1,
+    work: false
+  }))
+  const trace = []
+  let step = core.prepare_initial(99, true)
+  while (step.$ === "PAwait") {
+    const held = step.request,
+      command = held.command
+    trace.push(command)
+    let response
+    switch (command.$) {
+      case "PAdvice":
+        response = { $: "PHandles", values: list([0, 1, 2]) }
+        break
+      case "PFacts":
+        response = { $: "PAdviceFacts", item: items[command.advice], owned: true }
+        break
+      case "PStartWorkspace":
+        response = { $: "PWorkspace", workspace: { $: "Some", value: command.advice } }
+        break
+      case "PCheckWorkspace":
+        response = { $: "PTruth", value: true }
+        break
+      case "PReservePartition":
+        assert.equal(trace.filter((event) => event.$ === "PCheckWorkspace").length, 3)
+        assert.deepEqual(unlist(command.members), command.advice === 0 ? [0, 1] : [2])
+        response = { $: "PTruth", value: command.advice === 2 }
+        break
+      case "PVerifyAll":
+        assert.deepEqual(unlist(command.admitted), [2])
+        assert.deepEqual(core.prepare_member(command.frame, 0), { $: "None" })
+        assert.equal(core.prepare_source(command.frame, 2).value.handle, 2)
+        response = { $: "PVerifiedAll", frame: core.prepare_reservation(false, command.frame, 1).frame }
+        break
+      case "PDeleteUnavailable":
+        assert.deepEqual(unlist(command.members), [0, 1, 2])
+        response = { $: "PAck" }
+        break
+      default:
+        assert.fail(command.$)
+    }
+    const reply = { $: "PReply", invocation: 99, id: held.id, response }
+    assert.deepEqual(core.prepare_resume(step, { ...reply, invocation: 100 }), { $: "PRejected" })
+    assert.deepEqual(core.prepare_resume(step, { ...reply, id: held.id + 1 }), { $: "PRejected" })
+    step = core.prepare_resume(step, reply)
+  }
+  assert.deepEqual(step, { $: "PDone" })
+  assert.deepEqual(
+    trace.filter((command) => command.$ === "PReservePartition").map((command) => command.advice),
+    [0, 2]
+  )
+})
+
+it("prepare commit keeps work before advice and retains original delivery indices before observation", () => {
+  for (const accepted of [false, true]) {
+    const trace = []
+    let step = core.prepare_commit_initial(111, true)
+    while (step.$ === "KAwait") {
+      const held = step.request,
+        command = held.command
+      trace.push(command)
+      const response =
+        command.$ === "KReviseWork"
+          ? { $: "KTruth", value: accepted }
+          : command.$ === "KFindingKeys"
+            ? { $: "KKeys", retained: list(["b", "c"]), delivery: list(["a", "b", "c", "b"]) }
+            : { $: "KAck" }
+      const reply = { $: "KReply", invocation: 111, id: held.id, response }
+      assert.deepEqual(core.prepare_commit_resume(step, { ...reply, id: held.id + 1 }), { $: "KRejected" })
+      step = core.prepare_commit_resume(step, reply)
+    }
+    assert.deepEqual(step, { $: "KDone", accepted })
+    assert.deepEqual(
+      trace.map((command) => command.$),
+      accepted ? ["KReviseWork", "KReviseAdvice", "KFindingKeys", "KUpdateDelivery", "KObserve"] : ["KReviseWork"]
+    )
+    if (accepted) assert.deepEqual(unlist(trace[3].indices), [1, 2, 3])
+  }
+  assert.deepEqual(core.prepare_validation(false, { $: "PStaleValidation" }), { $: "PStaleResult" })
+  assert.deepEqual(core.prepare_validation(false, { $: "PUnavailableValidation" }), { $: "PNoResult" })
+  assert.deepEqual(core.prepare_validation(true, { $: "PCurrentValidation" }), { $: "PNoResult" })
+})

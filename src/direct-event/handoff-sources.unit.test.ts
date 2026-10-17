@@ -216,3 +216,84 @@ describe("final source verification", () => {
     )
   })
 })
+
+describe("source capture limit and result boundaries", () => {
+  it("retries a size-limit refusal for a larger or NaN limit and bounds a cached physical capture", async () => {
+    for (const retryLimit of [10, Number.NaN]) {
+      let reads = 0
+      await Effect.runPromise(
+        checkHandoffSources(members(1), {
+          captureSource: (_root, _source, _options, _identity, maximum) =>
+            Effect.sync((): CaptureResult => {
+              reads++
+              if (maximum === 5)
+                return {
+                  status: "unavailable",
+                  diagnostic: {
+                    stage: "capture",
+                    code: "capture-size-limit",
+                    args: { observedBytes: 7, limitBytes: 5 }
+                  }
+                }
+              return captured("original")
+            }),
+          verifyMember: (member, capture) =>
+            Effect.gen(function* () {
+              const source = { relativePath: "types.ts", absolutePath: "/project/types.ts" }
+              expect((yield* capture(member.root, source, {}, undefined, 5)).status).toBe("unavailable")
+              const accepted = yield* capture(member.root, source, {}, undefined, retryLimit)
+              expect(accepted.status).toBe("captured")
+              expect(yield* capture(member.root, source, {}, undefined, 6)).toEqual({
+                status: "unavailable",
+                diagnostic: { stage: "capture", code: "capture-size-limit", args: { observedBytes: 7, limitBytes: 6 } }
+              })
+              expect(yield* capture(member.root, source, {}, undefined, 7)).toBe(accepted)
+              return true
+            })
+        })
+      )
+      expect(reads).toBe(2)
+    }
+  })
+
+  it("keeps unavailable absent and stale false in the selected delivery result", async () => {
+    const current = await Effect.runPromise(
+      checkHandoffSources(members(3), {
+        verifyMember: (member) => Effect.succeed(member.id === "0" ? undefined : false)
+      })
+    )
+    expect([...current]).toEqual([
+      ["1", false],
+      ["2", false]
+    ])
+  })
+
+  it("zeros captured bytes and closes callbacks when a member fails", async () => {
+    const snapshot = captured("original")
+    if (snapshot.status !== "captured") throw new Error("missing snapshot")
+    snapshot.capture.bytes.fill(9)
+    let lateCapture: typeof captureStable | undefined
+    await expect(
+      Effect.runPromise(
+        checkHandoffSources(members(1), {
+          captureSource: () => Effect.succeed(snapshot),
+          verifyMember: (member, capture) =>
+            Effect.gen(function* () {
+              lateCapture = capture
+              yield* capture(member.root, { relativePath: "types.ts", absolutePath: "/project/types.ts" })
+              return yield* Effect.fail(new Error("member refused"))
+            })
+        })
+      )
+    ).rejects.toThrow("member refused")
+    expect([...snapshot.capture.bytes]).toEqual(Array(7).fill(0))
+    if (lateCapture === undefined) throw new Error("missing late callback")
+    expect(
+      (
+        await Effect.runPromise(
+          lateCapture("/project", { relativePath: "types.ts", absolutePath: "/project/types.ts" })
+        )
+      ).status
+    ).toBe("unavailable")
+  })
+})
