@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-`199fd026`,2026-10-17 07:17 UTC analyzer/build **.7275×/1.0072×**,
-17 frozen pairs, strict PASS/FAIL, build23/46 cached. All five freeze checks pass;
+`3dc6d860`,2026-10-17 07:48 UTC analyzer/build **.7853×/.8909×**,
+17 frozen pairs, strict PASS/PASS, build23/46 cached. All five freeze checks pass;
 all34 build executions succeed. TS/Bend medians[ranges] s:
-execution.0636[.0494,.1412]/.0542[.0354,.1061];
-build3.307[2.772,4.516]/3.184[2.603,6.087]. Shared load; no causal claim.
+execution.0694[.0518,.0861]/.0551[.0371,.0847];
+build3.120[2.736,6.109]/2.724[2.599,4.958]. Shared load; no causal claim.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
 
@@ -245,8 +245,7 @@ settlement with exact native operation/reservation metadata. Dispatch is bound
 to the original provider await; no later await may invoke a skipped callback.
 Four reducer cases and native transaction cover start/cancellation/settlement.
 Owner build46/46,delivery9/9,fast44/5 and six delivery proofs pass; prior shared
-metadata Jev/capacity63 pass. Whole-cursor build/packaged/ABI gates pass; fast44
-passed before declaration-format failure, focused formatter/lint now pass.
+metadata Jev/capacity63 pass. Whole-cursor build/packaged/ABI and fast44/2 pass after the ABI-format fix.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
