@@ -5,6 +5,11 @@
     "declaration": "review-work/evaluation/evaluation-core.d.ts"
   },
   {
+    "source": "review-work/evaluation/Dispatch.bend",
+    "output": "review-work/evaluation/evaluation-dispatch-core.js",
+    "declaration": "review-work/evaluation/evaluation-dispatch-core.d.ts"
+  },
+  {
     "source": "review-work/preparation/SourcePreparation.bend",
     "output": "review-work/preparation/source-preparation-core.js",
     "declaration": "review-work/preparation/source-preparation-core.d.ts"

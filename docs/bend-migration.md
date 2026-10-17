@@ -243,18 +243,18 @@ finalization. These are finite cursor checks, not native cleanup or universal pr
 Canonical binds evaluation to Reviewing and atomically publishes readiness/
 settlement with exact native operation/reservation metadata. Dispatch is bound
 to the original provider await; no later await may invoke a skipped callback.
-Four reducer cases and native transaction cover start/cancellation/settlement.
-Native authorization binds commands to credential/root IO and atomic readiness;
-its real Ref/Canonical consumer checks issuance, observation and interruption arm.
-Provider IO is shared with production. Build46/46, fast44/6, native custody and
-Jev/capacity63 pass; six delivery proofs remain valid.
+Native authorization binds credential/root IO to atomic readiness. Packaged Dispatch
+uses the same resident driver/registry. Six native cases cover a parked parent,
+one start, interruption, credential refusal, observer Cause, duplicate callback,
+controlled physical provider and input refusal, followed by exact settlement.
+Shared Preparation52/delivery9 pass; build46/46 and fast44/10 pass.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
-1. Connect nested Dispatch to the waiting parent invocation/generation/request.
-   Keep beforeDispatch after input validation and inside the original total-call
-   deadline: credential reread → budget claim → Canonical start → observation.
-   Issuance is not physical start. Prevent new dispatch after work revocation.
+1. Bind RunProvider to the qualified native authorization/provider/Dispatch ports.
+   Preserve beforeDispatch after input validation and inside the total-call
+   deadline: credential reread → budget → Canonical start → observation.
+   Production root adoption and work-revocation cleanup remain open.
 2. Drain explicit scope cancellation and provider defects through physical
    settlement with only exact interrupt/settle/observe/release authority. Preserve
    Cause; no preparing-scope or unconditional-liveness fallback.

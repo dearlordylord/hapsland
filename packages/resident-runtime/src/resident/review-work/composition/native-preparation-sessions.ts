@@ -1,3 +1,4 @@
+import type { DispatchSession, DispatchRequest, DispatchReply } from "../evaluation/dispatch-session.ts"
 import type { DeliverySession, DeliveryRequest, DeliveryReply } from "../../advice-delivery/handoff/delivery-session.ts"
 import type { ForeignReply } from "@hapsland/canonical-policy/canonical/child-execution"
 import * as Effect from "effect/Effect"
@@ -23,6 +24,7 @@ type SourceSession = ReturnType<typeof createSourcePreparationProvider>
 type PostSession = ReturnType<typeof createPostPreparationProvider>
 type AdviceSession = ReturnType<typeof createAdviceTailProvider>
 export type PreparationNativeSession =
+  | DispatchSession
   | DeliverySession
   | FinalizationSession
   | GraphSession
@@ -32,6 +34,11 @@ export type PreparationNativeSession =
   | PreparationSession
 
 export const createPreparationSessionRegistry = () => createNativeSessionRegistry<PreparationNativeSession>()
+
+const dispatchSession = (session: PreparationNativeSession): session is DispatchSession =>
+  "input" in session && "evaluationDispatch" in session.input
+const deliverySession = (session: PreparationNativeSession): session is DeliverySession =>
+  "input" in session && "delivery" in session.input
 
 const sourceSession = (session: PreparationNativeSession): session is SourceSession =>
   "input" in session && "sourcePreparation" in session.input
@@ -61,6 +68,7 @@ export function performPreparationSessionRequest(
         throw new TypeError("Wrong finalization service session")
       return Effect.promise(() => performFinalizationAsync(request))
     }
+    if ("evaluationDispatch" in request) throw new TypeError("Dispatch requires its Cause-preserving execution port")
     if ("delivery" in request) throw new TypeError("Delivery requires its Cause-preserving execution port")
     if ("operation" in request) {
       if ("input" in session) throw new TypeError("Wrong graph service session")
@@ -186,7 +194,16 @@ export function performDeliverySessionRequest(
   options: ForeignOptions
 ): ForeignReply<DeliveryReply> {
   const session = registry.get(request.invocation)
-  if (!session || !("input" in session && "delivery" in session.input && "foreign" in session))
-    throw new TypeError("Wrong delivery service session")
+  if (!session || !deliverySession(session)) throw new TypeError("Wrong delivery service session")
+  return session.foreign(request, options)
+}
+
+export function performDispatchSessionRequest(
+  registry: ReturnType<typeof createPreparationSessionRegistry>,
+  request: DispatchRequest,
+  options: ForeignOptions
+): ForeignReply<DispatchReply> {
+  const session = registry.get(request.invocation)
+  if (!session || !dispatchSession(session)) throw new TypeError("Wrong dispatch service session")
   return session.foreign(request, options)
 }

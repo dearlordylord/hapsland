@@ -5,7 +5,11 @@ import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph
 import { createSourcePreparationMachine } from "../preparation/source-preparation-dispatcher.mjs"
 import { createPostPreparationMachine, createAdviceTailMachine } from "../preparation/post-preparation-dispatcher.mjs"
 import { createOwnedArtifactDriver } from "./owned-artifact-driver.mjs"
-import { performPreparationSessionRequest, performDeliverySessionRequest } from "./native-preparation-sessions.ts"
+import {
+  performPreparationSessionRequest,
+  performDeliverySessionRequest,
+  performDispatchSessionRequest
+} from "./native-preparation-sessions.ts"
 import type { createPreparationSessionRegistry, PreparationNativeSession } from "./native-preparation-sessions.ts"
 import type { createResidentOwnerTransaction } from "../../state/resolver-custody/resident-owner-transaction.mjs"
 import type { ForeignOptions, Hooks, Request } from "./owned-artifact-driver.mjs"
@@ -38,6 +42,7 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
     owner,
     control: bridge.control,
     registry,
+    dispatchForeign: (request, options) => performDispatchSessionRequest(registry, request, options),
     deliveryForeign: (request, options) => performDeliverySessionRequest(registry, request, options),
     machine: artifact,
     ...(hooks === undefined ? {} : { hooks }),
@@ -48,6 +53,11 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
         return performPreparationSessionRequest(registry, requests[0]!, options)
       }),
     selectMachine: (input, session) => {
+      if ("evaluationDispatch" in input) {
+        if (!("input" in session && "evaluationDispatch" in session.input && "foreign" in session))
+          throw new TypeError("Wrong dispatch engine session")
+        return session.machine
+      }
       if ("delivery" in input) {
         if (!("input" in session && "delivery" in session.input && "foreign" in session))
           throw new TypeError("Wrong delivery engine session")

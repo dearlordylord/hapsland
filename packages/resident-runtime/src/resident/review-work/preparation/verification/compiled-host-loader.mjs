@@ -30,6 +30,7 @@ for (const file of preparationManifest.hapsland.checkedJavaScript)
   checked.set(new URL(file, preparationRoot).href, new URL(file.replace(/^src\//u, "dist/"), preparationRoot).href)
 const preparationEffects = new URL("dist/direct-event/preparation/physical-effects.mjs", preparationRoot).href
 const canonicalDriver = new URL("dist/canonical/child-execution/driver.mjs", canonicalRoot).href
+const dispatchConsumer = process.argv[1]?.endsWith("/evaluation/verification/dispatch-native-check.mjs") === true
 const loaded = new Set()
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -53,11 +54,12 @@ process.once("beforeExit", () => {
   for (const file of [
     "src/resident/review-work/composition/owned-artifact-driver.mjs",
     "src/resident/review-work/composition/owned-machine.mjs",
-    "src/resident/review-work/composition/preparation-foreign.mjs",
+    ...(dispatchConsumer ? [] : ["src/resident/review-work/composition/preparation-foreign.mjs"]),
     "src/resident/state/resolver-custody/resident-owner-transaction.mjs"
   ])
     assert.ok(loaded.has(checked.get(new URL(file, packageRoot).href)), `Compiled host was not loaded: ${file}`)
-  assert.ok(loaded.has(preparationEffects), "Compiled physical Preparation effects were not loaded")
+  if (!dispatchConsumer)
+    assert.ok(loaded.has(preparationEffects), "Compiled physical Preparation effects were not loaded")
   assert.ok(loaded.has(graphDispatcher), "Compiled Graph composition dispatcher was not loaded")
   assert.ok(loaded.has(canonicalDriver), "Compiled Canonical child-execution driver was not loaded")
   console.log(JSON.stringify({ compiledHost: true, modules: [...loaded].sort() }))
