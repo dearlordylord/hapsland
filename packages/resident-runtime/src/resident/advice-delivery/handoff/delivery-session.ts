@@ -156,7 +156,18 @@ export function createDeliverySession(options: {
           )
             throw new Error("Stale or consumed delivery provider request")
           consumed = true
-          const work = Effect.suspend(() => options.advance(installed, execution))
+          const work = Effect.gen(function* () {
+            let continuation = installed
+            for (;;) {
+              if (revoked) throw new Error("Revoked delivery provider request")
+              continuation = yield* options.advance(continuation, execution)
+              if (revoked) throw new Error("Revoked delivery provider request")
+              if (continuation.stage !== installed.stage) throw new Error("Wrong delivery continuation stage")
+              const next = awaitId(continuation)
+              if (next === undefined) return continuation
+              if (next.invocation !== invocation) throw new Error("Wrong specialized delivery invocation")
+            }
+          })
           const effect = installed.stage === "finalize" ? work : withNativeSignal(work, execution.signal)
           return Effect.exit(effect).pipe(
             Effect.tap((exit) =>

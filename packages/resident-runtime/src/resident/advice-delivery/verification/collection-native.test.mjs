@@ -10,9 +10,85 @@ import * as Clock from "effect/Clock"
 import { makeResidentCollectionRoot } from "../../../../dist/resident/advice-delivery/handoff/collection-root.js"
 import { canonicalCollectionDecision } from "../../../../dist/resident/advice-delivery/collection.js"
 import { recipientPartition } from "../../../../dist/resident/recipient/identity.js"
+import { createDeliverySession } from "../../../../dist/resident/advice-delivery/handoff/delivery-session.js"
 
 // Exercise the emitted collection and fitting cores through the production
 // Effect interpreter, injecting only native records, observations and faults.
+for (const [stage, awaiting, done] of [
+  ["collect", "RootAwait", "RootDone"],
+  ["prepare", "PAwait", "PDone"],
+  ["finalize", "DAwait", "DDone"]
+]) {
+  const cursor = (id) => ({ stage, step: id === 3 ? { $: done } : { $: awaiting, request: { invocation: 7, id } } })
+  const sessionFor = (advance) =>
+    createDeliverySession({
+      invocation: 7,
+      initial: cursor(0),
+      advance,
+      accepted: () => ({ stage: stage === "prepare" ? "collect" : stage, response: { status: "empty" } }),
+      selection: () => ({ $: "NoDeliverySelection" }),
+      finish: () => Effect.void,
+      *cleanup() {}
+    })
+  it(`${stage} executes ordered effects under one lease and installs only an accepted result`, async () => {
+    const trace = []
+    const session = sessionFor((state) =>
+      Effect.sync(() => {
+        const id = state.step.request.id
+        trace.push(id)
+        return cursor(id + 1)
+      })
+    )
+    const initial = session.machine.initial(session.input)
+    const view = session.machine.view(initial)
+    const provider = session.foreign(view.request, {})
+    await Effect.runPromise(provider.effect)
+    assert.deepEqual(trace, [0, 1, 2])
+    assert.equal(session.machine.view(initial).request, view.request)
+    const reply = provider.map()
+    const accepted = session.machine.resume(initial, reply)
+    assert.equal(session.machine.view(accepted).$, "DeliveryDone")
+    assert.throws(() => session.machine.resume(initial, reply), /Wrong delivery continuation reply/)
+  })
+  it(`${stage} stops subsequent effects when revoked during an advance`, async () => {
+    const trace = []
+    const session = sessionFor((state) =>
+      Effect.sync(() => {
+        trace.push(state.step.request.id)
+        session.revoke()
+        return cursor(state.step.request.id + 1)
+      })
+    )
+    const initial = session.machine.initial(session.input)
+    const provider = session.foreign(session.machine.view(initial).request, {})
+    const exit = await Effect.runPromise(provider.effect)
+    assert.equal(exit._tag, "Failure")
+    assert.deepEqual(trace, [0])
+    assert.throws(() => provider.map(), /Delivery provider failure/)
+    assert.equal(session.machine.view(initial).$, "DeliveryAwait")
+  })
+  for (const invalid of ["stage", "invocation"]) {
+    it(`${stage} refuses an intermediate wrong ${invalid} before subsequent effects`, async () => {
+      const trace = []
+      const session = sessionFor((state) =>
+        Effect.sync(() => {
+          trace.push(state.step.request.id)
+          const next = cursor(1)
+          return invalid === "stage"
+            ? { stage: stage === "collect" ? "prepare" : "collect", step: next.step }
+            : { ...next, step: { ...next.step, request: { invocation: 8, id: 1 } } }
+        })
+      )
+      const initial = session.machine.initial(session.input)
+      const provider = session.foreign(session.machine.view(initial).request, {})
+      const exit = await Effect.runPromise(provider.effect)
+      assert.equal(exit._tag, "Failure")
+      assert.deepEqual(trace, [0])
+      assert.throws(() => provider.map(), /Delivery provider failure/)
+    })
+  }
+}
+
 const fixture = (hooks = {}) => {
   const trace = []
   const advicee = { host: "codex-cli", hostVersion: "0.114.0", sessionId: "session", subagentId: "agent" }

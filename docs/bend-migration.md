@@ -185,8 +185,8 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Delivery `a86bd985`, 2026-10-17 03:46/03:47: analyzer/build
-  **.4458×/1.0675×**,17 frozen pairs; strict PASS/FAIL, within ≤3×;23/46 cached.
+- `3c964a78`,04:19 UTC analyzer/build **.6132×/.9405×**,17 frozen pairs,
+  strict PASS/PASS;23/46 cached. Prior `a86bd985` build1.0675× failed strict parity.
   TS/Bend medians[ranges] s: execution.1266[.0819,.9068]/.0902[.0404,.2760];
   build5.089[3.394,12.551]/4.227[3.208,20.607]. Shared load; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
@@ -242,13 +242,15 @@ Current path / obstacles:
    deadline and fresh passes; TS polling, C runner and status scan deleted. F
    reuses status: fixed now, both matching modes, expiry short-circuit. Masked
    publication/context cancellation preserve custody. Astra reviewed.
-3. Remaining: whole Root/C/P/D trace laws, receipt custody and whole-delivery
-   timing (one equal-output probe ~5.8×; unqualified). Unit not accepted. Latest: build46/46,receipts23,protocol50,fast44/1,
-   server92 PASS; connected consumers95/5 and fast44/8 PASS before cutoff fix.
+3. Remaining: Root/C/P/D laws, custody, qualified timing. Open.
+   Stage drain keeps revoke/stage/invocation fences, atomic groups, Canonical
+   acceptance and receipts; Astra reviewed. Build46/46,protocol62,fast44/2,
+   server92,consumers95/5 PASS; fast formatting failed→fixed.
+   Equal-output probe~3.37×>3 (prior~5.8×); unqualified.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
-   Diagnostics removed. Context cold180s timeout→writer audit→3 compiles→build46/46
-   PASS. Binding types/trace fixed; stale fixtures→rebuild PASS. Prior88/89: Claude
+   Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
+   Stale fixtures→rebuild PASS. Prior88/89: Claude
    IPC deadline failed; isolated same-limit case and9 server PASS.
 4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
    Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
