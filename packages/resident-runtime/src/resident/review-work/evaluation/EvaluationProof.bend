@@ -92,9 +92,16 @@ def signal_exact(+phase: E.Phase) -> {E.signal_scope(phase) == S.signal(phase) :
 def issue_exact(+context: E.Context, +phase: E.Phase, +command: E.Command, +inv: Nat, +id: Nat) -> {
   E.issue(context, phase, command, inv, id) == S.request(context, phase, command, inv, id) : E.Step
 }:
-  Equal.cong(E.SignalScope, E.Step, scope => E.Await{inv, id, context, phase, E.Request{inv, id, scope, command}}, E.signal_scope(phase), S.signal(phase), signal_exact(phase))
+  %signal_exact(phase) : {
+    E.issue(context, phase, command, inv, id)
+    == E.Await{inv, id, context, phase, E.Request{inv, id, _, command}} : E.Step
+  }
+  {==}
 
-def initial_exact(+input: E.Input, +inv: Nat) -> {E.initial(input, inv) == S.initial(input, inv) : E.Step}:
+def initial_exact(
+  +input: E.Input,
+  +inv: Nat
+) -> {E.initial(input, inv) == S.initial(input, inv) : E.Step}:
   match input:
     case E.Input{True{}}: {==}
     case E.Input{False{}}: {==}
@@ -106,25 +113,42 @@ def complete_exact(+context: E.Context) -> {E.finished(context) == S.complete(co
   match context:
     case E.Context{_, _, _, _, _, _}: {==}
 
-def receipt_exact(+context: E.Context, +receipt: E.Receipt) -> {E.receipt_context(context, receipt) == S.with_receipt(context, receipt) : E.Context}:
+def receipt_exact(
+  +context: E.Context,
+  +receipt: E.Receipt
+) -> {E.receipt_context(context, receipt) == S.with_receipt(context, receipt) : E.Context}:
   match context:
     case E.Context{_, _, _, _, _, _}: {==}
 
-def review_exact(+context: E.Context, +review: E.Review) -> {E.review_context(context, review) == S.with_review(context, review) : E.Context}:
+def review_exact(
+  +context: E.Context,
+  +review: E.Review
+) -> {E.review_context(context, review) == S.with_review(context, review) : E.Context}:
   match context:
     case E.Context{_, _, _, _, _, _}: {==}
 
-def finalize_exact(+context: E.Context, +inv: Nat, +next: Nat) -> {E.finalize(context, inv, next) == S.end(context, inv, next) : E.Step}:
+def finalize_exact(
+  +context: E.Context,
+  +inv: Nat,
+  +next: Nat
+) -> {E.finalize(context, inv, next) == S.end(context, inv, next) : E.Step}:
   match context:
     case E.Context{_, _, _, _, _, _}: {==}
 
-def fault_exact(+context: E.Context, +token: Nat, +inv: Nat, +next: Nat) -> {E.fault(context, token, inv, next) == S.error(context, token, inv, next) : E.Step}:
+def fault_exact(
+  +context: E.Context,
+  +token: Nat,
+  +inv: Nat,
+  +next: Nat
+) -> {E.fault(context, token, inv, next) == S.error(context, token, inv, next) : E.Step}:
   match context:
     case E.Context{_, _, _, E.Normal{}, _, _}: {==}
     case E.Context{_, _, _, E.Recovering{}, _, _}: {==}
     case E.Context{_, _, _, E.Finalizing{}, _, _}: {==}
 
-def settled_receipt_exact(+receipt: E.Receipt) -> {E.settled_receipt(receipt) == S.settled_receipt(receipt) : E.Receipt}:
+def settled_receipt_exact(
+  +receipt: E.Receipt
+) -> {E.settled_receipt(receipt) == S.settled_receipt(receipt) : E.Receipt}:
   match receipt:
     case E.Unissued{}: {==}
     case E.Issued{_}: {==}
@@ -135,15 +159,37 @@ def settled_receipt_exact(+receipt: E.Receipt) -> {E.settled_receipt(receipt) ==
 def settled_exact(+context: E.Context) -> {E.did_settle(context) == S.settled(context) : E.Context}:
   match context:
     case E.Context{+input, +receipt, +review, +mode, +faults, +finals}:
-      Equal.cong(E.Receipt, E.Context, value => E.Context{input, value, review, mode, faults, finals}, E.settled_receipt(receipt), S.settled_receipt(receipt), settled_receipt_exact(receipt))
+      %settled_receipt_exact(receipt) : {
+        E.did_settle(context) == E.Context{input, _, review, mode, faults, finals} : E.Context
+      }
+      {==}
 
-def authorization_exact(+context: E.Context, +use: E.AuthorizationUse, +step: A.Step, +inv: Nat, +next: Nat) -> {
-  E.authorized_result(context, use, step, inv, next) == S.authorization(context, use, step, inv, next) : E.Step
+def authorization_exact(
+  +context: E.Context,
+  +use: E.AuthorizationUse,
+  +step: A.Step,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.authorized_result(context, use, step, inv, next)
+  == S.authorization(context, use, step, inv, next)
+  : E.Step
 }:
   match use step:
     case E.ForProvider{} A.Await{_, _, _, A.Request{_, _, _}}: {==}
     case E.ForProvider{} A.AuthorizedRequest{+request}:
-      Equal.cong(E.Context, E.Step, value => E.Await{inv, next, value, E.Provider{}, E.Request{inv, next, E.WorkSignal{}, E.RunProvider{}}}, E.receipt_context(context, E.Issued{request}), S.with_receipt(context, E.Issued{request}), receipt_exact(context, E.Issued{request}))
+      %receipt_exact(context, E.Issued{request}) : {
+        E.authorized_result(context, E.ForProvider{}, A.AuthorizedRequest{request}, inv, next)
+        == E.Await{
+          inv,
+          next,
+          _,
+          E.Provider{},
+          E.Request{inv, next, E.WorkSignal{}, E.RunProvider{}}
+        }
+        : E.Step
+      }
+      {==}
     case E.ForProvider{} A.NotAuthorized{A.Credential{}}: {==}
     case E.ForProvider{} A.NotAuthorized{A.Lost{}}: {==}
     case E.ForProvider{} A.Rejected{}: {==}
@@ -155,8 +201,17 @@ def authorization_exact(+context: E.Context, +use: E.AuthorizationUse, +step: A.
     case E.RefuseStale{} A.Rejected{}: {==}
     case E.RefuseStale{} A.Aborted{token}: fault_exact(context, token, inv, next)
 
-def authorization_reply_exact(+context: E.Context, +use: E.AuthorizationUse, +step: A.Step, +response: A.Response, +inv: Nat, +next: Nat) -> {
-  E.authorization_reply(context, use, step, response, inv, next) == S.authorization_reply(context, use, step, response, inv, next) : E.Step
+def authorization_reply_exact(
+  +context: E.Context,
+  +use: E.AuthorizationUse,
+  +step: A.Step,
+  +response: A.Response,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.authorization_reply(context, use, step, response, inv, next)
+  == S.authorization_reply(context, use, step, response, inv, next)
+  : E.Step
 }:
   match step:
     case A.Await{_, +id, _, _}:
@@ -171,15 +226,26 @@ def authorization_reply_exact(+context: E.Context, +use: E.AuthorizationUse, +st
     case A.Rejected{}: {==}
 
 def retention_exact(+values: List<&2, E.Candidate>, +context: E.Context, +inv: Nat, +next: Nat) -> {
-  E.retained_existing(context, E.first_matching(values), inv, next) == S.retention(values, context, inv, next) : E.Step
+  E.retained_existing(context, E.first_matching(values), inv, next)
+  == S.retention(values, context, inv, next)
+  : E.Step
 }:
   match values:
     case Nil{}: {==}
     case Con{E.Candidate{_, True{}}, _}: {==}
     case Con{E.Candidate{_, False{}}, rest}: retention_exact(rest, context, inv, next)
 
-def failure_exact(+context: E.Context, +receipt: E.Receipt, +result: E.ProviderResult, +aborted: Bool, +inv: Nat, +next: Nat) -> {
-  E.failure_after_status(context, receipt, result, aborted, inv, next) == S.failure(context, receipt, result, aborted, inv, next) : E.Step
+def failure_exact(
+  +context: E.Context,
+  +receipt: E.Receipt,
+  +result: E.ProviderResult,
+  +aborted: Bool,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.failure_after_status(context, receipt, result, aborted, inv, next)
+  == S.failure(context, receipt, result, aborted, inv, next)
+  : E.Step
 }:
   match context receipt result aborted:
     case E.Context{_, _, _, _, _, _} E.Unissued{} E.Evaluated{_} True{}: {==}
@@ -233,8 +299,16 @@ def failure_exact(+context: E.Context, +receipt: E.Receipt, +result: E.ProviderR
     case E.Context{_, _, _, _, _, _} E.Settled{_} E.Missing{} True{}: {==}
     case E.Context{_, _, _, _, _, _} E.Settled{_} E.Missing{} False{}: {==}
 
-def recovery_settlement_exact(+context: E.Context, +receipt: E.Receipt, +aborted: Bool, +inv: Nat, +next: Nat) -> {
-  E.recovery_settle(context, receipt, aborted, inv, next) == S.recovery_settlement(context, receipt, aborted, inv, next) : E.Step
+def recovery_settlement_exact(
+  +context: E.Context,
+  +receipt: E.Receipt,
+  +aborted: Bool,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.recovery_settle(context, receipt, aborted, inv, next)
+  == S.recovery_settlement(context, receipt, aborted, inv, next)
+  : E.Step
 }:
   match context receipt aborted:
     case E.Context{_, _, _, _, _, _} E.Unissued{} True{}: {==}
@@ -248,8 +322,16 @@ def recovery_settlement_exact(+context: E.Context, +receipt: E.Receipt, +aborted
     case E.Context{_, _, _, _, _, _} E.Settled{_} True{}: {==}
     case E.Context{_, _, _, _, _, _} E.Settled{_} False{}: {==}
 
-def evaluated_settlement_exact(+context: E.Context, +receipt: E.Receipt, +current: Bool, +inv: Nat, +next: Nat) -> {
-  E.evaluated_status(context, receipt, current, inv, next) == S.evaluated_settlement(context, receipt, current, inv, next) : E.Step
+def evaluated_settlement_exact(
+  +context: E.Context,
+  +receipt: E.Receipt,
+  +current: Bool,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.evaluated_status(context, receipt, current, inv, next)
+  == S.evaluated_settlement(context, receipt, current, inv, next)
+  : E.Step
 }:
   match context receipt:
     case E.Context{_, _, None{}, _, _, _} E.Unissued{}: {==}
@@ -269,7 +351,9 @@ def evaluated_settlement_exact(+context: E.Context, +receipt: E.Receipt, +curren
     case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Settled{_}: {==}
 
 def recovery_authorization_exact(+context: E.Context, +step: A.Step, +inv: Nat, +next: Nat) -> {
-  E.recovery_deny_step(context, step, inv, next) == S.recovery_authorization(context, step, inv, next) : E.Step
+  E.recovery_deny_step(context, step, inv, next)
+  == S.recovery_authorization(context, step, inv, next)
+  : E.Step
 }:
   match step:
     case A.Await{_, _, _, A.Request{_, _, _}}: {==}
@@ -278,8 +362,16 @@ def recovery_authorization_exact(+context: E.Context, +step: A.Step, +inv: Nat, 
     case A.AuthorizedRequest{_}: {==}
     case A.Rejected{}: {==}
 
-def recovery_authorization_reply_exact(+context: E.Context, +step: A.Step, +response: A.Response, +inv: Nat, +next: Nat) -> {
-  E.recovery_deny_reply(context, step, response, inv, next) == S.recovery_authorization_reply(context, step, response, inv, next) : E.Step
+def recovery_authorization_reply_exact(
+  +context: E.Context,
+  +step: A.Step,
+  +response: A.Response,
+  +inv: Nat,
+  +next: Nat
+) -> {
+  E.recovery_deny_reply(context, step, response, inv, next)
+  == S.recovery_authorization_reply(context, step, response, inv, next)
+  : E.Step
 }:
   match step:
     case A.Await{_, +id, _, _}:

@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: candidate `2d7067fa`,10:57 UTC: execution **.7145×**;
-build **.9032×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: candidate `eab8b117`,21:07 UTC: execution **.7939×**;
+build **.7986×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0652[.0489,.0733]/.0391[.0350,.0660];
-build2.987[2.857,3.609]/2.743[2.533,2.987]. Shared load; no causal claim.
+execution0.1235[0.0958,0.2692]/0.1044[0.0783,0.2593];
+build3.9955[3.1448,9.2333]/3.4094[2.8222,5.3852]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -269,7 +269,7 @@ Three whole laws (Astra path), owner approved2026-10-17; proofs pending:
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle.
 3. `EVALUATION_ADVICE_LAWS`: exact transfer and cancellation.
 Independent tables, finite checks and eight mutants pass. New law files each
-remain open. Auth/Dispatch proved; Evaluation lemmas pass; whole proof/format open.
+remain open. Auth/Dispatch proved; Evaluation lemmas/kernel/format pass; whole proof open.
 Whole evaluation is not accepted.
 
 
