@@ -236,17 +236,18 @@ Astra agreed Canonical receipts and the existing registry/action sink; native
 owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 
 Current path / obstacles:
-1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
-   registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
-2. IPC/local use Canonical Collect→Prepare→Finalize receipts. Root owns polling,
-   deadline and fresh passes; TS polling, C runner and status scan deleted. F
-   reuses status: fixed now, both matching modes, expiry short-circuit. Masked
-   publication/context cancellation preserve custody. Astra reviewed.
-3. Remaining: Root/C/P/D laws, custody, qualified timing. Open.
-   Stage drain keeps revoke/stage/invocation fences, atomic groups, Canonical
-   acceptance and receipts; Astra reviewed. Build46/46,protocol62,fast44/2,
+1. Production Root G→C→R and C/P/D share driver/registry fences; P retries
+   releases. Root ABI2/8 failed→codec8/8 PASS.
+2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
+   TS polling/C runner/status scan deleted. F preserves fixed now, matching
+   modes and expiry. Masked publication/cancellation preserve custody.
+3. Open: Root/F/R laws, custody, qualified timing. P/K draft9 await approval.
+   Checker PASS256 traces/1124 prefixes/2248 refusals/1024 callbacks.
+   Proof gate open; reader24/41 PASS.
+   Stage drain keeps revoke/stage/invocation fences, atomic groups and receipts;
+   Astra reviewed. Build46/46,protocol62,fast44/2,
    server92,consumers95/5 PASS; fast formatting failed→fixed.
-   Equal-output probe~3.37×>3 (prior~5.8×); unqualified.
+   Equal-output probes~5.8×→3.37×→4.59×; unqualified, above≤3.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
