@@ -241,13 +241,12 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open: Root/F/R laws, custody, qualified timing. P/K draft9 await approval.
-   Checker PASS256 traces/1124 prefixes/2248 refusals/1024 callbacks.
-   Proof gate open; reader24/41 PASS.
-   Stage drain keeps revoke/stage/invocation fences, atomic groups and receipts;
-   Astra reviewed. Build46/46,protocol62,fast44/2,
-   server92,consumers95/5 PASS; fast formatting failed→fixed.
-   Equal-output probes~5.8×→3.37×→4.59×; unqualified, above≤3.
+3. Open: Root/C/F/R laws, custody, timing. P/K draft9 await approval.
+   P/K256,F/R/D384 traces;140514 comparisons;2 typed mutants rejected.
+   Proof gate open. Checker metadata/format/diagnostic/lint failed→fixed.
+   Build46/46,protocol7files,fast44/3; prior server92/consumers95 PASS.
+   Drain keeps revoke/stage/invocation fences, atomic groups and receipts.
+   Equal-output probes5.8×→3.37×→4.59×; ABI cache3.97× discarded; unqualified.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
