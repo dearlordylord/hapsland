@@ -264,12 +264,12 @@ work is inside timers; cancellation includes physical drain, other Scope cleanup
 and runtime construction are outside. Separate profiling points to CPU in
 Canonical transactions/transport/driver; shared load permits no causal claim.
 
-Three whole laws (Astra path,2026-10-17), owner approval/proofs pending:
+Three whole laws (Astra path), owner approved2026-10-17; proofs pending:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps.
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle.
 3. `EVALUATION_ADVICE_LAWS`: exact transfer and cancellation.
 Independent tables, finite checks and eight mutants pass. New law files each
-report one open TODO; no new proof or current source-gate pass is claimed.
+remain open. Dispatch public entries/resume proved; whole proofs/source gate open.
 Whole evaluation is not accepted.
 
 

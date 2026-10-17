@@ -6,7 +6,7 @@ import ./AuthorizationSpecification.bend as AS
 import ./Dispatch.bend as D
 import ./DispatchSpecification.bend as DS
 
-# PROPOSED; not owner-approved, not proved. One whole public protocol contract.
+# Owner approved 2026-10-17 ("нормально продолжай"); whole law not yet proved. One whole public protocol contract.
 # The withdrawn seven helper laws are not revived. Every typed input, cursor,
 # reply, context, command, signal, continuation and terminal is covered by these
 # public equations; the independent specifications call no production decision
