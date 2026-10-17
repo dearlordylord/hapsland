@@ -37,7 +37,8 @@ or changing its executor does not reset this limit.
 
 Default migration Bend proof/check/emission deadline: ten seconds. Owner exception
 2026-10-16: complete attachment transaction proof may take 20 seconds; measured
-checker PASS11.35s; latest20s timeout under load23/12. Other limits unchanged.
+checker PASS11.35s; latest focused PASS10.72s. Prior20s timeout remains a failure.
+Other limits unchanged.
 Historical ten-second timeouts remain failures under their original deadline.
 
 ## Preserve the candidate on the remote branch
@@ -169,7 +170,7 @@ projection/freeze and lifecycle boundaries remain.
 | Obstacle | Required change or evidence |
 | --- | --- |
 | Analyzer/preflight | Bend owns Trees/Preflight/Outcomes through Canonical. Superseded TS traversal/preflight and native oracle chains are deleted; physical consumers, laws and mutation checks pass. |
-| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
+| Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS10.72s wall, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:56 UTC (`34b2e70b`) qualifies **1.3378×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
 | Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers are deleted. Accepted Preparation checks: public181/7 files, protocol19, source248/248 (473 Bend files/108 roots;14 exact mutant refusals), build46/46, fast41, receipts23 and Go75. |
@@ -185,25 +186,16 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `12fd052c`,04:51/52 UTC analyzer/build **.6719×/.9050×**,17 frozen pairs,
-  strict PASS/PASS;23/46 cached. Prior `a86bd985` build1.0675× failed strict parity.
-  TS/Bend medians[ranges] s: execution.0833[.0539,.1372]/.0468[.0388,.1567];
-  build3.353[3.039,4.293]/2.990[2.704,3.771]. Shared load;~3m late; no causal claim.
-  Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
-  First build external220s timeout:28 samples at owned-tree stop remain unqualified;
-  no live custody remained; both warm23/46 before the complete600s series.
-  Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Prior cadence41.9/42.0min; cold timeout/recovery and serial gates delayed both. Analyzer/build only.
-  Baseline double serialization refused; corrected env passed prepare/warm23/46.
-  First workspace preparation timed out60s before measurement; registered writers stopped,
-  custody reconciled,180s prepare and23/46 warm verification passed before retry.
-  First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
-  Both lanes use ordinary scheduler/parallelism; CPU11 timings not comparable.
-  First 17:31 build refused a leaked candidate producer in baseline; corrected environment passed. The 04:54 CPU11 baseline admission-lock
-  failure and unchanged retries remain unqualified.
-  Prior 21:01 execution failed 1.1571; grouped preflight whole at 23:20 UTC
-  failed parity at 1.4448 (equal outputs, 17 pairs, seven fixtures/five languages).
-  Later passes do not erase either failure.
+- `ae590315`,2026-10-17 05:22 UTC analyzer/build **.5916×/.9243×**,
+  17 frozen pairs, strict PASS/PASS; every build23/46 cached. HEAD, sources,
+  artifacts, workspace resolutions and environment files unchanged.
+  TS/Bend medians[ranges] s: execution.1273[.0733,.3164]/.0690[.0400,.2189];
+  build4.294[3.519,6.994]/4.059[3.145,9.514]. Shared load; no causal claim.
+  Analyzer/build only; whole delivery performance is a separate obstacle.
+  Prior strict failures (execution1.1571/1.4448; build1.0153/1.0561/1.0675)
+  remain historical failures. Timeout, unequal-cache, leaked-producer and
+  environment-mismatch trials remain unqualified; later passes do not erase them.
+  Both build lanes use ordinary scheduling; CPU11 build trials are not comparable.
 - Attachment factorization and renderer/compiler/rope performance trials are
   closed; renaming does not reset them. Full attachment now qualifies under its
   owner-approved 20s deadline (11.35s); other roots retain 10s.
@@ -241,11 +233,11 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:15 draft laws;6 approved proofs pending; delivery timing.
+3. Open:15 draft laws;5 approved proofs pending; delivery timing.
    At whole acceptance move semantic properties to domain laws; delete
    temporary exact equations/specs/proofs.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
-   Build46/46,owner60941,fast44/3; prior ce04c4a1 physical187 PASS.
+   Build46/46,owner60941,fast44/3; current ae590315 physical187 PASS.
    Custody reads bypass Canonical conversion; native24/41 PASS; probe3.29×
    equal outputs, unqualified. ABI caches discarded.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
