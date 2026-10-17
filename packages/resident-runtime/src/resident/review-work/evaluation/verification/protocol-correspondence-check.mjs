@@ -150,6 +150,7 @@ try {
   console.log(
     JSON.stringify({
       passed: true,
+      cases: Object.values(counts).reduce((sum, value) => sum + value.initials + value.resumes, 0),
       counts,
       productionHelperDelegationRejected: true,
       scope:

@@ -102,6 +102,7 @@ const suites = {
     "packages/resident-runtime/src/resident/work-ownership/workspace/verification/workspace-sizing-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/post-enrollment-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
+    "packages/agent-flow-bend/preparation-lifecycle/evaluation-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/evaluation-advice-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/evaluation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/protocol-correspondence-check.mjs",
@@ -223,7 +224,22 @@ for (const file of selected) {
     maxBuffer: 64 * 1024 * 1024,
     timeout: Math.min(deadline - Date.now(), isProof ? proofTimeout : syntax ? 5000 : 120000)
   })
-  if (runtimeOutput) rmSync(runtimeOutput, { recursive: true, force: true })
+  if (runtimeOutput) {
+    try {
+      if (result.status === 0 && !result.error && !result.signal) {
+        const generated = join(runtimeOutput, "runtime.js")
+        if (!readFileSync(generated, "utf8").trim()) throw new Error(`Runtime compiler produced no artifact: ${file}`)
+        const parsed = spawnSync(process.execPath, ["--check", generated], { encoding: "utf8", timeout: 5000 })
+        if (parsed.error || parsed.signal || parsed.status !== 0)
+          throw new Error(`Compiled runtime is not valid JavaScript: ${file}`, {
+            cause: parsed.error ?? new Error(parsed.stderr)
+          })
+        console.log(`Compiled runtime artifact checked (not a proof): ${file}`)
+      }
+    } finally {
+      rmSync(runtimeOutput, { recursive: true, force: true })
+    }
+  }
   process.stdout.write(result.stdout ?? "")
   process.stderr.write(result.stderr ?? "")
   if (result.error) throw new Error(`Capability check failed: ${file}`, { cause: result.error })
@@ -248,7 +264,7 @@ for (const file of selected) {
     process.exitCode = result.status ?? 1
     break
   }
-  if (isProof) {
+  if (isProof && !runtimeOutput) {
     if (!/^ALL PROOFS CHECK$/mu.test(result.stdout))
       throw new Error(`Proof did not report a complete positive verdict: ${file}`)
   } else if (suite && suite !== "preparation-sources") {

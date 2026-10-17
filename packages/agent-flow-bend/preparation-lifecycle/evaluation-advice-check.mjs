@@ -206,6 +206,7 @@ try {
   console.log(
     JSON.stringify({
       passed: true,
+      cases: comparisons + cancellationComparisons,
       comparisons,
       cancellationComparisons,
       parentLinkedBirthRejected: true,
