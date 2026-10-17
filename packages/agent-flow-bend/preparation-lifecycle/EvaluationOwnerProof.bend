@@ -9384,5 +9384,983 @@ def complete_evaluation_exact(+state: O.State, +inv: Nat, +generation: Nat, +res
   match state:
     case O.State{_, _, _, rest}: complete_found_exact(state, O.find(inv, rest), generation, result)
 
+def cleanup_claimed_exact(+origin: Nat, +rest: List<&2, O.Child>) -> {
+  O.evaluation_cleanup_claimed(origin, rest) == S.cleanup_claimed(origin, rest) : Bool
+}:
+  match rest:
+    case Nil{}: {==}
+    case O.Child{O.EvaluationCleanupScope{_, other, _, _}, _, _, _, phase, _, _, _} <> tail:
+      %active_exact(phase) : {
+        O.evaluation_cleanup_claimed(origin, rest)
+        == Bool.or(Bool.and(Nat.is_eq(origin, other), _), S.cleanup_claimed(origin, tail)) : Bool
+      }
+      %cleanup_claimed_exact(origin, tail) : {
+        O.evaluation_cleanup_claimed(origin, rest)
+        == Bool.or(Bool.and(Nat.is_eq(origin, other), O.active(phase)), _) : Bool
+      }
+      {==}
+
+    case O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.EvaluationScope{_, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+def cleanup_issued_exact(+request: Nat, +found: Maybe<&2, D.Request>) -> {
+  O.evaluation_cleanup_pending(request, found)
+  == S.cleanup_issued(request, found)
+  : O.EvaluationPermission
+}:
+  match found:
+    case None{}: {==}
+    case Some{_}: {==}
+
+def cleanup_permission_exact(
+  +canon: C.State,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission
+) -> {
+  O.evaluation_cleanup_permission(canon, context, permission)
+  == S.cleanup_permission(canon, context, permission)
+  : O.EvaluationPermission
+}:
+  match permission:
+    case O.EvaluationUnissued{}: {==}
+    case O.EvaluationSettled{}: {==}
+    case O.EvaluationIssued{request}:
+      %request_exact(canon, context, request) : {
+        O.evaluation_cleanup_permission(canon, context, permission)
+        == S.cleanup_issued(request, _)
+        : O.EvaluationPermission
+      }
+      cleanup_issued_exact(request, O.evaluation_request(canon, context, request))
+    case O.EvaluationAtProvider{request, _}:
+      %request_exact(canon, context, request) : {
+        O.evaluation_cleanup_permission(canon, context, permission)
+        == S.cleanup_issued(request, _)
+        : O.EvaluationPermission
+      }
+      cleanup_issued_exact(request, O.evaluation_request(canon, context, request))
+
+def cleanup_birth_exact(
+  +state: O.State,
+  +origin: Nat,
+  +input: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission
+) -> {
+  O.evaluation_cleanup_found(
+    state,
+    origin,
+    input,
+    Some{
+      O.Child{
+        O.EvaluationScope{0n, context, permission},
+        0n,
+        0n,
+        0n,
+        O.ChildCancelled{},
+        None{},
+        None{},
+        None{}
+      }
+    }
+  )
+  == S.cleanup_found(
+    state,
+    origin,
+    input,
+    Some{
+      O.Child{
+        O.EvaluationScope{0n, context, permission},
+        0n,
+        0n,
+        0n,
+        O.ChildCancelled{},
+        None{},
+        None{},
+        None{}
+      }
+    }
+  )
+  : O.Step
+}:
+  match state:
+    case O.State{canon, next, _, rest}:
+      %free_exact(next, O.find(next, rest)) : {
+        O.evaluation_cleanup_found(
+          state,
+          origin,
+          input,
+          Some{
+            O.Child{
+              O.EvaluationScope{0n, context, permission},
+              0n,
+              0n,
+              0n,
+              O.ChildCancelled{},
+              None{},
+              None{},
+              None{}
+            }
+          }
+        )
+        == S.birth(
+          Bool.and(_, Bool.not(S.cleanup_claimed(origin, rest))),
+          state,
+          O.EvaluationCleanupScope{
+            next,
+            origin,
+            context,
+            S.cleanup_permission(canon, context, permission)
+          },
+          None{},
+          input,
+          O.NotPreparing{}
+        )
+        : O.Step
+      }
+      %cleanup_claimed_exact(origin, rest) : {
+        O.evaluation_cleanup_found(
+          state,
+          origin,
+          input,
+          Some{
+            O.Child{
+              O.EvaluationScope{0n, context, permission},
+              0n,
+              0n,
+              0n,
+              O.ChildCancelled{},
+              None{},
+              None{},
+              None{}
+            }
+          }
+        )
+        == S.birth(
+          Bool.and(O.settings_next_free(next, O.find(next, rest)), Bool.not(_)),
+          state,
+          O.EvaluationCleanupScope{
+            next,
+            origin,
+            context,
+            S.cleanup_permission(canon, context, permission)
+          },
+          None{},
+          input,
+          O.NotPreparing{}
+        )
+        : O.Step
+      }
+      %cleanup_permission_exact(canon, context, permission) : {
+        O.evaluation_cleanup_found(
+          state,
+          origin,
+          input,
+          Some{
+            O.Child{
+              O.EvaluationScope{0n, context, permission},
+              0n,
+              0n,
+              0n,
+              O.ChildCancelled{},
+              None{},
+              None{},
+              None{}
+            }
+          }
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.not(O.evaluation_cleanup_claimed(origin, rest))
+          ),
+          state,
+          O.EvaluationCleanupScope{next, origin, context, _},
+          None{},
+          input,
+          O.NotPreparing{}
+        )
+        : O.Step
+      }
+      birth_exact(
+        Bool.and(
+          O.settings_next_free(next, O.find(next, rest)),
+          Bool.not(O.evaluation_cleanup_claimed(origin, rest))
+        ),
+        state,
+        O.EvaluationCleanupScope{
+          next,
+          origin,
+          context,
+          O.evaluation_cleanup_permission(canon, context, permission)
+        },
+        input
+      )
+
+def cleanup_found_exact(+state: O.State, +origin: Nat, +input: Nat, +found: Maybe<&2, O.Child>) -> {
+  O.evaluation_cleanup_found(state, origin, input, found)
+  == S.cleanup_found(state, origin, input, found)
+  : O.Step
+}:
+  match found:
+    case None{}: {==}
+    case Some{
+      O.Child{O.EvaluationScope{_, context, permission}, _, _, _, O.ChildCancelled{}, _, _, _}
+    }:
+      cleanup_birth_exact(state, origin, input, context, permission)
+
+    case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, O.ChildInstalling{}, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, O.ChildReady{}, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, O.ChildAwaiting{}, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, O.ChildResuming{}, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, O.ChildAccepted{}, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationCleanupScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+def launch_evaluation_cleanup_exact(+state: O.State, +origin: Nat, +input: Nat) -> {
+  O.launch_evaluation_cleanup(state, origin, input)
+  == S.launch_evaluation_cleanup(state, origin, input)
+  : O.Step
+}:
+  match state:
+    case O.State{_, _, _, rest}: cleanup_found_exact(state, origin, input, O.find(origin, rest))
+
+def nested_false_exact(
+  +valid: Bool,
+  +state: O.State,
+  +parent: O.Parent,
+  +scope: O.Scope,
+  +input: Nat
+) -> {
+  O.launched_nested(Bool.and(valid, False{}), state, parent, scope, input)
+  == O.Rejected{state, O.WrongPhase{}}
+  : O.Step
+}:
+  match valid:
+    case True{}: {==}
+    case False{}: {==}
+
+def nested_role_refused_exact(+state: O.State, +parent: O.Parent, +child: O.Child, +input: Nat,
+  role: {O.resolver_parent_role(child) == False{} : Bool}) -> {
+  O.nested_found(state, parent, Some{child}, input) == S.nested_refused(state, Some{child}) : O.Step
+}:
+  %Equal.sym(Bool, O.resolver_parent_role(child), False{}, role) : {
+    O.launched_nested(
+      Bool.and(
+        Bool.not(O.parent_used(parent, O.state_children(state))),
+        Bool.and(
+          Bool.and(_, O.parent_matches(parent, Some{child})),
+          Bool.and(
+            O.live_preparing(
+              O.state_canonical(state),
+              O.resolver_scope(O.child_scope_value(child))
+            ),
+            O.child_live(O.state_canonical(state), O.state_children(state), child)
+          )
+        )
+      ),
+      state,
+      parent,
+      O.resolver_scope(O.child_scope_value(child)),
+      input
+    )
+    == O.Rejected{state, O.WrongPhase{}}
+    : O.Step
+  }
+  nested_false_exact(
+    Bool.not(O.parent_used(parent, O.state_children(state))),
+    state,
+    parent,
+    O.resolver_scope(O.child_scope_value(child)),
+    input
+  )
+
+def nested_lookup_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +request: Nat,
+  +input: Nat,
+  +child: O.Child,
+  found: {O.find(inv, S.children(state)) == Some{child} : Maybe<&2, O.Child>},
+  found_right: {O.find(inv, S.children(state)) == Some{child} : Maybe<&2, O.Child>},
+  selected: {
+    O.nested_found(state, O.Parent{inv, generation, request}, Some{child}, input)
+    == S.nested_refused(state, Some{child})
+    : O.Step
+  }
+) -> {
+    O.launch_nested(state, O.Parent{inv, generation, request}, input)
+    == S.launch_nested(state, O.Parent{inv, generation, request}, input)
+    : O.Step
+  }:
+  match state:
+    case O.State{_, _, _, rest}:
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, rest), Some{child}, found_right) : {
+        O.nested_found(state, O.Parent{inv, generation, request}, O.find(inv, rest), input)
+        == S.nested_refused(state, _)
+        : O.Step
+      }
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, rest), Some{child}, found) : {
+        O.nested_found(state, O.Parent{inv, generation, request}, _, input)
+        == S.nested_refused(state, Some{child})
+        : O.Step
+      }
+      selected
+
+def root_generic_refusals_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +request: Nat,
+  +input: Nat
+) -> ({
+    O.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationScope{operation, context, permission},
+      input
+    )
+    == S.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationScope{operation, context, permission},
+      input
+    )
+    : O.Step
+  }
+  & {
+    O.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    == S.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    : O.Step
+  }):
+  (
+    {==},
+    nested_lookup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      generation,
+      request,
+      input,
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      find_head_exact(
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      find_head_exact(
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      nested_role_refused_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationScope{operation, context, permission},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Parent{inv, generation, request},
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        input,
+        {==}
+      )
+    )
+  )
+
+def cleanup_generic_refusals_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +request: Nat,
+  +input: Nat
+) -> ({
+    O.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationCleanupScope{operation, origin, context, permission},
+      input
+    )
+    == S.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationCleanupScope{operation, origin, context, permission},
+      input
+    )
+    : O.Step
+  }
+  & {
+    O.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    == S.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    : O.Step
+  }):
+  (
+    {==},
+    nested_lookup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      generation,
+      request,
+      input,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      find_head_exact(
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      find_head_exact(
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      nested_role_refused_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationCleanupScope{operation, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Parent{inv, generation, request},
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        input,
+        {==}
+      )
+    )
+  )
+
+def dispatch_generic_refusals_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +request: Nat,
+  +input: Nat
+) -> ({
+    O.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationDispatchScope{operation, context, id},
+      input
+    )
+    == S.launch(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.EvaluationDispatchScope{operation, context, id},
+      input
+    )
+    : O.Step
+  }
+  & {
+    O.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    == S.launch_nested(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Parent{inv, generation, request},
+      input
+    )
+    : O.Step
+  }):
+  (
+    {==},
+    nested_lookup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      generation,
+      request,
+      input,
+      O.Child{
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      find_head_exact(
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      find_head_exact(
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        rest
+      ),
+      nested_role_refused_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationDispatchScope{operation, context, id},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Parent{inv, generation, request},
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        input,
+        {==}
+      )
+    )
+  )
+
 def main() -> Unit:
   Unit{}
