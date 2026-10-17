@@ -7403,5 +7403,1152 @@ def evaluation_ready_exact(
       facts
     )
 
+def settle_event_exact(
+  +context: O.EvaluationContext,
+  +request: Nat,
+  +outcome: C.RequestOutcome,
+  +current: Bool
+) -> {
+  O.evaluation_settle_event(context, request, outcome, current)
+  == S.settle_event(context, request, outcome, current)
+  : C.CanonicalEvent
+}:
+  match context:
+    case O.EvaluationContext{_, _, _, _}: {==}
+
+def settle_transition_exact(+state: O.State, +child: O.Child, +context: O.EvaluationContext,
+  +request: Nat, +outcome: C.RequestOutcome, +current: Bool) -> {
+    O.evaluation_commit(
+      state,
+      child,
+      O.EvaluationSettled{},
+      C.step(
+        O.state_canonical(state),
+        O.evaluation_settle_event(context, request, outcome, current)
+      )
+    )
+    == S.commit(
+      state,
+      child,
+      O.EvaluationSettled{},
+      C.step(S.canonical(state), S.settle_event(context, request, outcome, current))
+    )
+    : O.Step
+  }:
+  match state:
+    case O.State{canon, _, _, _}:
+      %settle_event_exact(context, request, outcome, current) : {
+        O.evaluation_commit(
+          state,
+          child,
+          O.EvaluationSettled{},
+          C.step(canon, O.evaluation_settle_event(context, request, outcome, current))
+        )
+        == S.commit(state, child, O.EvaluationSettled{}, C.step(canon, _))
+        : O.Step
+      }
+      commit_exact(
+        state,
+        child,
+        O.EvaluationSettled{},
+        C.step(canon, O.evaluation_settle_event(context, request, outcome, current))
+      )
+
+def cleanup_settle_exact(
+  +state: O.State,
+  +child: O.Child,
+  +context: O.EvaluationContext,
+  +request: Nat,
+  +outcome: C.RequestOutcome
+) -> {
+  O.evaluation_cleanup_settle(state, child, context, request, outcome)
+  == S.cleanup_settle(state, child, context, request, outcome)
+  : O.Step
+}:
+  match outcome:
+    case C.RequestFinding{}: {==}
+    case C.RequestClear{}: {==}
+
+    case C.NeverSent{}: settle_transition_exact(state, child, context, request, outcome, False{})
+
+    case C.RequestBackendFailure{}: settle_transition_exact(
+      state,
+      child,
+      context,
+      request,
+      outcome,
+      False{}
+    )
+
+    case C.RequestTimeout{}: settle_transition_exact(
+      state,
+      child,
+      context,
+      request,
+      outcome,
+      False{}
+    )
+
+    case C.RequestInterrupted{}: settle_transition_exact(
+      state,
+      child,
+      context,
+      request,
+      outcome,
+      False{}
+    )
+
+def settle_child_exact(
+  +valid: Bool,
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +outcome: C.RequestOutcome,
+  +current: Bool
+) -> {
+  O.evaluation_settle_found(valid, state, found, outcome, current)
+  == S.settle_child(valid, state, found, outcome, current)
+  : O.Step
+}:
+  match valid found:
+    case False{} None{}: {==}
+    case False{} Some{O.Child{_, _, _, _, _, _, _, _}}: {==}
+    case True{} None{}: {==}
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: {==}
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationIssued{request}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: cleanup_settle_exact(
+      state,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationIssued{request}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      context,
+      request,
+      outcome
+    )
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{
+          operation,
+          origin,
+          context,
+          O.EvaluationAtProvider{request, authority}
+        },
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: {==}
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationSettled{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: {==}
+
+    case True{} Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: {==}
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationIssued{request}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_transition_exact(
+      state,
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationIssued{request}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      context,
+      request,
+      outcome,
+      current
+    )
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationAtProvider{request, authority}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_transition_exact(
+      state,
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationAtProvider{request, authority}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      context,
+      request,
+      outcome,
+      current
+    )
+
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationSettled{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: {==}
+
+    case True{} Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case True{} Some{O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+def settle_same_authority_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +child: O.Child,
+  +outcome: C.RequestOutcome,
+  +current: Bool,
+  live: {O.child_live(S.canonical(state), S.children(state), child) == S.live(state, child) : Bool}
+) -> {
+    O.evaluation_settle_found(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        Some{child}
+      ),
+      state,
+      Some{child},
+      outcome,
+      current
+    )
+    == S.settle_child(
+      S.permitted(state, inv, generation, lease, request, Some{child}),
+      state,
+      Some{child},
+      outcome,
+      current
+    )
+    : O.Step
+  }:
+  %provider_live_found_exact(state, inv, generation, lease, request, child, live) : {
+    O.evaluation_settle_found(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        Some{child}
+      ),
+      state,
+      Some{child},
+      outcome,
+      current
+    )
+    == S.settle_child(_, state, Some{child}, outcome, current)
+    : O.Step
+  }
+  settle_child_exact(
+    O.provider_permit_found(
+      S.canonical(state),
+      S.children(state),
+      inv,
+      generation,
+      lease,
+      request,
+      Some{child}
+    ),
+    state,
+    Some{child},
+    outcome,
+    current
+  )
+
+def settle_non_evaluation_exact(
+  +left: Bool,
+  +right: Bool,
+  +scope: O.Scope,
+  +state: O.State,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +outcome: C.RequestOutcome,
+  +current: Bool,
+  unrelated: {ready_foreign_scope(scope) == True{} : Bool}
+) -> {
+    O.evaluation_settle_found(
+      left,
+      state,
+      Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+      outcome,
+      current
+    )
+    == S.settle_child(
+      right,
+      state,
+      Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+      outcome,
+      current
+    )
+    : O.Step
+  }:
+  match left right scope:
+
+    case False{} False{} O.EvaluationCleanupScope{_, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} False{} O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case False{} False{} O.EvaluationScope{_, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case False{} False{} O.SettingsScope{_}: {==}
+
+    case False{} False{} O.FreshnessScope{_}: {==}
+
+    case False{} False{} O.Scope{_, _, _, _}: {==}
+
+    case False{} False{} O.SourceScope{_, _, _, _, _}: {==}
+
+    case False{} False{} O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case False{} False{} O.PreparationScope{_, _, _, _}: {==}
+
+    case False{} False{} O.RetainingScope{_, _, _, _, _}: {==}
+
+    case False{} False{} O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.EvaluationCleanupScope{_, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} True{} O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case False{} True{} O.EvaluationScope{_, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case False{} True{} O.SettingsScope{_}: {==}
+
+    case False{} True{} O.FreshnessScope{_}: {==}
+
+    case False{} True{} O.Scope{_, _, _, _}: {==}
+
+    case False{} True{} O.SourceScope{_, _, _, _, _}: {==}
+
+    case False{} True{} O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case False{} True{} O.PreparationScope{_, _, _, _}: {==}
+
+    case False{} True{} O.RetainingScope{_, _, _, _, _}: {==}
+
+    case False{} True{} O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.EvaluationCleanupScope{_, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} False{} O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case True{} False{} O.EvaluationScope{_, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case True{} False{} O.SettingsScope{_}: {==}
+
+    case True{} False{} O.FreshnessScope{_}: {==}
+
+    case True{} False{} O.Scope{_, _, _, _}: {==}
+
+    case True{} False{} O.SourceScope{_, _, _, _, _}: {==}
+
+    case True{} False{} O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case True{} False{} O.PreparationScope{_, _, _, _}: {==}
+
+    case True{} False{} O.RetainingScope{_, _, _, _, _}: {==}
+
+    case True{} False{} O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.EvaluationCleanupScope{_, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} True{} O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case True{} True{} O.EvaluationScope{_, _, _}: Empty.absurd(
+      {
+        O.evaluation_settle_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        == S.settle_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          outcome,
+          current
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case True{} True{} O.SettingsScope{_}: {==}
+
+    case True{} True{} O.FreshnessScope{_}: {==}
+
+    case True{} True{} O.Scope{_, _, _, _}: {==}
+
+    case True{} True{} O.SourceScope{_, _, _, _, _}: {==}
+
+    case True{} True{} O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case True{} True{} O.PreparationScope{_, _, _, _}: {==}
+
+    case True{} True{} O.RetainingScope{_, _, _, _, _}: {==}
+
+    case True{} True{} O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+def settle_found_exact(
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +outcome: C.RequestOutcome,
+  +current: Bool
+) -> {
+  O.evaluation_settle_found(
+    O.provider_permit_found(
+      S.canonical(state),
+      S.children(state),
+      inv,
+      generation,
+      lease,
+      request,
+      found
+    ),
+    state,
+    found,
+    outcome,
+    current
+  )
+  == S.settle_child(
+    S.permitted(state, inv, generation, lease, request, found),
+    state,
+    found,
+    outcome,
+    current
+  )
+  : O.Step
+}:
+  match found:
+    case None{}: settle_child_exact(False{}, state, None{}, outcome, current)
+
+    case Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_same_authority_exact(
+      state,
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      outcome,
+      current,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        cleanup_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          origin,
+          0n,
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationDispatchScope{v0, v1, v2},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.EvaluationDispatchScope{v0, v1, v2},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_same_authority_exact(
+      state,
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      outcome,
+      current,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        root_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          0n,
+          0n,
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{
+        O.DeliveryScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.DeliveryScope{v0, v1, v2, v3, v4},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{O.Child{O.SettingsScope{v0}, actual, epoch, handle, phase, pending, held, parent}}: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.SettingsScope{v0},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{O.Child{O.FreshnessScope{v0}, actual, epoch, handle, phase, pending, held, parent}}: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.FreshnessScope{v0},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{O.Scope{v0, v1, v2, v3}, actual, epoch, handle, phase, pending, held, parent}
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.Scope{v0, v1, v2, v3},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.SourceScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.SourceScope{v0, v1, v2, v3, v4},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.PreparationScope{v0, v1, v2, v3},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.PreparationScope{v0, v1, v2, v3},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.RetainingScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.RetainingScope{v0, v1, v2, v3, v4},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+def evaluation_settle_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +outcome: C.RequestOutcome,
+  +current: Bool
+) -> {
+  O.evaluation_settle(state, inv, generation, lease, request, outcome, current)
+  == S.evaluation_settle(state, inv, generation, lease, request, outcome, current) : O.Step
+}:
+  match state:
+    case O.State{_, _, _, rest}: settle_found_exact(
+      state,
+      O.find(inv, rest),
+      inv,
+      generation,
+      lease,
+      request,
+      outcome,
+      current
+    )
+
 def main() -> Unit:
   Unit{}
