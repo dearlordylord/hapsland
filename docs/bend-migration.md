@@ -185,15 +185,15 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Delivery (`66a2529e`), 2026-10-17 02:38/02:39 UTC: analyzer/build
-  **.7085×/.8228×**,17 frozen pairs, strict parity PASS; build23/46 cached.
-  TS/Bend medians[ranges] s: execution .1434[.0719,.3074]/.0760[.0474,.4056];
-  build13.222[3.309,39.306]/10.503[2.905,28.838]. Shared load; no causal claim.
+- Delivery (`10d60132`), 2026-10-17 03:20/03:21 UTC: analyzer/build
+  **.6284×/.8720×**,17 frozen pairs, strict parity PASS; build23/46 cached.
+  TS/Bend medians[ranges] s: execution .1219[.0688,.5429]/.0883[.0457,.2739];
+  build5.923[4.265,16.968]/5.719[4.081,15.493]. Shared load; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence40.2/38.9min; serial gates delayed both. Analyzer/build only.
+  Cadence41.9/42.0min; cold timeout/recovery and serial gates delayed both. Analyzer/build only.
   Baseline double serialization refused; corrected env passed prepare/warm23/46.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
