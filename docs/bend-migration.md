@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: execution `ade3e62b`08:45 **.7353×**; build `6e886c7f`08:50
-**.9009×**. Strict PASS/PASS,17 pairs; all five freeze checks pass, build34/34
+2026-10-17: production `9c42a671`,09:15 UTC: execution **.6434×**;
+build **.8846×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0633[.0502,.0705]/.0392[.0346,.0645];
-build2.950[2.818,3.262]/2.690[2.521,2.901]. Shared load; no causal claim.
+execution.0652[.0509,.0922]/.0377[.0350,.0597];
+build2.911[2.705,3.587]/2.679[2.497,3.126]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -234,39 +234,39 @@ Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
 registry and advice tail; add evaluation scope and a nested Dispatch child.
 Native sessions retain jobs, credentials, results and original Effect Causes.
 
-Candidate: whole evaluation Bend cursor composes admission, authorization,
-provider return, settlement, retention and recovery/finalization. Private ABI
-exposes commands/opaque continuations; build/ABI cover cleanup. Source/packaged consumers pass1719 tapes,49131 prefixes
-and3 typed mutants, with cleanup and two-fault recovery.
-No universal proofs or production adoption claimed.
+Production cutover `9c42a671`: the server's evaluation facade invokes the
+whole Bend cursor through the shared Canonical owner/driver/registry. Bend owns
+admission, authorization, provider return, settlement, retention and recovery.
+Private ABI exposes commands/opaque continuations. Replaced TS authorization,
+request, settlement and retention modules are deleted; workflow is a facade.
+Native IO retains credentials, provider values, capabilities and original Causes.
 
-Canonical binds evaluation to Reviewing and atomically publishes readiness/
-settlement with exact native operation/reservation metadata. Native authorization
-binds credential/root IO. Packaged Dispatch uses the same driver/registry; seven
-native cases cover the exact parent await, input refusal, controlled provider,
-interruption during pending analytics, original Cause and exact settlement.
-Cleanup scope permits denial/accounting only; native6/73 commands cover phases
-and retry. Root session/registry5 holds a physical Promise: no cleanup before
-drain, failed cleanup retained, one settlement, original Cause. Authorization/
-observation ports are controlled here. Native24, Preparation52/delivery9,
-build46/46 and fast44/8 pass.
-Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
+Canonical binds Reviewing, readiness and settlement to exact operation/reservation
+metadata. Nested Dispatch preserves input validation and the original total-call
+deadline, credential reread → budget → Canonical start → observation. Cleanup
+permits denial/accounting only and drains physical work before releasing custody.
+Fresh findings transfer once to the existing independent advice tail; cached and
+fresh enrollment/retained observation share ordinary evaluation-owned helpers.
+Successful observation drives publication normally; failed observation preserves
+the committed tail and original Cause.
+
+Current evidence: source1716 tapes/48961 prefixes/3 typed mutants; shared cached
+enrollment793; Post23360; physical Jev/capacity63; matching build46/46 and authored
+lint19 pass. Earlier native cleanup6/73 and root registry5 establish drain/retry/
+original Cause with controlled authorization/observation ports, not full server
+acceptance. No universal evaluation proofs or whole-unit acceptance claimed.
+Native publication fixed the missing lock binding. Expanded consumers exposed
+cancelled Prepare lease cleanup and a missing safe recovery diagnostic; both are
+fixed. The three affected files pass20; Delivery9 and fast23 pass. Final combined
+consumers/transport remain open.
 
 Concrete remaining obstacles:
-1. Bind RunProvider to the qualified native authorization/provider/Dispatch ports.
-   Preserve beforeDispatch after input validation and inside the total-call
-   deadline: credential reread → budget → Canonical start → observation.
-   Production root adoption and work-revocation cleanup remain open.
-2. Bind verified registry recovery to real evaluation IO and committed ownership
-   receipts; preserve drain, retry and Cause across all resource boundaries.
-3. Connect the whole evaluation cursor to server and cached/fresh retention;
-   transfer finding custody once to existing advice tail, preserve joining/cutoff.
-   Delete TS orchestration in workflow/authorization/request/settlement/retention;
-   observation retains only serialization/IO.
-4. Review correspondence/lifecycle/retention laws before proving; reuse outcome/
-   advice-tail proofs. Run matching fast/build, actual request/server/security/
-   reuse/revision/ownership/inspection/transport and shared Preparation consumers.
-   Qualify full admission→provider→settlement→collection against fixed TS for
+1. Complete current physical server/security/controls/reuse/revision/ownership/
+   inspection/transport checks and shared Preparation consumers, plus matching
+   fast/build. Resolve actual failures without weakening product deadlines.
+2. Review correspondence/lifecycle/retention laws before proving; reuse existing
+   outcome/advice-tail proofs. Owner approval precedes new proofs.
+3. Qualify full admission→provider→settlement→collection against fixed TS for
    clear/finding/refusal/cancellation/failure, ≤3×; strict parity separately.
 
 

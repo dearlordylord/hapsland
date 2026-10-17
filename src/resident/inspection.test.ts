@@ -350,7 +350,9 @@ describe("resident inspection capture", () => {
       .map((record) => record.fact)
     expect(omissions).toEqual([
       { kind: "preparation-omission", path: "good.ts", reason: "no-supported-function-root" },
-      { kind: "preparation-omission", path: "bad.ts", declaration: "BadCount", reason: "no-applicable-rule" }
+      { kind: "preparation-omission", path: "bad.ts", declaration: "BadCount", reason: "no-applicable-rule" },
+      { kind: "preparation-omission", path: "bad.ts", declaration: "BadCount", reason: "missing-evidence" },
+      { kind: "preparation-omission", path: "bad.ts", reason: "no-supported-function-root" }
     ])
     expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(1)
     expect(records.filter((record) => record.fact.kind === "evaluation-outcome").map((record) => record.fact)).toEqual([

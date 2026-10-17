@@ -87,7 +87,7 @@ describe("security sink prototype", () => {
       child.once("error", reject)
       child.once("close", resolve)
     })
-    expect(exit).toBe(0)
+    expect(exit, Buffer.concat(errors).toString("utf8")).toBe(0)
     expect(Buffer.concat(errors).toString("utf8")).not.toContain(marker)
     const owner = JSON.parse(Buffer.concat(chunks).toString("utf8")) as { pid: number; lifetime: string }
     processes.push(owner.pid)
@@ -174,11 +174,11 @@ describe("security sink prototype", () => {
     const script = [
       "import * as Effect from 'effect/Effect';",
       "import {Layer} from 'effect';",
-      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './packages/resident-runtime/src/resident/execution-controls/preparation-controls.ts';",
-      "import {adaptCodexDirectEvent} from './packages/native-observation/src/direct-event/adapter.ts';",
+      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './packages/resident-runtime/dist/resident/execution-controls/preparation-controls.js';",
+      "import {adaptCodexDirectEvent} from './packages/native-observation/dist/direct-event/adapter.js';",
       "import {updateEvent} from '@hapsland/build-tooling/test-support/test-fixtures';",
-      "import {makeResidentRuntime} from './packages/resident-runtime/src/resident/server.ts';",
-      "import {residentPaths} from './packages/resident-transport/src/resident/paths.ts';",
+      "import {makeResidentRuntime} from './packages/resident-runtime/dist/resident/server.js';",
+      "import {residentPaths} from './packages/resident-transport/dist/resident/paths.js';",
       `const root=${JSON.stringify(root)};`,
       `const marker=${JSON.stringify(marker)};`,
       `const statePath=${JSON.stringify(statePath)};`,
@@ -205,7 +205,7 @@ describe("security sink prototype", () => {
       child.once("error", reject)
       child.once("close", resolve)
     })
-    expect(exit).toBe(0)
+    expect(exit, Buffer.concat(errors).toString("utf8")).toBe(0)
     expect(Buffer.concat(output).toString("utf8")).toContain("done")
     const stderr = Buffer.concat(errors).toString("utf8")
     expect(stderr).toContain("resident preparation unavailable")

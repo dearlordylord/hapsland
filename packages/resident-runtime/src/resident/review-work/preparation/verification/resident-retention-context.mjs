@@ -133,6 +133,7 @@ export async function createResidentRetentionContext(
     registerOrigin() {}
   }
   const deps = {
+    runtimeConfiguration: { debug: false },
     residentNow: () => 0,
     residentAdviceExpired: () => Effect.succeed(false),
     residentReviewControls: {

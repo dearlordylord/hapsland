@@ -900,9 +900,13 @@ export function createChildExecutionDriver({
           if (child.$ === "Some" && owner.child_active(child.value))
             throw new Error("Finalization has no closed Canonical owner")
         }
-        // A root that did not transfer custody must settle its lease before
-        // its input can disappear, including empty success and registration failure.
-        if (!delivery && nativeInput?.kind === "input" && nativeInput.custody)
+        // A root without a successor, or a cancelled claimed delivery, must
+        // settle its lease before its retained input can disappear.
+        if (
+          (!delivery || (child.$ === "Some" && child.value.phase.$ === "ChildCancelled")) &&
+          nativeInput?.kind === "input" &&
+          nativeInput.custody
+        )
           yield* cleanDeliveryFlow(launch.input_handle, invocation, nativeInput.custody)
         releaseInvocation()
       } catch (error) {

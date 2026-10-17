@@ -304,6 +304,7 @@ export function createSourcePreparationProvider(
             response = { $: "Active", value: yield* scoped(context.deps.residentJobActive(job)) }
             break
           case "RecordPreparationFailureAnalytics":
+            if (context.deps.runtimeConfiguration.debug) console.error("resident preparation unavailable")
             yield* scoped(context.deps.residentRecordAnalytics(job, "preparation-failed"))
             break
           case "RecordUnavailableActivity":
