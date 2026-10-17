@@ -7,29 +7,60 @@ type RootInput is Data:
   RootInput{gate: Handoff.GInput, report: Bool}
 type RootFlags is Data:
   RootFlags{finish: Bool, report: Bool}
+type RootMode is Data:
+  RootRequestMode{flags: RootFlags}
+  RootDirectMode{}
+  RootEditMode{partition: String}
+type RootAdvice is Data:
+  RootAdvice{handle: Nat, partition: String}
 type RootCommand is Data:
   RootGate{command: Handoff.GCommand}
   RootCollect{command: Collection.FlowCommand}
   RootDecode{result: Collection.FlowStep}
   RootReserve{command: Handoff.RCommand}
   RootWorkState{}
+  RootEditGate{}
+  RootEditStartPass{}
+  RootEditStatus{}
+  RootEditExpired{advice: Nat}
+  RootEditWorkCount{}
+  RootEditSleep{}
 type RootResponse is Data:
   RootGated{response: Handoff.GResponse}
   RootCollected{response: Collection.FlowResponse}
   RootDecoded{input: Handoff.RInput, empty: Bool}
   RootReserved{response: Handoff.RResponse}
   RootWorkStateRead{}
+  RootDirectDecoded{}
+  RootEditDecoded{advice: Bool}
+  RootEditGated{proceed: Bool}
+  RootEditStarted{}
+  RootEditAdvice{values: List<&2, RootAdvice>}
+  RootEditExpiry{expired: Bool}
+  RootEditCount{count: Nat}
+  RootEditSlept{}
+  RootEditTimedOut{}
+  RootEditLost{}
 type RootPhase is Data:
   RootGating{step: Handoff.GStep, composed: Bool, turn_end: Bool, flags: RootFlags}
-  RootCollecting{step: Collection.FlowStep, flags: RootFlags}
-  RootDecoding{flags: RootFlags}
+  RootCollecting{step: Collection.FlowStep, mode: RootMode}
+  RootDecoding{mode: RootMode}
   RootReserving{step: Handoff.RStep}
   RootReporting{}
+  RootEditGating{partition: String}
+  RootEditStarting{partition: String}
+  RootEditStatusRead{partition: String}
+  RootEditChecking{remaining: List<&2, Nat>, partition: String}
+  RootEditCounted{partition: String}
+  RootEditWaiting{partition: String}
 type RootCollectionResult is Data:
   RootSelected{}
   RootEmpty{}
   RootPending{}
   RootUnsupported{}
+  RootEditPending{}
+  RootEditEmpty{}
+  RootEditUnavailable{}
 type RootRequest is Data:
   RootRequest{invocation: Nat, id: Nat, command: RootCommand}
 type RootReply is Data:
@@ -44,7 +75,7 @@ def issue(+invocation: Nat, +id: Nat, +phase: RootPhase, +command: RootCommand) 
 
 def collect_step(
   +step: Collection.FlowStep,
-  +flags: RootFlags,
+  +mode: RootMode,
   +invocation: Nat,
   +next: Nat
 ) -> RootStep:
@@ -55,21 +86,21 @@ def collect_step(
         next,
         RootCollecting{
           Collection.FlowAwait{state, Collection.FlowRequest{owner, id, command}},
-          flags
+          mode
         },
         RootCollect{command}
       )
     case Collection.FlowEmpty{}: issue(
       invocation,
       next,
-      RootDecoding{flags},
+      RootDecoding{mode},
       RootDecode{Collection.FlowEmpty{}}
     )
     case Collection.FlowDone{+token, +advice, +findings}:
       issue(
         invocation,
         next,
-        RootDecoding{flags},
+        RootDecoding{mode},
         RootDecode{Collection.FlowDone{token, advice, findings}}
       )
     case Collection.FlowRejected{}: RootRejected{}
@@ -79,7 +110,7 @@ def gate_result(+result: Handoff.GResult, +composed: Bool, +turn_end: Bool,
   match result:
     case Handoff.GCollect{}: collect_step(
       Collection.collect_initial(invocation, composed, turn_end),
-      flags,
+      RootRequestMode{flags},
       invocation,
       next
     )
@@ -150,6 +181,72 @@ def decoded(
     )
     case RootFlags{False{}, +report}: report_step(Bool.and(report, empty), invocation, next)
 
+def edit_gate(+partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  issue(invocation, next, RootEditGating{partition}, RootEditGate{})
+
+def edit_wait(+partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  issue(invocation, next, RootEditWaiting{partition}, RootEditSleep{})
+
+def edit_gated(+proceed: Bool, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  match proceed:
+    case True{}: issue(invocation, next, RootEditStarting{partition}, RootEditStartPass{})
+    case False{}: RootDone{RootSelected{}}
+
+def edit_decoded(+advice: Bool, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  match advice:
+    case True{}: RootDone{RootSelected{}}
+    case False{}: issue(invocation, next, RootEditStatusRead{partition}, RootEditStatus{})
+
+def edit_keep(+matches: Bool, +handle: Nat, +rest: List<&2, Nat>) -> List<&2, Nat>:
+  match matches:
+    case True{}: handle <> rest
+    case False{}: rest
+
+def edit_matching(+values: List<&2, RootAdvice>, +partition: String) -> List<&2, Nat>:
+  match values:
+    case Nil{}: Nil{}
+    case RootAdvice{+handle, +actual} <> +rest:
+      edit_keep(String.eq(actual, partition), handle, edit_matching(rest, partition))
+
+def edit_status(
+  +remaining: List<&2, Nat>,
+  +partition: String,
+  +invocation: Nat,
+  +next: Nat
+) -> RootStep:
+  match remaining:
+    case Nil{}: issue(invocation, next, RootEditCounted{partition}, RootEditWorkCount{})
+    case +handle <> +rest:
+      issue(invocation, next, RootEditChecking{rest, partition}, RootEditExpired{handle})
+
+def edit_expired(+expired: Bool, +remaining: List<&2, Nat>, +partition: String,
+    +invocation: Nat, +next: Nat) -> RootStep:
+  match expired:
+    case True{}: edit_status(remaining, partition, invocation, next)
+    case False{}: edit_wait(partition, invocation, next)
+
+def edit_count(+count: Nat, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  match count:
+    case 0n: RootDone{RootEditEmpty{}}
+    case _: edit_wait(partition, invocation, next)
+
+def edit_phase(+phase: RootPhase) -> Bool:
+  match phase:
+    case RootCollecting{_, RootEditMode{_}}: True{}
+    case RootDecoding{RootEditMode{_}}: True{}
+    case RootEditGating{_}: True{}
+    case RootEditStarting{_}: True{}
+    case RootEditStatusRead{_}: True{}
+    case RootEditChecking{_, _}: True{}
+    case RootEditCounted{_}: True{}
+    case RootEditWaiting{_}: True{}
+    case _: False{}
+
+def edit_terminal(+valid: Bool, +result: RootCollectionResult) -> RootStep:
+  match valid:
+    case True{}: RootDone{result}
+    case False{}: RootRejected{}
+
 def initial(+invocation: Nat, +input: RootInput) -> RootStep:
   match input:
     case RootInput{Handoff.GInput{+composed, +turn_end, +finish}, +report}:
@@ -161,6 +258,17 @@ def initial(+invocation: Nat, +input: RootInput) -> RootStep:
         invocation,
         1n
       )
+
+def direct_initial(+invocation: Nat, +composed: Bool, +turn_end: Bool) -> RootStep:
+  collect_step(
+    Collection.collect_initial(invocation, composed, turn_end),
+    RootDirectMode{},
+    invocation,
+    1n
+  )
+
+def edit_initial(+invocation: Nat, +partition: String) -> RootStep:
+  edit_gate(partition, invocation, 1n)
 
 def gate_reply(+step: Handoff.GStep, +response: Handoff.GResponse, +composed: Bool,
     +turn_end: Bool, +flags: RootFlags, +invocation: Nat, +next: Nat) -> RootStep:
@@ -180,7 +288,7 @@ def gate_reply(+step: Handoff.GStep, +response: Handoff.GResponse, +composed: Bo
     case _: RootRejected{}
 
 def collect_reply(+step: Collection.FlowStep, +response: Collection.FlowResponse,
-    +flags: RootFlags, +invocation: Nat, +next: Nat) -> RootStep:
+    +mode: RootMode, +invocation: Nat, +next: Nat) -> RootStep:
   match step:
     case Collection.FlowAwait{+state, Collection.FlowRequest{+owner, +id, +command}}:
       collect_step(
@@ -188,7 +296,7 @@ def collect_reply(+step: Collection.FlowStep, +response: Collection.FlowResponse
           Collection.FlowAwait{state, Collection.FlowRequest{owner, id, command}},
           Collection.FlowReply{owner, id, response}
         ),
-        flags,
+        mode,
         invocation,
         next
       )
@@ -228,14 +336,14 @@ def phase_reply(
       invocation,
       next
     )
-    case RootCollecting{+step, +flags} RootCollected{+value}: collect_reply(
+    case RootCollecting{+step, +mode} RootCollected{+value}: collect_reply(
       step,
       value,
-      flags,
+      mode,
       invocation,
       next
     )
-    case RootDecoding{+flags} RootDecoded{+input, +empty}: decoded(
+    case RootDecoding{RootRequestMode{+flags}} RootDecoded{+input, +empty}: decoded(
       flags,
       input,
       empty,
@@ -244,6 +352,27 @@ def phase_reply(
     )
     case RootReserving{+step} RootReserved{+value}: reserve_reply(step, value, invocation, next)
     case RootReporting{} RootWorkStateRead{}: RootDone{RootSelected{}}
+    case RootDecoding{RootDirectMode{}} RootDirectDecoded{}: RootDone{RootSelected{}}
+    case RootDecoding{RootEditMode{+partition}} RootEditDecoded{+advice}:
+      edit_decoded(advice, partition, invocation, next)
+    case RootEditGating{+partition} RootEditGated{+proceed}:
+      edit_gated(proceed, partition, invocation, next)
+    case RootEditStarting{+partition} RootEditStarted{}:
+      collect_step(
+        Collection.collect_initial(invocation, True{}, False{}),
+        RootEditMode{partition},
+        invocation,
+        next
+      )
+    case RootEditStatusRead{+partition} RootEditAdvice{+values}:
+      edit_status(edit_matching(values, partition), partition, invocation, next)
+    case RootEditChecking{+remaining, +partition} RootEditExpiry{+expired}:
+      edit_expired(expired, remaining, partition, invocation, next)
+    case RootEditCounted{+partition} RootEditCount{+count}:
+      edit_count(count, partition, invocation, next)
+    case RootEditWaiting{+partition} RootEditSlept{}: edit_gate(partition, invocation, next)
+    case +phase RootEditTimedOut{}: edit_terminal(edit_phase(phase), RootEditPending{})
+    case +phase RootEditLost{}: edit_terminal(edit_phase(phase), RootEditUnavailable{})
     case _ _: RootRejected{}
 
 def accept(

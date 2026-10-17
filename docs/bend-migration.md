@@ -238,18 +238,19 @@ owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 Current path / obstacles:
 1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
    registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
-2. Binding owns transport P and masked D; exact receipt cancellation/cleanup
-   retry PASS. Recipient key/optional partition preserves unknown-empty collect.
-   Next: Root owns edit gate/status scan/poll/deadline, fresh C each pass and one
-   final receipt; delete TS polling. Then wire ResponseContext/local custody,
-   preserving close/fit masks and response gate/barrier exactly once.
-3. Prove trace/reply/lease/finish; qualify full IPC/whole-delivery performance.
-   Unit not accepted. Latest: owner1418/native9,composed53,protocol43,fast44/4,
-   receipts23 PASS. Context cold180s timeout→stopped-writer audit→3 downstream
-   compiles→workspace46/46 PASS. Binding compile types failed→explicit outcome/
-   session PASS; test trace fixed; stale fixture receipts→matching rebuild PASS.
-   Prior consumers88/89: concurrent Claude IPC deadline failed; isolated same-limit
-   case and9 selected server PASS. No full-suite pass.
+2. Binding owns P/masked D and receipt cleanup retry. Root edit/direct
+   core/native ABI own fresh passes, status scan, polling and absolute
+   monotonic deadline. Close masked; timeout waits cleanup before Bend reply.
+   Astra's extra-release finding fixed: successful passes only finish.
+   Next: public IPC/local receipts in ResponseContext; delete TS polling/status.
+   Public edit/local still use old path; preserve gate/barrier once.
+3. Prove trace/reply/lease/finish; full IPC/whole-delivery performance pending.
+   Unit not accepted. Root delta: build46/46,receipts23,protocol46,composed53,
+   fast44/4 PASS. Fixture deciding typo→isDeciding fixed; native8/8 PASS.
+   Prior owner1418/native9 PASS. Context cold180s timeout→stopped-writer audit→
+   3 downstream compiles→workspace46/46 PASS. Binding types/trace fixed; stale
+   fixtures→rebuild PASS. Prior88/89: Claude IPC deadline failed; isolated same-limit
+   case and9 server PASS. No full-suite pass.
 4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
    Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
    receipts→workspace46/46 PASS. IPC360s aborted; tail18+other89 PASS.

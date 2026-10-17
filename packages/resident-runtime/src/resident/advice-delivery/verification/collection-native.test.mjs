@@ -4,6 +4,8 @@ import * as Effect from "effect/Effect"
 import * as Cause from "effect/Cause"
 import * as Result from "effect/Result"
 import { makeResidentAdviceCollection } from "../../../../dist/resident/advice-delivery/advice-collection.js"
+import * as Clock from "effect/Clock"
+import { makeResidentCollectionRoot } from "../../../../dist/resident/advice-delivery/handoff/collection-root.js"
 import { canonicalCollectionDecision } from "../../../../dist/resident/advice-delivery/collection.js"
 import { recipientPartition } from "../../../../dist/resident/recipient/identity.js"
 
@@ -44,7 +46,7 @@ const fixture = (hooks = {}) => {
     residentPruneNoticeCooldowns: () => Effect.void,
     residentAdvice: () => Effect.sync(() => [state.retained]),
     residentInspection: { observeAdviceFate: () => assert.fail("Unexpected suppressed finding") },
-    residentComposedDelivery: { suppresses: () => Effect.succeed(false) },
+    residentComposedDelivery: { isDeciding: () => Effect.succeed(true), suppresses: () => Effect.succeed(false) },
     residentJoined: { hasAdmission: () => Effect.succeed(false) },
     residentRemoveAdvice: failUnexpected,
     residentIsCurrentWork: () => Effect.succeed(true),
@@ -119,7 +121,13 @@ const fixture = (hooks = {}) => {
         state.content = content
       })
   })
-  return { trace, state, collect: collection.residentCollect("/repo", advicee, { credential: null }) }
+  return {
+    trace,
+    state,
+    collection,
+    advicee,
+    collect: collection.residentCollect("/repo", advicee, { credential: null })
+  }
 }
 
 it(
@@ -216,3 +224,144 @@ it(
     ])
   }
 )
+
+it(
+  "direct Root waits for physical close before interruption releases its selected lease",
+  { timeout: 5000 },
+  async (t) => {
+    const entered = Promise.withResolvers(),
+      close = Promise.withResolvers()
+    const controller = new AbortController()
+    t.after(() => {
+      controller.abort()
+      close.resolve()
+    })
+    const f = fixture()
+    const collection = f.collection.residentCollectionSession(
+      "/repo",
+      f.advicee,
+      { credential: null },
+      "ordinary",
+      undefined,
+      false
+    )
+    const root = makeResidentCollectionRoot(
+      {},
+      {
+        kind: "direct",
+        composed: false,
+        turnEnd: false,
+        collection: {
+          ...collection,
+          finish: () =>
+            collection.finish().pipe(
+              Effect.andThen(
+                Effect.promise(() => {
+                  f.trace.push("close-entered")
+                  entered.resolve()
+                  return close.promise.then(() => {
+                    f.trace.push("close-finished")
+                  })
+                })
+              )
+            )
+        }
+      }
+    )
+    let step = root.initial(71)
+    while (step.$ === "RootAwait" && step.request.command.$ !== "RootDecode")
+      step = await Effect.runPromise(root.advance(step))
+    assert.equal(step.request.command.$, "RootDecode")
+    let settled = false
+    const result = Effect.runPromiseExit(root.advance(step).pipe(Effect.onError(root.release)), {
+      signal: controller.signal
+    }).then((exit) => {
+      settled = true
+      return exit
+    })
+    await entered.promise
+    controller.abort()
+    await new Promise(setImmediate)
+    assert.equal(settled, false)
+    assert.equal(f.trace.includes("release"), false)
+    close.resolve()
+    const exit = await result
+    assert.equal(exit._tag, "Failure")
+    assert.deepEqual(f.trace.slice(-3), ["close-entered", "close-finished", "release"])
+  }
+)
+
+it(
+  "edit Root returns its timeout through the live Bend request after gate interruption",
+  { timeout: 5000 },
+  async () => {
+    const trace = []
+    const deadline = await Effect.runPromise(Clock.monotonicTimeNanos.pipe(Effect.map((now) => now + 1_000_000_000n)))
+    const root = makeResidentCollectionRoot(
+      {},
+      {
+        kind: "edit",
+        partition: "recipient",
+        deadline,
+        startPass: () => assert.fail("timeout must not start a pass"),
+        gate: () => Effect.never.pipe(Effect.ensuring(Effect.sync(() => trace.push("gate-stopped")))),
+        advice: () => assert.fail("timeout must not scan advice"),
+        expired: () => assert.fail("timeout must not check expiry"),
+        workCount: () => assert.fail("timeout must not count work"),
+        now: () => 0
+      }
+    )
+    const step = await Effect.runPromise(root.advance(root.initial(71)))
+    assert.deepEqual(trace, ["gate-stopped"])
+    assert.deepEqual(step, { $: "RootDone", result: { $: "RootEditPending" } })
+    assert.deepEqual(root.decode(step), { requestRoute: "edit", status: "pending" })
+  }
+)
+
+it("edit Root owns repeated fresh collection passes and the final work exhaustion", { timeout: 5000 }, async () => {
+  const f = fixture(),
+    passes = [],
+    counts = [1, 0],
+    checked = []
+  const deadline = await Effect.runPromise(Clock.monotonicTimeNanos.pipe(Effect.map((now) => now + 4_000_000_000n)))
+  const root = makeResidentCollectionRoot(
+    {},
+    {
+      kind: "edit",
+      partition: recipientPartition(f.advicee),
+      deadline,
+      startPass: () => {
+        const session = f.collection.residentCollectionSession(
+          "/repo",
+          f.advicee,
+          { credential: null },
+          "ordinary",
+          undefined,
+          true
+        )
+        passes.push(session)
+        return session
+      },
+      gate: () => Effect.succeed(undefined),
+      advice: () =>
+        Effect.succeed([{ observation: { advicee: { ...f.advicee, sessionId: "other" } } }, f.state.advice]),
+      expired: (item) =>
+        Effect.sync(() => {
+          checked.push(item)
+          return true
+        }),
+      workCount: () => Effect.sync(() => counts.shift()),
+      now: () => 0
+    }
+  )
+  let step = root.initial(71),
+    commands = 0
+  while (step.$ === "RootAwait" && commands++ < 100) step = await Effect.runPromise(root.advance(step))
+  assert.deepEqual(step, { $: "RootDone", result: { $: "RootEditEmpty" } })
+  assert.deepEqual(root.decode(step), { requestRoute: "edit", status: "empty" })
+  assert.equal(passes.length, 2)
+  assert.notEqual(passes[0], passes[1])
+  assert.deepEqual(checked, [f.state.advice, f.state.advice])
+  assert.deepEqual(counts, [])
+  await Effect.runPromise(root.cleanup())
+})

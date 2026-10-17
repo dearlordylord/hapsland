@@ -210,8 +210,7 @@ it("the real resident driver carries an empty native Collect through Prepare and
   )
   const root = makeResidentCollectionRoot(
     { residentComposedDelivery: { ownsStop: () => Effect.succeed(false) } },
-    request,
-    collection
+    { kind: "request", request, collection }
   )
   function* cleanup() {
     trace.push("cleanup")
@@ -451,8 +450,7 @@ it("the resident lifetime binding fences receipts, preserves empty transport ord
   )
   const native = makeResidentCollectionRoot(
     { residentComposedDelivery: { ownsStop: () => Effect.succeed(false) } },
-    request,
-    collection
+    { kind: "request", request, collection }
   )
   const first = await Effect.runPromise(binding.collect(deliveryContext, native))
   assert.equal(first.delivery.kind, "handoff")
