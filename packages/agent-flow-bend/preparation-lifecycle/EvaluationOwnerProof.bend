@@ -5372,5 +5372,1207 @@ def dispatch_provider_live_entry_exact(
     )
   )
 
+def permission_scope_exact(+scope: O.Scope, +permission: O.EvaluationPermission) -> {
+  O.evaluation_permission_scope(scope, permission)
+  == S.permission_scope(scope, permission)
+  : O.Scope
+}:
+  match scope:
+
+    case O.EvaluationCleanupScope{_, _, _, _}: {==}
+
+    case O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case O.EvaluationScope{_, _, _}: {==}
+
+    case O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case O.SettingsScope{_}: {==}
+
+    case O.FreshnessScope{_}: {==}
+
+    case O.Scope{_, _, _, _}: {==}
+
+    case O.SourceScope{_, _, _, _, _}: {==}
+
+    case O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case O.PreparationScope{_, _, _, _}: {==}
+
+    case O.RetainingScope{_, _, _, _, _}: {==}
+
+    case O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+def commit_exact(
+  +state: O.State,
+  +child: O.Child,
+  +permission: O.EvaluationPermission,
+  +result: C.Step
+) -> {
+  O.evaluation_commit(state, child, permission, result)
+  == S.commit(state, child, permission, result)
+  : O.Step
+}:
+  match state child result:
+    case O.State{_, next, next_lease, rest} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    } C.Advanced{canon, outputs}:
+      %permission_scope_exact(scope, permission) : {
+        O.evaluation_commit(state, child, permission, result)
+        == S.reconcile(O.Advanced{O.State{canon, next, next_lease, O.replace(inv, rest,
+          O.Child{_, inv, epoch, handle, phase, pending, held, parent})}, outputs, Nil{}}) : O.Step
+      }
+      reconcile_exact(
+        O.Advanced{
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.replace(
+              inv,
+              rest,
+              O.Child{
+                O.evaluation_permission_scope(scope, permission),
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                held,
+                parent
+              }
+            )
+          },
+          outputs,
+          Nil{}
+        }
+      )
+    case O.State{_, _, _, _} O.Child{_, _, _, _, _, _, _, _} C.Rejected{_, _}: {==}
+
+def ready_permission_exact(+outputs: List<&2, C.Output>) -> {
+  O.evaluation_ready_permission(outputs) == S.ready_permission(outputs) : O.EvaluationPermission
+}:
+  match outputs:
+    case Nil{}: {==}
+
+    case C.ActionRequested{_} <> tail: ready_permission_exact(tail)
+
+    case C.EventEstablished{C.CapacityGranted{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CapacityResized{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CapacityUnitAdmitted{_, _, _, _}} <> tail: ready_permission_exact(
+      tail
+    )
+    case C.EventEstablished{C.PermitIssued{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CompletedEditSeen{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CompletedEditRemembered{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.QuietRoundBusy{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.QuietRoundWaiting{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.QuietRoundResetRecorded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PermitConsumed{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PermitReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PermitExpired{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PermitRoundClosed{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.RoundStarted{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ObservationAdmitted{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ObservationStarted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ObservationCompleted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ObservationInterrupted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.UnitAdmitted{_, _, _, _, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PreparationReleased{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReviewStarted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.JevRequestIssued{_, _, _, _, request}} <> tail: {==}
+    case C.EventEstablished{C.JevRequestStartRecorded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.JevInterruptionRecorded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.JevRequestOutcomeRecorded{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReservationReleased{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReviewRecorded{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FindingRetained{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FindingCountRecorded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ClearSettled{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.StaleClearSettled{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.StaleFindingRetired{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.DispatchStarted{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.DispatchDiscarded{_, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.WaitForWork{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishReady{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishLimit{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.StopEnded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionEligible{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionLeaseReserved{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionLeaseReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionAdviceRetired{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionBackgroundClaimed{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CollectionBackgroundReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishReserved{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishAuthorized{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishRecorded{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.FinishEnded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ContinuationConsumed{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.SubmissionBegun{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.SubmissionAuthorized{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.SubmissionRecorded{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.SubmissionReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.SubmissionForgotten{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.RevisionReused{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.RevisionReplaced{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.RevisionReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CleanupCommitted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseAdviceJoined{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReusePendingJoined{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseClaimedJoined{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseCacheHit{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseOwned{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseClaimed{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseAttached{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReuseReleased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CachePrepared{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CacheCommitted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.CacheDiscarded{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticeSuppressed{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticePendingCreated{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticePendingMerged{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticeLeaseKept{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticeCommitted{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticePruned{_, _, _}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticeDropped{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticeLeased{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.NoticePendingCleared{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.WriteAuthorized{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.WriteRecorded{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.ReofferAtStop{}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.PartitionRetired{_}} <> tail: ready_permission_exact(tail)
+    case C.EventEstablished{C.AdmissionForgotten{}} <> tail: ready_permission_exact(tail)
+
+    case C.PolicyDecided{_} <> tail: ready_permission_exact(tail)
+
+def ready_event_exact(+context: O.EvaluationContext, +facts: O.EvaluationFacts) -> {
+  O.evaluation_ready_event(context, facts) == S.ready_event(context, facts) : C.CanonicalEvent
+}:
+  match context facts:
+    case O.EvaluationContext{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+def ready_result_exact(+state: O.State, +child: O.Child, +result: C.Step) -> {
+  O.evaluation_ready_result(state, child, result) == S.ready_result(state, child, result) : O.Step
+}:
+  match result:
+    case C.Rejected{_, _}: {==}
+    case C.Advanced{_, outputs}:
+      %ready_permission_exact(outputs) : {
+        O.evaluation_ready_result(state, child, result)
+        == S.commit(state, child, _, result)
+        : O.Step
+      }
+      commit_exact(state, child, O.evaluation_ready_permission(outputs), result)
+
+def ready_transition_exact(
+  +state: O.State,
+  +child: O.Child,
+  +context: O.EvaluationContext,
+  +facts: O.EvaluationFacts
+) -> {
+  O.evaluation_ready_result(
+    state,
+    child,
+    C.step(O.state_canonical(state), O.evaluation_ready_event(context, facts))
+  )
+  == S.ready_result(state, child, C.step(S.canonical(state), S.ready_event(context, facts)))
+  : O.Step
+}:
+  match state:
+    case O.State{canon, _, _, _}:
+      %ready_event_exact(context, facts) : {
+        O.evaluation_ready_result(
+          state,
+          child,
+          C.step(canon, O.evaluation_ready_event(context, facts))
+        )
+        == S.ready_result(state, child, C.step(canon, _))
+        : O.Step
+      }
+      ready_result_exact(state, child, C.step(canon, O.evaluation_ready_event(context, facts)))
+
+def ready_child_exact(
+  +valid: Bool,
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +facts: O.EvaluationFacts
+) -> {
+  O.evaluation_ready_found(valid, state, found, facts)
+  == S.ready_child(valid, state, found, facts)
+  : O.Step
+}:
+  match valid found facts:
+    case False{} None{} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case False{} Some{O.Child{_, _, _, _, _, _, _, _}} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} None{} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, False{}, False{}, False{}}: ready_transition_exact(
+      state,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      context,
+      facts
+    )
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, False{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, False{}, True{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, False{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{False{}, True{}, True{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, False{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, False{}, True{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, False{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, False{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, False{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, False{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, False{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, True{}, False{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, True{}, False{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, True{}, True{}, False{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{True{}, True{}, True{}, True{}, True{}, True{}}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{_, _, context, O.EvaluationIssued{_}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{_, _, context, O.EvaluationAtProvider{_, _}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationCleanupScope{_, _, context, O.EvaluationSettled{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: ready_transition_exact(
+      state,
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationUnissued{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      context,
+      facts
+    )
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{_, context, O.EvaluationIssued{_}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{_, context, O.EvaluationAtProvider{_, _}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{
+      O.Child{
+        O.EvaluationScope{_, context, O.EvaluationSettled{}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    } O.EvaluationFacts{_, _, _, _, _, _}: {==}
+    case True{} Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+    case True{} Some{O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+
 def main() -> Unit:
   Unit{}
