@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: production `1511b2f3`,09:38 UTC: execution **.6925×**;
-build **.9055×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: production `870a453a`,10:08 UTC: execution **.7312×**;
+build **.9197×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0646[.0492,.0963]/.0444[.0357,.0617];
-build2.946[2.781,3.503]/2.652[2.536,3.256]. Shared load; no causal claim.
+execution.0620[.0500,.0996]/.0403[.0357,.0582];
+build3.004[2.833,3.504]/2.745[2.605,2.958]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -249,7 +249,7 @@ helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
 Evidence: source1718 tapes/49057 prefixes/5 mutants; cached enrollment793;
-Post23360. Production/IPC/collection pass233/12 files, Source59, Delivery9,
+Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
 build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
 with controlled authorization/observation ports. Expanded consumers found and
 fixed cancelled Prepare lease cleanup and missing safe recovery diagnostics.
@@ -265,12 +265,12 @@ Canonical transactions/transport/driver; shared load permits no causal claim.
 
 Remaining obligations (Astra,2026-10-17):
 1. Complete independent Evaluation/Auth/Dispatch initial/cleanup/interruption/
-   resume correspondence.
+   resume correspondence. Auth/Dispatch:33270 finite replies; parent table open.
 2. Exact Canonical evaluation lifecycle, context/lease/request and dispatch-parent
    fences; cleanup authority, cancellation and reconciliation.
 3. Exact one-claim advice transfer, pending-finding authority and parent=None.
-Seven helper drafts withdrawn: they allowed skipped provider/cache. Use existing
-types/policies and flat independent steps; falsify, approve, prove/recheck.
+Use existing types/policies and flat independent steps; falsify, approve,
+prove/recheck.
 Whole evaluation is not accepted.
 
 
