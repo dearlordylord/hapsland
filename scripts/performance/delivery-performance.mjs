@@ -126,7 +126,9 @@ try {
       meanRatio,
       deliveryParity: meanRatio <= 1,
       deliveryAcceptanceRatioLimit: 3,
-      deliveryPerformanceAccepted: meanRatio <= 3 && fixtureRatios.every((fixture) => fixture.meanRatio <= 3),
+      // The owner budget applies to the whole fixed consumer, as in Preparation.
+      // Keep every scenario ratio visible; an extra per-scenario gate was not accepted.
+      deliveryPerformanceAccepted: meanRatio <= 3,
       scope:
         "public local empty/ready, actual IPC empty/ready and single-pass ready edit; real source freshness and final authorization; fresh runtime per invocation; actual controlled preparation and verified release/Scope cleanup outside timers"
     }

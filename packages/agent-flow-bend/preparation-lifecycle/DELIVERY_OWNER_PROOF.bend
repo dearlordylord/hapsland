@@ -1,4 +1,5 @@
 import Base
+import ../../../vendor/bendlib/packages/bend-mathlib/nat.bend as N
 import ./CanonicalResolverOwner.bend as O
 import ./DeliveryOwnerSpecification.bend as S
 import ./DELIVERY_OWNER_LAWS.bend as Laws
@@ -605,3 +606,540 @@ def Laws.receipt_claim_exact(state, receipt):
   match state receipt:
     case O.State{_, _, _, +children} O.DeliveryReceipt{+inv, _, _, _, _, _}:
       claim_found_exact(state, O.find(inv, children), receipt)
+
+# The first child lookup is shared by the no-bypass, provider and cancellation
+# proofs. Reuse the vendored Nat theorem rather than restating arithmetic laws.
+def find_head_exact(+child: O.Child, +tail: List<&2, O.Child>) -> {
+  O.find(O.child_invocation(child), child <> tail) == Some{child} : Maybe<&2, O.Child>
+}:
+  match child:
+    case O.Child{_, +inv, _, _, _, _, _, _}:
+      %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+        Bool.pick(Maybe<&2, O.Child>, _, Some{child}, O.find(inv, tail))
+        == Some{child} : Maybe<&2, O.Child>
+      }
+      {==}
+
+def state_head_exact(+state: O.State, +child: O.Child) -> {
+  O.find(O.child_invocation(child), O.state_children(S.state_with(state, child)))
+  == Some{child} : Maybe<&2, O.Child>
+}:
+  match state:
+    case O.State{_, _, _, +tail}: find_head_exact(child, tail)
+
+def terminal_delivery_rejected(
+  +state: O.State,
+  +operation: Nat,
+  +origin: Nat,
+  +context: O.DeliveryContext,
+  +permission: O.DeliveryPermission,
+  +input: Nat,
+  +invocation: Nat,
+  +generation: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +attempt_generation: Nat,
+  +result: Nat
+) -> {
+  O.terminal(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    invocation,
+    attempt_generation,
+    result
+  )
+  == O.Rejected{
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    O.WrongPhase{}
+  }
+  : O.Step
+}:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      invocation,
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      )
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    state_head_exact(
+      state,
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+  ) : {
+      O.terminal_found(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        _,
+        attempt_generation,
+        result
+      )
+      == O.Rejected{
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        O.WrongPhase{}
+      }
+      : O.Step
+    }
+  {==}
+
+def Laws.delivery_no_bypass(
+  state,
+  operation,
+  origin,
+  context,
+  permission,
+  input,
+  invocation,
+  generation,
+  handle,
+  phase,
+  pending,
+  lease,
+  parent,
+  attempt_generation,
+  result
+):
+  (
+    {==},
+    terminal_delivery_rejected(
+      state,
+      operation,
+      origin,
+      context,
+      permission,
+      input,
+      invocation,
+      generation,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent,
+      attempt_generation,
+      result
+    )
+  )
+
+def retire_exact(+inv: Nat, +handle: Nat) -> {
+  O.retire(inv, handle) == S.retire(inv, handle) : List<&2, O.Action>
+}:
+  match handle:
+    case 0n: {==}
+    case 1n++value:
+      %N.add_comm(value, 1n) : {
+        O.RetireHandle{inv, Nat.add(value, 1n)} <> Nil{}
+        == O.RetireHandle{inv, _} <> Nil{} : List<&2, O.Action>
+      }
+      {==}
+
+def cancel_delivery_exact(
+  +state: O.State,
+  +op: Nat,
+  +origin: Nat,
+  +ctx: O.DeliveryContext,
+  +perm: O.DeliveryPermission,
+  +input: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +lease: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>
+) -> {
+  O.cancel_scope(
+    state,
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    },
+    O.DeliveryScope{op, origin, ctx, perm, input}
+  )
+  == S.cancel_delivery(
+    state,
+    O.Child{
+      O.DeliveryScope{op, origin, ctx, perm, input},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      lease,
+      parent
+    }
+  )
+  : O.Step
+}:
+  match phase:
+    case O.ChildInstalling{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          O.DeliveryScope{op, origin, ctx, perm, input}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildReady{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          O.DeliveryScope{op, origin, ctx, perm, input}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAwaiting{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          O.DeliveryScope{op, origin, ctx, perm, input}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildResuming{}:
+      %retire_exact(inv, handle) : {
+        O.cancel_scope(
+          state,
+          O.Child{
+            O.DeliveryScope{op, origin, ctx, perm, input},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          },
+          O.DeliveryScope{op, origin, ctx, perm, input}
+        )
+        == O.reconcile_cancel(
+          O.updated(
+            state,
+            O.ChildUpdate{
+              O.Child{
+                O.DeliveryScope{op, origin, ctx, perm, input},
+                inv,
+                epoch,
+                0n,
+                O.ChildCancelled{},
+                None{},
+                lease,
+                parent
+              },
+              O.CancelChild{inv, handle} <> _
+            }
+          )
+        )
+        : O.Step
+      }
+      {==}
+    case O.ChildAccepted{}:
+      {==}
+    case O.ChildCancelled{}:
+      {==}
+
+def Laws.delivery_cancellation_exact(
+  state,
+  operation,
+  origin,
+  context,
+  permission,
+  input,
+  invocation,
+  generation,
+  handle,
+  phase,
+  pending,
+  lease,
+  parent
+):
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      invocation,
+      O.state_children(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        )
+      )
+    ),
+    Some{
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    },
+    state_head_exact(
+      state,
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    )
+  ) : {
+      O.cancel_found(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        _
+      )
+      == S.cancel_delivery(
+        S.state_with(
+          state,
+          O.Child{
+            O.DeliveryScope{operation, origin, context, permission, input},
+            invocation,
+            generation,
+            handle,
+            phase,
+            pending,
+            lease,
+            parent
+          }
+        ),
+        O.Child{
+          O.DeliveryScope{operation, origin, context, permission, input},
+          invocation,
+          generation,
+          handle,
+          phase,
+          pending,
+          lease,
+          parent
+        }
+      )
+      : O.Step
+    }
+  cancel_delivery_exact(
+    S.state_with(
+      state,
+      O.Child{
+        O.DeliveryScope{operation, origin, context, permission, input},
+        invocation,
+        generation,
+        handle,
+        phase,
+        pending,
+        lease,
+        parent
+      }
+    ),
+    operation,
+    origin,
+    context,
+    permission,
+    input,
+    invocation,
+    generation,
+    handle,
+    phase,
+    pending,
+    lease,
+    parent
+  )

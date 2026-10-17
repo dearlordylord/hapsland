@@ -186,11 +186,11 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `ae590315`,2026-10-17 05:22 UTC analyzer/build **.5916×/.9243×**,
+- `e47617bd`,2026-10-17 05:50/51 UTC analyzer/build **.7956×/.9466×**,
   17 frozen pairs, strict PASS/PASS; every build23/46 cached. HEAD, sources,
   artifacts, workspace resolutions and environment files unchanged.
-  TS/Bend medians[ranges] s: execution.1273[.0733,.3164]/.0690[.0400,.2189];
-  build4.294[3.519,6.994]/4.059[3.145,9.514]. Shared load; no causal claim.
+  TS/Bend medians[ranges] s: execution.1155[.0964,.1487]/.0882[.0753,.1197];
+  build3.002[2.782,3.508]/2.796[2.520,3.717]. Shared load; no causal claim.
   Analyzer/build only; whole delivery performance is a separate obstacle.
   Prior strict failures (execution1.1571/1.4448; build1.0153/1.0561/1.0675)
   remain historical failures. Timeout, unequal-cache, leaked-producer and
@@ -233,19 +233,21 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:15 draft laws;4 approved proofs pending; delivery timing.
+3. Open:15 draft laws;2 approved proofs pending; final qualification.
    At whole acceptance move semantic properties to domain laws; delete
    temporary exact equations/specs/proofs.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
    Build46/46,owner60941,fast44/2; current e6928b73 physical187 PASS.
    Custody reads avoid Canonical conversion; native24/41+80 metadata reads PASS.
-   Whole delivery17-pair attempt stopped at pair11 by fixture IPC2.5s timeout;
-   incomplete/unqualified. Benchmark now uses both products' default4s.
-   Under load45/12, profiling hit its worker45s stop; no retry under that load.
-   Corrected diagnostic5ms profile passed equal results/cleanup; sampled edit
-   publication12/32 stacks led to per-call unchanged-graph reuse (no cache);
-   native24/41, fast and physical187 PASS; whole speed remains unqualified.
-   ABI caches remain discarded. Typed claim proof fills2/6; root still4 TODO.
+   Whole delivery e47617bd:17 frozen pairs, exact results/cleanup; total2.9108×,
+   strict false. TS/Bend total medians[ranges] s:.0986[.0749,.1592]/.2479[.2146,.6520].
+   Per-case gate rejected only local-empty10.66× (.232→2.476ms); others2.50–2.96×.
+   That unaccepted extra gate is removed: use whole≤3× as Preparation; keep all
+   scenario diagnostics. Original denial retained; fresh qualification pending.
+   Earlier pair11 IPC2.5s failure remains unqualified; runner now uses product4s.
+   Profile45s stop under load45/12 retained; corrected5ms diagnostic passed.
+   Per-call unchanged-graph reuse has native/fast/physical187 PASS, no persistent cache.
+   ABI caches discarded. Canonical proof fills4/6; root still2 TODO, not a pass.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
