@@ -14,6 +14,8 @@ import {
 } from "@hapsland/native-observation/direct-event/observation"
 import { packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
+import { residentPrepareFinishCollection } from "../advice-delivery/handoff/collection-gate.ts"
+import { residentReserveFinishOutput } from "../advice-delivery/handoff/finish.ts"
 import type { Advice } from "../state/advice-records.ts"
 import type { RoundWork } from "../state/round-records.ts"
 import {
@@ -59,12 +61,7 @@ import {
 } from "../advice-delivery/authority.ts"
 import { residentResponse } from "../advice-delivery/findings.ts"
 import { recipientPartition, editPermitIdentity } from "../recipient/identity.ts"
-import {
-  residentFinishSelection,
-  residentFinishBindingValid,
-  residentResponseToken,
-  residentNoticeResponse
-} from "../advice-delivery/finish.ts"
+import { residentResponseToken, residentNoticeResponse } from "../advice-delivery/finish.ts"
 
 type Dependencies = {
   readonly lifetime: string
@@ -452,66 +449,12 @@ const residentHandleAdmit = Effect.fn("ResidentRuntime.handle.admit")(function* 
   return residentResponse(yield* deps.admit(request.observation, request.dispatch, true, true))
 })
 
-const residentSupportedCollection = (request: Extract<ResidentRequest, { operation: "collect" }>): boolean =>
-  request.composed === true && (request.mode !== "turn-end" || request.finish !== undefined)
-
 const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(function* (
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "collect" }>
 ) {
-  if (!residentSupportedCollection(request)) return residentResponse({ status: "unsupported" })
-  const prepareFinishGate = Effect.fn("ResidentRuntime.prepareFinishGate")(function* () {
-    const finish = request.finish
-    if (finish === undefined) return undefined
-    const group = recipientPartition(request.advicee)
-    if (!(yield* deps.residentComposedDelivery.ownsStop(group, finish.token)))
-      return residentResponse({ status: "empty" })
-    // Expired leases represent uncertain external output, not live writers.
-    yield* deps.residentPruneNoticeCooldowns(deps.residentNow())
-    const pruneFinishLeases = Effect.fn("ResidentRuntime.pruneFinishLeases")(function* () {
-      for (const { capability: advice, content } of yield* deps.residentLedger.advice.snapshots()) {
-        if (
-          recipientPartition(advice.observation.advicee) === group &&
-          content.delivery !== undefined &&
-          content.delivery.leaseUntil <= deps.residentNow()
-        )
-          yield* deps.residentReleaseAdviceLease(advice)
-      }
-    })
-    yield* pruneFinishLeases()
-    const round = yield* deps.residentLedger.rounds.get(group)
-    const totalUnfinished = yield* deps.residentCollectionWorkCount(request.root, request.advicee, true)
-    const ownUnfinished = round === undefined ? 0 : (yield* deps.residentLedger.rounds.policyWork(round)).unfinished()
-    const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished)
-    const gate = yield* deps.residentComposedDelivery.finishGate(
-      group,
-      finish.token,
-      extraUnfinished,
-      finish.deadlineReached
-    )
-    const discardFinishRound = Effect.fn("ResidentRuntime.discardFinishRound")(function* (
-      gate: Extract<Effect.Success<ReturnType<typeof deps.residentComposedDelivery.finishGate>>, { status: "cutoff" }>
-    ) {
-      if (round === undefined) return true
-      return yield* deps.residentDiscardUnfinishedWork(round, gate)
-    })
-    const interpretFinishGate = Effect.fn("ResidentRuntime.interpretFinishGate")(function* () {
-      if (gate === undefined) return residentResponse({ status: "empty" })
-      if (gate.status === "waiting") return residentResponse({ status: "pending" })
-      if (!(yield* discardFinishRound(gate))) {
-        yield* deps.residentAllowFinish(group, finish.token, "unavailable")
-        return residentResponse({ status: "empty" })
-      }
-      if (gate.limited) {
-        yield* deps.residentAllowFinish(group, finish.token, "limit")
-        return residentResponse({ status: "empty" })
-      }
-      return undefined
-    })
-    return yield* interpretFinishGate()
-  })
-  const gateResponse = yield* prepareFinishGate()
-  if (gateResponse !== undefined) return gateResponse
+  const gateResponse = yield* residentPrepareFinishCollection(deps, request)
+  if (gateResponse !== undefined) return residentResponse(gateResponse)
   const collected = yield* deps.residentCollect(
     request.root,
     request.advicee,
@@ -520,48 +463,8 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
     undefined,
     true
   )
-  const reserveFinishOutput = Effect.fn("ResidentRuntime.reserveFinishOutput")(function* () {
-    const finish = request.finish
-    if (finish === undefined) return undefined
-    const group = recipientPartition(request.advicee)
-    const round = yield* deps.residentLedger.rounds.get(group)
-    const selection = yield* residentFinishSelection(deps, collected)
-    const pendingFindings = (yield* deps.residentLedger.canonicalProjection()).pendingFindings
-    const bindingValid = residentFinishBindingValid(
-      deps,
-      collected,
-      round,
-      selection.count,
-      selection.advice,
-      pendingFindings
-    )
-    const output = yield* deps.residentComposedDelivery.decideFinishOutput(
-      group,
-      finish.token,
-      residentResponseToken(collected),
-      selection.selected,
-      deps.residentNow(),
-      residentNoticeResponse(collected),
-      true,
-      true,
-      bindingValid,
-      finish.deadlineReached
-    )
-    if (output.kind === "failed") {
-      if (collected.status === "advice") yield* deps.releaseDelivery(collected.token)
-      return residentResponse({ status: "empty" })
-    }
-    if (output.kind === "allowed") {
-      if (collected.status === "advice") yield* deps.releaseDelivery(collected.token)
-      yield* deps.residentAllowFinish(group, finish.token, output.reason)
-      if (collected.status === "advice") return residentResponse({ status: "empty" })
-    }
-    // Only findings can reach the hook. Operational failures remain in
-    // resident diagnostics and cannot reserve a continuation.
-    return residentResponse(collected)
-  })
-  const outputResponse = yield* reserveFinishOutput()
-  if (outputResponse !== undefined) return outputResponse
+  if (request.finish !== undefined)
+    return residentResponse(yield* residentReserveFinishOutput(deps, request, collected))
   return residentResponse(
     request.reportWorkState === true && collected.status === "empty"
       ? yield* deps.residentCollectionWorkState(request.root, request.advicee, true)

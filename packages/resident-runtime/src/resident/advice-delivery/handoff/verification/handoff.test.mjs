@@ -285,7 +285,8 @@ it("finish binding preserves selected order, physical round facts, first pending
 it("finish refusal releases only final advice and preserves allowed reasons; non-advice skips snapshots", () => {
   for (const advice of [false, true])
     for (const decision of [
-      { $: "RRefused" },
+      { $: "RFailed" },
+      { $: "RNotices" },
       { $: "RAllowed", reason: { $: "RNoAdvice" } },
       { $: "RAllowed", reason: { $: "RDeadline" } },
       { $: "RAllowed", reason: { $: "RUnavailable" } }
@@ -409,4 +410,141 @@ it("prepare commit keeps work before advice and retains original delivery indice
   assert.deepEqual(core.prepare_validation(false, { $: "PStaleValidation" }), { $: "PStaleResult" })
   assert.deepEqual(core.prepare_validation(false, { $: "PUnavailableValidation" }), { $: "PNoResult" })
   assert.deepEqual(core.prepare_validation(true, { $: "PCurrentValidation" }), { $: "PNoResult" })
+})
+
+it("provisional reservation keeps notices, releases failed advice without allow and preserves non-advice", () => {
+  for (const advice of [false, true])
+    for (const kind of ["RReserved", "RNotices", "RFailed", "RAllowed"]) {
+      let step = core.reserve_finish_initial(201, reconcileInput({ advice }))
+      const trace = []
+      while (step.$ === "RAwait") {
+        const held = step.request,
+          command = held.command
+        trace.push(command.$)
+        let response
+        switch (command.$) {
+          case "RRound":
+            response = { $: "RTruth", value: false }
+            break
+          case "RSnapshots":
+            response = { $: "RSnapshotValues", values: list([]) }
+            break
+          case "RPendingFindings":
+            response = { $: "RPendingValues", values: list([]) }
+            break
+          case "RDecide":
+            assert.equal(command.provisional, true)
+            assert.equal(command.can_write, true)
+            response = {
+              $: "RDecided",
+              decision: kind === "RAllowed" ? { $: kind, reason: { $: "RDeadline" } } : { $: kind }
+            }
+            break
+          case "RClock":
+          case "RRelease":
+          case "RAllow":
+            response = rAck
+            break
+          default:
+            assert.fail(command.$)
+        }
+        const reply = { $: "RReply", invocation: 201, id: held.id, response }
+        assert.deepEqual(core.reconcile_resume(step, { ...reply, id: held.id + 1 }), { $: "RRejected" })
+        step = core.reconcile_resume(step, reply)
+      }
+      assert.equal(trace.includes("RRevoke"), false)
+      assert.equal(trace.includes("RSnapshots"), advice)
+      assert.equal(trace.includes("RRelease"), advice && (kind === "RFailed" || kind === "RAllowed"))
+      assert.equal(trace.includes("RAllow"), kind === "RAllowed")
+      assert.equal(step.$, kind === "RFailed" || (advice && kind === "RAllowed") ? "REmpty" : "RFinal")
+      if (advice && kind === "RAllowed") assert.ok(trace.indexOf("RRelease") < trace.indexOf("RAllow"))
+    }
+})
+
+it("collection finish gate expires only matching deliveries and discards before allow", () => {
+  for (const round of [false, true])
+    for (const discarded of [false, true])
+      for (const limited of [false, true]) {
+        let step = core.collection_gate_initial(202, { $: "GInput", composed: true, turn_end: true, finish: true })
+        const trace = []
+        while (step.$ === "GAwait") {
+          const held = step.request,
+            command = held.command
+          trace.push(command)
+          let response
+          switch (command.$) {
+            case "GOwnStop":
+              response = { $: "GTruth", value: true }
+              break
+            case "GPruneNotices":
+            case "GRelease":
+            case "GAllow":
+              response = { $: "GAck" }
+              break
+            case "GAdvice":
+              response = {
+                $: "GLeases",
+                leases: list([
+                  { $: "GLease", handle: 0, partition: false, delivery: true },
+                  { $: "GLease", handle: 1, partition: true, delivery: false },
+                  { $: "GLease", handle: 2, partition: true, delivery: true },
+                  { $: "GLease", handle: 3, partition: true, delivery: true }
+                ])
+              }
+              break
+            case "GExpired":
+              response = { $: "GTruth", value: command.advice === 2 }
+              break
+            case "GRound":
+              response = { $: "GTruth", value: round }
+              break
+            case "GTotalUnfinished":
+              response = { $: "GCount", value: 3 }
+              break
+            case "GOwnUnfinished":
+              response = { $: "GCount", value: 5 }
+              break
+            case "GGate":
+              assert.equal(command.extra, round ? 0 : 3)
+              response = { $: "GCutoff", limited }
+              break
+            case "GDiscard":
+              response = { $: "GTruth", value: discarded }
+              break
+            default:
+              assert.fail(command.$)
+          }
+          const reply = { $: "GReply", invocation: 202, id: held.id, response }
+          assert.deepEqual(core.collection_gate_resume(step, { ...reply, id: held.id + 1 }), { $: "GRejected" })
+          assert.deepEqual(core.collection_gate_resume(step, { ...reply, invocation: 203 }), { $: "GRejected" })
+          step = core.collection_gate_resume(step, reply)
+        }
+        assert.deepEqual(
+          trace.filter((c) => c.$ === "GExpired").map((c) => c.advice),
+          [2, 3]
+        )
+        assert.deepEqual(
+          trace.filter((c) => c.$ === "GRelease").map((c) => c.advice),
+          [2]
+        )
+        const allow = trace.find((c) => c.$ === "GAllow")
+        const refused = round && !discarded
+        assert.deepEqual(step, { $: "GDone", result: { $: refused || limited ? "GEmpty" : "GCollect" } })
+        assert.equal(
+          trace.some((c) => c.$ === "GDiscard"),
+          round
+        )
+        if (refused || limited) assert.equal(allow.reason.$, refused ? "GUnavailable" : "GLimit")
+        else assert.equal(allow, undefined)
+        if (round && allow)
+          assert.ok(trace.findIndex((c) => c.$ === "GDiscard") < trace.findIndex((c) => c.$ === "GAllow"))
+      }
+  assert.deepEqual(
+    core.collection_gate_initial(202, { $: "GInput", composed: false, turn_end: false, finish: false }),
+    { $: "GDone", result: { $: "GUnsupported" } }
+  )
+  assert.deepEqual(core.collection_gate_initial(202, { $: "GInput", composed: true, turn_end: false, finish: false }), {
+    $: "GDone",
+    result: { $: "GCollect" }
+  })
 })

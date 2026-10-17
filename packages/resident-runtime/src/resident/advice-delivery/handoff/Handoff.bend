@@ -1325,14 +1325,15 @@ type RReason is Data:
 type RDecision is Data:
   RReserved{}
   RAllowed{reason: RReason}
-  RRefused{}
+  RFailed{}
+  RNotices{}
 type RCommand is Data:
   RRevoke{}
   RRound{}
   RSnapshots{}
   RPendingFindings{}
   RClock{}
-  RDecide{selected: List<&2, Nat>, binding: Bool, can_write: Bool}
+  RDecide{selected: List<&2, Nat>, binding: Bool, can_write: Bool, provisional: Bool}
   RRelease{provisional: Bool}
   RAllow{reason: RReason}
 type RResponse is Data:
@@ -1343,16 +1344,25 @@ type RResponse is Data:
   RDecided{decision: RDecision}
 type RSelection is Data:
   RSelection{selected: List<&2, Nat>, count: Nat, valid: Bool}
+type RMode is Data:
+  RReconcile{}
+  RReservation{}
+type RFlow is Data:
+  RFlow{mode: RMode, input: RInput}
+type RNext is Data:
+  RReturnFinal{}
+  RReturnEmpty{}
 type RPhase is Data:
   RRevoked{input: RInput}
   RReleasedProvisional{}
-  RRoundRead{input: RInput}
-  RSnapshotsRead{input: RInput, round: Bool}
-  RPendingRead{input: RInput, round: Bool, snapshots: List<&2, RSnapshot>}
-  RClockRead{input: RInput, selection: RSelection}
-  ROutputDecided{advice: Bool}
-  RReleasedFinal{reason: RReason}
-  RAllowedFinish{}
+  RRoundRead{flow: RFlow}
+  RSnapshotsRead{flow: RFlow, round: Bool}
+  RPendingRead{flow: RFlow, round: Bool, snapshots: List<&2, RSnapshot>}
+  RClockRead{flow: RFlow, selection: RSelection}
+  ROutputDecided{mode: RMode, advice: Bool}
+  RReleasedFinal{reason: RReason, result: RNext}
+  RFailedReleased{}
+  RAllowedFinish{result: RNext}
 type RRequest is Data:
   RRequest{invocation: Nat, id: Nat, command: RCommand}
 type RReply is Data:
@@ -1410,38 +1420,101 @@ def r_binding(+advice: Bool, +findings: Nat, +round: Bool, +count: Nat, +valid: 
     Bool.or(Nat.is_eq(findings, 0n), Bool.and(round, Bool.and(Nat.is_eq(findings, count), valid)))
   )
 
+def r_result(+result: RNext) -> RStep:
+  match result:
+    case RReturnFinal{}: RFinal{}
+    case RReturnEmpty{}: REmpty{}
+
+def r_provisional(+mode: RMode) -> Bool:
+  match mode:
+    case RReservation{}: True{}
+    case RReconcile{}: False{}
+
+def r_write(+mode: RMode, +advice: Bool, +can_write: Bool, +same_token: Bool) -> Bool:
+  match mode:
+    case RReservation{}: True{}
+    case RReconcile{}: Bool.and(can_write, Bool.and(advice, same_token))
+
 def r_read_snapshots(
   +advice: Bool,
   +invocation: Nat,
   +next: Nat,
-  +input: RInput,
+  +flow: RFlow,
   +round: Bool
 ) -> RStep:
   match advice:
-    case True{}: r_issue(invocation, next, RSnapshotsRead{input, round}, RSnapshots{})
-    case False{}: r_issue(invocation, next, RPendingRead{input, round, []}, RPendingFindings{})
+    case True{}: r_issue(invocation, next, RSnapshotsRead{flow, round}, RSnapshots{})
+    case False{}: r_issue(invocation, next, RPendingRead{flow, round, []}, RPendingFindings{})
 
 def r_clock(
   +invocation: Nat,
   +next: Nat,
-  +input: RInput,
+  +flow: RFlow,
   +round: Bool,
   +selection: RSelection
 ) -> RStep:
-  match input selection:
-    case RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token} RSelection{
+  match flow selection:
+    case RFlow{+mode, RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token}} RSelection{
       +selected,
       +count,
       +valid
     }:
-      r_issue(invocation, next,
-        RClockRead{RInput{finish, provisional, advice, findings, can_write, same_token},
-          RSelection{selected, count, r_binding(advice, findings, round, count, valid)}}, RClock{})
+      r_issue(
+        invocation,
+        next,
+        RClockRead{
+          RFlow{mode, RInput{finish, provisional, advice, findings, can_write, same_token}},
+          RSelection{selected, count, r_binding(advice, findings, round, count, valid)}
+        },
+        RClock{}
+      )
 
-def r_allow_after_release(+advice: Bool, +invocation: Nat, +next: Nat, +reason: RReason) -> RStep:
+def r_allowed_result(+mode: RMode, +advice: Bool) -> RNext:
+  match mode advice:
+    case RReservation{} False{}: RReturnFinal{}
+    case _ _: RReturnEmpty{}
+
+def r_allow_after_release(
+  +advice: Bool,
+  +invocation: Nat,
+  +next: Nat,
+  +reason: RReason,
+  +result: RNext
+) -> RStep:
   match advice:
-    case True{}: r_issue(invocation, next, RReleasedFinal{reason}, RRelease{False{}})
-    case False{}: r_issue(invocation, next, RAllowedFinish{}, RAllow{reason})
+    case True{}: r_issue(invocation, next, RReleasedFinal{reason, result}, RRelease{False{}})
+    case False{}: r_issue(invocation, next, RAllowedFinish{result}, RAllow{reason})
+
+def r_failed_reservation(+advice: Bool, +invocation: Nat, +next: Nat) -> RStep:
+  match advice:
+    case True{}: r_issue(invocation, next, RFailedReleased{}, RRelease{False{}})
+    case False{}: REmpty{}
+
+def r_output(
+  +mode: RMode,
+  +advice: Bool,
+  +decision: RDecision,
+  +invocation: Nat,
+  +next: Nat
+) -> RStep:
+  match mode decision:
+    case _ RReserved{}: RFinal{}
+    case RReservation{} RNotices{}: RFinal{}
+    case RReservation{} RFailed{}: r_failed_reservation(advice, invocation, next)
+    case +current RAllowed{+reason}: r_allow_after_release(
+      advice,
+      invocation,
+      next,
+      reason,
+      r_allowed_result(current, advice)
+    )
+    case RReconcile{} _: r_allow_after_release(
+      advice,
+      invocation,
+      next,
+      RUnavailable{},
+      RReturnEmpty{}
+    )
 
 def r_begin(+needed: Bool, +invocation: Nat, +input: RInput) -> RStep:
   match needed:
@@ -1457,9 +1530,19 @@ def reconcile_initial(+invocation: Nat, +input: RInput) -> RStep:
         RInput{finish, provisional, advice, findings, can_write, same_token}
       )
 
+def reserve_finish_initial(+invocation: Nat, +input: RInput) -> RStep:
+  match input:
+    case RInput{False{}, _, _, _, _, _}: RFinal{}
+    case +current: r_issue(invocation, 1n, RRoundRead{RFlow{RReservation{}, current}}, RRound{})
+
 def r_phase(+invocation: Nat, +next: Nat, +phase: RPhase, +response: RResponse) -> RStep:
   match phase response:
-    case RRevoked{+input} RTruth{True{}}: r_issue(invocation, next, RRoundRead{input}, RRound{})
+    case RRevoked{+input} RTruth{True{}}: r_issue(
+      invocation,
+      next,
+      RRoundRead{RFlow{RReconcile{}, input}},
+      RRound{}
+    )
     case RRevoked{_} RTruth{False{}}: r_issue(
       invocation,
       next,
@@ -1469,48 +1552,53 @@ def r_phase(+invocation: Nat, +next: Nat, +phase: RPhase, +response: RResponse) 
     case RReleasedProvisional{} RAck{}: r_issue(
       invocation,
       next,
-      RAllowedFinish{},
+      RAllowedFinish{RReturnEmpty{}},
       RAllow{RUnavailable{}}
     )
-    case RRoundRead{RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token}} RTruth{
-      +round
-    }:
+    case RRoundRead{
+      RFlow{+mode, RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token}}
+    } RTruth{+round}:
       r_read_snapshots(
         advice,
         invocation,
         next,
-        RInput{finish, provisional, advice, findings, can_write, same_token},
+        RFlow{mode, RInput{finish, provisional, advice, findings, can_write, same_token}},
         round
       )
-    case RSnapshotsRead{+input, +round} RSnapshotValues{+snapshots}:
-      r_issue(invocation, next, RPendingRead{input, round, snapshots}, RPendingFindings{})
-    case RPendingRead{+input, +round, +snapshots} RPendingValues{+pending}:
-      r_clock(invocation, next, input, round, r_select(snapshots, pending))
+    case RSnapshotsRead{+flow, +round} RSnapshotValues{+snapshots}:
+      r_issue(invocation, next, RPendingRead{flow, round, snapshots}, RPendingFindings{})
+    case RPendingRead{+flow, +round, +snapshots} RPendingValues{+pending}: r_clock(
+      invocation,
+      next,
+      flow,
+      round,
+      r_select(snapshots, pending)
+    )
     case RClockRead{
-      RInput{_, _, +advice, _, +can_write, +same_token},
+      RFlow{+mode, RInput{_, _, +advice, _, +can_write, +same_token}},
       RSelection{+selected, _, +valid}
     } RAck{}:
       r_issue(
         invocation,
         next,
-        ROutputDecided{advice},
-        RDecide{selected, valid, Bool.and(can_write, Bool.and(advice, same_token))}
+        ROutputDecided{mode, advice},
+        RDecide{selected, valid, r_write(mode, advice, can_write, same_token), r_provisional(mode)}
       )
-    case ROutputDecided{_} RDecided{RReserved{}}: RFinal{}
-    case ROutputDecided{+advice} RDecided{RAllowed{+reason}}: r_allow_after_release(
+    case ROutputDecided{+mode, +advice} RDecided{+decision}: r_output(
+      mode,
       advice,
+      decision,
+      invocation,
+      next
+    )
+    case RReleasedFinal{+reason, +result} RAck{}: r_issue(
       invocation,
       next,
-      reason
+      RAllowedFinish{result},
+      RAllow{reason}
     )
-    case ROutputDecided{+advice} RDecided{RRefused{}}: r_allow_after_release(
-      advice,
-      invocation,
-      next,
-      RUnavailable{}
-    )
-    case RReleasedFinal{+reason} RAck{}: r_issue(invocation, next, RAllowedFinish{}, RAllow{reason})
-    case RAllowedFinish{} RAck{}: REmpty{}
+    case RFailedReleased{} RAck{}: REmpty{}
+    case RAllowedFinish{+result} RAck{}: r_result(result)
     case _ _: RRejected{}
 
 def r_accept(
@@ -2039,3 +2127,171 @@ def prepare_commit_resume(+step: KStep, +reply: KReply) -> KStep:
         response
       )
     case _ _: KRejected{}
+
+# Pre-collection finish gate. Expiry observes a separate clock for every
+# matching delivery; discard must precede either allow reason.
+type GInput is Data:
+  GInput{composed: Bool, turn_end: Bool, finish: Bool}
+type GLease is Data:
+  GLease{handle: Nat, partition: Bool, delivery: Bool}
+type GReason is Data:
+  GUnavailable{}
+  GLimit{}
+type GCommand is Data:
+  GOwnStop{}
+  GPruneNotices{}
+  GAdvice{}
+  GExpired{advice: Nat}
+  GRelease{advice: Nat}
+  GRound{}
+  GTotalUnfinished{}
+  GOwnUnfinished{}
+  GGate{extra: Nat}
+  GDiscard{}
+  GAllow{reason: GReason}
+type GResponse is Data:
+  GAck{}
+  GTruth{value: Bool}
+  GLeases{leases: List<&2, GLease>}
+  GCount{value: Nat}
+  GNoGate{}
+  GWaiting{}
+  GCutoff{limited: Bool}
+type GResult is Data:
+  GCollect{}
+  GEmpty{}
+  GPending{}
+  GUnsupported{}
+type GPhase is Data:
+  GStopOwned{}
+  GNoticesPruned{}
+  GAdviceRead{}
+  GExpiryRead{advice: Nat, remaining: List<&2, Nat>}
+  GLeaseReleased{remaining: List<&2, Nat>}
+  GRoundRead{}
+  GTotalRead{round: Bool}
+  GOwnRead{total: Nat}
+  GGateRead{round: Bool}
+  GDiscarded{limited: Bool}
+  GAllowed{}
+type GRequest is Data:
+  GRequest{invocation: Nat, id: Nat, command: GCommand}
+type GReply is Data:
+  GReply{invocation: Nat, id: Nat, response: GResponse}
+type GStep is Data:
+  GAwait{invocation: Nat, id: Nat, phase: GPhase, request: GRequest}
+  GDone{result: GResult}
+  GRejected{}
+
+def g_issue(+invocation: Nat, +id: Nat, +phase: GPhase, +command: GCommand) -> GStep:
+  GAwait{invocation, id, phase, GRequest{invocation, id, command}}
+
+def g_leases(+remaining: List<&2, Nat>, +invocation: Nat, +next: Nat) -> GStep:
+  match remaining:
+    case Nil{}: g_issue(invocation, next, GRoundRead{}, GRound{})
+    case +advice <> +rest: g_issue(invocation, next, GExpiryRead{advice, rest}, GExpired{advice})
+
+def g_matching(+leases: List<&2, GLease>) -> List<&2, Nat>:
+  match leases:
+    case Nil{}: []
+    case GLease{+handle, +partition, +delivery} <> +rest:
+      p_keep_handle(Bool.and(partition, delivery), handle, g_matching(rest))
+
+def g_limited(+limited: Bool, +invocation: Nat, +next: Nat) -> GStep:
+  match limited:
+    case False{}: GDone{GCollect{}}
+    case True{}: g_issue(invocation, next, GAllowed{}, GAllow{GLimit{}})
+
+def g_discard(+round: Bool, +limited: Bool, +invocation: Nat, +next: Nat) -> GStep:
+  match round:
+    case False{}: g_limited(limited, invocation, next)
+    case True{}: g_issue(invocation, next, GDiscarded{limited}, GDiscard{})
+
+def g_total(+round: Bool, +total: Nat, +invocation: Nat, +next: Nat) -> GStep:
+  match round:
+    case False{}: g_issue(invocation, next, GGateRead{False{}}, GGate{total})
+    case True{}: g_issue(invocation, next, GOwnRead{total}, GOwnUnfinished{})
+
+def g_supported(+supported: Bool, +finish: Bool, +invocation: Nat) -> GStep:
+  match supported finish:
+    case False{} _: GDone{GUnsupported{}}
+    case True{} False{}: GDone{GCollect{}}
+    case True{} True{}: g_issue(invocation, 1n, GStopOwned{}, GOwnStop{})
+
+def collection_gate_initial(+invocation: Nat, +input: GInput) -> GStep:
+  match input:
+    case GInput{+composed, +turn_end, +finish}:
+      g_supported(Bool.and(composed, Bool.or(Bool.not(turn_end), finish)), finish, invocation)
+
+def g_phase(+invocation: Nat, +next: Nat, +phase: GPhase, +response: GResponse) -> GStep:
+  match phase response:
+    case GStopOwned{} GTruth{False{}}: GDone{GEmpty{}}
+    case GStopOwned{} GTruth{True{}}: g_issue(invocation, next, GNoticesPruned{}, GPruneNotices{})
+    case GNoticesPruned{} GAck{}: g_issue(invocation, next, GAdviceRead{}, GAdvice{})
+    case GAdviceRead{} GLeases{+leases}: g_leases(g_matching(leases), invocation, next)
+    case GExpiryRead{_, +remaining} GTruth{False{}}: g_leases(remaining, invocation, next)
+    case GExpiryRead{+advice, +remaining} GTruth{True{}}: g_issue(
+      invocation,
+      next,
+      GLeaseReleased{remaining},
+      GRelease{advice}
+    )
+    case GLeaseReleased{+remaining} GAck{}: g_leases(remaining, invocation, next)
+    case GRoundRead{} GTruth{+round}: g_issue(
+      invocation,
+      next,
+      GTotalRead{round},
+      GTotalUnfinished{}
+    )
+    case GTotalRead{+round} GCount{+total}: g_total(round, total, invocation, next)
+    case GOwnRead{+total} GCount{+own}: g_issue(
+      invocation,
+      next,
+      GGateRead{True{}},
+      GGate{Nat.sub(total, own)}
+    )
+    case GGateRead{_} GNoGate{}: GDone{GEmpty{}}
+    case GGateRead{_} GWaiting{}: GDone{GPending{}}
+    case GGateRead{+round} GCutoff{+limited}: g_discard(round, limited, invocation, next)
+    case GDiscarded{_} GTruth{False{}}: g_issue(
+      invocation,
+      next,
+      GAllowed{},
+      GAllow{GUnavailable{}}
+    )
+    case GDiscarded{+limited} GTruth{True{}}: g_limited(limited, invocation, next)
+    case GAllowed{} GAck{}: GDone{GEmpty{}}
+    case _ _: GRejected{}
+
+def g_accept(
+  +valid: Bool,
+  +invocation: Nat,
+  +id: Nat,
+  +phase: GPhase,
+  +response: GResponse
+) -> GStep:
+  match valid:
+    case False{}: GRejected{}
+    case True{}: g_phase(invocation, Nat.add(id, 1n), phase, response)
+
+def collection_gate_resume(+step: GStep, +reply: GReply) -> GStep:
+  match step reply:
+    case GAwait{+invocation, +id, +phase, GRequest{+owner, +request, _}} GReply{
+      +other,
+      +received,
+      +response
+    }:
+      g_accept(
+        Bool.and(
+          Nat.is_eq(invocation, other),
+          Bool.and(
+            Nat.is_eq(owner, other),
+            Bool.and(Nat.is_eq(id, received), Nat.is_eq(request, received))
+          )
+        ),
+        invocation,
+        id,
+        phase,
+        response
+      )
+    case _ _: GRejected{}

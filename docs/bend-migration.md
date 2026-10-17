@@ -37,7 +37,7 @@ or changing its executor does not reset this limit.
 
 Default migration Bend proof/check/emission deadline: ten seconds. Owner exception
 2026-10-16: complete attachment transaction proof may take 20 seconds; measured
-checker+kernel PASS in 11.35s wall/11.04s CPU. All other limits stay unchanged.
+checker PASS11.35s; latest20s timeout under load23/12. Other limits unchanged.
 Historical ten-second timeouts remain failures under their original deadline.
 
 ## Preserve the candidate on the remote branch
@@ -242,16 +242,16 @@ Preserve both canWrite observations, local/IPC differences and all async boundar
 Current path:
 1. Full Collection loop flow calls compiled Bend: prelude, eligibility/order,
    both passes and final handoff loops are deleted from TS; native bridge grows TS.
-   Owner23/native happy/64-item PASS; fast41 and23 receipts PASS.
+   Owner23/native64-item PASS; fast41/23 receipts PASS.
    Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
    Prior aborted300s; saturated30s timeout→18.86s PASS; 30s timeout→41.73s PASS
    (90s fixture, owner≤3×).
 2. Custody PASS1416 across Await/launch/registration faults; cancel precedes cleanup,
-   successors survive old cleanup. Wire root pre-finish/prune/reservation.
+   successors survive old cleanup. Root pre-finish/prune/reservation now run Bend.
    Empty terminal is partial: empty collect needs a NoDeliverySelection receipt/no lease.
-3. Prepare/finalize/reconcileFinish run Bend;33 protocol/10 cache tests PASS.
-   185 public/5 files PASS. Use request-local ResponseContext/local scope; compose
-   F→decode→canWrite→R in one Finalize child; prove trace/reply fencing/lease/finish.
+3. Prepare/finalize/reconcileFinish run Bend;35 protocol/10 cache tests PASS.
+   Prior185 public PASS;360s IPC aborted; tail18+other89 PASS. Compose
+   F→decode→canWrite→R in one child; fence native effects before IO.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
    and output regressions plus whole-path performance. Unit not accepted.
 

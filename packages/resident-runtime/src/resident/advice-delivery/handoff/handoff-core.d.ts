@@ -158,10 +158,18 @@ export type RSnapshot = {
 }
 export type RPending = { readonly $: "RPending"; readonly operation: number; readonly count: number }
 export type RReason = { readonly $: "RNoAdvice" | "RDeadline" | "RUnavailable" }
-export type RDecision = { readonly $: "RReserved" | "RRefused" } | { readonly $: "RAllowed"; readonly reason: RReason }
+export type RDecision =
+  | { readonly $: "RReserved" | "RFailed" | "RNotices" }
+  | { readonly $: "RAllowed"; readonly reason: RReason }
 export type RCommand =
   | { readonly $: "RRevoke" | "RRound" | "RSnapshots" | "RPendingFindings" | "RClock" }
-  | { readonly $: "RDecide"; readonly selected: List<number>; readonly binding: boolean; readonly can_write: boolean }
+  | {
+      readonly $: "RDecide"
+      readonly selected: List<number>
+      readonly binding: boolean
+      readonly can_write: boolean
+      readonly provisional: boolean
+    }
   | { readonly $: "RRelease"; readonly provisional: boolean }
   | { readonly $: "RAllow"; readonly reason: RReason }
 export type RResponse =
@@ -271,7 +279,63 @@ export type KStep =
   | { readonly $: "KDone"; readonly accepted: boolean }
   | { readonly $: "KRejected" }
 
+export type GInput = {
+  readonly $: "GInput"
+  readonly composed: boolean
+  readonly turn_end: boolean
+  readonly finish: boolean
+}
+export type GLease = {
+  readonly $: "GLease"
+  readonly handle: number
+  readonly partition: boolean
+  readonly delivery: boolean
+}
+export type GCommand =
+  | {
+      readonly $:
+        | "GOwnStop"
+        | "GPruneNotices"
+        | "GAdvice"
+        | "GRound"
+        | "GTotalUnfinished"
+        | "GOwnUnfinished"
+        | "GDiscard"
+    }
+  | { readonly $: "GExpired" | "GRelease"; readonly advice: number }
+  | { readonly $: "GGate"; readonly extra: number }
+  | { readonly $: "GAllow"; readonly reason: { readonly $: "GUnavailable" | "GLimit" } }
+export type GResponse =
+  | { readonly $: "GAck" | "GNoGate" | "GWaiting" }
+  | { readonly $: "GTruth"; readonly value: boolean }
+  | { readonly $: "GLeases"; readonly leases: List<GLease> }
+  | { readonly $: "GCount"; readonly value: number }
+  | { readonly $: "GCutoff"; readonly limited: boolean }
+export type GReply = {
+  readonly $: "GReply"
+  readonly invocation: number
+  readonly id: number
+  readonly response: GResponse
+}
+export type GStep =
+  | {
+      readonly $: "GAwait"
+      readonly invocation: number
+      readonly id: number
+      readonly phase: unknown
+      readonly request: {
+        readonly $: "GRequest"
+        readonly invocation: number
+        readonly id: number
+        readonly command: GCommand
+      }
+    }
+  | { readonly $: "GDone"; readonly result: { readonly $: "GCollect" | "GEmpty" | "GPending" | "GUnsupported" } }
+  | { readonly $: "GRejected" }
+
 declare const core: {
+  collection_gate_initial(invocation: number, input: GInput): GStep
+  collection_gate_resume(step: GStep, reply: GReply): GStep
   prepare_initial(invocation: number, advice: boolean): PStep
   prepare_resume(step: PStep, reply: PReply): PStep
   prepare_member(frame: PFrame, identity: number): Maybe<PItem>
@@ -282,6 +346,7 @@ declare const core: {
   prepare_commit_initial(invocation: number, work: boolean): KStep
   prepare_commit_resume(step: KStep, reply: KReply): KStep
 
+  reserve_finish_initial(invocation: number, input: RInput): RStep
   reconcile_initial(invocation: number, input: RInput): RStep
   reconcile_resume(step: RStep, reply: RReply): RStep
   finalize_initial(invocation: number, input: FInput): FStep

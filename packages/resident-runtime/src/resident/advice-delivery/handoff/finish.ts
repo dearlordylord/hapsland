@@ -4,7 +4,15 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 import { recipientPartition } from "../../recipient/identity.ts"
 import type { RoundWork } from "../../state/round-records.ts"
 import { type Dependencies } from "./context.ts"
-import core, { type RCommand, type RResponse, type RReason, type RSnapshot, type RPending } from "./handoff-core.js"
+import core, {
+  type RCommand,
+  type RResponse,
+  type RReason,
+  type RSnapshot,
+  type RPending,
+  type RInput,
+  type RStep
+} from "./handoff-core.js"
 
 const finishReason = (reason: RReason): "deadline" | "unavailable" | "no-advice" => {
   switch (reason.$) {
@@ -17,18 +25,20 @@ const finishReason = (reason: RReason): "deadline" | "unavailable" | "no-advice"
   }
 }
 
-// Native capabilities for the ordered reconcile cursor. Bend selects snapshots,
-// checks binding/count/write facts and controls every release/allow branch.
-export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconcileFinishHandoff")(function* (
-  deps: Pick<
-    Dependencies,
-    "releaseDelivery" | "residentAllowFinish" | "residentComposedDelivery" | "residentLedger" | "residentNow"
-  >,
+type FinishDependencies = Pick<
+  Dependencies,
+  "releaseDelivery" | "residentAllowFinish" | "residentComposedDelivery" | "residentLedger" | "residentNow"
+>
+
+// One native capability session serves reservation and reconciliation. Bend
+// owns selection, binding, branch order and the different decision outcomes.
+export const makeResidentFinishSession = (
+  deps: FinishDependencies,
   request: ResidentRequest,
   provisional: ResidentResponse,
   final: ResidentResponse,
   canWrite: boolean
-): Effect.fn.Return<ResidentResponse> {
+) => {
   let round: RoundWork | undefined
   let snapshots: Effect.Success<ReturnType<typeof deps.residentLedger.advice.snapshots>> = []
   let now: number | undefined
@@ -111,7 +121,7 @@ export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconci
           selected,
           now,
           final.status === "advice" && final.findingCount === 0,
-          false,
+          command.provisional,
           command.can_write,
           command.binding,
           collect.finish.deadlineReached
@@ -120,8 +130,9 @@ export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconci
           case "reserved":
             return { $: "RDecided", decision: { $: "RReserved" } }
           case "notices":
+            return { $: "RDecided", decision: { $: "RNotices" } }
           case "failed":
-            return { $: "RDecided", decision: { $: "RRefused" } }
+            return { $: "RDecided", decision: { $: "RFailed" } }
           case "allowed":
             return {
               $: "RDecided",
@@ -151,7 +162,7 @@ export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconci
         return { $: "RAck" }
     }
   })
-  let step = core.reconcile_initial(1, {
+  const input: RInput = {
     $: "RInput",
     finish: request.operation === "collect" && request.finish !== undefined,
     provisional_findings: provisional.status === "advice" && provisional.findingCount > 0,
@@ -159,22 +170,58 @@ export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconci
     findings: final.status === "advice" ? final.findingCount : 0,
     can_write: canWrite,
     same_token: final.status === "advice" && provisional.status === "advice" && final.token === provisional.token
-  })
+  }
+  return {
+    input,
+    perform: native,
+    decode: (step: RStep): ResidentResponse => {
+      switch (step.$) {
+        case "RFinal":
+          return final
+        case "REmpty":
+          return { status: "empty" }
+        case "RRejected":
+          throw new Error("Bend finish refused native reply")
+        case "RAwait":
+          throw new Error("Bend finish is not terminal")
+      }
+    }
+  }
+}
+
+const driveFinish = Effect.fn("ResidentRuntime.finishCursor")(function* (
+  session: ReturnType<typeof makeResidentFinishSession>,
+  initial: RStep
+) {
+  let step = initial
   while (step.$ === "RAwait") {
     const held = step.request
     step = core.reconcile_resume(step, {
       $: "RReply",
       invocation: held.invocation,
       id: held.id,
-      response: yield* native(held.command)
+      response: yield* session.perform(held.command)
     })
   }
-  switch (step.$) {
-    case "RFinal":
-      return final
-    case "REmpty":
-      return { status: "empty" }
-    case "RRejected":
-      throw new Error("Bend finish reconciliation refused native reply")
-  }
+  return session.decode(step)
+})
+
+export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconcileFinishHandoff")(function* (
+  deps: FinishDependencies,
+  request: ResidentRequest,
+  provisional: ResidentResponse,
+  final: ResidentResponse,
+  canWrite: boolean
+) {
+  const session = makeResidentFinishSession(deps, request, provisional, final, canWrite)
+  return yield* driveFinish(session, core.reconcile_initial(1, session.input))
 }, Effect.uninterruptible)
+
+export const residentReserveFinishOutput = Effect.fn("ResidentRuntime.reserveFinishOutput")(function* (
+  deps: FinishDependencies,
+  request: ResidentRequest,
+  collected: ResidentResponse
+) {
+  const session = makeResidentFinishSession(deps, request, collected, collected, true)
+  return yield* driveFinish(session, core.reserve_finish_initial(1, session.input))
+})
