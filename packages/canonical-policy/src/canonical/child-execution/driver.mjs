@@ -1119,6 +1119,27 @@ export function createChildExecutionDriver({
         throw error
       }
     },
+    /** @param {number} origin @returns {number} */
+    allocateEvaluationCleanupInvocation(origin) {
+      const invocation = currentCustody().next_invocation
+      if (!Number.isSafeInteger(invocation) || invocation < 1)
+        throw new RangeError("Invocation exceeds exact native ID range")
+      const inputId = save(invocation, { kind: "input", value: undefined })
+      try {
+        apply(invoke("launch_evaluation_cleanup", origin, inputId))
+        return invocation
+      } catch (error) {
+        const child = owner.find(invocation, currentCustody().children)
+        if (child.$ === "Some") {
+          try {
+            driver.constructionFailed(invocation, { inputHandle: inputId })
+          } catch (cleanup) {
+            throw nativeFailureAggregate([error, cleanup], "Evaluation cleanup publication failed", { cause: error })
+          }
+        } else resources.delete(inputId)
+        throw error
+      }
+    },
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @param {DeliveryCustody["cleanup"]} cleanup @returns {number} */
     allocateCollectionInvocation(context, cleanup) {
       const invocation = currentCustody().next_invocation

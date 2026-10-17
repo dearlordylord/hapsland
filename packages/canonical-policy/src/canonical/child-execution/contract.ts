@@ -9,10 +9,12 @@ export type Method =
   | "launch_settings"
   | "launch_freshness"
   | "launch_collection"
+  | "launch_evaluation_cleanup"
   | "launch_evaluation"
   | "launch_evaluation_dispatch"
   | "evaluation_start_request"
   | "install_evaluation_provider"
+  | "complete_evaluation"
   | "complete_evaluation_dispatch"
   | "claim_delivery"
   | "complete_delivery"
@@ -53,6 +55,7 @@ export type Installation =
   | { readonly method: "install_after_source"; readonly permission: Owner.AfterSourcePermission }
   | { readonly method: "install_advice"; readonly permission: Owner.AdvicePermission }
 export type TerminalMethod =
+  | "complete_evaluation"
   | "terminal"
   | "terminal_source_failed"
   | "terminal_preparation_failed"

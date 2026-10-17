@@ -233,21 +233,21 @@ Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
 registry and advice tail; add evaluation scope and a nested Dispatch child.
 Native sessions retain jobs, credentials, results and original Effect Causes.
 
-Candidate: whole evaluation Bend cursor now composes admission, authorization,
+Candidate: whole evaluation Bend cursor composes admission, authorization,
 provider return, settlement, retention and recovery/finalization. Private ABI
-exposes commands and opaque continuations; the normal build emits it and the
-ABI gate checks its declaration. Standalone/packaged consumers pass1421 tapes,
-46249 prefixes and3 typed whole-flow mutants, including two-fault recovery and
-finalization. These are finite cursor checks, not native cleanup or universal proofs.
+exposes commands and opaque continuations, including cleanup entry; normal build
+and ABI gate cover it. Source/packaged consumers pass1719 tapes,49131 prefixes
+and3 typed mutants, including cleanup faults and two-fault recovery/finalization.
+Finite evidence does not establish universal proofs or whole production cleanup.
 
 Canonical binds evaluation to Reviewing and atomically publishes readiness/
-settlement with exact native operation/reservation metadata. Dispatch is bound
-to the original provider await; no later await may invoke a skipped callback.
-Native authorization binds credential/root IO to atomic readiness. Packaged Dispatch
-uses the same resident driver/registry. Six native cases cover a parked parent,
-one start, interruption, credential refusal, observer Cause, duplicate callback,
-controlled physical provider and input refusal, followed by exact settlement.
-Shared Preparation52/delivery9 pass; build46/46 and fast44/10 pass.
+settlement with exact native operation/reservation metadata. Native authorization
+binds credential/root IO. Packaged Dispatch uses the same driver/registry; seven
+native cases cover the exact parent await, input refusal, controlled provider,
+interruption during pending analytics, original Cause and exact settlement.
+Independent cleanup scope permits denial/accounting only; six compiled native
+cases/73 commands cover all request phases and retry after committed settlement.
+Owner60941, native custody24, Preparation52/delivery9, build46/46 and fast44/9 pass.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
@@ -255,9 +255,9 @@ Concrete remaining obstacles:
    Preserve beforeDispatch after input validation and inside the total-call
    deadline: credential reread → budget → Canonical start → observation.
    Production root adoption and work-revocation cleanup remain open.
-2. Drain explicit scope cancellation and provider defects through physical
-   settlement with only exact interrupt/settle/observe/release authority. Preserve
-   Cause; no preparing-scope or unconditional-liveness fallback.
+2. Invoke packaged recovery from the native registry after physical provider
+   drain; retain/retry cleanup obligations and original Cause. Owner/native
+   accounting is checked; registry-driven cancellation remains unconnected.
 3. Connect the whole evaluation cursor to server and cached/fresh retention;
    transfer finding custody once to existing advice tail, preserve joining/cutoff.
    Delete TS orchestration in workflow/authorization/request/settlement/retention;

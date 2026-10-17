@@ -32,6 +32,7 @@ export type EvaluationPermission =
 export type EvaluationFacts = { readonly $: "EvaluationFacts"; readonly root_valid: boolean; readonly configuration_valid: boolean; readonly credential_ready: boolean; readonly selected: boolean; readonly current_work: boolean; readonly physical_available: boolean }
 
 export type Scope =
+  | { readonly $: "EvaluationCleanupScope"; readonly operation: number; readonly origin: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
   | { readonly $: "EvaluationDispatchScope"; readonly operation: number; readonly context: EvaluationContext; readonly request: number }
   | { readonly $: "EvaluationScope"; readonly operation: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
   | { readonly $: "DeliveryScope"; readonly operation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
@@ -113,6 +114,8 @@ export type Refusal =
   | { readonly $: "CanonicalRejected"; readonly reason: OwnerTransport<Canonical_Reason> }
 
 export type ResidentEvent =
+  | { readonly $: "LaunchEvaluationCleanupEvent"; readonly origin: number; readonly input_handle: number }
+  | { readonly $: "CompleteEvaluationEvent"; readonly invocation: number; readonly generation: number; readonly result_handle: number }
   | { readonly $: "InstallEvaluationProviderEvent"; readonly invocation: number; readonly generation: number; readonly handle: number; readonly request: number }
   | { readonly $: "LaunchEvaluationDispatchEvent"; readonly parent: Parent; readonly input_handle: number }
   | { readonly $: "EvaluationStartRequestEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number }
@@ -172,6 +175,8 @@ export interface CanonicalResolverOwner {
   launch_evaluation_dispatch(state: State, parent: Parent, input_handle: number): Step
   evaluation_start_request(state: State, invocation: number, generation: number, lease: number, request: number): Step
   complete_evaluation_dispatch(state: State, invocation: number, generation: number, result: number, success: boolean): Step
+  launch_evaluation_cleanup(state: State, origin: number, input_handle: number): Step
+  complete_evaluation(state: State, invocation: number, generation: number, result_handle: number): Step
   launch_evaluation(state: State, context: EvaluationContext, input_handle: number): Step
   evaluation_ready(state: State, invocation: number, generation: number, lease: number, request: number, facts: EvaluationFacts): Step
   evaluation_settle(state: State, invocation: number, generation: number, lease: number, request: number, outcome: OwnerTransport<Canonical_RequestOutcome>, current: boolean): Step

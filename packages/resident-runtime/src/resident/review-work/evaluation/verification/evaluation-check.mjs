@@ -176,6 +176,21 @@ function* recover() {
   yield* call("RecordDebugFailure")
   if (yield* flag("ReadRuntimeActive")) yield* activity("UnavailableActivity")
 }
+function* cleanupSpecification() {
+  const task_faults = [],
+    final_faults = []
+  try {
+    yield* recover()
+  } catch (error) {
+    task_faults.push(error.token)
+  }
+  try {
+    if (!(yield* flag("ReadCompleted"))) yield* release()
+  } catch (error) {
+    final_faults.push(error.token)
+  }
+  return tag("Completion", { task_faults, final_faults })
+}
 function* specification(input) {
   const task_faults = [],
     final_faults = []
@@ -226,9 +241,9 @@ function* specification(input) {
 // Deterministic IO facts. This runner validates the composed pure cursor,
 // not the provider/custody boundary or native physical cleanup.
 function ports(facts) {
-  let receipt = tag("Unissued"),
-    completed = false,
-    reviewing = true
+  let receipt = facts.cleanupReceipt ?? tag("Unissued"),
+    completed = facts.completed === true,
+    reviewing = facts.noReviewing !== true
   return (command) => {
     switch (command.$) {
       case "Authorization": {
@@ -347,7 +362,7 @@ try {
       timeout: 10000
     })
   let core = (await import(pathToFileURL(output))).default
-  if (packaged) assert.deepEqual(Object.keys(core).sort(), ["initial", "resume"])
+  if (packaged) assert.deepEqual(Object.keys(core).sort(), ["cleanup_initial", "initial", "resume"])
   // Constructor owner from the checked private ABI; packaged exports hide helpers.
   const prefix = "Authorization."
   const map = (value, encode) =>
@@ -375,9 +390,9 @@ try {
   function run(facts, injection) {
     const input = tag("Input", { policy_unit: facts.policy !== false })
     const native = ports(facts),
-      reference = specification(input)
+      reference = facts.cleanupReceipt ? cleanupSpecification() : specification(input)
     let expected = reference.next(),
-      step = core.initial(input, 41),
+      step = facts.cleanupReceipt ? core.cleanup_initial(41) : core.initial(input, 41),
       at = 0
     const trace = []
     while (!expected.done) {
@@ -460,6 +475,18 @@ try {
         )
     }
   }
+  for (const receipt of ["Unissued", "Issued", "Started", "Interrupted", "Settled"])
+    for (const aborted of [false, true])
+      for (const noReviewing of [false, true]) {
+        const facts = {
+          cleanupReceipt: tag(receipt, receipt === "Unissued" ? {} : { request: 73 }),
+          aborted,
+          noReviewing
+        }
+        const trace = run(facts)
+        for (let at = 0; at < trace.length; at++) run(facts, new Map([[at, 11]]))
+        run({ ...facts, completed: true })
+      }
   const mutantOutput = join(temporary, "mutants.mjs")
   execFileSync(
     "taskset",

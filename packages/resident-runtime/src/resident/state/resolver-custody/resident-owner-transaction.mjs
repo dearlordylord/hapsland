@@ -81,7 +81,11 @@ export function createResidentOwnerTransaction({
    */
   const evaluationBinding = (draft, credential, binding) => {
     const child = owner.find(credential.invocation, draft.resolverCustody.children)
-    if (child.$ !== "Some" || child.value.scope.$ !== "EvaluationScope") return undefined
+    if (
+      child.$ !== "Some" ||
+      (child.value.scope.$ !== "EvaluationScope" && child.value.scope.$ !== "EvaluationCleanupScope")
+    )
+      return undefined
     return evaluationContextBinding(draft, child.value.scope.context, binding) ? child.value.scope : undefined
   }
   /**
@@ -658,6 +662,15 @@ export function createResidentOwnerTransaction({
     launch_collection: (context, input_handle) => ({ $: "LaunchCollectionEvent", context, input_handle }),
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").EvaluationContext} context @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchEvaluationEvent"}>} */
     launch_evaluation: (context, input_handle) => ({ $: "LaunchEvaluationEvent", context, input_handle }),
+    /** @param {number} origin @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchEvaluationCleanupEvent"}>} */
+    launch_evaluation_cleanup: (origin, input_handle) => ({ $: "LaunchEvaluationCleanupEvent", origin, input_handle }),
+    /** @param {number} invocation @param {number} generation @param {number} result_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "CompleteEvaluationEvent"}>} */
+    complete_evaluation: (invocation, generation, result_handle) => ({
+      $: "CompleteEvaluationEvent",
+      invocation,
+      generation,
+      result_handle
+    }),
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Parent} parent @param {number} input_handle @returns {Extract<import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent, {$: "LaunchEvaluationDispatchEvent"}>} */
     launch_evaluation_dispatch: (parent, input_handle) => ({
       $: "LaunchEvaluationDispatchEvent",

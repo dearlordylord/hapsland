@@ -1,3 +1,4 @@
+import { withNativeSignal } from "@hapsland/runtime-environment/runtime/native-execution"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import type * as Cause from "effect/Cause"
@@ -101,7 +102,7 @@ export function createEvaluationDispatchSession(options: {
           if (!lease || lease.invocation !== invocation || lease.request !== held.id)
             throw new Error("Dispatch command lacks exact Canonical lease")
           consumed = true
-          return Effect.exit(options.perform(held.command, lease)).pipe(
+          return Effect.exit(withNativeSignal(options.perform(held.command, lease), execution.signal)).pipe(
             Effect.tap((exit) =>
               Effect.sync(() => {
                 completed = exit

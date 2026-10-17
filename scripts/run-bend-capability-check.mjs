@@ -103,6 +103,7 @@ const suites = {
     "packages/resident-runtime/src/resident/review-work/preparation/verification/post-enrollment-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/dispatch-native-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/evaluation/verification/cleanup-native-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/canonical-owner-check.mjs",
     "packages/agent-flow-bend/preparation-lifecycle/public-preparation-mutation-check.py"
   ],

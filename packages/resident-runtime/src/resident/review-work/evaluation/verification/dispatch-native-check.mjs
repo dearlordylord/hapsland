@@ -48,6 +48,7 @@ try {
     "interrupted",
     "credential-changed",
     "observer-defect",
+    "callback-interrupted",
     "provider-clear",
     "provider-input-refused"
   ]) {
@@ -144,7 +145,8 @@ try {
         signal: controller.signal,
         deps: {
           residentLedger: capacity,
-          residentRecordAnalytics: () => Effect.void,
+          residentRecordAnalytics: (_job, kind) =>
+            variant === "callback-interrupted" && kind === "request-started" ? Effect.never : Effect.void,
           residentObserveJevRequest(value) {
             observations.push(value)
             if (value.stage === "started" && variant === "interrupted") controller.abort()
@@ -182,7 +184,13 @@ try {
       },
       { controlled: {}, credential: undefined, request: ready.request, beforeDispatch: callback, observeOutcome() {} }
     )
-    const exit = await Effect.runPromiseExit(variant.startsWith("provider-") ? provider : callback)
+    const exit = await Effect.runPromiseExit(
+      variant.startsWith("provider-")
+        ? provider
+        : variant === "callback-interrupted"
+          ? callback.pipe(Effect.timeout("30 millis"))
+          : callback
+    )
     assert.equal(child(invocation).generation, held.generation)
     assert.deepEqual(child(invocation).lease, held.lease, "callback must leave parent provider await parked")
     const projection = projectCanonical(run(transaction.read).canonical)
@@ -198,12 +206,13 @@ try {
       assert.equal(job.requestStarted, true)
       assert.deepEqual(
         observations.map((value) => value.stage),
-        variant === "interrupted" ? ["started", "interrupted"] : ["started"]
+        variant === "interrupted" ? ["started", "interrupted"] : variant === "callback-interrupted" ? [] : ["started"]
       )
       if (variant === "observer-defect") {
         assert.equal(Exit.isFailure(exit), true)
         assert.strictEqual(Cause.squash(exit.cause), original)
-      } else assert.equal(Exit.isSuccess(exit), true)
+      } else if (variant === "callback-interrupted") assert.equal(Exit.isFailure(exit), true)
+      else assert.equal(Exit.isSuccess(exit), true)
     }
     if (variant === "provider-clear") {
       assert.equal(physicalCalls, 1)
@@ -237,7 +246,7 @@ try {
         ? "neverSent"
         : variant === "interrupted"
           ? "interrupted"
-          : variant === "observer-defect"
+          : variant === "observer-defect" || variant === "callback-interrupted"
             ? "backendFailure"
             : "clear"
     const settled = run(

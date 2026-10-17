@@ -371,6 +371,17 @@ def initial(+input: Input, invocation: Nat) -> Step:
       invocation
     )
 
+# Registry cleanup enters the same recovery/finalization cursor after the
+# original provider has physically drained. Original task Cause stays native.
+def cleanup_initial(invocation: Nat) -> Step:
+  issue(
+    Context{Input{False{}}, Unissued{}, None{}, Recovering{}, Nil{}, Nil{}},
+    RecoveryStatus{},
+    ReadRequestState{},
+    invocation,
+    0n
+  )
+
 def started_review(context: Context, valid: Bool, invocation: Nat, next: Nat) -> Step:
   match valid:
     case True{}: issue(context, BackendGate{}, AwaitBackendGate{}, invocation, next)

@@ -121,5 +121,9 @@ export type Step = Continuation &
     | Tagged<"FinishedEvaluation", { readonly result: Completion }>
     | Tagged<"Rejected">
   )
-declare const core: { initial(input: Input, invocation: number): Step; resume(step: Step, reply: Reply): Step }
+declare const core: {
+  initial(input: Input, invocation: number): Step
+  cleanup_initial(invocation: number): Step
+  resume(step: Step, reply: Reply): Step
+}
 export default core
