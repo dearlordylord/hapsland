@@ -369,6 +369,7 @@ declare const core: {
   delivery_finalize_initial(invocation: number, transport: boolean, input: FInput): DStep
   delivery_finalize_resume(step: DStep, reply: DReply): DStep
   collection_gate_initial(invocation: number, input: GInput): GStep
+  collection_gate_atomic(step: GStep): boolean
   collection_gate_resume(step: GStep, reply: GReply): GStep
   prepare_initial(invocation: number, advice: boolean): PStep
   prepare_transport_initial(invocation: number, advice: boolean): PStep

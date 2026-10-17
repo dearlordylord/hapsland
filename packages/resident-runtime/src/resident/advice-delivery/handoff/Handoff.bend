@@ -2311,6 +2311,15 @@ def collection_gate_resume(+step: GStep, +reply: GReply) -> GStep:
 
 # One Finalize child retains the F and R continuations. Native decoding keeps
 # response identity; transport writability is observed even when R is a no-op.
+# A cutoff and its native discard must share one provider transaction; otherwise
+# cancelled jobs can settle before the exact dispatcher-count reconciliation.
+def collection_gate_atomic(+step: GStep) -> Bool:
+  match step:
+    case GAwait{_, _, GGateRead{_}, _}: True{}
+    case GAwait{_, _, GDiscarded{_}, _}: True{}
+    case GAwait{_, _, GAllowed{}, _}: True{}
+    case _: False{}
+
 type DCommand is Data:
   DFinalize{command: FCommand}
   DDecode{result: FTerminal}

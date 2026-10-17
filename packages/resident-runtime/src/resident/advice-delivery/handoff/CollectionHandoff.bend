@@ -425,5 +425,6 @@ def resume(+step: RootStep, +reply: RootReply) -> RootStep:
 
 def atomic(+step: RootStep) -> Bool:
   match step:
+    case RootAwait{_, _, RootGating{+held, _, _, _}, _}: Handoff.collection_gate_atomic(held)
     case RootAwait{_, _, RootCollecting{+held, _}, _}: Collection.collect_atomic(held)
     case _: False{}

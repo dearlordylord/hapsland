@@ -193,7 +193,7 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence41.9/42.0min; cold timeout/recovery and serial gates delayed both. Analyzer/build only.
+  Prior cadence41.9/42.0min; cold timeout/recovery and serial gates delayed both. Analyzer/build only.
   Baseline double serialization refused; corrected env passed prepare/warm23/46.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
@@ -238,18 +238,18 @@ owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 Current path / obstacles:
 1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
    registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
-2. Public IPC/local use Canonical Collect→Prepare→Finalize receipts. Root owns
-   edit polling/deadline/fresh passes; TS polling, C runner and status scan deleted.
-   F reuses Root status without polling, preserving fixed now, partition matching
-   and expiry short-circuit. Astra reviewed both. Masked receipt publication and
-   context cancellation preserve custody; direct release cannot bypass cleanup.
-3. Remaining: whole Root/C/P/D trace laws, fences and Canonical receipt/custody
-   composition; full IPC and whole-delivery timing. Unit not accepted.
-   Latest: build46/46,receipts23,protocol50,consumers95/5,fast44/8 PASS.
-   Root poll parameter missing→fixed; fixture typo→isDeciding fixed.
-   Context cold180s timeout→stopped-writer audit→3 compiles→build46/46 PASS.
-   Binding types/trace fixed; stale fixtures→rebuild PASS. Prior88/89: Claude IPC
-   deadline failed; isolated same-limit case and9 server PASS. No full-suite pass.
+2. IPC/local use Canonical Collect→Prepare→Finalize receipts. Root owns polling,
+   deadline and fresh passes; TS polling, C runner and status scan deleted. F
+   reuses status: fixed now, both matching modes, expiry short-circuit. Masked
+   publication/context cancellation preserve custody. Astra reviewed.
+3. Remaining: whole Root/C/P/D trace laws, receipt custody and whole-delivery
+   timing. Unit not accepted. Latest: build46/46,receipts23,protocol50,fast44/1,
+   server92 PASS; connected consumers95/5 and fast44/8 PASS before cutoff fix.
+   Server91/92 failed fanout reason: cancelled2/native1. One native advance for
+   cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
+   Diagnostics removed. Context cold180s timeout→writer audit→3 compiles→build46/46
+   PASS. Binding types/trace fixed; stale fixtures→rebuild PASS. Prior88/89: Claude
+   IPC deadline failed; isolated same-limit case and9 server PASS.
 4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
    Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
    receipts→workspace46/46 PASS. IPC360s aborted; tail18+other89 PASS.
