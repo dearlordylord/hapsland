@@ -4,6 +4,7 @@ import ./EvaluationSpecification.bend as S
 import ./Authorization.bend as A
 import ./AuthorizationProof.bend as AP
 import ./AuthorizationSpecification.bend as AS
+import ../../../../../agent-flow-bend/Work.bend as W
 
 # Supporting proofs of owner-approved evaluation_protocol_exact. Existing Context
 # only: full arbitrary fault lists, receipts and native opaque IDs are retained.
@@ -384,6 +385,5054 @@ def recovery_authorization_reply_exact(
     case A.NotAuthorized{_}: {==}
     case A.Aborted{_}: {==}
     case A.Rejected{}: {==}
+
+# Complete Ack transition family, including rejection in phases expecting facts.
+# No reachable-state assumption: review count and all remaining Context fields
+# are arbitrary; constructor cases are exhaustive and kernel checked.
+def ack_transition_exact(+context: E.Context, +phase: E.Phase, +inv: Nat, +next: Nat) -> {
+  E.advance(context, phase, E.Ack{}, inv, next) == S.transition(context, phase, E.Ack{}, inv, next) : E.Step
+}:
+  match context phase:
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.PolicyStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReviewStart{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BackendGate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdmissionCurrent{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.BeforeEvaluate{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Controlled{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.ForProvider{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Authorizing{E.RefuseStale{}, p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Provider{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedAnalytics{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DeniedActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RoundReported{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CurrentSource{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedStatus{p_current}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedSettlement{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedObservation{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DiscardObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.DemoRecorded{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheStored{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.CacheClaimReleased{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.EvaluatedActivity{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedFate{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.FindingRetained{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.ClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleClearSettled{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.StaleFindingRetired{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Unavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Ignored{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedRetired{E.Stale{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.NonRetainedCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseReuse{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.FinishRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ReleaseNativeUnit{E.RecordOutcomeRelease{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.OutcomeRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionActive{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionInactiveRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RetentionCandidates{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingPublished{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRecorded{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingRetired{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.ExistingReleased{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceInsertedPhase{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceObserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdvicePreserved{p_tail}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.AdviceDriven{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatus{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureAborted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterrupted{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureInterruptObserved{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureStatusAfterInterrupt{p_result}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Clear{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.Finding{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.NeverSent{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestInterrupted{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.RequestTimeout{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureSettling{E.BackendFailure{}, W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureCompleting{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.NoFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.BackendUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.CredentialUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureObserved{W.LostUnavailable{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.LostReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.CredentialReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.BackendReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureJoined{E.StaleReason{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureNotice{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FailureActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryEscaped{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryAfterEscapedAborted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryReviewing{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDeny{p_step}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupt{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterrupted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryInterruptStatus{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Clear{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.Finding{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.NeverSent{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestInterrupted{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.RequestTimeout{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoverySettling{E.BackendFailure{}}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryObserved{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryJoined{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryDebug{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryRuntime{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.RecoveryActivity{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyCompleted{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyReuse{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.FinallyUnit{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, None{}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{0n, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{True{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Unissued{}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Issued{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Started{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Interrupted{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
+    case E.Context{E.Input{False{}}, E.Settled{_}, Some{E.Review{1n+_, _}}, _, _, _} E.Raising{}: {==}
 
 def main() -> Unit:
   Unit{}
