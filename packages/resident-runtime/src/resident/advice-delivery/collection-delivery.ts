@@ -5,12 +5,10 @@ import type { createResidentPreparationBinding } from "../review-work/compositio
 import type { ResidentLedger } from "../work-ownership/jobs.ts"
 import type { ResponseContext } from "./authority.ts"
 
-export const makeResidentCollectionDelivery = (
-  deps: Parameters<typeof makeResidentCollectionRoot>[0] & {
-    readonly canonicalDelivery: Pick<ReturnType<typeof createResidentPreparationBinding>, "collect">
-    readonly residentLedger: ResidentLedger
-  }
-) =>
+export const makeResidentCollectionDelivery = (deps: {
+  readonly canonicalDelivery: Pick<ReturnType<typeof createResidentPreparationBinding>, "collect">
+  readonly residentLedger: ResidentLedger
+}) =>
   Effect.fn("ResidentRuntime.collectDelivery")(function* (
     configuration: RootConfiguration,
     recipient: string,
@@ -19,7 +17,7 @@ export const makeResidentCollectionDelivery = (
   ) {
     const partition = yield* deps.residentLedger.knownPartitionId(recipient)
     const round = yield* deps.residentLedger.currentRoundId(recipient)
-    const native = makeResidentCollectionRoot(deps, configuration)
+    const native = makeResidentCollectionRoot(configuration)
     return yield* Effect.uninterruptibleMask((restore) =>
       Effect.gen(function* () {
         const outcome = yield* restore(

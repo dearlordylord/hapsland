@@ -30,6 +30,7 @@ type RootDependencies = Parameters<typeof makeResidentCollectionGateSession>[0] 
 export type RootConfiguration =
   | {
       readonly kind: "request"
+      readonly deps: RootDependencies
       readonly request: Extract<ResidentRequest, { operation: "collect" }>
       readonly collection: CollectionSession
     }
@@ -50,10 +51,19 @@ export type RootConfiguration =
       readonly workCount: () => Effect.Effect<number>
       readonly now: () => number
     }
+  | {
+      readonly kind: "status"
+      readonly partition: string
+      readonly matching: "recipient" | "stored"
+      readonly advice: Dependencies["residentAdvice"]
+      readonly expired: Dependencies["residentAdviceExpired"]
+      readonly workCount: () => Effect.Effect<number>
+      readonly now: () => number
+    }
 
-export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootConfiguration) => {
-  const gate = config.kind === "request" ? makeResidentCollectionGateSession(deps, config.request) : undefined
-  let collection = config.kind === "edit" ? undefined : config.collection
+export const makeResidentCollectionRoot = (config: RootConfiguration) => {
+  const gate = config.kind === "request" ? makeResidentCollectionGateSession(config.deps, config.request) : undefined
+  let collection = config.kind === "edit" || config.kind === "status" ? undefined : config.collection
   let statusAdvice: readonly Advice[] = []
   let statusNow = 0
   const currentCollection = () => {
@@ -91,7 +101,8 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
           selection = { $: "DeliverySelection", token: result.token, advice: result.advice, notices: { $: "Nil" } }
         if (config.kind === "direct") return { $: "RootDirectDecoded" }
         if (config.kind === "edit") return { $: "RootEditDecoded", advice: response.status === "advice" }
-        finish = makeResidentFinishSession(deps, config.request, response, response, true)
+        if (config.kind !== "request") throw new Error("missing reservation request capability")
+        finish = makeResidentFinishSession(config.deps, config.request, response, response, true)
         return { $: "RootDecoded", input: { ...finish.input, $: "Handoff.RInput" }, empty: response.status === "empty" }
       }
       case "RootReserve":
@@ -99,7 +110,7 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
         return { $: "RootReserved", response: encodeRResponse(yield* finish.perform(decodeRCommand(command.command))) }
       case "RootWorkState":
         if (config.kind !== "request") throw new Error("missing work state request capability")
-        selected = yield* deps.residentCollectionWorkState(config.request.root, config.request.advicee, true)
+        selected = yield* config.deps.residentCollectionWorkState(config.request.root, config.request.advicee, true)
         return { $: "RootWorkStateRead" }
       case "RootEditGate": {
         if (config.kind !== "edit") throw new Error("missing edit gate capability")
@@ -113,7 +124,7 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
         collection = config.startPass()
         return { $: "RootEditStarted" }
       case "RootEditStatus":
-        if (config.kind !== "edit") throw new Error("missing edit status capability")
+        if (config.kind !== "edit" && config.kind !== "status") throw new Error("missing edit status capability")
         statusNow = config.now()
         statusAdvice = yield* config.advice()
         return {
@@ -122,18 +133,21 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
             statusAdvice.map((item, handle) => ({
               $: "RootAdvice",
               handle,
-              partition: recipientPartition(item.observation.advicee)
+              partition:
+                config.kind === "status" && config.matching === "stored"
+                  ? item.partition
+                  : recipientPartition(item.observation.advicee)
             }))
           )
         }
       case "RootEditExpired": {
-        if (config.kind !== "edit") throw new Error("missing edit expiry capability")
+        if (config.kind !== "edit" && config.kind !== "status") throw new Error("missing edit expiry capability")
         const item = statusAdvice[command.advice]
         if (item === undefined) throw new Error("missing edit advice capability")
         return { $: "RootEditExpiry", expired: yield* config.expired(item, statusNow) }
       }
       case "RootEditWorkCount":
-        if (config.kind !== "edit") throw new Error("missing edit work count capability")
+        if (config.kind !== "edit" && config.kind !== "status") throw new Error("missing edit work count capability")
         return { $: "RootEditCount", count: yield* config.workCount() }
       case "RootEditSleep":
         if (config.kind !== "edit") throw new Error("missing edit wait capability")
@@ -192,6 +206,8 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
           return core.direct_initial(invocation, config.composed, config.turnEnd)
         case "edit":
           return core.edit_initial(invocation, config.partition)
+        case "status":
+          return core.status_initial(invocation, config.partition)
       }
     },
     advance,

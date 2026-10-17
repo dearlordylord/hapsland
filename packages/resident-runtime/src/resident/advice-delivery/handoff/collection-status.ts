@@ -1,6 +1,6 @@
+import { makeResidentCollectionRoot } from "./collection-root.ts"
 import { residentCredentialAuthority } from "../../authorization/credentials.ts"
 import { type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
-import type { Advice } from "../../state/advice-records.ts"
 import * as Effect from "effect/Effect"
 import { type ResidentDispatchContext, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import { type ResponseAuthority } from "../authority.ts"
@@ -39,9 +39,6 @@ export const residentCollectorGate = Effect.fn("ResidentRuntime.collectorGate")(
   throw new Error("canonical authority collect gate refused")
 })
 
-const residentAdvicePartitionMatches = (item: Advice, partition: string, composed: boolean): boolean =>
-  composed ? recipientPartition(item.observation.advicee) === partition : item.partition === partition
-
 export const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editCollectionStatus")(function* (
   deps: Pick<Dependencies, "residentAdvice" | "residentAdviceExpired" | "residentCollectionWorkCount">,
   authority: ResponseAuthority,
@@ -50,16 +47,16 @@ export const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editColle
   composed: boolean,
   now: number
 ): Effect.fn.Return<ResidentResponse> {
-  const partition = composed ? recipientPartition(advicee) : authority.partition
-  let hasAdvice = false
-  for (const item of yield* deps.residentAdvice()) {
-    if (residentAdvicePartitionMatches(item, partition, composed) && !(yield* deps.residentAdviceExpired(item, now))) {
-      hasAdvice = true
-      break
-    }
-  }
-  return {
-    requestRoute: "edit",
-    status: hasAdvice || (yield* deps.residentCollectionWorkCount(root, advicee, composed)) > 0 ? "pending" : "empty"
-  }
+  const status = makeResidentCollectionRoot({
+    kind: "status",
+    partition: composed ? recipientPartition(advicee) : authority.partition,
+    matching: composed ? "recipient" : "stored",
+    advice: deps.residentAdvice,
+    expired: deps.residentAdviceExpired,
+    workCount: () => deps.residentCollectionWorkCount(root, advicee, composed),
+    now: () => now
+  })
+  let step = status.initial(1)
+  while (step.$ === "RootAwait") step = yield* status.advance(step).pipe(Effect.orDie)
+  return status.decode(step)
 })

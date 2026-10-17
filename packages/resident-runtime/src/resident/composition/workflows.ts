@@ -303,16 +303,7 @@ const makeResidentInteractionWorkflows = (
   const { admission, adviceCollection, delivery, workLifecycle } = review
   const collectDelivery = makeResidentCollectionDelivery({
     canonicalDelivery: residentLedger.reviewPreparation,
-    residentLedger,
-    residentComposedDelivery,
-    residentNow,
-    residentPruneNoticeCooldowns: workLifecycle.residentPruneNoticeCooldowns,
-    residentCollectionWorkCount: delivery.residentCollectionWorkCount,
-    residentReleaseAdviceLease: adviceCollection.residentReleaseAdviceLease,
-    residentAllowFinish: workLifecycle.residentAllowFinish,
-    residentDiscardUnfinishedWork: workLifecycle.residentDiscardUnfinishedWork,
-    releaseDelivery: delivery.releaseDelivery,
-    residentCollectionWorkState: delivery.residentCollectionWorkState
+    residentLedger
   })
   const requests = makeResidentRequests({
     get stats() {

@@ -49,9 +49,9 @@ type RootPhase is Data:
   RootReporting{}
   RootEditGating{partition: String}
   RootEditStarting{partition: String}
-  RootEditStatusRead{partition: String}
-  RootEditChecking{remaining: List<&2, Nat>, partition: String}
-  RootEditCounted{partition: String}
+  RootEditStatusRead{partition: String, poll: Bool}
+  RootEditChecking{remaining: List<&2, Nat>, partition: String, poll: Bool}
+  RootEditCounted{partition: String, poll: Bool}
   RootEditWaiting{partition: String}
 type RootCollectionResult is Data:
   RootSelected{}
@@ -187,6 +187,11 @@ def edit_gate(+partition: String, +invocation: Nat, +next: Nat) -> RootStep:
 def edit_wait(+partition: String, +invocation: Nat, +next: Nat) -> RootStep:
   issue(invocation, next, RootEditWaiting{partition}, RootEditSleep{})
 
+def status_pending(+poll: Bool, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+  match poll:
+    case True{}: edit_wait(partition, invocation, next)
+    case False{}: RootDone{RootEditPending{}}
+
 def edit_gated(+proceed: Bool, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
   match proceed:
     case True{}: issue(invocation, next, RootEditStarting{partition}, RootEditStartPass{})
@@ -195,7 +200,7 @@ def edit_gated(+proceed: Bool, +partition: String, +invocation: Nat, +next: Nat)
 def edit_decoded(+advice: Bool, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
   match advice:
     case True{}: RootDone{RootSelected{}}
-    case False{}: issue(invocation, next, RootEditStatusRead{partition}, RootEditStatus{})
+    case False{}: issue(invocation, next, RootEditStatusRead{partition, True{}}, RootEditStatus{})
 
 def edit_keep(+matches: Bool, +handle: Nat, +rest: List<&2, Nat>) -> List<&2, Nat>:
   match matches:
@@ -211,24 +216,31 @@ def edit_matching(+values: List<&2, RootAdvice>, +partition: String) -> List<&2,
 def edit_status(
   +remaining: List<&2, Nat>,
   +partition: String,
+  +poll: Bool,
   +invocation: Nat,
   +next: Nat
 ) -> RootStep:
   match remaining:
-    case Nil{}: issue(invocation, next, RootEditCounted{partition}, RootEditWorkCount{})
+    case Nil{}: issue(invocation, next, RootEditCounted{partition, poll}, RootEditWorkCount{})
     case +handle <> +rest:
-      issue(invocation, next, RootEditChecking{rest, partition}, RootEditExpired{handle})
+      issue(invocation, next, RootEditChecking{rest, partition, poll}, RootEditExpired{handle})
 
-def edit_expired(+expired: Bool, +remaining: List<&2, Nat>, +partition: String,
+def edit_expired(+expired: Bool, +remaining: List<&2, Nat>, +partition: String, +poll: Bool,
     +invocation: Nat, +next: Nat) -> RootStep:
   match expired:
-    case True{}: edit_status(remaining, partition, invocation, next)
-    case False{}: edit_wait(partition, invocation, next)
+    case True{}: edit_status(remaining, partition, poll, invocation, next)
+    case False{}: status_pending(poll, partition, invocation, next)
 
-def edit_count(+count: Nat, +partition: String, +invocation: Nat, +next: Nat) -> RootStep:
+def edit_count(
+  +count: Nat,
+  +partition: String,
+  +poll: Bool,
+  +invocation: Nat,
+  +next: Nat
+) -> RootStep:
   match count:
     case 0n: RootDone{RootEditEmpty{}}
-    case _: edit_wait(partition, invocation, next)
+    case _: status_pending(poll, partition, invocation, next)
 
 def edit_phase(+phase: RootPhase) -> Bool:
   match phase:
@@ -236,9 +248,9 @@ def edit_phase(+phase: RootPhase) -> Bool:
     case RootDecoding{RootEditMode{_}}: True{}
     case RootEditGating{_}: True{}
     case RootEditStarting{_}: True{}
-    case RootEditStatusRead{_}: True{}
-    case RootEditChecking{_, _}: True{}
-    case RootEditCounted{_}: True{}
+    case RootEditStatusRead{_, +poll}: poll
+    case RootEditChecking{_, _, +poll}: poll
+    case RootEditCounted{_, +poll}: poll
     case RootEditWaiting{_}: True{}
     case _: False{}
 
@@ -269,6 +281,9 @@ def direct_initial(+invocation: Nat, +composed: Bool, +turn_end: Bool) -> RootSt
 
 def edit_initial(+invocation: Nat, +partition: String) -> RootStep:
   edit_gate(partition, invocation, 1n)
+
+def status_initial(+invocation: Nat, +partition: String) -> RootStep:
+  issue(invocation, 1n, RootEditStatusRead{partition, False{}}, RootEditStatus{})
 
 def gate_reply(+step: Handoff.GStep, +response: Handoff.GResponse, +composed: Bool,
     +turn_end: Bool, +flags: RootFlags, +invocation: Nat, +next: Nat) -> RootStep:
@@ -364,12 +379,12 @@ def phase_reply(
         invocation,
         next
       )
-    case RootEditStatusRead{+partition} RootEditAdvice{+values}:
-      edit_status(edit_matching(values, partition), partition, invocation, next)
-    case RootEditChecking{+remaining, +partition} RootEditExpiry{+expired}:
-      edit_expired(expired, remaining, partition, invocation, next)
-    case RootEditCounted{+partition} RootEditCount{+count}:
-      edit_count(count, partition, invocation, next)
+    case RootEditStatusRead{+partition, +poll} RootEditAdvice{+values}:
+      edit_status(edit_matching(values, partition), partition, poll, invocation, next)
+    case RootEditChecking{+remaining, +partition, +poll} RootEditExpiry{+expired}:
+      edit_expired(expired, remaining, partition, poll, invocation, next)
+    case RootEditCounted{+partition, +poll} RootEditCount{+count}:
+      edit_count(count, partition, poll, invocation, next)
     case RootEditWaiting{+partition} RootEditSlept{}: edit_gate(partition, invocation, next)
     case +phase RootEditTimedOut{}: edit_terminal(edit_phase(phase), RootEditPending{})
     case +phase RootEditLost{}: edit_terminal(edit_phase(phase), RootEditUnavailable{})

@@ -433,6 +433,7 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
     yield* deps.collectDelivery(
       {
         kind: "request",
+        deps,
         request,
         collection: deps.residentCollectionSession(
           request.root,

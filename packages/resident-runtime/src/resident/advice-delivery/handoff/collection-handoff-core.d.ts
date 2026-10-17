@@ -68,6 +68,7 @@ declare const core: {
   initial(invocation: number, input: RootInput): RootStep
   direct_initial(invocation: number, composed: boolean, turn_end: boolean): RootStep
   edit_initial(invocation: number, partition: string): RootStep
+  status_initial(invocation: number, partition: string): RootStep
   resume(step: RootStep, reply: RootReply): RootStep
   atomic(step: RootStep): boolean
 }

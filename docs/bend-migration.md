@@ -185,10 +185,10 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Delivery (`10d60132`), 2026-10-17 03:20/03:21 UTC: analyzer/build
-  **.6284×/.8720×**,17 frozen pairs, strict parity PASS; build23/46 cached.
-  TS/Bend medians[ranges] s: execution .1219[.0688,.5429]/.0883[.0457,.2739];
-  build5.923[4.265,16.968]/5.719[4.081,15.493]. Shared load; no causal claim.
+- Delivery `a86bd985`, 2026-10-17 03:46/03:47: analyzer/build
+  **.4458×/1.0675×**,17 frozen pairs; strict PASS/FAIL, within ≤3×;23/46 cached.
+  TS/Bend medians[ranges] s: execution.1266[.0819,.9068]/.0902[.0404,.2760];
+  build5.089[3.394,12.551]/4.227[3.208,20.607]. Shared load; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
@@ -239,14 +239,14 @@ Current path / obstacles:
 1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
    registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
 2. Public IPC/local use Canonical Collect→Prepare→Finalize receipts. Root owns
-   edit polling/deadline/fresh passes; TS polling and standalone C runner deleted.
-   Masked receipt publication and context cancellation preserve custody. Astra's
-   extra-release findings fixed: successful passes only finish; receipt errors
-   cannot bypass cleanup with a direct token release. Gate import cycle removed.
-   Next: reuse Root status cursor in F; delete its remaining TS status scan.
-3. Whole trace/reply/lease/finish laws, full IPC and whole-delivery timing pending.
-   Unit not accepted. Public delta: build46/46,receipts23,protocol46,consumers95/5,
-   fast44/14 PASS. Root fixture typo→isDeciding fixed; native8/8 PASS.
+   edit polling/deadline/fresh passes; TS polling, C runner and status scan deleted.
+   F reuses Root status without polling, preserving fixed now, partition matching
+   and expiry short-circuit. Astra reviewed both. Masked receipt publication and
+   context cancellation preserve custody; direct release cannot bypass cleanup.
+3. Remaining: whole Root/C/P/D trace laws, fences and Canonical receipt/custody
+   composition; full IPC and whole-delivery timing. Unit not accepted.
+   Latest: build46/46,receipts23,protocol50,consumers95/5,fast44/8 PASS.
+   Root poll parameter missing→fixed; fixture typo→isDeciding fixed.
    Context cold180s timeout→stopped-writer audit→3 compiles→build46/46 PASS.
    Binding types/trace fixed; stale fixtures→rebuild PASS. Prior88/89: Claude IPC
    deadline failed; isolated same-limit case and9 server PASS. No full-suite pass.

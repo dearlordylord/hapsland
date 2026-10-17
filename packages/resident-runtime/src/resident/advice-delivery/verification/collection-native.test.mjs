@@ -1,3 +1,5 @@
+import rootCore from "../../../../dist/resident/advice-delivery/handoff/collection-handoff-core.js"
+import { residentEditCollectionStatus } from "../../../../dist/resident/advice-delivery/handoff/collection-status.js"
 import assert from "node:assert/strict"
 import { it } from "node:test"
 import * as Effect from "effect/Effect"
@@ -121,22 +123,19 @@ const fixture = (hooks = {}) => {
         state.content = content
       })
   })
-  const native = makeResidentCollectionRoot(
-    {},
-    {
-      kind: "direct",
-      composed: false,
-      turnEnd: false,
-      collection: collection.residentCollectionSession(
-        "/repo",
-        advicee,
-        { credential: null },
-        "ordinary",
-        undefined,
-        false
-      )
-    }
-  )
+  const native = makeResidentCollectionRoot({
+    kind: "direct",
+    composed: false,
+    turnEnd: false,
+    collection: collection.residentCollectionSession(
+      "/repo",
+      advicee,
+      { credential: null },
+      "ordinary",
+      undefined,
+      false
+    )
+  })
   const collect = Effect.gen(function* () {
     let step = native.initial(71)
     while (step.$ === "RootAwait") step = yield* native.advance(step)
@@ -260,29 +259,26 @@ it(
       undefined,
       false
     )
-    const root = makeResidentCollectionRoot(
-      {},
-      {
-        kind: "direct",
-        composed: false,
-        turnEnd: false,
-        collection: {
-          ...collection,
-          finish: () =>
-            collection.finish().pipe(
-              Effect.andThen(
-                Effect.promise(() => {
-                  f.trace.push("close-entered")
-                  entered.resolve()
-                  return close.promise.then(() => {
-                    f.trace.push("close-finished")
-                  })
+    const root = makeResidentCollectionRoot({
+      kind: "direct",
+      composed: false,
+      turnEnd: false,
+      collection: {
+        ...collection,
+        finish: () =>
+          collection.finish().pipe(
+            Effect.andThen(
+              Effect.promise(() => {
+                f.trace.push("close-entered")
+                entered.resolve()
+                return close.promise.then(() => {
+                  f.trace.push("close-finished")
                 })
-              )
+              })
             )
-        }
+          )
       }
-    )
+    })
     let step = root.initial(71)
     while (step.$ === "RootAwait" && step.request.command.$ !== "RootDecode")
       step = await Effect.runPromise(root.advance(step))
@@ -312,20 +308,17 @@ it(
   async () => {
     const trace = []
     const deadline = await Effect.runPromise(Clock.monotonicTimeNanos.pipe(Effect.map((now) => now + 1_000_000_000n)))
-    const root = makeResidentCollectionRoot(
-      {},
-      {
-        kind: "edit",
-        partition: "recipient",
-        deadline,
-        startPass: () => assert.fail("timeout must not start a pass"),
-        gate: () => Effect.never.pipe(Effect.ensuring(Effect.sync(() => trace.push("gate-stopped")))),
-        advice: () => assert.fail("timeout must not scan advice"),
-        expired: () => assert.fail("timeout must not check expiry"),
-        workCount: () => assert.fail("timeout must not count work"),
-        now: () => 0
-      }
-    )
+    const root = makeResidentCollectionRoot({
+      kind: "edit",
+      partition: "recipient",
+      deadline,
+      startPass: () => assert.fail("timeout must not start a pass"),
+      gate: () => Effect.never.pipe(Effect.ensuring(Effect.sync(() => trace.push("gate-stopped")))),
+      advice: () => assert.fail("timeout must not scan advice"),
+      expired: () => assert.fail("timeout must not check expiry"),
+      workCount: () => assert.fail("timeout must not count work"),
+      now: () => 0
+    })
     const step = await Effect.runPromise(root.advance(root.initial(71)))
     assert.deepEqual(trace, ["gate-stopped"])
     assert.deepEqual(step, { $: "RootDone", result: { $: "RootEditPending" } })
@@ -339,36 +332,32 @@ it("edit Root owns repeated fresh collection passes and the final work exhaustio
     counts = [1, 0],
     checked = []
   const deadline = await Effect.runPromise(Clock.monotonicTimeNanos.pipe(Effect.map((now) => now + 4_000_000_000n)))
-  const root = makeResidentCollectionRoot(
-    {},
-    {
-      kind: "edit",
-      partition: recipientPartition(f.advicee),
-      deadline,
-      startPass: () => {
-        const session = f.collection.residentCollectionSession(
-          "/repo",
-          f.advicee,
-          { credential: null },
-          "ordinary",
-          undefined,
-          true
-        )
-        passes.push(session)
-        return session
-      },
-      gate: () => Effect.succeed(undefined),
-      advice: () =>
-        Effect.succeed([{ observation: { advicee: { ...f.advicee, sessionId: "other" } } }, f.state.advice]),
-      expired: (item) =>
-        Effect.sync(() => {
-          checked.push(item)
-          return true
-        }),
-      workCount: () => Effect.sync(() => counts.shift()),
-      now: () => 0
-    }
-  )
+  const root = makeResidentCollectionRoot({
+    kind: "edit",
+    partition: recipientPartition(f.advicee),
+    deadline,
+    startPass: () => {
+      const session = f.collection.residentCollectionSession(
+        "/repo",
+        f.advicee,
+        { credential: null },
+        "ordinary",
+        undefined,
+        true
+      )
+      passes.push(session)
+      return session
+    },
+    gate: () => Effect.succeed(undefined),
+    advice: () => Effect.succeed([{ observation: { advicee: { ...f.advicee, sessionId: "other" } } }, f.state.advice]),
+    expired: (item) =>
+      Effect.sync(() => {
+        checked.push(item)
+        return true
+      }),
+    workCount: () => Effect.sync(() => counts.shift()),
+    now: () => 0
+  })
   let step = root.initial(71),
     commands = 0
   while (step.$ === "RootAwait" && commands++ < 100) step = await Effect.runPromise(root.advance(step))
@@ -380,3 +369,87 @@ it("edit Root owns repeated fresh collection passes and the final work exhaustio
   assert.deepEqual(counts, [])
   await Effect.runPromise(root.cleanup())
 })
+
+for (const composed of [false, true]) {
+  it(`final status keeps ${composed ? "recipient" : "stored"} partition matching and stops at the first current advice`, async () => {
+    const f = fixture(),
+      trace = []
+    const stored = {
+      ...f.state.advice,
+      partition: "stored",
+      observation: { ...f.state.advice.observation, advicee: { ...f.advicee, sessionId: "other" } }
+    }
+    const recipient = { ...f.state.advice, partition: "other" }
+    const last = { ...f.state.advice, partition: "stored" }
+    const expected = composed ? recipient : stored
+    const result = await Effect.runPromise(
+      residentEditCollectionStatus(
+        {
+          residentAdvice: () =>
+            Effect.sync(() => {
+              trace.push("advice")
+              return [stored, recipient, last]
+            }),
+          residentAdviceExpired: (item, now) =>
+            Effect.sync(() => {
+              assert.equal(item, expected)
+              assert.equal(now, 127)
+              trace.push("expiry")
+              return false
+            }),
+          residentCollectionWorkCount: () => assert.fail("current advice must skip work count")
+        },
+        { partition: "stored" },
+        "/repo",
+        f.advicee,
+        composed,
+        127
+      )
+    )
+    assert.deepEqual(result, { requestRoute: "edit", status: "pending" })
+    assert.deepEqual(trace, ["advice", "expiry"])
+  })
+}
+
+for (const count of [0, 1]) {
+  it(`status-only Root returns work count ${count} without polling or edit terminal replies`, async () => {
+    const trace = []
+    const root = makeResidentCollectionRoot({
+      kind: "status",
+      partition: "recipient",
+      matching: "recipient",
+      advice: () =>
+        Effect.sync(() => {
+          trace.push("advice")
+          return []
+        }),
+      expired: () => assert.fail("empty advice must skip expiry"),
+      workCount: () =>
+        Effect.sync(() => {
+          trace.push("count")
+          return count
+        }),
+      now: () => {
+        trace.push("clock")
+        return 127
+      }
+    })
+    let step = root.initial(71)
+    while (step.$ === "RootAwait") {
+      for (const terminal of ["RootEditTimedOut", "RootEditLost"]) {
+        assert.deepEqual(
+          rootCore.resume(step, {
+            $: "RootReply",
+            invocation: step.request.invocation,
+            id: step.request.id,
+            response: { $: terminal }
+          }),
+          { $: "RootRejected" }
+        )
+      }
+      step = await Effect.runPromise(root.advance(step))
+    }
+    assert.deepEqual(root.decode(step), { requestRoute: "edit", status: count === 0 ? "empty" : "pending" })
+    assert.deepEqual(trace, ["clock", "advice", "count"])
+  })
+}
