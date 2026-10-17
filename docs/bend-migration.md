@@ -250,7 +250,7 @@ Current path:
    retained across launch/registration faults. Claimed successors survive old cleanup.
    Production root caller and whole laws remain open.
 3. Prepare/finalize/reconcileFinish run Bend;33 protocol/10 cache tests PASS.
-   Full resident checks pending. Connect receipts via request-local ResponseContext/
+   185 public/5 files PASS. Connect receipts via request-local ResponseContext/
    local scope; prove whole ordered trace/reply fencing/lease/finish.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
    and output regressions plus whole-path performance. Unit not accepted.

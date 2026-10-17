@@ -281,7 +281,7 @@ describe("source capture limit and result boundaries", () => {
             Effect.gen(function* () {
               lateCapture = capture
               yield* capture(member.root, { relativePath: "types.ts", absolutePath: "/project/types.ts" })
-              return yield* Effect.fail(new Error("member refused"))
+              return yield* Effect.die(new Error("member refused"))
             })
         })
       )
