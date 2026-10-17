@@ -8550,5 +8550,839 @@ def evaluation_settle_exact(
       current
     )
 
+def provider_install_issued_exact(
+  +state: O.State,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +jev: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +old_handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +generation: Nat,
+  +handle: Nat,
+  +request: Nat
+) -> {
+    O.evaluation_provider_child(
+      state,
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+        inv,
+        epoch,
+        old_handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      generation,
+      handle,
+      request
+    )
+    == S.provider_install_found(
+      state,
+      Some{
+        O.Child{
+          O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+          inv,
+          epoch,
+          old_handle,
+          phase,
+          pending,
+          held,
+          parent
+        }
+      },
+      generation,
+      handle,
+      request
+    )
+    : O.Step
+  }:
+  match state:
+    case O.State{canon, _, _, rest}:
+      %install_matches_exact(
+        O.Child{
+          O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+          inv,
+          epoch,
+          old_handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        generation
+      ) : {
+        O.evaluation_provider_child(
+          state,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          generation,
+          handle,
+          request
+        )
+        == S.installed(
+          Bool.and(
+            _,
+            Bool.and(
+              S.live(
+                state,
+                O.Child{
+                  O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+                  inv,
+                  epoch,
+                  old_handle,
+                  phase,
+                  pending,
+                  held,
+                  parent
+                }
+              ),
+              S.pending_dispatch(canon, context, jev)
+            )
+          ),
+          state,
+          O.Child{
+            O.EvaluationScope{
+              operation,
+              context,
+              O.EvaluationAtProvider{jev, O.Parent{inv, generation, request}}
+            },
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          handle,
+          request
+        )
+        : O.Step
+      }
+      %live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+          inv,
+          epoch,
+          old_handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        root_scope_live_exact(
+          state,
+          operation,
+          context,
+          O.EvaluationIssued{jev},
+          0n,
+          0n,
+          inv,
+          epoch,
+          old_handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      ) : {
+        O.evaluation_provider_child(
+          state,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          generation,
+          handle,
+          request
+        )
+        == S.installed(
+          Bool.and(
+            O.install_matches(
+              O.Child{
+                O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+                inv,
+                epoch,
+                old_handle,
+                phase,
+                pending,
+                held,
+                parent
+              },
+              generation
+            ),
+            Bool.and(_, S.pending_dispatch(canon, context, jev))
+          ),
+          state,
+          O.Child{
+            O.EvaluationScope{
+              operation,
+              context,
+              O.EvaluationAtProvider{jev, O.Parent{inv, generation, request}}
+            },
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          handle,
+          request
+        )
+        : O.Step
+      }
+      %pending_dispatch_exact(canon, context, jev) : {
+        O.evaluation_provider_child(
+          state,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          generation,
+          handle,
+          request
+        )
+        == S.installed(
+          Bool.and(
+            O.install_matches(
+              O.Child{
+                O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+                inv,
+                epoch,
+                old_handle,
+                phase,
+                pending,
+                held,
+                parent
+              },
+              generation
+            ),
+            Bool.and(
+              O.child_live(
+                canon,
+                rest,
+                O.Child{
+                  O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+                  inv,
+                  epoch,
+                  old_handle,
+                  phase,
+                  pending,
+                  held,
+                  parent
+                }
+              ),
+              _
+            )
+          ),
+          state,
+          O.Child{
+            O.EvaluationScope{
+              operation,
+              context,
+              O.EvaluationAtProvider{jev, O.Parent{inv, generation, request}}
+            },
+            inv,
+            epoch,
+            old_handle,
+            phase,
+            pending,
+            held,
+            parent
+          },
+          handle,
+          request
+        )
+        : O.Step
+      }
+      installed_exact(
+        Bool.and(
+          O.install_matches(
+            O.Child{
+              O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+              inv,
+              epoch,
+              old_handle,
+              phase,
+              pending,
+              held,
+              parent
+            },
+            generation
+          ),
+          Bool.and(
+            O.child_live(
+              canon,
+              rest,
+              O.Child{
+                O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+                inv,
+                epoch,
+                old_handle,
+                phase,
+                pending,
+                held,
+                parent
+              }
+            ),
+            O.evaluation_dispatch_pending(canon, context, jev)
+          )
+        ),
+        state,
+        O.Child{
+          O.EvaluationScope{
+            operation,
+            context,
+            O.EvaluationAtProvider{jev, O.Parent{inv, generation, request}}
+          },
+          inv,
+          epoch,
+          old_handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        handle,
+        request
+      )
+
+def provider_install_found_exact(
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +generation: Nat,
+  +handle: Nat,
+  +request: Nat
+) -> {
+  O.evaluation_provider_found(state, found, generation, handle, request)
+  == S.provider_install_found(state, found, generation, handle, request) : O.Step
+}:
+  match found:
+    case None{}: {==}
+    case Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationIssued{jev}},
+        inv,
+        epoch,
+        old_handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: provider_install_issued_exact(
+      state,
+      operation,
+      context,
+      jev,
+      inv,
+      epoch,
+      old_handle,
+      phase,
+      pending,
+      held,
+      parent,
+      generation,
+      handle,
+      request
+    )
+
+    case Some{O.Child{O.EvaluationScope{_, _, O.EvaluationUnissued{}}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, O.EvaluationAtProvider{_, _}}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationScope{_, _, O.EvaluationSettled{}}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationCleanupScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+def install_evaluation_provider_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +handle: Nat,
+  +request: Nat
+) -> {
+  O.install_evaluation_provider(state, inv, generation, handle, request)
+  == S.install_evaluation_provider(state, inv, generation, handle, request) : O.Step
+}:
+  match state:
+    case O.State{_, _, _, rest}: provider_install_found_exact(
+      state,
+      O.find(inv, rest),
+      generation,
+      handle,
+      request
+    )
+
+def no_work_exact(
+  +found: Maybe<&2, C.Work>
+) -> {O.evaluation_no_work(found) == S.no_work(found) : Bool}:
+  match found:
+    case None{}: {==}
+    case Some{_}: {==}
+
+def idle_exact(
+  +canon: C.State,
+  +context: O.EvaluationContext
+) -> {O.evaluation_idle(canon, context) == S.idle(canon, context) : Bool}:
+  match canon context:
+    case C.State{_, _, work, _, _, _, D.State{_, _, _, _, requests}, _, _} O.EvaluationContext{
+      p,
+      l,
+      r,
+      o
+    }:
+      %no_work_exact(C.find_work(p, l, r, o, work)) : {
+        O.evaluation_idle(canon, context)
+        == Bool.and(Bool.not(D.request_for_work(requests, o)), _)
+        : Bool
+      }
+      {==}
+
+def complete_scope_exact(+canon: C.State, +scope: O.Scope) -> {
+  O.evaluation_complete_scope(canon, scope) == S.complete_scope(canon, scope) : Bool
+}:
+  match scope:
+
+    case O.EvaluationCleanupScope{_, _, context, O.EvaluationUnissued{}}: idle_exact(canon, context)
+
+    case O.EvaluationCleanupScope{_, _, context, O.EvaluationIssued{_}}: {==}
+
+    case O.EvaluationCleanupScope{_, _, context, O.EvaluationAtProvider{_, _}}: {==}
+
+    case O.EvaluationCleanupScope{_, _, context, O.EvaluationSettled{}}: {==}
+
+    case O.EvaluationDispatchScope{_, _, _}: {==}
+
+    case O.EvaluationScope{_, context, O.EvaluationUnissued{}}: idle_exact(canon, context)
+
+    case O.EvaluationScope{_, context, O.EvaluationIssued{_}}: {==}
+
+    case O.EvaluationScope{_, context, O.EvaluationAtProvider{_, _}}: {==}
+
+    case O.EvaluationScope{_, context, O.EvaluationSettled{}}: {==}
+
+    case O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case O.SettingsScope{_}: {==}
+
+    case O.FreshnessScope{_}: {==}
+
+    case O.Scope{_, _, _, _}: {==}
+
+    case O.SourceScope{_, _, _, _, _}: {==}
+
+    case O.AfterSourceScope{_, _, _, _, _, _, _}: {==}
+
+    case O.PreparationScope{_, _, _, _}: {==}
+
+    case O.RetainingScope{_, _, _, _, _}: {==}
+
+    case O.AdviceTailScope{_, _, _, _, _, _}: {==}
+
+def complete_from_live_exact(
+  +state: O.State,
+  +child: O.Child,
+  +generation: Nat,
+  +result: Nat,
+  live: {O.child_live(S.canonical(state), S.children(state), child) == S.live(state, child) : Bool}
+) -> {
+    O.complete_evaluation_found(state, Some{child}, generation, result)
+    == S.complete_found(state, Some{child}, generation, result)
+    : O.Step
+  }:
+  match state child:
+    case O.State{canon, _, _, rest} O.Child{scope, _, _, _, _, _, _, _}:
+      %complete_scope_exact(canon, scope) : {
+        O.complete_evaluation_found(state, Some{child}, generation, result)
+        == S.accepted(
+          Bool.and(_, Bool.and(S.live(state, child), S.installable(child, generation))),
+          state,
+          child,
+          result
+        )
+        : O.Step
+      }
+      %live : {
+        O.complete_evaluation_found(state, Some{child}, generation, result)
+        == S.accepted(
+          Bool.and(
+            O.evaluation_complete_scope(canon, scope),
+            Bool.and(_, S.installable(child, generation))
+          ),
+          state,
+          child,
+          result
+        )
+        : O.Step
+      }
+      %install_matches_exact(child, generation) : {
+        O.complete_evaluation_found(state, Some{child}, generation, result)
+        == S.accepted(
+          Bool.and(
+            O.evaluation_complete_scope(canon, scope),
+            Bool.and(O.child_live(canon, rest, child), _)
+          ),
+          state,
+          child,
+          result
+        )
+        : O.Step
+      }
+      accepted_exact(
+        Bool.and(
+          O.evaluation_complete_scope(canon, scope),
+          Bool.and(O.child_live(canon, rest, child), O.install_matches(child, generation))
+        ),
+        state,
+        child,
+        result
+      )
+
+def complete_found_exact(
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +generation: Nat,
+  +result: Nat
+) -> {
+  O.complete_evaluation_found(state, found, generation, result)
+  == S.complete_found(state, found, generation, result)
+  : O.Step
+}:
+  match found:
+    case None{}: {==}
+
+    case Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: complete_from_live_exact(
+      state,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      generation,
+      result,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        cleanup_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          origin,
+          0n,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationDispatchScope{v0, v1, v2},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.EvaluationDispatchScope{v0, v1, v2},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: complete_from_live_exact(
+      state,
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      generation,
+      result,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        root_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          0n,
+          0n,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{O.DeliveryScope{v0, v1, v2, v3, v4}, inv, epoch, handle, phase, pending, held, parent}
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.DeliveryScope{v0, v1, v2, v3, v4},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
+    case Some{O.Child{O.SettingsScope{v0}, inv, epoch, handle, phase, pending, held, parent}}: accepted_exact(
+      False{},
+      state,
+      O.Child{O.SettingsScope{v0}, inv, epoch, handle, phase, pending, held, parent},
+      result
+    )
+
+    case Some{O.Child{O.FreshnessScope{v0}, inv, epoch, handle, phase, pending, held, parent}}: accepted_exact(
+      False{},
+      state,
+      O.Child{O.FreshnessScope{v0}, inv, epoch, handle, phase, pending, held, parent},
+      result
+    )
+
+    case Some{O.Child{O.Scope{v0, v1, v2, v3}, inv, epoch, handle, phase, pending, held, parent}}: accepted_exact(
+      False{},
+      state,
+      O.Child{O.Scope{v0, v1, v2, v3}, inv, epoch, handle, phase, pending, held, parent},
+      result
+    )
+
+    case Some{
+      O.Child{O.SourceScope{v0, v1, v2, v3, v4}, inv, epoch, handle, phase, pending, held, parent}
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{O.SourceScope{v0, v1, v2, v3, v4}, inv, epoch, handle, phase, pending, held, parent},
+      result
+    )
+
+    case Some{
+      O.Child{
+        O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
+    case Some{
+      O.Child{O.PreparationScope{v0, v1, v2, v3}, inv, epoch, handle, phase, pending, held, parent}
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{O.PreparationScope{v0, v1, v2, v3}, inv, epoch, handle, phase, pending, held, parent},
+      result
+    )
+
+    case Some{
+      O.Child{
+        O.RetainingScope{v0, v1, v2, v3, v4},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.RetainingScope{v0, v1, v2, v3, v4},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
+    case Some{
+      O.Child{
+        O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
+def complete_evaluation_exact(+state: O.State, +inv: Nat, +generation: Nat, +result: Nat) -> {
+  O.complete_evaluation(state, inv, generation, result)
+  == S.complete_evaluation(state, inv, generation, result)
+  : O.Step
+}:
+  match state:
+    case O.State{_, _, _, rest}: complete_found_exact(state, O.find(inv, rest), generation, result)
+
 def main() -> Unit:
   Unit{}
