@@ -178,5 +178,120 @@ def retention_exact(+values: List<&2, E.Candidate>, +context: E.Context, +inv: N
     case Con{E.Candidate{_, True{}}, _}: {==}
     case Con{E.Candidate{_, False{}}, rest}: retention_exact(rest, context, inv, next)
 
+def failure_exact(+context: E.Context, +receipt: E.Receipt, +result: E.ProviderResult, +aborted: Bool, +inv: Nat, +next: Nat) -> {
+  E.failure_after_status(context, receipt, result, aborted, inv, next) == S.failure(context, receipt, result, aborted, inv, next) : E.Step
+}:
+  match context receipt result aborted:
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Evaluated{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Evaluated{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Backend{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Backend{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Timeout{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Timeout{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.InputRefused{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.InputRefused{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Missing{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} E.Missing{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Evaluated{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Evaluated{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Backend{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Backend{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Timeout{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Timeout{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.InputRefused{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.InputRefused{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Missing{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} E.Missing{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Evaluated{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Evaluated{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Backend{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Backend{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Timeout{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Timeout{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.InputRefused{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.InputRefused{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Missing{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} E.Missing{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Evaluated{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Evaluated{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Backend{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Backend{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Timeout{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Timeout{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.InputRefused{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.InputRefused{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Missing{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} E.Missing{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Evaluated{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Evaluated{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Backend{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Backend{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Timeout{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Timeout{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.InputRefused{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.InputRefused{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Missing{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} E.Missing{} False{}: {==}
+
+def recovery_settlement_exact(+context: E.Context, +receipt: E.Receipt, +aborted: Bool, +inv: Nat, +next: Nat) -> {
+  E.recovery_settle(context, receipt, aborted, inv, next) == S.recovery_settlement(context, receipt, aborted, inv, next) : E.Step
+}:
+  match context receipt aborted:
+    case E.Context{_, _, _, _, _, _} E.Unissued{} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Unissued{} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Issued{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Started{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Interrupted{_} False{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} True{}: {==}
+    case E.Context{_, _, _, _, _, _} E.Settled{_} False{}: {==}
+
+def evaluated_settlement_exact(+context: E.Context, +receipt: E.Receipt, +current: Bool, +inv: Nat, +next: Nat) -> {
+  E.evaluated_status(context, receipt, current, inv, next) == S.evaluated_settlement(context, receipt, current, inv, next) : E.Step
+}:
+  match context receipt:
+    case E.Context{_, _, None{}, _, _, _} E.Unissued{}: {==}
+    case E.Context{_, _, Some{E.Review{0n, _}}, _, _, _} E.Unissued{}: {==}
+    case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Unissued{}: {==}
+    case E.Context{_, _, None{}, _, _, _} E.Issued{_}: {==}
+    case E.Context{_, _, Some{E.Review{0n, _}}, _, _, _} E.Issued{_}: {==}
+    case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Issued{_}: {==}
+    case E.Context{_, _, None{}, _, _, _} E.Started{_}: {==}
+    case E.Context{_, _, Some{E.Review{0n, _}}, _, _, _} E.Started{_}: {==}
+    case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Started{_}: {==}
+    case E.Context{_, _, None{}, _, _, _} E.Interrupted{_}: {==}
+    case E.Context{_, _, Some{E.Review{0n, _}}, _, _, _} E.Interrupted{_}: {==}
+    case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Interrupted{_}: {==}
+    case E.Context{_, _, None{}, _, _, _} E.Settled{_}: {==}
+    case E.Context{_, _, Some{E.Review{0n, _}}, _, _, _} E.Settled{_}: {==}
+    case E.Context{_, _, Some{E.Review{1n+_, _}}, _, _, _} E.Settled{_}: {==}
+
+def recovery_authorization_exact(+context: E.Context, +step: A.Step, +inv: Nat, +next: Nat) -> {
+  E.recovery_deny_step(context, step, inv, next) == S.recovery_authorization(context, step, inv, next) : E.Step
+}:
+  match step:
+    case A.Await{_, _, _, A.Request{_, _, _}}: {==}
+    case A.NotAuthorized{_}: {==}
+    case A.Aborted{token}: fault_exact(context, token, inv, next)
+    case A.AuthorizedRequest{_}: {==}
+    case A.Rejected{}: {==}
+
+def recovery_authorization_reply_exact(+context: E.Context, +step: A.Step, +response: A.Response, +inv: Nat, +next: Nat) -> {
+  E.recovery_deny_reply(context, step, response, inv, next) == S.recovery_authorization_reply(context, step, response, inv, next) : E.Step
+}:
+  match step:
+    case A.Await{_, +id, _, _}:
+      %AP.resume_exact(step, A.Reply{inv, id, response}) : {
+        E.recovery_deny_step(context, A.resume(step, A.Reply{inv, id, response}), inv, next)
+        == S.recovery_authorization(context, _, inv, next) : E.Step
+      }
+      recovery_authorization_exact(context, A.resume(step, A.Reply{inv, id, response}), inv, next)
+    case A.AuthorizedRequest{_}: {==}
+    case A.NotAuthorized{_}: {==}
+    case A.Aborted{_}: {==}
+    case A.Rejected{}: {==}
+
 def main() -> Unit:
   Unit{}
