@@ -123,6 +123,79 @@ describe("edit-owned settings", () => {
     expect(await Effect.runPromise(f.server.pendingAdviceMetadata())).toHaveLength(1)
   })
 
+  it("keeps Stop waiting through native transfer alongside another logical review", async () => {
+    const settled = nativeDeferred()
+    const release = nativeDeferred()
+    const otherEntered = nativeDeferred()
+    const otherRelease = nativeDeferred()
+    const f = await fixture({
+      reviewControls: reviewControlsLayer({
+        beforeEvaluate: (prepared) =>
+          prepared.input.path === "other.ts"
+            ? otherEntered.complete().pipe(Effect.andThen(otherRelease.wait))
+            : Effect.void,
+        afterRequestSettled: () => settled.complete().pipe(Effect.andThen(release.wait))
+      })
+    })
+    await register(f.server, f.observation, f.user)
+    const content = "type Other = number\n"
+    const path = await put(f.root, "other.ts", content)
+    const other = await Effect.runPromise(
+      adaptClaudeDirectEvent({
+        hook_event_name: "PostToolUse",
+        tool_name: "Write",
+        cwd: f.root,
+        session_id: "session",
+        tool_use_id: "other",
+        tool_input: { file_path: path, content },
+        tool_response: { filePath: path, content, originalFile: null, userModified: false }
+      })
+    )
+    if (other === undefined) throw new Error("missing second review observation")
+    try {
+      expect((await Effect.runPromise(f.server.admit(f.observation, f.dispatch, true, true))).status).toBe("accepted")
+      await settled.promise
+      await register(f.server, other, f.user)
+      expect((await Effect.runPromise(f.server.admit(other, f.dispatch, true, true))).status).toBe("accepted")
+      await otherEntered.promise
+      expect(
+        (
+          await Effect.runPromise(
+            f.server.handle({
+              requestRoute: "shared",
+              operation: "begin-stop",
+              lifetime: f.server.lifetime,
+              root: f.root,
+              advicee: f.observation.advicee,
+              token: "transfer-stop"
+            })
+          )
+        ).status
+      ).toBe("advanced")
+      const collect = () =>
+        f.server.handle({
+          requestRoute: "shared",
+          operation: "collect",
+          lifetime: f.server.lifetime,
+          root: f.root,
+          advicee: f.observation.advicee,
+          dispatch: f.dispatch,
+          mode: "turn-end",
+          composed: true,
+          finish: { token: "transfer-stop", deadlineReached: false }
+        })
+      expect((await Effect.runPromise(collect())).status).toBe("pending")
+      release.resolve()
+      otherRelease.resolve()
+      await Effect.runPromise(f.server.whenIdle())
+      expect((await Effect.runPromise(collect())).status).toBe("advice")
+    } finally {
+      release.resolve()
+      otherRelease.resolve()
+      await Effect.runPromise(f.server.whenIdle())
+    }
+  })
+
   it("retains registration rules and feedback through review, socket handoff and later collection", async () => {
     const observations: unknown[] = []
     const f = await fixture({ jevRequestObserver: (observation) => observations.push(observation) })

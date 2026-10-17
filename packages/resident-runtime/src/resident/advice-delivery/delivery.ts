@@ -464,7 +464,13 @@ const residentComposedWorkCount = Effect.fn("ResidentRuntime.composedWorkCount")
   partition: string
 ) {
   const round = yield* deps.residentLedger.rounds.get(partition)
-  return round === undefined ? 0 : (yield* deps.residentLedger.rounds.policyWork(round)).unfinished()
+  if (round === undefined || round.controller.signal.aborted) return 0
+  const logical = (yield* deps.residentLedger.rounds.policyWork(round)).unfinished()
+  const native = yield* deps.residentDispatcher.snapshotWhere(
+    ({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted
+  )
+  // Stop subtracts logical work; native transfer remains an independent blocker.
+  return logical + native.queued + native.running
 })
 const residentLeasedAdviceCount = Effect.fn("ResidentRuntime.leasedAdviceCount")(function* (
   deps: Dependencies,
@@ -503,14 +509,6 @@ const residentCollectionWorkCount = Effect.fn("ResidentRuntime.collectionWorkCou
     (yield* residentLeasedAdviceCount(deps, partition, composed)) +
     (yield* residentLeasedNoticeCount(deps, partition, composed))
   )
-})
-const residentCollectionWorkState = Effect.fn("ResidentRuntime.collectionWorkState")(function* (
-  deps: Dependencies,
-  root: string,
-  advicee: DirectAdvicee,
-  composed = false
-): Effect.fn.Return<{ readonly status: "pending" | "empty" }> {
-  return { status: (yield* residentCollectionWorkCount(deps, root, advicee, composed)) > 0 ? "pending" : "empty" }
 })
 const whenIdle = Effect.fn("ResidentRuntime.whenIdle")((deps: Dependencies) => deps.residentDispatcher.whenIdle())
 const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")(function* (
@@ -569,7 +567,6 @@ const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(functio
 export const makeResidentDelivery = (deps: Dependencies) => {
   return {
     residentCollectionWorkCount: residentCollectionWorkCount.bind(null, deps),
-    residentCollectionWorkState: residentCollectionWorkState.bind(null, deps),
     whenIdle: whenIdle.bind(null, deps),
     acknowledge: acknowledge.bind(null, deps),
     finalize: finalize.bind(null, deps),

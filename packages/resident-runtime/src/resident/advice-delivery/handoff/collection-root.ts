@@ -66,6 +66,7 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
   let collection = config.kind === "edit" || config.kind === "status" ? undefined : config.collection
   let statusAdvice: readonly Advice[] = []
   let statusNow = 0
+  let statusWorkCount = 0
   const currentCollection = () => {
     if (collection === undefined) throw new Error("missing collection pass capability")
     return collection
@@ -125,6 +126,8 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
         return { $: "RootEditStarted" }
       case "RootEditStatus":
         if (config.kind !== "edit" && config.kind !== "status") throw new Error("missing edit status capability")
+        // Advice is published before native completion; read work first to cover the transfer.
+        statusWorkCount = yield* config.workCount()
         statusNow = config.now()
         statusAdvice = yield* config.advice()
         return {
@@ -148,7 +151,7 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
       }
       case "RootEditWorkCount":
         if (config.kind !== "edit" && config.kind !== "status") throw new Error("missing edit work count capability")
-        return { $: "RootEditCount", count: yield* config.workCount() }
+        return { $: "RootEditCount", count: statusWorkCount }
       case "RootEditSleep":
         if (config.kind !== "edit") throw new Error("missing edit wait capability")
         yield* Effect.sleep(50)

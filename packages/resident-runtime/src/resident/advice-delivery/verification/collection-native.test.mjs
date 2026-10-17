@@ -1,5 +1,8 @@
 import rootCore from "../../../../dist/resident/advice-delivery/handoff/collection-handoff-core.js"
-import { residentEditCollectionStatus } from "../../../../dist/resident/advice-delivery/handoff/collection-status.js"
+import {
+  makeResidentCollectionWorkState,
+  residentEditCollectionStatus
+} from "../../../../dist/resident/advice-delivery/handoff/collection-status.js"
 import assert from "node:assert/strict"
 import { it } from "node:test"
 import * as Effect from "effect/Effect"
@@ -473,7 +476,11 @@ for (const composed of [false, true]) {
               trace.push("expiry")
               return false
             }),
-          residentCollectionWorkCount: () => assert.fail("current advice must skip work count")
+          residentCollectionWorkCount: () =>
+            Effect.sync(() => {
+              trace.push("count")
+              return 0
+            })
         },
         { partition: "stored" },
         "/repo",
@@ -483,7 +490,7 @@ for (const composed of [false, true]) {
       )
     )
     assert.deepEqual(result, { requestRoute: "edit", status: "pending" })
-    assert.deepEqual(trace, ["advice", "expiry"])
+    assert.deepEqual(trace, ["count", "advice", "expiry"])
   })
 }
 
@@ -526,6 +533,41 @@ for (const count of [0, 1]) {
       step = await Effect.runPromise(root.advance(step))
     }
     assert.deepEqual(root.decode(step), { requestRoute: "edit", status: count === 0 ? "empty" : "pending" })
-    assert.deepEqual(trace, ["clock", "advice", "count"])
+    assert.deepEqual(trace, ["count", "clock", "advice"])
   })
 }
+
+for (const publication of ["before-advice", "after-advice"]) {
+  it(`status observes a transfer ${publication} without reporting empty`, async () => {
+    const f = fixture()
+    let unfinished = 1
+    const status = makeResidentCollectionRoot({
+      kind: "status",
+      partition: recipientPartition(f.advicee),
+      matching: "recipient",
+      workCount: () => Effect.sync(() => unfinished),
+      advice: () =>
+        Effect.sync(() => {
+          unfinished = 0
+          return publication === "before-advice" ? [f.state.advice] : []
+        }),
+      expired: () => Effect.succeed(false),
+      now: () => 127
+    })
+    let step = status.initial(71)
+    while (step.$ === "RootAwait") step = await Effect.runPromise(status.advance(step))
+    assert.equal(unfinished, 0)
+    assert.equal(status.decode(step).status, "pending")
+  })
+}
+
+it("shared work reporting sees advice published after an empty collection pass", async () => {
+  const f = fixture()
+  const workState = makeResidentCollectionWorkState({
+    residentAdvice: () => Effect.succeed([f.state.advice]),
+    residentAdviceExpired: () => Effect.succeed(false),
+    residentCollectionWorkCount: () => Effect.succeed(0),
+    residentNow: () => 127
+  })
+  assert.deepEqual(await Effect.runPromise(workState("/repo", f.advicee, true)), { status: "pending" })
+})

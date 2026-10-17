@@ -41,7 +41,7 @@ export const residentCollectorGate = Effect.fn("ResidentRuntime.collectorGate")(
 
 export const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editCollectionStatus")(function* (
   deps: Pick<Dependencies, "residentAdvice" | "residentAdviceExpired" | "residentCollectionWorkCount">,
-  authority: ResponseAuthority,
+  authority: Pick<ResponseAuthority, "partition">,
   root: string,
   advicee: DirectAdvicee,
   composed: boolean,
@@ -60,3 +60,24 @@ export const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editColle
   while (step.$ === "RootAwait") step = yield* status.advance(step).pipe(Effect.orDie)
   return status.decode(step)
 })
+
+export const makeResidentCollectionWorkState = (
+  deps: Pick<Dependencies, "residentAdvice" | "residentAdviceExpired" | "residentCollectionWorkCount" | "residentNow">
+) =>
+  Effect.fn("ResidentRuntime.collectionWorkState")(function* (
+    root: string,
+    advicee: DirectAdvicee,
+    composed = false
+  ): Effect.fn.Return<{ readonly status: "pending" | "empty" }> {
+    const response = yield* residentEditCollectionStatus(
+      deps,
+      { partition: recipientPartition(advicee) },
+      root,
+      advicee,
+      composed,
+      deps.residentNow()
+    )
+    if (response.status !== "pending" && response.status !== "empty")
+      throw new Error("collection status returned a delivery response")
+    return { status: response.status }
+  })
