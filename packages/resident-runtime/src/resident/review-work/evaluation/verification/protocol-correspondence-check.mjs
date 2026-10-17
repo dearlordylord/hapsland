@@ -5,6 +5,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 
+import { requireIndependent } from "./specification-independence.mjs"
+
 const tag = (owner, $, fields = {}) => ({ $: owner + "." + $, ...fields })
 const a = ($, fields) => tag("Authorization", $, fields)
 const d = ($, fields) => tag("Dispatch", $, fields)
@@ -74,14 +76,6 @@ const plans = [
   }
 ]
 
-function requireIndependent(source, alias) {
-  const code = source.replace(/#[^\n]*/gu, "")
-  assert.doesNotMatch(
-    code,
-    new RegExp("\\b" + alias + "\\.[a-z_][A-Za-z0-9_]*", "u"),
-    "Independent public-step specification must determine its own transition; remove the production helper call"
-  )
-}
 // This exact production delegation made the withdrawn seven-law package miss
 // skipped provider/cache stages. Keep the structural gate's negative witness.
 assert.throws(() => requireIndependent("E.advance(context, phase, response, invocation, next)", "E"), {

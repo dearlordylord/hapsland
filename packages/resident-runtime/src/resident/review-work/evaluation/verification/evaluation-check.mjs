@@ -5,6 +5,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 
+import { requireIndependent } from "./specification-independence.mjs"
+
 const tag = ($, fields = {}) => ({ $, ...fields })
 const nil = tag("Nil")
 const list = (items) => items.reduceRight((tail, head) => tag("Con", { head, tail }), nil)
@@ -372,6 +374,42 @@ try {
       timeout: 10000
     })
   let core = (await import(pathToFileURL(output))).default
+  const specSource = join(import.meta.dirname, "../EvaluationSpecification.bend")
+  for (const alias of ["E", "A"]) requireIndependent(readFileSync(specSource, "utf8"), alias)
+  requireIndependent(readFileSync(join(import.meta.dirname, "../AuthorizationSpecification.bend"), "utf8"), "A")
+  const specOutput = join(temporary, "specification.mjs")
+  execFileSync("taskset", ["-c", "10", "bend", specSource, "-o", specOutput], { timeout: 10000 })
+  const model = (await import(pathToFileURL(specOutput))).default
+  // Only Evaluation-owned constructors change owner when imported by the spec.
+  // Auth and Work constructors already retain their domain owner; Base is shared.
+  const evaluationNames = new Set(
+    [
+      ...readFileSync(join(import.meta.dirname, "../Evaluation.bend"), "utf8").matchAll(/^  ([A-Z][A-Za-z0-9_]*)\{/gmu)
+    ].map((match) => match[1])
+  )
+  function owner(value, encode) {
+    return value && typeof value === "object"
+      ? Object.fromEntries(
+          Object.entries(value).map(([key, item]) => [
+            key,
+            key === "$" && typeof item === "string"
+              ? encode
+                ? evaluationNames.has(item)
+                  ? "Evaluation." + item
+                  : item
+                : item.startsWith("Evaluation.")
+                  ? item.slice("Evaluation.".length)
+                  : item
+              : owner(item, encode)
+          ])
+        )
+      : value
+  }
+  const specified = {
+    initial: (input, invocation) => owner(model.initial(owner(input, true), invocation), false),
+    cleanup_initial: (invocation) => owner(model.cleanup_initial(invocation), false),
+    resume: (step, reply) => owner(model.resume(owner(step, true), owner(reply, true)), false)
+  }
   if (packaged) assert.deepEqual(Object.keys(core).sort(), ["cleanup_initial", "initial", "resume"])
   // Constructor owner from the checked private ABI; packaged exports hide helpers.
   const prefix = "Authorization."
@@ -404,6 +442,8 @@ try {
     let expected = reference.next(),
       step = facts.cleanupReceipt ? core.cleanup_initial(41) : core.initial(input, 41),
       at = 0
+    let specifiedStep = facts.cleanupReceipt ? specified.cleanup_initial(41) : specified.initial(input, 41)
+    assert.deepEqual(step, specifiedStep, "complete public initial correspondence")
     const trace = []
     while (!expected.done) {
       assert.ok(at < 180, "finite evaluation fixture exceeded its command budget")
@@ -428,6 +468,8 @@ try {
       assert.equal(core.resume({ ...step, request: { ...step.request, invocation: 42 } }, reply).$, "Rejected")
       assert.equal(core.resume({ ...step, request: { ...step.request, id: at + 1 } }, reply).$, "Rejected")
       step = core.resume(step, reply)
+      specifiedStep = specified.resume(specifiedStep, reply)
+      assert.deepEqual(step, specifiedStep, "complete public reply correspondence at " + at)
       expected = reference.next(response)
       at++
     }
@@ -497,6 +539,211 @@ try {
         for (let at = 0; at < trace.length; at++) run(facts, new Map([[at, 11]]))
         run({ ...facts, completed: true })
       }
+  // Public cursors also accept typed states not reached by the ordered fixtures.
+  // Vary those states independently: do not derive expected transitions from
+  // implementation helpers or constrain correspondence to reachable happy paths.
+  const enumerate = (names) => names.map(($) => tag($))
+  const receipts = [
+    tag("Unissued"),
+    ...["Issued", "Started", "Interrupted", "Settled"].map(($) => tag($, { request: 73 }))
+  ]
+  const reviews = [tag("None"), ...[0, 2].map((count) => tag("Some", { value: tag("Review", { count, bytes: 19 }) }))]
+  const dispositions = enumerate([
+    "FindingRetained",
+    "ClearSettled",
+    "StaleClearSettled",
+    "StaleFindingRetired",
+    "Unavailable",
+    "Ignored",
+    "Stale"
+  ])
+  const outcomes = enumerate([
+    "Clear",
+    "Finding",
+    "NeverSent",
+    "RequestInterrupted",
+    "RequestTimeout",
+    "BackendFailure"
+  ])
+  const reasons = enumerate(["LostReason", "CredentialReason", "BackendReason", "StaleReason"])
+  const classifications = ["NoFailure", "BackendUnavailable", "CredentialUnavailable", "LostUnavailable"].map(($) =>
+    tag("Work." + $)
+  )
+  const results = [
+    ...enumerate(["Backend", "Timeout", "InputRefused", "Missing"]),
+    ...[0, 2].map((count) => tag("Evaluated", { review: tag("Review", { count, bytes: 19 }) }))
+  ]
+  const authSteps = [
+    ...["Lost", "Credential"].map((reason) =>
+      tag("Authorization.NotAuthorized", { reason: tag("Authorization." + reason) })
+    ),
+    tag("Authorization.AuthorizedRequest", { request: 73 }),
+    tag("Authorization.Aborted", { token: 97 }),
+    tag("Authorization.Rejected"),
+    ...[0, 41, 42].map((invocation) =>
+      tag("Authorization.Await", {
+        invocation,
+        id: 11,
+        phase: tag("Authorization.Analytics"),
+        request: tag("Authorization.Request", {
+          invocation,
+          id: 11,
+          command: tag("Authorization.ReadEffectiveAnalytics")
+        })
+      })
+    )
+  ]
+  const phases = [
+    ...enumerate([
+      "PolicyStart",
+      "ReviewStart",
+      "BackendGate",
+      "AdmissionActive",
+      "AdmissionCurrent",
+      "BeforeEvaluate",
+      "Controlled",
+      "Provider",
+      "DeniedNotice",
+      "DeniedActivity",
+      "RoundActive",
+      "RoundRuntime",
+      "RoundReported",
+      "CurrentRuntime",
+      "CurrentActive",
+      "CurrentSource",
+      "DiscardObserved",
+      "NonRetainedJoined",
+      "NonRetainedCompleted",
+      "OutcomeRecorded",
+      "RetentionActive",
+      "RetentionInactiveRetired",
+      "RetentionCandidates",
+      "ExistingPublished",
+      "ExistingRecorded",
+      "ExistingRetired",
+      "ExistingReleased",
+      "AdviceInsertedPhase",
+      "AdviceDriven",
+      "FailureNotice",
+      "FailureActivity",
+      "RecoveryStatus",
+      "RecoveryAborted",
+      "RecoveryEscaped",
+      "RecoveryAfterEscapedAborted",
+      "RecoveryReviewing",
+      "RecoveryInterrupt",
+      "RecoveryInterrupted",
+      "RecoveryInterruptStatus",
+      "RecoveryObserved",
+      "RecoveryJoined",
+      "RecoveryDebug",
+      "RecoveryRuntime",
+      "RecoveryActivity",
+      "FinallyCompleted",
+      "FinallyReuse",
+      "FinallyUnit",
+      "Raising"
+    ]),
+    ...[false, true].map((current) => tag("EvaluatedStatus", { current })),
+    ...["ForProvider", "RefuseStale"].flatMap((use) =>
+      authSteps.map((step) => tag("Authorizing", { use: tag(use), step }))
+    ),
+    ...authSteps.map((step) => tag("RecoveryDeny", { step })),
+    ...["DeniedAnalytics", "DeniedJoined", "FailureJoined"].flatMap(($) => reasons.map((reason) => tag($, { reason }))),
+    ...["EvaluatedSettlement", "RecoverySettling"].flatMap(($) => outcomes.map((outcome) => tag($, { outcome }))),
+    ...[
+      "EvaluatedObservation",
+      "DemoRecorded",
+      "CacheStored",
+      "CacheClaimReleased",
+      "EvaluatedActivity",
+      "NonRetainedFate",
+      "NonRetainedRetired"
+    ].flatMap(($) => dispositions.map((disposition) => tag($, { disposition }))),
+    ...["ReleaseReuse", "ReleaseNativeUnit"].flatMap(($) =>
+      ["FinishRelease", "RecordOutcomeRelease"].map((target) => tag($, { target: tag(target) }))
+    ),
+    ...["AdviceObserved", "AdvicePreserved"].flatMap(($) => [0, 11].map((tail) => tag($, { tail }))),
+    ...[
+      "FailureStatus",
+      "FailureAborted",
+      "FailureInterrupted",
+      "FailureInterruptObserved",
+      "FailureStatusAfterInterrupt"
+    ].flatMap(($) => results.map((result) => tag($, { result }))),
+    ...outcomes.flatMap((outcome) =>
+      classifications.map((classification) => tag("FailureSettling", { outcome, classification }))
+    ),
+    ...["FailureCompleting", "FailureObserved"].flatMap(($) =>
+      classifications.map((classification) => tag($, { classification }))
+    )
+  ]
+  const responses = [
+    tag("Ack"),
+    ...[false, true].map((value) => tag("Flag", { value })),
+    ...["Ack", "Flag", "Failed"].map(($) =>
+      tag("Authorized", {
+        response: tag("Authorization." + $, $ === "Flag" ? { value: true } : $ === "Failed" ? { token: 97 } : {})
+      })
+    ),
+    ...results.map((result) => tag("ProviderReturned", { result })),
+    ...receipts.map((receipt) => tag("RequestState", { receipt })),
+    ...dispositions.map((disposition) => tag("RequestSettled", { disposition })),
+    ...[
+      [],
+      [tag("Candidate", { handle: 1, matching: false })],
+      [
+        tag("Candidate", { handle: 1, matching: false }),
+        tag("Candidate", { handle: 2, matching: true }),
+        tag("Candidate", { handle: 3, matching: true })
+      ]
+    ].map((items) => tag("AdviceCandidates", { values: list(items) })),
+    tag("Published", { publication: 7 }),
+    tag("AdviceInserted", { tail: 11 }),
+    tag("Failed", { token: 97 })
+  ]
+  const source = readFileSync(join(import.meta.dirname, "../Evaluation.bend"), "utf8")
+  for (const [type, fixtures] of [
+    ["Phase", phases],
+    ["Response", responses]
+  ]) {
+    const block = source.match(new RegExp("type " + type + " is Data:([\\s\\S]*?)(?=\\ntype |\\ndef |$)", "u"))[1]
+    assert.deepEqual(
+      new Set(fixtures.map((value) => value.$)),
+      new Set([...block.matchAll(/^  ([A-Z][A-Za-z0-9_]*)\{/gmu)].map((match) => match[1])),
+      "cover every public " + type
+    )
+  }
+  let stateComparisons = 0
+  for (const policy_unit of [false, true])
+    for (const receipt of receipts)
+      for (const review of reviews)
+        for (const mode of enumerate(["Normal", "Recovering", "Finalizing"])) {
+          const context = tag("Context", {
+            input: tag("Input", { policy_unit }),
+            receipt,
+            review,
+            mode,
+            task_faults: list([13, 17]),
+            final_faults: list([23, 29])
+          })
+          for (const phase of phases) {
+            const invocation = stateComparisons % 2 === 0 ? 0 : 41
+            const id = stateComparisons % 3 === 0 ? 0 : 4294967297
+            const step = tag("Await", {
+              invocation,
+              id,
+              context,
+              phase,
+              request: tag("Request", { invocation, id, signal: tag("NativeSignal"), command: tag("ReadCompleted") })
+            })
+            for (const response of responses) {
+              const reply = tag("Reply", { invocation, id, response })
+              assert.deepEqual(core.resume(step, reply), specified.resume(step, reply), "typed public state " + phase.$)
+              stateComparisons++
+            }
+          }
+        }
   const mutantOutput = join(temporary, "mutants.mjs")
   execFileSync(
     "taskset",
@@ -587,9 +834,10 @@ try {
       cases,
       prefixes,
       commands: coverage.size,
+      stateComparisons,
       rejectedMutants,
       scope:
-        "emitted whole evaluation cursor versus independent ordered specification, every fixture command fault, two signal domains and reply correlation; not production/native cleanup or universal proof"
+        "complete emitted Evaluation public-step/state correspondence plus independent ordered trace oracle; every fixture command fault, two signal domains and reply correlation; not Canonical ownership, physical IO or universal proof"
     })
   )
 } finally {

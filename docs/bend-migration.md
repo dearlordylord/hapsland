@@ -248,7 +248,7 @@ advice tail; cached/fresh enrollment and observation share evaluation-owned
 helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-Evidence: source1718 tapes/49057 prefixes/5 mutants; cached enrollment793;
+Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
 Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
 build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
 with controlled authorization/observation ports. Expanded consumers found and
@@ -265,7 +265,7 @@ Canonical transactions/transport/driver; shared load permits no causal claim.
 
 Remaining obligations (Astra,2026-10-17):
 1. Complete independent Evaluation/Auth/Dispatch initial/cleanup/interruption/
-   resume correspondence. Auth/Dispatch:33270 finite replies; parent table open.
+   resume correspondence: full independent tables; finite checks, proofs open.
 2. Exact Canonical evaluation lifecycle, context/lease/request and dispatch-parent
    fences; cleanup authority, cancellation and reconciliation.
 3. Exact one-claim advice transfer, pending-finding authority and parent=None.
