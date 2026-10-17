@@ -1,3 +1,4 @@
+import type { EvaluationSession, EvaluationRequest, EvaluationReply } from "../evaluation/evaluation-session.ts"
 import type { DispatchSession, DispatchRequest, DispatchReply } from "../evaluation/dispatch-session.ts"
 import type { DeliverySession, DeliveryRequest, DeliveryReply } from "../../advice-delivery/handoff/delivery-session.ts"
 import type { ForeignReply } from "@hapsland/canonical-policy/canonical/child-execution"
@@ -24,6 +25,7 @@ type SourceSession = ReturnType<typeof createSourcePreparationProvider>
 type PostSession = ReturnType<typeof createPostPreparationProvider>
 type AdviceSession = ReturnType<typeof createAdviceTailProvider>
 export type PreparationNativeSession =
+  | EvaluationSession
   | DispatchSession
   | DeliverySession
   | FinalizationSession
@@ -35,6 +37,8 @@ export type PreparationNativeSession =
 
 export const createPreparationSessionRegistry = () => createNativeSessionRegistry<PreparationNativeSession>()
 
+const evaluationSession = (session: PreparationNativeSession): session is EvaluationSession =>
+  "input" in session && "evaluation" in session.input
 const dispatchSession = (session: PreparationNativeSession): session is DispatchSession =>
   "input" in session && "evaluationDispatch" in session.input
 const deliverySession = (session: PreparationNativeSession): session is DeliverySession =>
@@ -68,6 +72,7 @@ export function performPreparationSessionRequest(
         throw new TypeError("Wrong finalization service session")
       return Effect.promise(() => performFinalizationAsync(request))
     }
+    if ("evaluation" in request) throw new TypeError("Evaluation requires its Cause-preserving execution port")
     if ("evaluationDispatch" in request) throw new TypeError("Dispatch requires its Cause-preserving execution port")
     if ("delivery" in request) throw new TypeError("Delivery requires its Cause-preserving execution port")
     if ("operation" in request) {
@@ -205,5 +210,15 @@ export function performDispatchSessionRequest(
 ): ForeignReply<DispatchReply> {
   const session = registry.get(request.invocation)
   if (!session || !dispatchSession(session)) throw new TypeError("Wrong dispatch service session")
+  return session.foreign(request, options)
+}
+
+export function performEvaluationSessionRequest(
+  registry: ReturnType<typeof createPreparationSessionRegistry>,
+  request: EvaluationRequest,
+  options: ForeignOptions
+): ForeignReply<EvaluationReply> {
+  const session = registry.get(request.invocation)
+  if (!session || !evaluationSession(session)) throw new TypeError("Wrong evaluation service session")
   return session.foreign(request, options)
 }

@@ -16,7 +16,7 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").Control} Control
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ControlledStep | OwnerStep} Step
  * @typedef {import("@hapsland/runtime-environment/runtime/native-session-registry").NativeSession & {revoke(): unknown, finish?: () => unknown | Promise<unknown>, exception?: (token: Parameters<Parameters<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").createBendResolver>[0]["drive"]>[0] extends {exception: (token: infer T) => unknown} ? T : never) => unknown, forceCleanup?: (error: unknown) => unknown, cleanupFlow?: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>}} NativeSession
- * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"] | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryRequest | import("../evaluation/dispatch-session.ts").DispatchRequest} RawRequest
+ * @typedef {Extract<ownedMachine.Projection["view"], {$: "Types.AwaitService"}>["request"] | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryRequest | import("../evaluation/dispatch-session.ts").DispatchRequest | import("../evaluation/evaluation-session.ts").EvaluationRequest} RawRequest
  * @typedef {RawRequest & {readonly invocation: number, readonly id: number}} Request
  * @typedef {import("@hapsland/canonical-policy/canonical/child-execution").ForeignOptions} ForeignOptions
 
@@ -32,6 +32,7 @@ import { readNat } from "@hapsland/canonical-policy/canonical/boundary-schema"
  * @typedef {ReturnType<ownedMachine.PostMachine["accepted"]> | CancellationOutcome} PostOutcome
  * @typedef {ReturnType<ownedMachine.AdviceMachine["accepted"]> | CancellationOutcome} AdviceOutcome
  * @typedef {import("../evaluation/dispatch-session.ts").DispatchAccepted | CancellationOutcome} DispatchOutcome
+ * @typedef {import("../evaluation/evaluation-session.ts").EvaluationAccepted | CancellationOutcome} EvaluationOutcome
  */
 /**
  * @template {NativeSession} [Session=NativeSession]
@@ -55,6 +56,7 @@ const required = (value) => {
  * (session: Session, input: Parameters<ownedMachine.AdviceMachine["initial"]>[0], options?: ForeignOptions): Promise<AdviceOutcome>;
  * (session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput, options?: ForeignOptions): Promise<DeliveryOutcome>;
  * (session: Session, input: import("../evaluation/dispatch-session.ts").DispatchInput, options?: ForeignOptions): Promise<DispatchOutcome>;
+ * (session: Session, input: import("../evaluation/evaluation-session.ts").EvaluationInput, options?: ForeignOptions): Promise<EvaluationOutcome>;
  * }} Drive
  */
 /**
@@ -68,12 +70,14 @@ const required = (value) => {
  * (session: Session, input: Parameters<ownedMachine.AdviceMachine["initial"]>[0], options?: ForeignOptions): import("effect/Effect").Effect<AdviceOutcome>;
  * (session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput, options?: ForeignOptions): import("effect/Effect").Effect<DeliveryOutcome>;
  * (session: Session, input: import("../evaluation/dispatch-session.ts").DispatchInput, options?: ForeignOptions): import("effect/Effect").Effect<DispatchOutcome>;
+ * (session: Session, input: import("../evaluation/evaluation-session.ts").EvaluationInput, options?: ForeignOptions): import("effect/Effect").Effect<EvaluationOutcome>;
  * }} DriveEffect
  */
 /**
  * @template {NativeSession} Session
  * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect" | "driveEffect" | "driveHandoffEffect" | "driveAdviceEffect" | "driveConstructedFlowEffect"> & {
  * driveConstructedEffect: {
+ * (construct: () => {session: Session, input: import("../evaluation/evaluation-session.ts").EvaluationInput}, options?: ForeignOptions): import("effect/Effect").Effect<EvaluationOutcome>;
  * (construct: () => {session: Session, input: import("../evaluation/dispatch-session.ts").DispatchInput}, options?: ForeignOptions): import("effect/Effect").Effect<DispatchOutcome>;
  * (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions): import("effect/Effect").Effect<SourceOutcome>;
  * (construct: () => {session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput}, options?: ForeignOptions): import("effect/Effect").Effect<DeliveryOutcome>;
@@ -112,7 +116,7 @@ const validateDeliveryStage = (projected, scope) => {
 // executes their single shared action/custody implementation.
 /**
  * @template {NativeSession} [Session=NativeSession]
- * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<ownedMachine.Reply>, dispatchForeign?: (request: import("../evaluation/dispatch-session.ts").DispatchRequest, options: ForeignOptions) => import("@hapsland/canonical-policy/canonical/child-execution").ForeignReply<import("../evaluation/dispatch-session.ts").DispatchReply>, deliveryForeign?: (request: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryRequest, options: ForeignOptions) => import("@hapsland/canonical-policy/canonical/child-execution").ForeignReply<import("../../advice-delivery/handoff/delivery-session.ts").DeliveryReply>, hooks?: Hooks<Session>, control?: Control, machine: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
+ * @param {{owner: Owner, initialState?: State, scope?: Scope, registry: ReturnType<typeof import("@hapsland/runtime-environment/runtime/native-session-registry").createNativeSessionRegistry<Session>>, foreign: (requests: readonly Request[], options: ForeignOptions) => import("@hapsland/runtime-environment/runtime/native-execution").NativeWork<ownedMachine.Reply>, evaluationForeign?: (request: import("../evaluation/evaluation-session.ts").EvaluationRequest, options: ForeignOptions) => import("@hapsland/canonical-policy/canonical/child-execution").ForeignReply<import("../evaluation/evaluation-session.ts").EvaluationReply>, dispatchForeign?: (request: import("../evaluation/dispatch-session.ts").DispatchRequest, options: ForeignOptions) => import("@hapsland/canonical-policy/canonical/child-execution").ForeignReply<import("../evaluation/dispatch-session.ts").DispatchReply>, deliveryForeign?: (request: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryRequest, options: ForeignOptions) => import("@hapsland/canonical-policy/canonical/child-execution").ForeignReply<import("../../advice-delivery/handoff/delivery-session.ts").DeliveryReply>, hooks?: Hooks<Session>, control?: Control, machine: ownedMachine.Machine, selectMachine?: (input: ownedMachine.Input, session: Session) => ownedMachine.Machine | undefined}} options
  * @returns {Driver<Session>}
  */
 export function createOwnedArtifactDriver({
@@ -123,6 +127,7 @@ export function createOwnedArtifactDriver({
   foreign,
   deliveryForeign,
   dispatchForeign,
+  evaluationForeign,
   hooks = {},
   control,
   machine,
@@ -137,6 +142,8 @@ export function createOwnedArtifactDriver({
     view: ownedMachine.view,
     resume: ownedMachine.resume,
     awaitRequest(projected) {
+      if (projected.kind === "evaluation")
+        return projected.view.$ === "EvaluationAwait" ? projected.view.request : undefined
       if (projected.kind === "dispatch")
         return projected.view.$ === "DispatchAwait" ? projected.view.request : undefined
       if (projected.kind === "delivery")
@@ -147,6 +154,17 @@ export function createOwnedArtifactDriver({
       return request
     },
     installation(projected, scope) {
+      if (projected.kind === "evaluation") {
+        if (
+          (scope.$ !== "EvaluationScope" || projected.machine.mode !== "root") &&
+          (scope.$ !== "EvaluationCleanupScope" || projected.machine.mode !== "cleanup")
+        )
+          throw new TypeError("Wrong evaluation scope binding")
+        if (projected.view.$ !== "EvaluationAwait") throw new TypeError("Missing evaluation command")
+        return {
+          method: projected.view.request.command.$ === "RunProvider" ? "install_evaluation_provider" : "install"
+        }
+      }
       if (projected.kind === "dispatch") {
         if (scope.$ !== "EvaluationDispatchScope") throw new TypeError("Wrong dispatch scope binding")
         return { method: "install" }
@@ -173,6 +191,15 @@ export function createOwnedArtifactDriver({
       return { method: "install" }
     },
     terminal(projected, scope) {
+      if (projected.kind === "evaluation") {
+        if (
+          (scope.$ !== "EvaluationScope" || projected.machine.mode !== "root") &&
+          (scope.$ !== "EvaluationCleanupScope" || projected.machine.mode !== "cleanup")
+        )
+          throw new TypeError("Wrong evaluation terminal scope")
+        if (projected.view.$ !== "EvaluationDone") throw new TypeError("Missing evaluation terminal result")
+        return "complete_evaluation"
+      }
       if (projected.kind === "dispatch") {
         if (scope.$ !== "EvaluationDispatchScope" || projected.view.$ !== "DispatchDone")
           throw new TypeError("Wrong dispatch terminal binding")
@@ -229,6 +256,7 @@ export function createOwnedArtifactDriver({
     foreignSync(requests, options) {
       if (requests.length !== 1) throw new TypeError("Preparation requires one owned request")
       const request = required(requests[0])
+      if ("evaluation" in request) return required(evaluationForeign)(request, options)
       if ("evaluationDispatch" in request) return required(dispatchForeign)(request, options)
       if ("delivery" in request) return required(deliveryForeign)(request, options)
       if ("finalization" in request) return performFinalizationSync(request)
@@ -267,6 +295,7 @@ export function createOwnedArtifactDriver({
   /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Promise<AdviceOutcome>} */
   /** @overload @param {Session} session @param {import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput} input @param {ForeignOptions} [options] @returns {Promise<DeliveryOutcome>} */
   /** @overload @param {Session} session @param {import("../evaluation/dispatch-session.ts").DispatchInput} input @param {ForeignOptions} [options] @returns {Promise<DispatchOutcome>} */
+  /** @overload @param {Session} session @param {import("../evaluation/evaluation-session.ts").EvaluationInput} input @param {ForeignOptions} [options] @returns {Promise<EvaluationOutcome>} */
   /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Promise<TerminalOutcome>} */
   function drive(session, input, options) {
     return sharedDrive(session, input, options)
@@ -279,6 +308,7 @@ export function createOwnedArtifactDriver({
   /** @overload @param {Session} session @param {Parameters<ownedMachine.AdviceMachine["initial"]>[0]} input @param {ForeignOptions} [options] @returns {Effect.Effect<AdviceOutcome>} */
   /** @overload @param {Session} session @param {import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput} input @param {ForeignOptions} [options] @returns {Effect.Effect<DeliveryOutcome>} */
   /** @overload @param {Session} session @param {import("../evaluation/dispatch-session.ts").DispatchInput} input @param {ForeignOptions} [options] @returns {Effect.Effect<DispatchOutcome>} */
+  /** @overload @param {Session} session @param {import("../evaluation/evaluation-session.ts").EvaluationInput} input @param {ForeignOptions} [options] @returns {Effect.Effect<EvaluationOutcome>} */
   /** @param {Session} session @param {ownedMachine.Input} input @param {ForeignOptions} [options] @returns {Effect.Effect<TerminalOutcome>} */
   function driveEffect(session, input, options) {
     return sharedEffect(session, input, options)
@@ -306,6 +336,7 @@ export function createOwnedArtifactDriver({
   /** @overload @param {() => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<SourceOutcome>} */
   /** @overload @param {() => {session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput}} construct @param {ForeignOptions} [options] @returns {Effect.Effect<DeliveryOutcome>} */
   /** @overload @param {() => {session: Session, input: import("../evaluation/dispatch-session.ts").DispatchInput}} construct @param {ForeignOptions} [options] @returns {Effect.Effect<DispatchOutcome>} */
+  /** @overload @param {() => {session: Session, input: import("../evaluation/evaluation-session.ts").EvaluationInput}} construct @param {ForeignOptions} [options] @returns {Effect.Effect<EvaluationOutcome>} */
   /** @param {() => {session: Session, input: ownedMachine.Input}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<TerminalOutcome>} */
   function driveConstructedEffect(construct, options) {
     return sharedConstructed(construct, options)

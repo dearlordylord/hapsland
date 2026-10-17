@@ -14,11 +14,12 @@ import {
  * @typedef {import("@hapsland/review-execution/direct-event/preparation").FinalizationMachine} FinalizationMachine
  * @typedef {import("../../advice-delivery/handoff/delivery-session.ts").DeliveryMachine} DeliveryMachine
  * @typedef {import("../evaluation/dispatch-session.ts").DispatchMachine} DispatchMachine
- * @typedef {DispatchMachine | DeliveryMachine | FinalizationMachine | ArtifactMachine | PreparationMachine | SourceMachine | PostMachine | AdviceMachine} Machine
- * @typedef {import("../evaluation/dispatch-session.ts").DispatchInput | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput | import("@hapsland/review-execution/direct-event/preparation").FinalizationInvocation | Parameters<ArtifactMachine["initial"]>[0] | Parameters<PreparationMachine["initial"]>[0] | Parameters<SourceMachine["initial"]>[0] | Parameters<PostMachine["initial"]>[0] | Parameters<AdviceMachine["initial"]>[0]} Input
- * @typedef {import("../evaluation/dispatch-session.ts").DispatchReply | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryReply | import("@hapsland/review-execution/direct-event/preparation").FinalizationReply | Awaited<ReturnType<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").performGraphServiceRequest>> | Awaited<ReturnType<ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>["perform"]>> | import("../preparation/source-preparation-core.js").Reply | import("../preparation/post-preparation-core.js").Reply} Reply
- * @typedef {{kind: "dispatch", machine: DispatchMachine, step: import("../evaluation/evaluation-dispatch-core.js").Step} | {kind: "delivery", machine: DeliveryMachine, step: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryState} | import("@hapsland/review-execution/direct-event/preparation").FinalizationContinuation | {kind: "artifact", machine: ArtifactMachine, step: ReturnType<ArtifactMachine["initial"]>} | {kind: "preparation", machine: PreparationMachine, step: ReturnType<PreparationMachine["initial"]>} | {kind: "source", machine: SourceMachine, step: ReturnType<SourceMachine["initial"]>} | {kind: "post", machine: PostMachine, step: ReturnType<PostMachine["initial"]>} | {kind: "advice", machine: AdviceMachine, step: ReturnType<AdviceMachine["initial"]>}} Continuation
- * @typedef {{kind: "dispatch", machine: DispatchMachine, view: import("../evaluation/dispatch-session.ts").DispatchView} | {kind: "delivery", machine: DeliveryMachine, view: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryView} | import("@hapsland/review-execution/direct-event/preparation").FinalizationProjection | ReturnType<typeof graphProtocol.view> | {kind: "preparation", machine: PreparationMachine, view: ReturnType<PreparationMachine["view"]>} | {kind: "source", machine: SourceMachine, view: ReturnType<SourceMachine["view"]>} | {kind: "post", machine: PostMachine, view: ReturnType<PostMachine["view"]>} | {kind: "advice", machine: AdviceMachine, view: ReturnType<AdviceMachine["view"]>}} Projection
+ * @typedef {import("../evaluation/evaluation-session.ts").EvaluationMachine} EvaluationMachine
+ * @typedef {EvaluationMachine | DispatchMachine | DeliveryMachine | FinalizationMachine | ArtifactMachine | PreparationMachine | SourceMachine | PostMachine | AdviceMachine} Machine
+ * @typedef {import("../evaluation/evaluation-session.ts").EvaluationInput | import("../evaluation/dispatch-session.ts").DispatchInput | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput | import("@hapsland/review-execution/direct-event/preparation").FinalizationInvocation | Parameters<ArtifactMachine["initial"]>[0] | Parameters<PreparationMachine["initial"]>[0] | Parameters<SourceMachine["initial"]>[0] | Parameters<PostMachine["initial"]>[0] | Parameters<AdviceMachine["initial"]>[0]} Input
+ * @typedef {import("../evaluation/evaluation-session.ts").EvaluationReply | import("../evaluation/dispatch-session.ts").DispatchReply | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryReply | import("@hapsland/review-execution/direct-event/preparation").FinalizationReply | Awaited<ReturnType<typeof import("@hapsland/source-analysis/direct-event/graph-resolution").performGraphServiceRequest>> | Awaited<ReturnType<ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>["perform"]>> | import("../preparation/source-preparation-core.js").Reply | import("../preparation/post-preparation-core.js").Reply} Reply
+ * @typedef {{kind: "evaluation", machine: EvaluationMachine, step: import("../evaluation/evaluation-core.js").Step} | {kind: "dispatch", machine: DispatchMachine, step: import("../evaluation/evaluation-dispatch-core.js").Step} | {kind: "delivery", machine: DeliveryMachine, step: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryState} | import("@hapsland/review-execution/direct-event/preparation").FinalizationContinuation | {kind: "artifact", machine: ArtifactMachine, step: ReturnType<ArtifactMachine["initial"]>} | {kind: "preparation", machine: PreparationMachine, step: ReturnType<PreparationMachine["initial"]>} | {kind: "source", machine: SourceMachine, step: ReturnType<SourceMachine["initial"]>} | {kind: "post", machine: PostMachine, step: ReturnType<PostMachine["initial"]>} | {kind: "advice", machine: AdviceMachine, step: ReturnType<AdviceMachine["initial"]>}} Continuation
+ * @typedef {{kind: "evaluation", machine: EvaluationMachine, view: import("../evaluation/evaluation-session.ts").EvaluationView} | {kind: "dispatch", machine: DispatchMachine, view: import("../evaluation/dispatch-session.ts").DispatchView} | {kind: "delivery", machine: DeliveryMachine, view: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryView} | import("@hapsland/review-execution/direct-event/preparation").FinalizationProjection | ReturnType<typeof graphProtocol.view> | {kind: "preparation", machine: PreparationMachine, view: ReturnType<PreparationMachine["view"]>} | {kind: "source", machine: SourceMachine, view: ReturnType<SourceMachine["view"]>} | {kind: "post", machine: PostMachine, view: ReturnType<PostMachine["view"]>} | {kind: "advice", machine: AdviceMachine, view: ReturnType<AdviceMachine["view"]>}} Projection
  */
 
 /** @param {Machine} machine @param {Input} input @returns {Continuation} */
@@ -31,10 +32,14 @@ export function initial(machine, input) {
     "postPreparation" in input,
     "adviceTail" in input,
     "delivery" in input,
-    "evaluationDispatch" in input
+    "evaluationDispatch" in input,
+    "evaluation" in input
   ]
   if (protocols.filter(Boolean).length !== 1) throw new TypeError("Ambiguous owned input binding")
   switch (machine.kind) {
+    case "evaluation":
+      if (!("evaluation" in input)) throw new TypeError("Wrong evaluation input binding")
+      return { kind: "evaluation", machine, step: machine.initial(input) }
     case "dispatch":
       if (!("evaluationDispatch" in input)) throw new TypeError("Wrong dispatch input binding")
       return { kind: "dispatch", machine, step: machine.initial(input) }
@@ -67,6 +72,8 @@ export function initial(machine, input) {
 /** @param {Continuation} held @returns {Projection} */
 export function view(held) {
   switch (held.kind) {
+    case "evaluation":
+      return { kind: "evaluation", machine: held.machine, view: held.machine.view(held.step) }
     case "dispatch":
       return { kind: "dispatch", machine: held.machine, view: held.machine.view(held.step) }
     case "delivery":
@@ -90,7 +97,7 @@ export function view(held) {
 
 // Narrow a closed reply union at the physical protocol seam. Shared empty/failure
 // constructors remain shared; required Source defect flags are checked explicitly.
-/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply"}>} reply @returns {import("../preparation/source-preparation-core.js").Reply} */
+/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply" | "EvaluationReply"}>} reply @returns {import("../preparation/source-preparation-core.js").Reply} */
 function sourceReply(reply) {
   const response = reply.response
   switch (response.$) {
@@ -119,7 +126,7 @@ function sourceReply(reply) {
   }
 }
 
-/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply"}>} reply @returns {import("../preparation/post-preparation-core.js").Reply} */
+/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply" | "EvaluationReply"}>} reply @returns {import("../preparation/post-preparation-core.js").Reply} */
 function postReply(reply) {
   const response = reply.response
   switch (response.$) {
@@ -153,7 +160,7 @@ function postReply(reply) {
   }
 }
 
-/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply"}>} reply @returns {Awaited<ReturnType<ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>["perform"]>>} */
+/** @param {Exclude<Reply, {$: "Types.Reply" | "FinalizationReply" | "DeliveryReply" | "DispatchReply" | "EvaluationReply"}>} reply @returns {Awaited<ReturnType<ReturnType<typeof import("@hapsland/review-execution/direct-event/preparation").createPreparationCapability>["perform"]>>} */
 function preparationReply(reply) {
   const response = reply.response
   switch (response.$) {
@@ -180,6 +187,11 @@ function preparationReply(reply) {
 
 /** @param {Continuation} held @param {Reply} reply @returns {Continuation} */
 export function resume(held, reply) {
+  if (held.kind === "evaluation") {
+    if (reply.$ !== "EvaluationReply") throw new TypeError("Wrong evaluation reply binding")
+    return { ...held, step: held.machine.resume(held.step, reply) }
+  }
+  if (reply.$ === "EvaluationReply") throw new TypeError("Unexpected evaluation reply")
   if (held.kind === "dispatch") {
     if (reply.$ !== "DispatchReply") throw new TypeError("Wrong dispatch reply binding")
     return { ...held, step: held.machine.resume(held.step, reply) }
@@ -216,10 +228,12 @@ export function resume(held, reply) {
 }
 
 /** @param {Projection} projected
- * @returns {ReturnType<typeof finalizationProtocol.accepted> | ReturnType<typeof acceptGraphProjection> | ReturnType<PreparationMachine["accepted"]> | ReturnType<SourceMachine["accepted"]> | ReturnType<PostMachine["accepted"]> | ReturnType<AdviceMachine["accepted"]> | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryAccepted | import("../evaluation/dispatch-session.ts").DispatchAccepted}
+ * @returns {import("../evaluation/evaluation-session.ts").EvaluationAccepted | ReturnType<typeof finalizationProtocol.accepted> | ReturnType<typeof acceptGraphProjection> | ReturnType<PreparationMachine["accepted"]> | ReturnType<SourceMachine["accepted"]> | ReturnType<PostMachine["accepted"]> | ReturnType<AdviceMachine["accepted"]> | import("../../advice-delivery/handoff/delivery-session.ts").DeliveryAccepted | import("../evaluation/dispatch-session.ts").DispatchAccepted}
  */
 export function accepted(projected) {
   switch (projected.kind) {
+    case "evaluation":
+      return projected.machine.accepted(projected.view)
     case "dispatch":
       return projected.machine.accepted(projected.view)
     case "delivery":

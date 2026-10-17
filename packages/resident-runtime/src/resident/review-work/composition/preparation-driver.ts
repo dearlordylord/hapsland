@@ -8,6 +8,7 @@ import { createOwnedArtifactDriver } from "./owned-artifact-driver.mjs"
 import {
   performPreparationSessionRequest,
   performDeliverySessionRequest,
+  performEvaluationSessionRequest,
   performDispatchSessionRequest
 } from "./native-preparation-sessions.ts"
 import type { createPreparationSessionRegistry, PreparationNativeSession } from "./native-preparation-sessions.ts"
@@ -42,6 +43,7 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
     owner,
     control: bridge.control,
     registry,
+    evaluationForeign: (request, options) => performEvaluationSessionRequest(registry, request, options),
     dispatchForeign: (request, options) => performDispatchSessionRequest(registry, request, options),
     deliveryForeign: (request, options) => performDeliverySessionRequest(registry, request, options),
     machine: artifact,
@@ -53,6 +55,11 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
         return performPreparationSessionRequest(registry, requests[0]!, options)
       }),
     selectMachine: (input, session) => {
+      if ("evaluation" in input) {
+        if (!("input" in session && "evaluation" in session.input && "foreign" in session))
+          throw new TypeError("Wrong evaluation engine session")
+        return session.machine
+      }
       if ("evaluationDispatch" in input) {
         if (!("input" in session && "evaluationDispatch" in session.input && "foreign" in session))
           throw new TypeError("Wrong dispatch engine session")
