@@ -230,43 +230,45 @@ remains4s. Per-call unchanged-graph retention has no persistent cache.
 
 ## Current unit: resident evaluation through retained advice
 
-Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
-registry and advice tail; add evaluation scope and a nested Dispatch child.
-Native sessions retain jobs, credentials, results and original Effect Causes.
+Astra reviewed this whole path on 2026-10-17: reuse Canonical owner/driver/
+registry and advice tail; native sessions retain IO values and original Causes.
 
-Production cutover `9c42a671`: the server's evaluation facade invokes the
-whole Bend cursor through the shared Canonical owner/driver/registry. Bend owns
-admission, authorization, provider return, settlement, retention and recovery.
-Private ABI exposes commands/opaque continuations. Replaced TS authorization,
-request, settlement and retention modules are deleted; workflow is a facade.
-Native IO retains credentials, provider values, capabilities and original Causes.
+Production cutover `9c42a671`: server evaluation invokes the whole Bend cursor
+through Canonical. Bend owns admission, authorization, provider return,
+settlement, retention and recovery. TS authorization/request/settlement/retention
+modules are deleted; workflow is a facade. Native IO retains credentials,
+provider values, capabilities and original Causes.
 
-Canonical binds Reviewing, readiness and settlement to exact operation/reservation
-metadata. Nested Dispatch preserves input validation and the original total-call
-deadline, credential reread → budget → Canonical start → observation. Cleanup
-permits denial/accounting only and drains physical work before releasing custody.
-Fresh findings transfer once to the existing independent advice tail; cached and
-fresh enrollment/retained observation share ordinary evaluation-owned helpers.
-Successful observation drives publication normally; failed observation preserves
+Canonical binds readiness/settlement to exact operation/reservation metadata.
+Nested Dispatch preserves input validation, total-call deadline, credential
+reread → budget → Canonical start → observation. Cleanup permits denial/accounting
+only, after physical drain. Fresh findings transfer once to the independent
+advice tail; cached/fresh enrollment and observation share evaluation-owned
+helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-Current evidence: source1716 tapes/48961 prefixes/3 typed mutants; shared cached
-enrollment793; Post23360; physical Jev/capacity63; matching build46/46 and authored
-lint19 pass. Earlier native cleanup6/73 and root registry5 establish drain/retry/
-original Cause with controlled authorization/observation ports, not full server
-acceptance. No universal evaluation proofs or whole-unit acceptance claimed.
-Native publication fixed the missing lock binding. Expanded consumers exposed
-cancelled Prepare lease cleanup and a missing safe recovery diagnostic; both are
-fixed. Combined production/IPC/collection consumers pass233/12 files; Source59,
-Delivery9 and fast23 pass. No current consumer failure is known.
+Evidence: source1716 tapes/48961 prefixes/3 mutants; cached enrollment793;
+Post23360. Production/IPC/collection pass233/12 files, Source59, Delivery9,
+build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
+with controlled authorization/observation ports. Expanded consumers found and
+fixed cancelled Prepare lease cleanup and missing safe recovery diagnostics.
 
-Concrete remaining obstacles:
-1. Review correspondence/lifecycle/retention laws before proving; reuse existing
-   outcome/advice-tail proofs. Owner approval precedes new proofs.
-2. Qualify full admission→provider→settlement→collection against fixed TS for
-   clear/finding/refusal/cancellation/failure, ≤3×; strict parity separately.
-   The evaluation-owned worker and existing pair runner pass a diagnostic pair;
-   17 frozen pairs remain.
+Whole evaluation `828c8d55`,2026-10-17 09:45 UTC, fixed TS `a0773f79`:
+**2.0033×**, owner≤3× PASS, strict parity false.17 alternating pairs, five freezes,
+exact outputs/request chronology/controls, zero retained resources. TS/Bend
+suite medians[ranges] s: .2782[.2257,.3592]/.5411[.4570,.9249]. Public scenarios:
+clear/finding/credential refusal/backend failure/cancellation. Source/provider
+work is inside timers; cancellation includes physical drain, other Scope cleanup
+and runtime construction are outside. Separate profiling points to CPU in
+Canonical transactions/transport/driver; shared load permits no causal claim.
+
+Remaining acceptance obstacle: approve/prove the seven proposed pure cursor
+laws in `evaluation/EVALUATION_LAWS.bend`, then mutate/recheck affected gates.
+Specification uses existing types, no native values or TS oracle. Concrete
+falsification passes all equations (240–58320 inputs each). Kernel reports7
+TODOs; source gate stays open. No whole-unit acceptance or universal phase-table/
+physical IO proof claimed. The full phase table has independent finite trace/
+mutation checks. Reuse existing Canonical/Work/advice-tail proofs.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
