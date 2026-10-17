@@ -185,15 +185,15 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Finalize (`0f1ddbf0`), 2026-10-17 01:58/02:00 UTC: analyzer/build **.7660×/.8650×**,
-  17 frozen pairs, both strict parity PASS; build23/46 cached. TS/Bend medians[ranges] s:
-  execution .1107[.0773,.7288]/.1093[.0555,.1972];
-  build6.780[5.486,12.042]/5.830[4.814,9.363]. Shared load; no causal claim.
+- Delivery (`66a2529e`), 2026-10-17 02:38/02:39 UTC: analyzer/build
+  **.7085×/.8228×**,17 frozen pairs, strict parity PASS; build23/46 cached.
+  TS/Bend medians[ranges] s: execution .1434[.0719,.3074]/.0760[.0474,.4056];
+  build13.222[3.309,39.306]/10.503[2.905,28.838]. Shared load; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence43.4/39.4→32.8/32.1min; serial gates delayed both. Analyzer/build only.
+  Cadence40.2/38.9min; serial gates delayed both. Analyzer/build only.
   Baseline double serialization refused; corrected env passed prepare/warm23/46.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
@@ -242,7 +242,7 @@ Current path / obstacles:
    failed physical releases. Root import tags use a typed ABI codec.
    Real-driver empty Collect→P→D PASS; public receipt custody still pending.
 2. Wire collect/prepareDelivery/finalizeDelivery through the lifetime binding;
-   transfer receipt+response atomically to ResponseContext/local scope. Move
+   pass exact driver-owned cleanup to P/D constructors; context holds receipt. Move
    transport gate→barrier into P; protect constructor Scope before registration.
    Mask whole D drive; preserve both canWrite calls and token cleanup.
 3. Delete remaining public C/P/D interpreters; prove trace/reply/lease/finish;
