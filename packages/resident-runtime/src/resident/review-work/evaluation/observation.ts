@@ -31,20 +31,3 @@ export const recordRequestObservation = Effect.fn("ResidentRuntime.recordRequest
     ...(outcome === undefined ? {} : { outcome })
   })
 })
-
-export const observeRequest = Effect.fn("ResidentRuntime.observeRequest")(function* (
-  context: EvaluationContext<"residentObserveJevRequest" | "residentRecordAnalytics">,
-  stage: JevRequestObservation["stage"],
-  request?: number,
-  outcome?: JevRequestObservation["outcome"],
-  findings: ReadonlyArray<Finding> = []
-) {
-  if (context.state.requestIdentity === undefined) throw new Error("Jev request observation lacks canonical identity")
-  yield* recordRequestObservation(
-    { deps: context.deps, job: context.job, identity: context.state.requestIdentity },
-    stage,
-    request,
-    outcome,
-    findings
-  )
-})

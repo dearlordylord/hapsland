@@ -416,6 +416,7 @@ export type AdviceTailStep =
 
 declare const core: {
   enrollment_initial(): EnrollmentStep
+  fresh_enrollment_initial(): EnrollmentStep
   enrollment_resume(step: EnrollmentStep, reply: EnrollmentReply): EnrollmentStep
   sizing_initial(mode: SizingMode): SizingStep
   sizing_initial_ready(mode: SizingMode, ready: boolean): SizingStep

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { observeRetainedAdvice } from "../post-observation.ts"
+import { observeRetainedAdvice } from "../../evaluation/retained-observation.ts"
 import { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { selectPostValue } from "../post-selection.mjs"
 import { execFileSync } from "node:child_process"

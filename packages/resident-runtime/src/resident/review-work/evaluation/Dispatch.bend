@@ -41,6 +41,10 @@ def issue(+invocation: Nat, +id: Nat, phase: Phase, command: Command) -> Step:
 def initial(invocation: Nat) -> Step:
   issue(invocation, 0n, Credential{}, CheckCredentialGeneration{})
 
+# Work-abort listener reuses accounting commands without invoking provider dispatch.
+def interruption_initial(invocation: Nat) -> Step:
+  issue(invocation, 0n, Interrupt{}, InterruptRequest{})
+
 def credential(valid: Bool, invocation: Nat, next: Nat) -> Step:
   match valid:
     case True{}: issue(invocation, next, Budget{}, ClaimDemoBudget{})

@@ -2220,6 +2220,27 @@ def advice_claimed(+operation: Nat, +origin_scope: Scope, children: List<&2, Chi
         ),
         advice_claimed(operation, RetainingScope{p, l, r, o, origin}, rest)
       )
+    case EvaluationScope{invocation, EvaluationContext{+p, +l, +r, own}, permission} Child{
+      AdviceTailScope{q, m, t, other, _, _},
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    } <> rest:
+      Bool.or(
+        Bool.and(
+          Nat.is_eq(p, q),
+          Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, t), Nat.is_eq(operation, other)))
+        ),
+        advice_claimed(
+          operation,
+          EvaluationScope{invocation, EvaluationContext{p, l, r, own}, permission},
+          rest
+        )
+      )
     case +scope _ <> rest: advice_claimed(operation, scope, rest)
 
 def advice_operation_live(
@@ -2267,6 +2288,38 @@ def advice_handoff_allowed(
       }
     case _ _: Rejected{state, WrongPhase{}}
 
+def evaluation_advice_handoff(
+  +state: State,
+  +origin: Nat,
+  +context: EvaluationContext,
+  +operation: Nat,
+  input_handle: Nat
+) -> Step:
+  match context:
+    case EvaluationContext{+p, +l, +r, own}:
+      advice_handoff_allowed(
+        Bool.and(
+          Nat.is_eq(own, operation),
+          Bool.and(
+            advice_operation_live(state_canonical(state), p, l, r, operation),
+            Bool.not(
+              advice_claimed(
+                operation,
+                EvaluationScope{origin, context, EvaluationSettled{}},
+                state_children(state)
+              )
+            )
+          )
+        ),
+        state,
+        p,
+        l,
+        r,
+        origin,
+        operation,
+        input_handle
+      )
+
 def advice_handoff_child(
   +state: State,
   child: Maybe<&2, Child>,
@@ -2274,6 +2327,19 @@ def advice_handoff_child(
   input_handle: Nat
 ) -> Step:
   match child:
+    case Some{
+      Child{
+        EvaluationScope{_, context, EvaluationSettled{}},
+        origin,
+        _,
+        _,
+        ChildAwaiting{},
+        _,
+        Some{_},
+        _
+      }
+    }:
+      evaluation_advice_handoff(state, origin, context, operation, input_handle)
     case Some{
       Child{
         RetainingScope{+p, +l, +r, observation, preparation_origin},

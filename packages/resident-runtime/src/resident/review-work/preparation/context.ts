@@ -1,8 +1,4 @@
-import {
-  type DirectReviewContext,
-  type EvaluatedUnit,
-  type PreparedObservation
-} from "@hapsland/review-execution/direct-event/pipeline"
+import { type DirectReviewContext, type PreparedObservation } from "@hapsland/review-execution/direct-event/pipeline"
 import type { makeResidentInspection } from "../../inspection/observer.ts"
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
@@ -88,11 +84,6 @@ export type Dependencies = {
     key: string,
     reason?: ResidentUnavailableReason | undefined
   ) => Effect.Effect<void, never, never>
-  readonly residentRetainAdvice: (
-    job: UnitJob,
-    evaluation: EvaluatedUnit,
-    sequence: number
-  ) => Effect.Effect<void, ResidentAdapterError, never>
   readonly residentRetireCachedUnit: (
     unit: UnitJob,
     round: RoundWork | undefined,

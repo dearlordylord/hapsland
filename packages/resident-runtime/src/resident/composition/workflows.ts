@@ -214,9 +214,6 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
       residentRecordJoinedOutcomes: workLifecycle.residentRecordJoinedOutcomes,
       residentJoined,
       residentReleaseReuseClaim: workLifecycle.residentReleaseReuseClaim,
-      get residentRetainAdvice() {
-        return evaluation.residentRetainAdvice
-      },
       residentRetireCachedUnit: workLifecycle.residentRetireCachedUnit,
       get residentDispatcher() {
         return ports.residentDispatcher
@@ -229,39 +226,43 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     },
     residentLedger.reviewPreparation
   )
-  const evaluation = makeResidentEvaluation({
-    lifetime,
-    residentRecordAnalytics: reviewObservation.residentRecordAnalytics,
-    residentObserveJevRequest: reviewObservation.residentObserveJevRequest,
-    residentLifetimeController,
-    residentLedger,
-    inspection,
-    residentInspection,
-    residentReleaseReuseClaim: workLifecycle.residentReleaseReuseClaim,
-    residentReleaseUnit: workLifecycle.residentReleaseUnit,
-    residentJobActive: workLifecycle.residentJobActive,
-    residentIsCurrentWork: workLifecycle.residentIsCurrentWork,
-    get residentAwaitBackendGate() {
-      return () => residentAwaitBackendGate(residentLifetimeController)
+  const evaluation = makeResidentEvaluation(
+    {
+      lifetime,
+      residentAdviceExpired: adviceCollection.residentAdviceExpired,
+      residentRecordAnalytics: reviewObservation.residentRecordAnalytics,
+      residentObserveJevRequest: reviewObservation.residentObserveJevRequest,
+      residentLifetimeController,
+      residentLedger,
+      inspection,
+      residentInspection,
+      residentReleaseReuseClaim: workLifecycle.residentReleaseReuseClaim,
+      residentReleaseUnit: workLifecycle.residentReleaseUnit,
+      residentJobActive: workLifecycle.residentJobActive,
+      residentIsCurrentWork: workLifecycle.residentIsCurrentWork,
+      get residentAwaitBackendGate() {
+        return () => residentAwaitBackendGate(residentLifetimeController)
+      },
+      residentSettleJoined: workLifecycle.residentSettleJoined,
+      residentReviewControls,
+      residentOfflineHttpClient,
+      residentControlledRequestEffect,
+      residentObserveDispatchAuthority: reviewObservation.residentObserveDispatchAuthority,
+      residentCredentialRequired,
+      residentCredentialShapeMatches,
+      residentDispatchControls,
+      residentRecordOperationalFailure: workLifecycle.residentRecordOperationalFailure,
+      residentReuse,
+      runtimeConfiguration,
+      get residentAdvice() {
+        return ports.residentAdvice
+      },
+      residentRecordJoinedOutcomes: workLifecycle.residentRecordJoinedOutcomes,
+      residentNow,
+      residentRemoveAdvice: workLifecycle.residentRemoveAdvice
     },
-    residentSettleJoined: workLifecycle.residentSettleJoined,
-    residentReviewControls,
-    residentOfflineHttpClient,
-    residentControlledRequestEffect,
-    residentObserveDispatchAuthority: reviewObservation.residentObserveDispatchAuthority,
-    residentCredentialRequired,
-    residentCredentialShapeMatches,
-    residentDispatchControls,
-    residentRecordOperationalFailure: workLifecycle.residentRecordOperationalFailure,
-    residentReuse,
-    runtimeConfiguration,
-    get residentAdvice() {
-      return ports.residentAdvice
-    },
-    residentRecordJoinedOutcomes: workLifecycle.residentRecordJoinedOutcomes,
-    residentNow,
-    residentRemoveAdvice: workLifecycle.residentRemoveAdvice
-  })
+    residentLedger.reviewPreparation
+  )
   return { admission, adviceCollection, delivery, workLifecycle, reviewObservation, preparation, evaluation }
 }
 

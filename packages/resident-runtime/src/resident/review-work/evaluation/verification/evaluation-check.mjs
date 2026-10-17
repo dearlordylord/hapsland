@@ -97,8 +97,16 @@ function* retain() {
     return
   }
   const { tail } = yield* call("InsertAdvice")
-  yield* call("ObserveRetained", { tail })
-  yield* call("PreserveAdviceTail", { tail })
+  try {
+    yield* call("ObserveRetained", { tail })
+  } catch (error) {
+    try {
+      yield* call("PreserveAdviceTail", { tail })
+    } catch (preserve) {
+      throw { token: error.token, secondary: preserve.token }
+    }
+    throw error
+  }
   yield* call("DriveAdviceTail", { tail })
 }
 function* evaluated(input, review) {
@@ -222,11 +230,13 @@ function* specification(input) {
       else yield* failed(result)
     } catch (error) {
       task_faults.push(error.token)
-      try {
-        yield* recover()
-      } catch (recovery) {
-        task_faults.push(recovery.token)
-      }
+      if (error.secondary !== undefined) task_faults.push(error.secondary)
+      else
+        try {
+          yield* recover()
+        } catch (recovery) {
+          task_faults.push(recovery.token)
+        }
     }
   } finally {
     try {

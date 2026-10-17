@@ -9,7 +9,7 @@ import type { JevRequestIdentity } from "../request-observation.ts"
 import type { createResidentPreparationDriver } from "../composition/preparation-driver.ts"
 import type { createResidentOwnerTransaction } from "../../state/resolver-custody/resident-owner-transaction.mjs"
 import type { ProviderLease } from "../../state/resolver-custody/provider-authority.ts"
-import type { Command, Response } from "./evaluation-dispatch-core.js"
+import dispatchCore, { type Command, type Response } from "./evaluation-dispatch-core.js"
 import { createEvaluationDispatchSession, type DispatchSession } from "./dispatch-session.ts"
 import { recordRequestObservation } from "./observation.ts"
 
@@ -29,7 +29,12 @@ export function makeEvaluationDispatchCallback(options: {
   >
 }) {
   const { context, driver, bridge, request } = options
-  const { job, deps } = context
+  const { job } = context
+  const interruption = makeEvaluationRequestInterruption({
+    context,
+    identity: options.identity,
+    request: () => request
+  })
   const ack = (): Response => ({ $: "Ack" })
   const flag = (value: boolean): Response => ({ $: "Flag", value })
   const perform = Effect.fn("ResidentRuntime.evaluationDispatchCommand")(function* (
@@ -75,9 +80,9 @@ export function makeEvaluationDispatchCallback(options: {
       case "ReadAborted":
         return flag(context.signal.aborted)
       case "InterruptRequest":
-        return flag(yield* deps.residentLedger.interruptJevRequest(job.partition, job.canonicalOperationId, request))
+        return flag(yield* interruption.interrupt())
       case "ObserveInterrupted":
-        yield* recordRequestObservation({ ...context, identity: options.identity }, "interrupted", request)
+        yield* interruption.observe()
         return ack()
       default: {
         const exhaustive: never = command.$
@@ -123,4 +128,42 @@ export function makeEvaluationDispatchCallback(options: {
         })
       )
   })
+}
+
+export function makeEvaluationRequestInterruption(options: {
+  readonly context: Pick<
+    EvaluationContext<"residentLedger" | "residentObserveJevRequest" | "residentRecordAnalytics">,
+    "deps" | "job"
+  >
+  readonly identity: JevRequestIdentity
+  readonly request: () => number
+}) {
+  const interrupt = () =>
+    options.context.deps.residentLedger.interruptJevRequest(
+      options.context.job.partition,
+      options.context.job.canonicalOperationId,
+      options.request()
+    )
+  const observe = () =>
+    recordRequestObservation({ ...options.context, identity: options.identity }, "interrupted", options.request())
+  const run = Effect.fn("ResidentRuntime.evaluationInterruption")(function* () {
+    let step = dispatchCore.interruption_initial(options.identity.operation)
+    while (step.$ === "Await") {
+      let response: Response
+      switch (step.request.command.$) {
+        case "InterruptRequest":
+          response = { $: "Flag", value: yield* interrupt() }
+          break
+        case "ObserveInterrupted":
+          yield* observe()
+          response = { $: "Ack" }
+          break
+        default:
+          throw new Error("Unexpected interruption accounting command")
+      }
+      step = dispatchCore.resume(step, { $: "Reply", invocation: step.invocation, id: step.id, response })
+    }
+    if (step.$ !== "Dispatched") throw new Error("Rejected interruption accounting")
+  })
+  return { interrupt, observe, run }
 }

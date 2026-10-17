@@ -21,7 +21,6 @@ import { residentAdvice } from "../../../state/resident/advice.ts"
 import { residentDelivery } from "../../../state/resident/delivery.ts"
 import { residentDispatch } from "../../../state/resident/dispatch.ts"
 import { makeResidentWorkLifecycle } from "../../../work-ownership/lifecycle.ts"
-import { residentRetainAdvice } from "../../evaluation/retention.ts"
 import { defaultPreparationControls } from "../../../execution-controls/preparation-controls.ts"
 import { logicalBytes } from "../../../state/encoded-size.ts"
 import {
@@ -184,9 +183,7 @@ export async function createResidentRetentionContext(
       },
       residentRecordOperationalFailure: () => Effect.void,
       residentRecordJoinedOutcomes: () => Effect.void,
-      residentRetainAdvice: () => {
-        throw new Error("Unexpected cached path")
-      },
+
       residentPreparationControls: {
         ...defaultPreparationControls,
         afterReuseBoundary: (phase) =>
@@ -239,8 +236,6 @@ export async function createResidentRetentionContext(
       connection.bridge.adviceTailRemove = (...args) => (!failed ? ((failed = true), beforeRemoval()) : remove(...args))
     }
   }
-  context.deps.residentRetainAdvice = (unit, evaluation, sequence) =>
-    residentRetainAdvice(context.deps, unit, evaluation, sequence)
   context.ownedAdvice = { bridge: connection.bridge, driver: connection.owned.driver, core: connection.postCore }
   return {
     retire,

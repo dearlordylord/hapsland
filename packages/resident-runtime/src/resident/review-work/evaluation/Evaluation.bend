@@ -940,6 +940,23 @@ def final_completed(context: Context, completed: Bool, invocation: Nat, next: Na
     case True{}: finished(context)
     case False{}: issue(context, FinallyReuse{}, ReleaseReuseClaim{}, invocation, next)
 
+def retain_observation_failed(
+  context: Context,
+  token: Nat,
+  +tail: Nat,
+  invocation: Nat,
+  next: Nat
+) -> Step:
+  match context:
+    case Context{input, receipt, review, _, faults, finals}:
+      issue(
+        Context{input, receipt, review, Recovering{}, token <> faults, finals},
+        AdvicePreserved{tail},
+        PreserveAdviceTail{tail},
+        invocation,
+        next
+      )
+
 def advance(
   +context: Context,
   phase: Phase,
@@ -948,6 +965,13 @@ def advance(
   +next: Nat
 ) -> Step:
   match phase response:
+    case AdviceObserved{tail} Failed{token}: retain_observation_failed(
+      context,
+      token,
+      tail,
+      invocation,
+      next
+    )
     case _ Failed{token}: fault(context, token, invocation, next)
     case PolicyStart{} Flag{valid}: policy_started(context, valid, invocation, next)
     case ReviewStart{} Flag{valid}: started_review(context, valid, invocation, next)
@@ -1125,17 +1149,17 @@ def advance(
       invocation,
       next
     )
-    case AdviceObserved{+tail} Ack{}: issue(
-      context,
-      AdvicePreserved{tail},
-      PreserveAdviceTail{tail},
-      invocation,
-      next
-    )
-    case AdvicePreserved{+tail} Ack{}: issue(
+    case AdviceObserved{tail} Ack{}: issue(
       context,
       AdviceDriven{},
       DriveAdviceTail{tail},
+      invocation,
+      next
+    )
+    case AdvicePreserved{_} Ack{}: issue(
+      context,
+      RecoveryStatus{},
+      ReadRequestState{},
       invocation,
       next
     )

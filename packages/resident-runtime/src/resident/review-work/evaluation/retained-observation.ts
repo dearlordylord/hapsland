@@ -2,8 +2,8 @@ import { captureInspectionFate } from "@hapsland/review-execution/inspection/cap
 import type { EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
 import type { UnitJob } from "../../work-ownership/jobs.ts"
 import type { Dependencies } from "./context.ts"
-import type core from "./post-preparation-core.js"
-import type { RetainedObservationResponse } from "./post-preparation-core.js"
+import type core from "../preparation/post-preparation-core.js"
+import type { RetainedObservationResponse } from "../preparation/post-preparation-core.js"
 
 type Inspection = Dependencies["inspection"]
 type Tail = {
@@ -12,7 +12,7 @@ type Tail = {
   readonly receipt: { readonly capability: { readonly id: string } }
 }
 
-/** Interpret the Post-selected operations synchronously under the existing lease.
+/** Interpret the shared retention operations synchronously under the existing lease.
  * Native receipt reads deliberately repeat in the original getter/spread order. */
 export function observeRetainedAdvice(
   machine: Pick<typeof core, "retained_observation_initial" | "retained_observation_resume">,

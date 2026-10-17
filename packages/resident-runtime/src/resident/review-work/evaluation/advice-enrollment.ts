@@ -5,7 +5,7 @@ import type { AdviceInitial } from "../../state/advice-records.ts"
 import type { CachedEvaluation } from "../../state/evaluation-reuse.ts"
 import type { UnitJob } from "../../work-ownership/jobs.ts"
 import { residentSettingsEnvironmentOnly } from "../../authorization/credentials.ts"
-import core, { type EnrollmentOperation, type EnrollmentReply } from "./post-preparation-core.js"
+import core, { type EnrollmentOperation, type EnrollmentReply } from "../preparation/post-preparation-core.js"
 
 type Context = { readonly sequence: number; readonly deps: { readonly residentNow: () => number } }
 type Ports = {
@@ -15,10 +15,11 @@ type Ports = {
 }
 
 /** Native value/record interpreter; all field selection and branching belongs to Post. */
-export const enrollCachedAdvice = (
+const enroll = (
   unit: UnitJob,
-  planned: { readonly cached: CachedEvaluation },
+  source: { readonly cached: CachedEvaluation } | EvaluatedUnit,
   context: Context,
+  initialStep: ReturnType<typeof core.enrollment_initial>,
   ports: Ports = {
     uuid: randomUUID,
     now: () => context.deps.residentNow(),
@@ -27,7 +28,7 @@ export const enrollCachedAdvice = (
 ): { readonly initial: AdviceInitial; readonly evaluation: EvaluatedUnit } => {
   const values = new Map<number, unknown>([
     [0, unit],
-    [1, planned],
+    [1, source],
     [2, context]
   ])
   const initial: Record<string, unknown> = {}
@@ -87,7 +88,7 @@ export const enrollCachedAdvice = (
       }
     }
   }
-  let step = core.enrollment_initial()
+  let step = initialStep
   while (step.$ !== "EnrollmentDone") {
     let reply: EnrollmentReply = { $: "EnrollmentAck" }
     switch (step.$) {
@@ -120,3 +121,12 @@ export const enrollCachedAdvice = (
   }
   return { initial: initial as AdviceInitial, evaluation: values.get(step.evaluation) as EvaluatedUnit }
 }
+
+export const enrollCachedAdvice = (
+  unit: UnitJob,
+  planned: { readonly cached: CachedEvaluation },
+  context: Context,
+  ports?: Ports
+) => enroll(unit, planned, context, core.enrollment_initial(), ports)
+export const enrollAdvice = (unit: UnitJob, evaluation: EvaluatedUnit, context: Context, ports?: Ports) =>
+  enroll(unit, evaluation, context, core.fresh_enrollment_initial(), ports)

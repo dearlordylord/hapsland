@@ -23,8 +23,6 @@ import { type ResidentLedger, type UnitJob, type Job } from "../../work-ownershi
 import type { ResidentAdapterError } from "../../adapter-error.ts"
 import { type JevRequestObservation } from "../request-observation.ts"
 import { type DispatchAuthorityObservationDetails } from "../../authorization/observation.ts"
-import type { resolveEvaluationCredentials } from "./authorization.ts"
-import type { evaluateAuthorizedUnit } from "./request.ts"
 
 export type Dependencies = {
   readonly lifetime: string
@@ -89,30 +87,9 @@ export type Dependencies = {
   ) => Effect.Effect<boolean>
 }
 
-export type EvaluationState = {
-  issuedRequest?: number
-  requestStarted: boolean
-  requestSettled: boolean
-  interruptionReported: boolean
-  readyReported: boolean
-  evaluationOutcomeObserved: boolean
-  requestIdentity?: Pick<
-    JevRequestObservation,
-    "partition" | "canonicalPartition" | "lifetime" | "canonicalLifetime" | "round" | "hapslandRound" | "operation"
-  >
-}
-
 export type EvaluationContext<Needs extends keyof Dependencies = keyof Dependencies> = {
   readonly deps: Pick<Dependencies, Needs>
   readonly job: UnitJob
   readonly sequence: number
   readonly signal: AbortSignal
-  readonly state: EvaluationState
 }
-
-export type ResolvedEvaluationCredentials = Exclude<
-  Effect.Success<ReturnType<typeof resolveEvaluationCredentials>>,
-  { status: "notAuthorized" }
->
-
-export type EvaluationResult = Effect.Success<ReturnType<typeof evaluateAuthorizedUnit>> | undefined

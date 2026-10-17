@@ -22,5 +22,9 @@ export type Step = { readonly [dispatchContinuation]: "Dispatch" } & (
   | Tagged<"Await", { readonly invocation: number; readonly id: number; readonly request: Request }>
   | Terminal
 )
-declare const core: { initial(invocation: number): Step; resume(step: Step, reply: Reply): Step }
+declare const core: {
+  initial(invocation: number): Step
+  interruption_initial(invocation: number): Step
+  resume(step: Step, reply: Reply): Step
+}
 export default core

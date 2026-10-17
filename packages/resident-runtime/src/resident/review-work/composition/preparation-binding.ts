@@ -1,3 +1,6 @@
+import { runCanonicalEvaluation } from "../evaluation/canonical-evaluation.ts"
+import type { EvaluationDependencies } from "../evaluation/native-retention.ts"
+import type { UnitJob } from "../../work-ownership/jobs.ts"
 import * as Effect from "effect/Effect"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import { effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
@@ -39,6 +42,8 @@ export function createResidentPreparationBinding(bridge: ReturnType<typeof creat
   }
   return {
     acceptActions: driver.acceptActions,
+    evaluate: (deps: EvaluationDependencies, job: UnitJob, sequence: number): Effect.Effect<void> =>
+      runCanonicalEvaluation({ bridge, driver }, deps, job, sequence),
     validateAdviceInput: driver.validateAdviceInput,
     collect: Effect.fn("ResidentRuntime.canonicalCollection")(function* (
       context: Omit<DeliveryContext, "request">,

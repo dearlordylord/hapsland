@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 const { enrollCachedAdvice } = await import(
-  new URL("../../../../../dist/resident/review-work/preparation/post-enrollment.js", import.meta.url)
+  new URL("../../../../../dist/resident/review-work/evaluation/advice-enrollment.js", import.meta.url)
 )
 let cases = 0
 const fixture = (options = {}, faultAt = 0) => {

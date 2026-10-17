@@ -313,7 +313,7 @@ type EnrollmentReply is Data:
   EnrollmentAck{}
   EnrollmentFlag{value: Bool}
 
-def enrollment_recipe() -> List<&2, EnrollmentOperation>:
+def enrollment_recipe(findings_path: List<&2, String>) -> List<&2, EnrollmentOperation>:
   [
     EnrollmentRead{10n, 0n, ["dispatch", "credential"]},
     EnrollmentRead{11n, 0n, ["dispatch", "controlled"]},
@@ -332,7 +332,7 @@ def enrollment_recipe() -> List<&2, EnrollmentOperation>:
       ]
     },
     EnrollmentRead{31n, 0n, ["prepared"]},
-    EnrollmentRead{32n, 1n, ["cached", "evaluation", "findings"]},
+    EnrollmentRead{32n, 1n, findings_path},
     EnrollmentRecord{30n, [EnrollmentField{"prepared", 31n}, EnrollmentField{"findings", 32n}]},
     EnrollmentRead{40n, 0n, ["dispatch", "activityPath"]},
     EnrollmentPut{"analyticsPath", 40n},
@@ -475,7 +475,10 @@ def enrollment_next(operations: List<&2, EnrollmentOperation>) -> EnrollmentStep
     case operation <> rest: EnrollmentAwait{operation, rest}
 
 def enrollment_initial() -> EnrollmentStep:
-  enrollment_next(enrollment_recipe())
+  enrollment_next(enrollment_recipe(["cached", "evaluation", "findings"]))
+
+def fresh_enrollment_initial() -> EnrollmentStep:
+  enrollment_next(enrollment_recipe(["findings"]))
 
 def enrollment_resume(step: EnrollmentStep, reply: EnrollmentReply) -> EnrollmentStep:
   match step reply:
