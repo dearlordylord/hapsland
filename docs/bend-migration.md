@@ -266,9 +266,9 @@ Canonical transactions/transport/driver; shared load permits no causal claim.
 
 Three whole laws (Astra path), owner approved2026-10-17; proofs pending:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
-2. `EVALUATION_OWNER_LAWS`: public ready/settle/provider install/complete/cleanup and generic refusals proved; Dispatch + assembly open.
+2. `EVALUATION_OWNER_LAWS`: Dispatch start/complete proved too; only Dispatch launch + whole-law assembly open.
 3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Protocol gate28/28, fast pass; Canonical owner law and full source gate open.
+Proof gate pass; latest finite Owner gate compile timed out; full source/law open.
 Whole evaluation is not accepted.
 
 
