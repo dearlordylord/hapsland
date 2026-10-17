@@ -185,10 +185,10 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- `3c964a78`,04:19 UTC analyzer/build **.6132×/.9405×**,17 frozen pairs,
+- `12fd052c`,04:51/52 UTC analyzer/build **.6719×/.9050×**,17 frozen pairs,
   strict PASS/PASS;23/46 cached. Prior `a86bd985` build1.0675× failed strict parity.
-  TS/Bend medians[ranges] s: execution.1266[.0819,.9068]/.0902[.0404,.2760];
-  build5.089[3.394,12.551]/4.227[3.208,20.607]. Shared load; no causal claim.
+  TS/Bend medians[ranges] s: execution.0833[.0539,.1372]/.0468[.0388,.1567];
+  build3.353[3.039,4.293]/2.990[2.704,3.771]. Shared load;~3m late; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
