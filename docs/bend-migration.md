@@ -227,7 +227,6 @@ and original TS orchestration. Primary analyzer/build stays `8948343b`, which
 lacks Go. Public runner: exact result/control equality, 17 pairs, parity ≤1,
 owner-approved acceptance ≤3. Current-native/profiling paths are removed;
 earlier results remain historical.
-Latest Preparation ratio **1.3378×** accepts the ≤3 limit; strict parity remains false.
 Scope: Linux offline physical consumers; native parser/Unicode/IEEE/hash/IO engines
 remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is claimed.
 
@@ -239,16 +238,16 @@ owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 Current path / obstacles:
 1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
    registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
-2. Lifetime binding now runs transport P gate→barrier→freshness and masked D,
-   retaining exact root cleanup. Real binding empty Collect→P→D PASS.
-   Before public wiring: fence receipt cancellation; use recipient key/optional
-   read-only partition (upfront allocation changes unknown-empty behavior).
-   Transfer custody atomically into ResponseContext/local scope, including empty.
-3. Delete remaining public C/P/D interpreters; prove trace/reply/lease/finish;
-   qualify full IPC/whole-delivery performance. Unit not accepted.
-   Latest: workspace46/46,23 receipts,43 protocol,fast44/6 PASS. Binding compile
-   types failed→explicit outcomes/session PASS; test trace fixed; stale receipt
-   check refused changed fixture→matching rebuild PASS.
+2. Binding owns transport P and masked D; exact receipt cancellation/cleanup
+   retry PASS. Recipient key/optional partition preserves unknown-empty collect.
+   Next: Root owns edit gate/status scan/poll/deadline, fresh C each pass and one
+   final receipt; delete TS polling. Then wire ResponseContext/local custody,
+   preserving close/fit masks and response gate/barrier exactly once.
+3. Prove trace/reply/lease/finish; qualify full IPC/whole-delivery performance.
+   Unit not accepted. Latest: owner1418/native9,composed53,protocol43,fast44/4,
+   receipts23 PASS. Context cold180s timeout→stopped-writer audit→3 downstream
+   compiles→workspace46/46 PASS. Binding compile types failed→explicit outcome/
+   session PASS; test trace fixed; stale fixture receipts→matching rebuild PASS.
    Prior consumers88/89: concurrent Claude IPC deadline failed; isolated same-limit
    case and9 selected server PASS. No full-suite pass.
 4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).

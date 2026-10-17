@@ -81,12 +81,51 @@ try {
     return s
   }
   let assertions = 0
+  // Unknown recipients need no capacity identity allocation. Absence is exact
+  // receipt context, never a wildcard shared by different recipient keys.
+  for (const partition of [{ $: "None" }, { $: "Some", value: 1 }]) {
+    const context = {
+      $: "DeliveryContext",
+      request: 41,
+      recipient: "unknown-recipient",
+      partition,
+      lifetime: 1,
+      round: { $: "None" },
+      local_delivery: false
+    }
+    const launched = m.launch_collection(fresh(), context, 50)
+    let state = advanced(launched)
+    const invocation = list(launched.actions)[0].invocation
+    const completed = m.complete_delivery(state, invocation, 0, 60, { $: "NoDeliverySelection" })
+    state = advanced(completed)
+    const receipt = list(completed.actions)[0].receipt
+    assert.deepEqual(receipt.context, context)
+    reject(
+      m.claim_delivery(state, { ...receipt, context: { ...context, recipient: "another-unknown-recipient" } }),
+      "WrongPhase"
+    )
+    reject(
+      m.claim_delivery(state, {
+        ...receipt,
+        context: { ...context, partition: partition.$ === "None" ? { $: "Some", value: 1 } : { $: "None" } }
+      }),
+      "WrongPhase"
+    )
+    state = advanced(m.claim_delivery(state, receipt))
+    const prepared = m.complete_delivery(state, receipt.invocation, 0, 70, { $: "NoDeliverySelection" })
+    state = advanced(prepared)
+    const finalReceipt = list(prepared.actions)[0].receipt
+    assert.deepEqual(finalReceipt.context, context)
+    state = advanced(m.claim_delivery(state, finalReceipt))
+    advanced(m.complete_delivery(state, finalReceipt.invocation, 0, 80, { $: "NoDeliverySelection" }))
+    assertions++
+  }
   {
     const context = {
       $: "DeliveryContext",
       request: 41,
-      recipient: 7,
-      partition: 1,
+      recipient: "recipient-seven",
+      partition: { $: "Some", value: 1 },
       lifetime: 1,
       round: { $: "Some", value: 1 },
       local_delivery: false
@@ -507,8 +546,8 @@ try {
     const context = {
       $: "DeliveryContext",
       request: 41,
-      recipient: 7,
-      partition: 1,
+      recipient: "recipient-seven",
+      partition: { $: "Some", value: 1 },
       lifetime: 1,
       round: { $: "Some", value: 1 },
       local_delivery: false
@@ -545,10 +584,10 @@ try {
       { ...receipt, origin: receipt.origin + 1 },
       { ...receipt, generation: 1 },
       { ...receipt, input_handle: 61 },
-      ...["request", "recipient", "partition", "lifetime"].map((field) => ({
-        ...receipt,
-        context: { ...context, [field]: context[field] + 1 }
-      })),
+      ...["request", "lifetime"].map((field) => ({ ...receipt, context: { ...context, [field]: context[field] + 1 } })),
+      { ...receipt, context: { ...context, recipient: "another-recipient" } },
+      { ...receipt, context: { ...context, partition: { $: "None" } } },
+      { ...receipt, context: { ...context, partition: { $: "Some", value: 2 } } },
       { ...receipt, context: { ...context, local_delivery: true } },
       { ...receipt, context: { ...context, round: { $: "None" } } },
       { ...receipt, permission: { $: "PrepareDeliveryIssued", selection: { ...selection, token: 94 } } }

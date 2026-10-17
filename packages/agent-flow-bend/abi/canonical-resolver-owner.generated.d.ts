@@ -11,7 +11,7 @@ export type State =
 export type Child =
   | { readonly $: "Child"; readonly scope: Scope; readonly invocation: number; readonly generation: number; readonly handle: number; readonly phase: Phase; readonly request: Maybe<number>; readonly lease: Maybe<Lease>; readonly parent: Maybe<Parent> }
 
-export type DeliveryContext = { readonly $: "DeliveryContext"; readonly request: number; readonly recipient: number; readonly partition: number; readonly lifetime: number; readonly round: Maybe<number>; readonly local_delivery: boolean }
+export type DeliveryContext = { readonly $: "DeliveryContext"; readonly request: number; readonly recipient: string; readonly partition: Maybe<number>; readonly lifetime: number; readonly round: Maybe<number>; readonly local_delivery: boolean }
 export type DeliverySelection =
   | { readonly $: "NoDeliverySelection" }
   | { readonly $: "DeliverySelection"; readonly token: number; readonly advice: List<number>; readonly notices: List<number> }

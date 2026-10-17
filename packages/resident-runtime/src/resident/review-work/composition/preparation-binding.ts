@@ -48,13 +48,19 @@ export function createResidentPreparationBinding(bridge: ReturnType<typeof creat
         const invocation = driver.allocateCollectionInvocation(context, function* () {
           yield effectNative(native.cleanup(), false)
         })
+        const child = owner.find(invocation, driver.state.children)
+        const inputHandle =
+          child.$ === "Some" && child.value.scope.$ === "DeliveryScope" ? child.value.scope.input_handle : undefined
         let session: ReturnType<typeof createCollectionDeliverySession> | undefined
         try {
           session = createCollectionDeliverySession(invocation, native)
           return { session, input: session.input }
         } catch (error) {
           try {
-            driver.constructionFailed(invocation, session === undefined ? {} : { session })
+            driver.constructionFailed(invocation, {
+              ...(session === undefined ? {} : { session }),
+              ...(inputHandle === undefined ? {} : { inputHandle })
+            })
           } catch (cleanup) {
             throw nativeFailureAggregate([error, cleanup], "Collect construction and cleanup failed", { cause: error })
           }
@@ -128,10 +134,7 @@ export function createResidentPreparationBinding(bridge: ReturnType<typeof creat
           })
           .pipe(Effect.map(deliveryOutcome), Effect.uninterruptible)
     ),
-    cancelDelivery: Effect.fn("ResidentRuntime.cancelDelivery")(function* (receipt: DeliveryHandoff) {
-      driver.cancel(receipt.handoff)
-      yield* registry.retryCleanupEffect()
-    }),
+    cancelDelivery: (receipt: DeliveryHandoff) => driver.cancelDeliveryEffect(receipt),
     prepare: Effect.fn("ResidentRuntime.canonicalPreparation")(function* (context: Omit<PostContext, "ownedAdvice">) {
       const ownedContext: PostContext = { ...context, ownedAdvice: { core: post, bridge, driver } }
       yield* runResidentSourcePreparation(ownedContext, {

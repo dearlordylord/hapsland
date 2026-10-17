@@ -170,8 +170,8 @@ const deliveryDriver = async () => {
 const deliveryContext = {
   $: "DeliveryContext",
   request: 1,
-  recipient: 1,
-  partition: 1,
+  recipient: "recipient-one",
+  partition: { $: "None" },
   lifetime: 1,
   round: { $: "None" },
   local_delivery: false
@@ -416,7 +416,7 @@ it("the resident driver refuses a Finalize cursor under Collect permission befor
   assert.equal(f.driver.resources.payloads, 0)
 })
 
-it("the resident lifetime binding owns transport Prepare gates even for an empty collection receipt", async () => {
+it("the resident lifetime binding fences receipts, preserves empty transport order and retries physical cleanup", async () => {
   const { makeResidentReviewState } =
     await import("../../../../../dist/resident/state/resolver-custody/review-state.js")
   const { createResidentPreparationBinding } =
@@ -456,11 +456,16 @@ it("the resident lifetime binding owns transport Prepare gates even for an empty
   )
   const first = await Effect.runPromise(binding.collect(deliveryContext, native))
   assert.equal(first.delivery.kind, "handoff")
-  const second = await Effect.runPromise(
+  assert.equal(await Effect.runPromise(binding.cancelDelivery({ ...first.delivery.receipt })), false)
+  const entered = Effect.runSync(Deferred.make()),
+    resume = Effect.runSync(Deferred.make())
+  const preparing = Effect.runPromise(
     binding.prepareDelivery(first.delivery.receipt, (response) =>
       makeResidentSourceCurrentSession({}, response, {
-        gate: Effect.sync(() => {
+        gate: Effect.gen(function* () {
           trace.push("gate")
+          yield* Deferred.succeed(entered, undefined)
+          yield* Deferred.await(resume)
         }),
         barrier: Effect.sync(() => {
           trace.push("barrier")
@@ -468,6 +473,14 @@ it("the resident lifetime binding owns transport Prepare gates even for an empty
       })
     )
   )
+  await Effect.runPromise(Deferred.await(entered))
+  try {
+    // The exact receipt has already been claimed. It cannot revoke that child.
+    assert.equal(await Effect.runPromise(binding.cancelDelivery(first.delivery.receipt)), false)
+  } finally {
+    await Effect.runPromise(Deferred.succeed(resume, undefined))
+  }
+  const second = await preparing
   assert.equal(second.delivery.kind, "handoff")
   const final = await Effect.runPromise(
     binding.finalizeDelivery(second.delivery.receipt, (response, sources) =>
@@ -485,4 +498,46 @@ it("the resident lifetime binding owns transport Prepare gates even for an empty
   assert.deepEqual(final.delivery.value.response, { status: "empty" })
   assert.deepEqual(trace, ["gate", "barrier", "canWrite"])
   await Effect.runPromise(binding.cleanup())
+  const constructionFailure = new Error("Collect constructor failure")
+  let releases = 0
+  const construction = await Effect.runPromiseExit(
+    binding.collect(deliveryContext, {
+      ...native,
+      initial: () => {
+        throw constructionFailure
+      },
+      cleanup: () =>
+        Effect.sync(() => {
+          releases++
+        })
+    })
+  )
+  assert.equal(construction._tag, "Failure")
+  assert.equal(Result.getOrThrow(Cause.findDefect(construction.cause)), constructionFailure)
+  await Effect.runPromise(binding.cleanup())
+  await Effect.runPromise(binding.cleanup())
+  assert.equal(releases, 1)
+
+  const releaseFailure = new Error("Delivery physical release failure")
+  const issued = await Effect.runPromise(
+    binding.collect(deliveryContext, {
+      ...native,
+      cleanup: () =>
+        Effect.sync(() => {
+          releases++
+          if (releases === 2) throw releaseFailure
+        })
+    })
+  )
+  assert.equal(issued.delivery.kind, "handoff")
+  assert.equal(await Effect.runPromise(binding.cancelDelivery({ ...issued.delivery.receipt })), false)
+  assert.equal(releases, 1)
+  const refused = await Effect.runPromiseExit(binding.cancelDelivery(issued.delivery.receipt))
+  assert.equal(refused._tag, "Failure")
+  assert.equal(releases, 2)
+  assert.equal(await Effect.runPromise(binding.cancelDelivery(issued.delivery.receipt)), true)
+  assert.equal(releases, 3)
+  assert.equal(await Effect.runPromise(binding.cancelDelivery(issued.delivery.receipt)), false)
+  await Effect.runPromise(binding.cleanup())
+  assert.equal(releases, 3)
 })

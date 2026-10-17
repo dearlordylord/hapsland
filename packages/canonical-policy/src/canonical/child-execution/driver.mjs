@@ -1120,6 +1120,32 @@ export function createChildExecutionDriver({
     driveDeliveryEffect(receipt, construct, options = {}) {
       return runEffectFlow((execution) => driveDeliveryFlow(receipt, construct, execution), options)
     },
+    /** Cancel only the exact issued native receipt. A consumed receipt cannot
+     * revoke a claimed successor; failed cleanup retains the same capability.
+     * @param {DeliveryHandoff} receipt
+     */
+    cancelDeliveryEffect(receipt) {
+      return Effect.uninterruptible(
+        Effect.suspend(() => {
+          const invocation = receipt.handoff
+          const held = resources.get(receipt.receipt.input_handle)
+          if (
+            !held ||
+            held.invocation !== invocation ||
+            held.kind !== "delivery-input" ||
+            held.value.receipt !== receipt
+          )
+            return Effect.succeed(false)
+          const child = owner.find(invocation, current().children)
+          if (child.$ === "Some" && owner.delivery_receipt_matches(child.value, receipt.receipt)) {
+            apply(invoke("cancel", invocation))
+          } else if (!held.value.retained || (child.$ === "Some" && owner.child_active(child.value))) {
+            return Effect.succeed(false)
+          }
+          return registry.retryCleanupEffect().pipe(Effect.as(true))
+        })
+      )
+    },
     /** @returns {number} */
     allocateSettingsInvocation() {
       return driver.allocateInvocation(undefined, false, undefined, "settings")

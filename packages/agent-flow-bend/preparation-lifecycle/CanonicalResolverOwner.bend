@@ -31,7 +31,7 @@ type AfterSourcePermission is Data:
 # Delivery request/selection bindings are immutable custody metadata, not a
 # second advice or lease ledger. Current eligibility remains in Canonical.
 type DeliveryContext is Data:
-  DeliveryContext{request: Nat, recipient: Nat, partition: Nat, lifetime: Nat,
+  DeliveryContext{request: Nat, recipient: String, partition: Maybe<&2, Nat>, lifetime: Nat,
     round: Maybe<&2, Nat>, local_delivery: Bool}
 type DeliverySelection is Data:
   NoDeliverySelection{}
@@ -1829,9 +1829,9 @@ def delivery_context_equal(left: DeliveryContext, right: DeliveryContext) -> Boo
       Bool.and(
         Nat.is_eq(a, g),
         Bool.and(
-          Nat.is_eq(b, h),
+          String.eq(b, h),
           Bool.and(
-            Nat.is_eq(c, i),
+            delivery_round_equal(c, i),
             Bool.and(
               Nat.is_eq(d, j),
               Bool.and(delivery_round_equal(e, k), delivery_bool_equal(f, l))
