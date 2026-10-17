@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: candidate `bcabe282`,21:36 UTC: execution **.7798×**;
-build **.9286×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: candidate `7044c5ed`,22:08 UTC: execution **.7707×**;
+build **.9322×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution0.0647[0.0502,0.1021]/0.0543[0.0354,0.0643];
-build3.5822[3.0837,5.1328]/3.3085[2.7988,4.7028]. Shared load; no causal claim.
+execution0.0909[0.0537,0.3125]/0.0740[0.0356,0.2395];
+build4.7253[3.3432,7.2409]/4.3488[3.3723,5.9433]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -248,7 +248,7 @@ advice tail; cached/fresh enrollment and observation share evaluation-owned
 helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-`de0fb23d`: sources281/281; protocol26/26; fast4.
+`7044c5ed`: sources280/280; protocol29/29; fast1.
 Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
 Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
 `2d7067fa` build46/46, receipts23. Native cleanup6/73 and registry5 check drain/retry/Cause
@@ -268,7 +268,7 @@ Three whole laws (Astra path), owner approved2026-10-17; all proved:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle proved.
 3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Kernel pass; latest finite Owner gate compile timed out; source/acceptance open.
+Tail lifetime-cancel: closed owner/zero resources regression25 pass; fast4; final checks open.
 Whole evaluation is not accepted.
 
 

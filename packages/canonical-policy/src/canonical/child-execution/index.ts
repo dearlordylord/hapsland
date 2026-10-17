@@ -10,7 +10,6 @@ export type {
   State,
   Scope,
   Action,
-  ConstructionFailure,
   AdviceInput,
   Launch,
   CancellationCleanup,

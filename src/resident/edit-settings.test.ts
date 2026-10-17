@@ -98,7 +98,7 @@ describe("edit-owned settings", () => {
     await put(f.root, ".hapsland.jsonc", JSON.stringify({ version: 1, excludes: ["type.ts"], rules: [] }))
     await f.server.listen().pipe(Effect.runPromise)
     const response = await send(f.server, f.observation, f.dispatch)
-    expect(response.status).toBe("advice")
+    expect(response.status, JSON.stringify(response)).toBe("advice")
     if (response.status !== "advice") throw new Error("missing snapshot advice")
     expect(response.output).toMatchObject({ decision: "block", reason: expect.stringContaining("original edit rule") })
     await Effect.runPromise(f.server.releaseDelivery(response.token))

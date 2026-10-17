@@ -8,7 +8,7 @@ import {
   nativeFailureAggregate
 } from "@hapsland/runtime-environment/runtime/native-execution"
 
-const constructionFailureTag = Symbol("CanonicalConstructionFailure")
+const terminalFailureTag = Symbol("CanonicalTerminalFailure")
 /**
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").CanonicalResolverOwner} Owner
  * @typedef {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State} State
@@ -21,7 +21,7 @@ const constructionFailureTag = Symbol("CanonicalConstructionFailure")
  * @typedef {{phase: string, error: unknown, command?: Action, operation?: number}} Failure
  * @typedef {{failures: Failure[], rejection: Failure | undefined}} ActionOutcome
  * @typedef {{signal?: AbortSignal | undefined, ownerLease?: {invocation: number, generation: number, lease: number, request: number}}} ForeignOptions
- * @typedef {{[constructionFailureTag]: true, kind: "construction-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} ConstructionFailure
+ * @typedef {{[terminalFailureTag]: true, kind: "terminal-failure", view: {$: "AdviceTailStopped", reason: unknown, cleanupPending: false}}} TerminalFailure
  * @typedef {{origin: number, value: unknown, kind?: never}} AdviceInput
  * @typedef {import("./contract.ts").PreparationHandoff} PreparationHandoff
  * @typedef {import("./contract.ts").DeliveryHandoff} DeliveryHandoff
@@ -80,10 +80,10 @@ const executeSynchronousGroup = function* (result, live, onAwait) {
 }
 /**
  * @template {import("./contract.ts").Projection} P
- * @param {P | ConstructionFailure} value
- * @returns {value is ConstructionFailure}
+ * @param {P | TerminalFailure} value
+ * @returns {value is TerminalFailure}
  */
-const constructionFailure = (value) => constructionFailureTag in value
+const terminalFailure = (value) => terminalFailureTag in value
 /**
  * @template {import("./contract.ts").Input} I
  * @template {import("./contract.ts").Machine} M
@@ -119,7 +119,7 @@ export function createChildExecutionDriver({
   /**
    * @typedef {{cleanup: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<unknown>, cleaned: boolean, retained: boolean, successor?: DeliveryHandoff}} DeliveryCustody
    * @typedef {DeliveryCustody & {receipt: DeliveryHandoff, projected: P}} DeliveryInput
-   * @typedef {P | ConstructionFailure} ResultPayload
+   * @typedef {P | TerminalFailure} ResultPayload
    * @typedef {{value: Reply} | {error: unknown} | {revoked: true}} ReplyPayload
    * @typedef {{kind: "state", value: C} | {kind: "result", value: ResultPayload} | {kind: "reply", value: ReplyPayload} | {kind: "input", value: I | P | AdviceInput | undefined, custody?: DeliveryCustody, successor?: DeliveryHandoff} | {kind: "advice-input", value: AdviceInput} | {kind: "pending-input", value: undefined} | {kind: "delivery-input", value: DeliveryInput}} Payload
    * @typedef {Payload & {invocation: number}} HeldResource
@@ -406,7 +406,7 @@ export function createChildExecutionDriver({
         const raw = command.receipt
         try {
           const projected = load(raw.input_handle, invocation, "result")
-          if (constructionFailure(projected)) throw new Error("Invalid delivery handoff payload")
+          if (terminalFailure(projected)) throw new Error("Invalid delivery handoff payload")
           const child = owner.find(raw.invocation, currentCustody().children)
           if (child.$ !== "Some" || !owner.delivery_receipt_matches(child.value, raw))
             throw new Error("Delivery handoff lacks Canonical custody")
@@ -458,7 +458,7 @@ export function createChildExecutionDriver({
       case "LaunchPostPreparation": {
         try {
           const projected = load(command.result_handle, command.preparation_invocation, "result")
-          if (constructionFailure(projected)) throw new Error("Invalid preparation handoff payload")
+          if (terminalFailure(projected)) throw new Error("Invalid preparation handoff payload")
           protocol.preparation(projected)
           if (command.scope.$ !== "RetainingScope") throw new Error("Invalid preparation handoff scope")
           const receipt = Object.freeze({ handoff: invocation, scope: command.scope })
@@ -521,7 +521,7 @@ export function createChildExecutionDriver({
       case "AcceptResult": {
         // Synchronous handoff in this serialized turn; no queued acceptance permit.
         const projected = load(command.result_handle, invocation, "result")
-        if (constructionFailure(projected)) {
+        if (terminalFailure(projected)) {
           finished.set(invocation, {
             adviceRetained: false,
             reason: projected.view.reason,
@@ -876,13 +876,18 @@ export function createChildExecutionDriver({
         // Call finish directly here: a failing retry must not replace its registry
         // obligation, or a subsequent successful retry cannot discharge that owner.
         yield* finalizeSessionFlow(session)
-        if (constructionError && child.$ === "Some" && owner.child_active(child.value)) {
+        // Advice cancellation enters TailRemove. After native cleanup, Canonical
+        // still decides whether this failed terminal can close that owner.
+        const finalFailure =
+          constructionError ??
+          (child.$ === "Some" && child.value.scope.$ === "AdviceTailScope" ? taskFailure : undefined)
+        if (finalFailure && child.$ === "Some" && owner.child_active(child.value)) {
           const id = save(invocation, {
             kind: "result",
             value: {
-              [constructionFailureTag]: true,
-              kind: "construction-failure",
-              view: { $: "AdviceTailStopped", reason: constructionError.error, cleanupPending: false }
+              [terminalFailureTag]: true,
+              kind: "terminal-failure",
+              view: { $: "AdviceTailStopped", reason: finalFailure.error, cleanupPending: false }
             }
           })
           try {
@@ -898,7 +903,9 @@ export function createChildExecutionDriver({
             return { failures: attemptFailures, rejection: attemptFailures[0] }
           child = owner.find(invocation, currentCustody().children)
           if (child.$ === "Some" && owner.child_active(child.value))
-            throw new Error("Finalization has no closed Canonical owner")
+            throw new Error(
+              `Finalization has no closed Canonical owner: ${child.value.scope.$}/${child.value.phase.$} invocation=${invocation}`
+            )
         }
         // A root without a successor, or a cancelled claimed delivery, must
         // settle its lease before its retained input can disappear.

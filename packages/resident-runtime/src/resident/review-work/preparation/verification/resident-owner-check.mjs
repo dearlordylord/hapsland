@@ -851,6 +851,7 @@ const postCore = (
     "normal",
     "missing-publish",
     "driver-active-false",
+    "driver-lifetime-cancel",
     "driver-cleanup-pending",
     "driver-barrier-failure",
     "driver-expired-failure",
@@ -1110,9 +1111,11 @@ const postCore = (
             residentReviewControls: {
               afterAdvicePending: () =>
                 inCaller(
-                  tailVariant !== "driver-active-false"
-                    ? Effect.fail(new Error("injected pending advice barrier failure"))
-                    : Effect.void,
+                  tailVariant === "driver-lifetime-cancel"
+                    ? Effect.sync(() => lifetimeController.abort())
+                    : tailVariant !== "driver-active-false"
+                      ? Effect.fail(new Error("injected pending advice barrier failure"))
+                      : Effect.void,
                   false
                 )
             },
@@ -1124,6 +1127,34 @@ const postCore = (
           }
         }
       )
+      if (tailVariant === "driver-lifetime-cancel") {
+        const stopped = await exitTail(
+          adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)
+        )
+        assert.ok(Exit.isFailure(stopped), "lifetime cancellation preserves the failed caller outcome")
+        const child = owner.find(3, run(transaction.read).resolverCustody.children).value
+        assert.equal(
+          owner.child_active(child),
+          false,
+          "cancelled advice tail must close its Canonical owner after native cleanup: " +
+            JSON.stringify({ child, failure: Exit.isFailure(stopped) ? Cause.pretty(stopped.cause) : null })
+        )
+        assert.equal(registry.pendingCleanup, 0)
+        assert.equal(registry.size, 0)
+        assert.equal(run(advice.values()).length, 0)
+        assert.deepEqual(adviceDriver.resources, {
+          payloads: 0,
+          leases: 0,
+          sessions: 0,
+          artifactStates: 0,
+          launches: 0
+        })
+        run(capacity.release(allocations[1].reservation))
+        run(revision.release(revisions[1]))
+        assert.equal(projectCanonical(run(transaction.read).canonical).global.bytes, 0)
+        cases++
+        continue
+      }
       if (tailVariant === "driver-construction-cleanup-failure") {
         const rejected = await exitTail(
           adviceDriver.driveAdviceEffect(adviceDriver.adviceHandoff(3), provider, tailOptions)
