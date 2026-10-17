@@ -233,7 +233,7 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:15 draft laws;2 approved proofs pending; final qualification.
+3. Open:15 draft laws;1 approved proof pending; final qualification.
    At whole acceptance move semantic properties to domain laws; delete
    temporary exact equations/specs/proofs.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
@@ -247,7 +247,7 @@ Current path / obstacles:
    Earlier pair11 IPC2.5s failure remains unqualified; runner now uses product4s.
    Profile45s stop under load45/12 retained; corrected5ms diagnostic passed.
    Per-call unchanged-graph reuse has native/fast/physical187 PASS, no persistent cache.
-   ABI caches discarded. Canonical proof fills4/6; root still2 TODO, not a pass.
+   ABI caches discarded. Canonical proof fills5/6; root still1 TODO, not a pass.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
