@@ -237,19 +237,19 @@ Astra agreed Canonical receipts and the existing registry/action sink; native
 owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 
 Current path / obstacles:
-1. Root G→C→R runs Bend in IPC; TS root branches deleted. Native C/P/D use
-   the existing driver/registry with pre-IO/replay/continuation fences; P retries
-   failed physical releases. Root import tags use a typed ABI codec.
-   Real-driver empty Collect→P→D PASS; public receipt custody still pending.
-2. Wire collect/prepareDelivery/finalizeDelivery through the lifetime binding;
-   pass exact driver-owned cleanup to P/D constructors; context holds receipt. Move
-   transport gate→barrier into P; protect constructor Scope before registration.
-   Mask whole D drive; preserve both canWrite calls and token cleanup.
+1. Root G→C→R runs Bend in IPC; TS root branches deleted. C/P/D share driver/
+   registry fences; P retries physical releases. Root ABI2/8 failed→codec8/8 PASS.
+2. Lifetime binding now runs transport P gate→barrier→freshness and masked D,
+   retaining exact root cleanup. Real binding empty Collect→P→D PASS.
+   Before public wiring: fence receipt cancellation; use recipient key/optional
+   read-only partition (upfront allocation changes unknown-empty behavior).
+   Transfer custody atomically into ResponseContext/local scope, including empty.
 3. Delete remaining public C/P/D interpreters; prove trace/reply/lease/finish;
    qualify full IPC/whole-delivery performance. Unit not accepted.
-   Root ABI2/8 failed→typed codec8/8 PASS.
-   Latest: workspace46/46,23 receipts,42 protocol,fast44/16 PASS.
-   Consumers88/89: concurrent Claude IPC deadline failed; isolated same-limit
+   Latest: workspace46/46,23 receipts,43 protocol,fast44/6 PASS. Binding compile
+   types failed→explicit outcomes/session PASS; test trace fixed; stale receipt
+   check refused changed fixture→matching rebuild PASS.
+   Prior consumers88/89: concurrent Claude IPC deadline failed; isolated same-limit
    case and9 selected server PASS. No full-suite pass.
 4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
    Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
