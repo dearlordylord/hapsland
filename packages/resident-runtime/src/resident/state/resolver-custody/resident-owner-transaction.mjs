@@ -1,8 +1,12 @@
 import * as Effect from "effect/Effect"
 import { release as releaseCapacityReservation } from "../capacity/reservations.ts"
+import { recordReadyJevRequest, recordSettledJevRequest } from "../capacity/review.ts"
 import { residentAdvice } from "../resident/advice.ts"
 import { encodeCanonicalEvent } from "@hapsland/canonical-policy/canonical/adapter"
-import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
+import {
+  projectTrustedCanonical,
+  decodeTrustedCanonicalStep
+} from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { freezeCanonicalData } from "@hapsland/canonical-policy/canonical/immutable"
 
 import {
@@ -70,6 +74,116 @@ export function createResidentOwnerTransaction({
     })
   /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} input */
   const event = (input) => finish(committedEvent(input))
+  /**
+   * @param {import("../capacity/model.ts").CapacityDraft} draft
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("./provider-authority.ts").EvaluationBinding} binding
+   */
+  const evaluationBinding = (draft, credential, binding) => {
+    const child = owner.find(credential.invocation, draft.resolverCustody.children)
+    if (child.$ !== "Some" || child.value.scope.$ !== "EvaluationScope") return undefined
+    const context = child.value.scope.context
+    return context.partition === draft.partitionIds.get(binding.partition) &&
+      context.operation === binding.operation &&
+      context.round === binding.round &&
+      binding.reservation.partition === binding.partition
+      ? child.value.scope
+      : undefined
+  }
+  /**
+   * @param {import("../capacity/model.ts").CapacityDraft} draft
+   * @param {Extract<import("./provider-authority.ts").OwnerPublication["raw"], {$: "Published"}>} raw
+   */
+  const evaluationResult = (draft, raw) =>
+    decodeTrustedCanonicalStep({ $: "Canonical.Advanced", state: draft.canonical, outputs: fromOwner(raw.outputs) })
+  /** @type {{ readonly value: ReturnType<typeof recordReadyJevRequest>, readonly actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[] }} */
+  const staleEvaluationReady = { value: { status: "stale" }, actions: [] }
+  /** @type {{ readonly value: ReturnType<typeof recordSettledJevRequest>, readonly actions: readonly import("@hapsland/agent-flow-bend/canonical-resolver-owner").Action[] }} */
+  const staleEvaluationSettlement = { value: "stale", actions: [] }
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("./provider-authority.ts").EvaluationBinding} binding
+   * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").EvaluationFacts} facts
+   */
+  const evaluationReady = (credential, binding, facts) =>
+    finish(
+      transaction.commitAllEffect((draft, records) => {
+        const scope = evaluationBinding(draft, credential, binding)
+        if (!scope || draft.reservations.get(binding.reservation.id)?.capability !== binding.reservation)
+          return [staleEvaluationReady, records]
+        const work = projectTrustedCanonical(draft.canonical).work.find(
+          (entry) => entry.operation === binding.operation
+        )
+        if (work?.reservation !== binding.reservation.id) return [staleEvaluationReady, records]
+        const published = publication(
+          draft,
+          owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
+            $: "EvaluationReadyEvent",
+            ...credential,
+            facts
+          })
+        )
+        if (published.raw.$ !== "Published") return [{ ...published, value: staleEvaluationReady.value }, records]
+        const value = recordReadyJevRequest(
+          draft,
+          binding.partition,
+          binding.reservation,
+          binding.round,
+          evaluationResult(draft, published.raw)
+        )
+        return [{ ...published, value }, records]
+      })
+    )
+  /**
+   * @param {import("./provider-authority.ts").ProviderLease} credential
+   * @param {import("./provider-authority.ts").EvaluationBinding} binding
+   * @param {import("@hapsland/canonical-policy/canonical/adapter").JevRequestOutcome} outcome
+   * @param {boolean} current
+   */
+  const evaluationSettle = (credential, binding, outcome, current) =>
+    finish(
+      transaction.commitAllEffect((draft, records) => {
+        const scope = evaluationBinding(draft, credential, binding)
+        if (!scope || scope.permission.$ !== "EvaluationIssued") return [staleEvaluationSettlement, records]
+        const request = scope.permission.request
+        const identity = draft.requestRounds.get(request)
+        if (
+          identity?.partition !== binding.partition ||
+          identity.round !== binding.round ||
+          identity.operation !== binding.operation ||
+          identity.reservation !== binding.reservation
+        )
+          return [staleEvaluationSettlement, records]
+        const input = encodeCanonicalEvent({
+          kind: "jevRequestSettled",
+          partition: scope.context.partition,
+          lifetime: scope.context.lifetime,
+          round: scope.context.round,
+          operation: scope.context.operation,
+          request,
+          outcome,
+          currentWork: current
+        })
+        if (input.$ !== "Canonical.JevRequestSettled") throw new Error("Invalid evaluation settlement ABI")
+        const published = publication(
+          draft,
+          owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, {
+            $: "EvaluationSettleEvent",
+            ...credential,
+            outcome: toOwner(input.outcome),
+            current
+          })
+        )
+        if (published.raw.$ !== "Published") return [{ ...published, value: staleEvaluationSettlement.value }, records]
+        const value = recordSettledJevRequest(
+          draft,
+          request,
+          binding.reservation,
+          evaluationResult(draft, published.raw)
+        )
+        return [{ ...published, value }, records]
+      })
+    )
   /**
    * @param {unknown} value
    * @param {import("./provider-authority.ts").PendingRestore | undefined} pending
@@ -733,6 +847,8 @@ export function createResidentOwnerTransaction({
   return {
     read: transaction.read,
     event,
+    evaluationReady,
+    evaluationSettle,
     bindSourceReservation,
     forgetSourceReservation,
     releaseSourceReservation,

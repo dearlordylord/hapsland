@@ -20,6 +20,12 @@ export type OwnerPublication = {
   readonly outputs: readonly OwnerOutput[]
   readonly refusal?: Owner.Refusal | undefined
 }
+export type EvaluationBinding = {
+  readonly partition: string
+  readonly operation: number
+  readonly round: number
+  readonly reservation: import("../capacity/model.ts").CapacityReservation
+}
 export type AdviceReceipt = {
   readonly invocation: number
   readonly origin: number

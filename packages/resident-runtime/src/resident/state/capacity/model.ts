@@ -191,7 +191,15 @@ export type CapacityState = {
   readonly partitionIds: ReadonlyMap<string, number>
   readonly partitionIdentityBytes: number
   readonly roundIds: ReadonlyMap<string, number>
-  readonly requestRounds: ReadonlyMap<number, { readonly partition: string; readonly round: number }>
+  readonly requestRounds: ReadonlyMap<
+    number,
+    {
+      readonly partition: string
+      readonly round: number
+      readonly operation: number
+      readonly reservation: CapacityReservation
+    }
+  >
   readonly collectionTokens: ReadonlyMap<string, number>
   readonly nextCollectionToken: number
   readonly nextPartitionId: number

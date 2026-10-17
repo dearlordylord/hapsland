@@ -228,6 +228,74 @@ const postCore = (
         permission: { $: "EvaluationUnissued" }
       })
       assert.equal(bridge.control.invoke("launch_evaluation", [evaluationContext, 903]).$, "Rejected")
+      bridge.control.invoke("install", [evaluationInvocation, 0, 904, 0])
+      bridge.control.invoke("provider_start", [evaluationInvocation])
+      const evaluationLease = owner.find(evaluationInvocation, bridge.control.readCustody().children).value.lease.value
+        .id
+      const evaluationCredential = {
+        invocation: evaluationInvocation,
+        generation: 0,
+        lease: evaluationLease,
+        request: 0
+      }
+      const binding = {
+        partition: "agent",
+        operation: completed.value[0].operation,
+        round,
+        reservation: completed.value[0].reservation
+      }
+      const facts = {
+        $: "EvaluationFacts",
+        root_valid: true,
+        configuration_valid: true,
+        credential_ready: true,
+        selected: true,
+        current_work: true,
+        physical_available: true
+      }
+      for (const wrong of [
+        { ...binding, reservation: { ...binding.reservation } },
+        { ...binding, reservation: completed.value[1].reservation },
+        { ...binding, partition: "another-agent" },
+        { ...binding, operation: binding.operation + 1 }
+      ])
+        assert.equal(run(bridge.evaluationReady(evaluationCredential, wrong, facts)).value.status, "stale")
+      assert.equal(run(transaction.read).requestRounds.size, 0)
+      const ready = run(bridge.evaluationReady(evaluationCredential, binding, facts)).value
+      assert.equal(ready.status, "issued")
+      const issued = owner.find(evaluationInvocation, bridge.control.readCustody().children).value.scope.permission
+      assert.equal(issued.request, ready.request)
+      assert.strictEqual(run(transaction.read).requestRounds.get(ready.request).reservation, binding.reservation)
+      assert.equal(run(bridge.evaluationReady(evaluationCredential, binding, facts)).value.status, "stale")
+      assert.equal(
+        run(
+          bridge.evaluationSettle(
+            evaluationCredential,
+            { ...binding, reservation: completed.value[1].reservation },
+            "neverSent",
+            false
+          )
+        ).value,
+        "stale"
+      )
+      assert.equal(
+        run(
+          bridge.evaluationSettle({ ...evaluationCredential, lease: evaluationLease + 1 }, binding, "neverSent", false)
+        ).value,
+        "stale"
+      )
+      assert.equal(run(bridge.evaluationSettle(evaluationCredential, binding, "clear", true)).value, "stale")
+      assert.equal(run(transaction.read).requestRounds.size, 1)
+      assert.equal(run(bridge.evaluationSettle(evaluationCredential, binding, "neverSent", false)).value, "unavailable")
+      const settledSnapshot = run(transaction.read)
+      assert.equal(settledSnapshot.requestRounds.size, 0)
+      assert.equal(settledSnapshot.reservations.has(binding.reservation.id), false)
+      assert.equal(settledSnapshot.reservations.has(completed.value[1].reservation.id), true)
+      assert.equal(
+        owner.find(evaluationInvocation, settledSnapshot.resolverCustody.children).value.scope.permission.$,
+        "EvaluationSettled"
+      )
+      assert.equal(run(bridge.evaluationSettle(evaluationCredential, binding, "neverSent", false)).value, "stale")
       bridge.control.invoke("cancel", [evaluationInvocation])
       assert.equal(
         owner.find(evaluationInvocation, bridge.control.readCustody().children).value.phase.$,

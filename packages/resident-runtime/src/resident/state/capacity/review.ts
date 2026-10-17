@@ -41,10 +41,23 @@ export function readyJevRequest(
     operation,
     ...facts
   })
+  return recordReadyJevRequest(draft, partition, reservation, round, result)
+}
+
+// Native capability metadata follows the already-accepted Canonical result.
+// The evaluation owner uses this same publication seam, without replaying the
+// readiness event or maintaining another native request-allocation algorithm.
+export function recordReadyJevRequest(
+  draft: CapacityDraft,
+  partition: string,
+  reservation: CapacityReservation,
+  round: number,
+  result: ReturnType<typeof stepCanonical>
+): ReturnType<typeof readyJevRequest> {
   if (result.rejection !== undefined) return { status: "stale" }
   const issued = result.outputs[0]
   if (issued?.kind === "jevRequestIssued") {
-    draft.requestRounds.set(issued.request, { partition, round })
+    draft.requestRounds.set(issued.request, { partition, round, operation: issued.operation, reservation })
     return { status: "issued", request: issued.request, round }
   }
   if (result.outputs.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness")
@@ -53,7 +66,7 @@ export function readyJevRequest(
 }
 export function startJevRequest(draft: CapacityDraft, partition: string, operation: number, request: number): boolean {
   const identity = draft.requestRounds.get(request)
-  if (identity?.partition !== partition) return false
+  if (identity?.partition !== partition || identity.operation !== operation) return false
   const result = transition(draft, {
     kind: "jevRequestStarted",
     partition: partitionId(draft, partition),
@@ -71,7 +84,7 @@ export function interruptJevRequest(
   request: number
 ): boolean {
   const identity = draft.requestRounds.get(request)
-  if (identity?.partition !== partition) return false
+  if (identity?.partition !== partition || identity.operation !== operation) return false
   const result = transition(draft, {
     kind: "jevRequestInterrupted",
     partition: partitionId(draft, partition),
@@ -128,7 +141,8 @@ export function settleJevRequest(
   | "ignored"
   | "stale" {
   const identity = draft.requestRounds.get(request)
-  if (identity?.partition !== partition) return "stale"
+  if (identity?.partition !== partition || identity.operation !== operation || identity.reservation !== reservation)
+    return "stale"
   const result = transition(draft, {
     kind: "jevRequestSettled",
     partition: partitionId(draft, partition),
@@ -139,6 +153,15 @@ export function settleJevRequest(
     outcome,
     currentWork
   })
+  return recordSettledJevRequest(draft, request, reservation, result)
+}
+
+export function recordSettledJevRequest(
+  draft: CapacityDraft,
+  request: number,
+  reservation: CapacityReservation,
+  result: ReturnType<typeof stepCanonical>
+): ReturnType<typeof settleJevRequest> {
   if (result.rejection !== undefined) return "stale"
   draft.requestRounds.delete(request)
   const disposition = result.outputs.at(-1)?.kind

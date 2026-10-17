@@ -242,23 +242,25 @@ its bound issued request survives work removal for settlement; duplicate issuanc
 settlement and forged invocation/generation/lease/request are rejected. Actual
 owner and native transaction cases pass. Build46/46,delivery protocol9/9,
 fast44/4 and existing six delivery proofs pass after adding the scope.
+Native ready/settle now apply the same Canonical result to reservation/request
+metadata in one transaction, without replay. Request map binds exact operation
+and reservation capability. Actual bridge rejects forged capabilities/leases and
+repeated readiness/settlement; native24, Jev/capacity63,build46/46,fast44/5 pass.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
-1. Connect native reservation/request metadata to atomic Owner ready/settle
-   publications; preserve existing disposition, rollback and accounting.
-2. Connect nested Dispatch to the waiting parent invocation/generation/request.
+1. Connect nested Dispatch to the waiting parent invocation/generation/request.
    Keep beforeDispatch after input validation and inside the original total-call
    deadline: credential reread → budget claim → Canonical start → observation.
    Issuance is not physical start. Prevent new dispatch after work revocation.
-3. Drain explicit scope cancellation and provider defects through physical
+2. Drain explicit scope cancellation and provider defects through physical
    settlement with only exact interrupt/settle/observe/release authority. Preserve
    Cause; no preparing-scope or unconditional-liveness fallback.
-4. Connect the whole evaluation cursor to server and cached/fresh retention;
+3. Connect the whole evaluation cursor to server and cached/fresh retention;
    transfer finding custody once to existing advice tail, preserve joining/cutoff.
    Delete TS orchestration in workflow/authorization/request/settlement/retention;
    observation retains only serialization/IO.
-5. Review correspondence/lifecycle/retention laws before proving; reuse outcome/
+4. Review correspondence/lifecycle/retention laws before proving; reuse outcome/
    advice-tail proofs. Run matching fast/build, actual request/server/security/
    reuse/revision/ownership/inspection/transport and shared Preparation consumers.
    Qualify full admission→provider→settlement→collection against fixed TS for
