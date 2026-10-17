@@ -101,3 +101,28 @@ it("interruption pending at acquisition completion releases the workspace before
     )
   )
 })
+
+it("native finalization preserves response identity and observes transport writability even without finish", async () => {
+  const { residentFinalizeHandoff } =
+    await import("../../../../../dist/resident/advice-delivery/handoff/delivery-finalize.js")
+  const response = { status: "empty" },
+    request = { operation: "stats" },
+    trace = []
+  const selected = await Effect.runPromise(
+    residentFinalizeHandoff({}, request, response, new Map(), undefined, {
+      kind: "transport",
+      original: request,
+      canWrite: () => {
+        trace.push("canWrite")
+        return false
+      }
+    })
+  )
+  assert.equal(selected, response)
+  assert.deepEqual(trace, ["canWrite"])
+  const local = await Effect.runPromise(
+    residentFinalizeHandoff({}, request, response, new Map(), undefined, { kind: "local" })
+  )
+  assert.equal(local, response)
+  assert.deepEqual(trace, ["canWrite"])
+})

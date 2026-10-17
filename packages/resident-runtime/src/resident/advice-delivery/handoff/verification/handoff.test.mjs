@@ -548,3 +548,62 @@ it("collection finish gate expires only matching deliveries and discards before 
     result: { $: "GCollect" }
   })
 })
+
+it("one finalization child decodes before writability and completes transport only after reconciliation", () => {
+  for (const transport of [false, true])
+    for (const finish of [false, true]) {
+      const trace = []
+      let step = core.delivery_finalize_initial(303, transport, {
+        $: "FInput",
+        request: { $: "FOtherRequest" },
+        response: { $: "FOtherResponse" },
+        authority: { $: "FNoAuthority" }
+      })
+      while (step.$ === "DAwait") {
+        const held = step.request,
+          command = held.command
+        trace.push(command.$ === "DReconcile" ? command.command.$ : command.$)
+        let response
+        switch (command.$) {
+          case "DDecode":
+            assert.deepEqual(command.result, { $: "FOriginal" })
+            response = { $: "DDecoded" }
+            break
+          case "DCanWrite":
+            response = { $: "DFinishInput", input: reconcileInput({ finish, advice: false }) }
+            break
+          case "DReconcile":
+            response = {
+              $: "DReconciled",
+              response:
+                command.command.$ === "RRevoke" || command.command.$ === "RRound"
+                  ? { $: "RTruth", value: true }
+                  : command.command.$ === "RPendingFindings"
+                    ? { $: "RPendingValues", values: list([]) }
+                    : command.command.$ === "RDecide"
+                      ? { $: "RDecided", decision: { $: "RAllowed", reason: { $: "RDeadline" } } }
+                      : rAck
+            }
+            break
+          default:
+            assert.fail(command.$)
+        }
+        const reply = { $: "DReply", invocation: 303, id: held.id, response }
+        assert.deepEqual(core.delivery_finalize_resume(step, { ...reply, invocation: 304 }), { $: "DRejected" })
+        assert.deepEqual(core.delivery_finalize_resume(step, { ...reply, id: held.id + 1 }), { $: "DRejected" })
+        assert.deepEqual(
+          core.delivery_finalize_resume(step, { ...reply, response: { $: "DFinalized", response: { $: "FAck" } } }),
+          { $: "DRejected" }
+        )
+        step = core.delivery_finalize_resume(step, reply)
+      }
+      assert.deepEqual(step, { $: "DDone", empty: transport && finish })
+      assert.deepEqual(trace.slice(0, transport ? 2 : 1), transport ? ["DDecode", "DCanWrite"] : ["DDecode"])
+      if (transport && finish) assert.equal(trace.at(-1), "RAllow")
+      else assert.equal(trace.length, transport ? 2 : 1)
+      assert.deepEqual(
+        core.delivery_finalize_resume(step, { $: "DReply", invocation: 303, id: 1, response: { $: "DDecoded" } }),
+        { $: "DRejected" }
+      )
+    }
+})

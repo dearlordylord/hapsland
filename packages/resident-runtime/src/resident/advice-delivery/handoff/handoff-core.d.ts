@@ -333,7 +333,41 @@ export type GStep =
   | { readonly $: "GDone"; readonly result: { readonly $: "GCollect" | "GEmpty" | "GPending" | "GUnsupported" } }
   | { readonly $: "GRejected" }
 
+export type DCommand =
+  | { readonly $: "DFinalize"; readonly command: FCommand }
+  | { readonly $: "DDecode"; readonly result: FTerminal }
+  | { readonly $: "DCanWrite" }
+  | { readonly $: "DReconcile"; readonly command: RCommand }
+export type DResponse =
+  | { readonly $: "DFinalized"; readonly response: FResponse }
+  | { readonly $: "DDecoded" }
+  | { readonly $: "DFinishInput"; readonly input: RInput }
+  | { readonly $: "DReconciled"; readonly response: RResponse }
+export type DReply = {
+  readonly $: "DReply"
+  readonly invocation: number
+  readonly id: number
+  readonly response: DResponse
+}
+export type DStep =
+  | {
+      readonly $: "DAwait"
+      readonly invocation: number
+      readonly id: number
+      readonly phase: unknown
+      readonly request: {
+        readonly $: "DRequest"
+        readonly invocation: number
+        readonly id: number
+        readonly command: DCommand
+      }
+    }
+  | { readonly $: "DDone"; readonly empty: boolean }
+  | { readonly $: "DRejected" }
+
 declare const core: {
+  delivery_finalize_initial(invocation: number, transport: boolean, input: FInput): DStep
+  delivery_finalize_resume(step: DStep, reply: DReply): DStep
   collection_gate_initial(invocation: number, input: GInput): GStep
   collection_gate_resume(step: GStep, reply: GReply): GStep
   prepare_initial(invocation: number, advice: boolean): PStep

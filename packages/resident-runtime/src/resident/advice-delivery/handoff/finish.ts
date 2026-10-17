@@ -206,17 +206,6 @@ const driveFinish = Effect.fn("ResidentRuntime.finishCursor")(function* (
   return session.decode(step)
 })
 
-export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconcileFinishHandoff")(function* (
-  deps: FinishDependencies,
-  request: ResidentRequest,
-  provisional: ResidentResponse,
-  final: ResidentResponse,
-  canWrite: boolean
-) {
-  const session = makeResidentFinishSession(deps, request, provisional, final, canWrite)
-  return yield* driveFinish(session, core.reconcile_initial(1, session.input))
-}, Effect.uninterruptible)
-
 export const residentReserveFinishOutput = Effect.fn("ResidentRuntime.reserveFinishOutput")(function* (
   deps: FinishDependencies,
   request: ResidentRequest,

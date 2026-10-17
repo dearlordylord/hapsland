@@ -240,20 +240,21 @@ Host retains native capabilities, IO and capture/encoding.
 Preserve both canWrite observations, local/IPC differences and all async boundaries.
 
 Current path:
-1. Full Collection loop flow calls compiled Bend: prelude, eligibility/order,
-   both passes and final handoff loops are deleted from TS; native bridge grows TS.
-   Owner23/native64-item PASS; fast41/23 receipts PASS.
-   Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
-   Prior aborted300s; saturated30s timeout→18.86s PASS; 30s timeout→41.73s PASS
-   (90s fixture, owner≤3×).
-2. Custody PASS1416 across Await/launch/registration faults; cancel precedes cleanup,
-   successors survive old cleanup. Root pre-finish/prune/reservation now run Bend.
-   Empty terminal is partial: empty collect needs a NoDeliverySelection receipt/no lease.
-3. Prepare/finalize/reconcileFinish run Bend;35 protocol/10 cache tests PASS.
-   Prior185 public PASS;360s IPC aborted; tail18+other89 PASS. Compose
-   F→decode→canWrite→R in one child; fence native effects before IO.
-4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
-   and output regressions plus whole-path performance. Unit not accepted.
+1. Collection/root finish gate/reservation run Bend; TS loops deleted.
+   Prior aborted300s; saturated30s timeout→18.86s PASS;30s timeout→41.73s PASS
+   (fixture90s, owner≤3×).
+2. Empty Collect issues NoDeliverySelection Prepare→Finalize receipts/no lease.
+   Common driver claim-once/retryable empty cleanup PASS. Wire receipt custody
+   to ResponseContext/local scope and the existing delivery family.
+3. F→decode→canWrite→R runs Bend; local stops after F.37 protocol/89 adapter tests
+   +9 selected server PASS; fast9/23 receipts PASS. Prior cache10 PASS.
+   Build: unchanged update-notice5s timeout; focused132 PASS. Second180s timeout;
+   addressed ordinary package compilation/23 receipts PASS.
+   Prior360s IPC aborted; tail18+other89 PASS. Full server suite remains required.
+4. Bind Collection/Prepare/Finalize to existing driver; fence effects before IO,
+   including decode/canWrite; preserve atomic fit groups/cleanup transfer.
+   Prove trace/reply/lease/finish; qualify full IPC/whole delivery performance.
+   Unit not accepted.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

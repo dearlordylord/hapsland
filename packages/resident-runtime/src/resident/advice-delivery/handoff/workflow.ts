@@ -2,10 +2,9 @@ import * as Effect from "effect/Effect"
 import { type ResponseAuthority, type EditCollectionRequest, type HandoffRequest } from "../authority.ts"
 import { type Dependencies } from "./context.ts"
 import { residentCollectorGate, residentEditCollectionStatus } from "./collection-status.ts"
-import { residentReconcileFinishHandoff } from "./finish.ts"
+import { residentFinalizeHandoff } from "./delivery-finalize.ts"
 import { residentHandoffSourceCurrent } from "./source-current.ts"
 import { residentResponseGate } from "./response-gate.ts"
-import { residentResponseForHandoff } from "./finalize.ts"
 
 export const residentCollectorLifetimeCurrent = Effect.fn("ResidentRuntime.collectorLifetimeCurrent")(function* (
   deps: Pick<Dependencies, "lifetime" | "residentLedger" | "residentRoundActive">,
@@ -56,10 +55,9 @@ export const makeResidentHandoff = (
 ) => {
   return {
     residentHandoffSourceCurrent: residentHandoffSourceCurrent.bind(null, deps),
-    residentResponseForHandoff: residentResponseForHandoff.bind(null, deps),
+    residentFinalizeHandoff: residentFinalizeHandoff.bind(null, deps),
     residentCollectorGate: residentCollectorGate.bind(null, deps),
     residentEditCollectionStatus: residentEditCollectionStatus.bind(null, deps),
-    residentResponseGate,
-    residentReconcileFinishHandoff: residentReconcileFinishHandoff.bind(null, deps)
+    residentResponseGate
   }
 }

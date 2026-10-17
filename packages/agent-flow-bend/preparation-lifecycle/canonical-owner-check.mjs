@@ -219,15 +219,40 @@ try {
       }
     }
     {
-      const f = fixture({ emptyRoot: true })
-      assert.equal(await f.issue(), undefined)
-      assert.equal(f.physical.handoffs.length, 0)
-      assert.equal(f.physical.attempts, 1)
-      assert.equal(f.physical.releases, 1)
-      assert.equal(f.driver.state.next_invocation, 2)
+      const f = fixture({ emptyRoot: true }),
+        receipt = await f.issue()
+      assert.deepEqual(receipt.receipt.permission, {
+        $: "PrepareDeliveryIssued",
+        selection: { $: "NoDeliverySelection" }
+      })
+      assert.equal(f.physical.handoffs.length, 1)
+      assert.equal(f.physical.attempts, 0)
+      assert.equal(f.driver.resources.payloads, 1)
+      const next = await Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct))
+      assert.deepEqual(next.handoff.receipt.permission, {
+        $: "FinalizeDeliveryIssued",
+        selection: { $: "NoDeliverySelection" }
+      })
+      await assert.rejects(Effect.runPromise(f.driver.driveDeliveryEffect(receipt, f.construct)), /Unknown or consumed/)
+      const final = await Effect.runPromise(f.driver.driveDeliveryEffect(next.handoff, f.construct))
+      assert.equal(final.result, f.physical)
+      assert.equal(f.physical.attempts, 0)
       assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.size, 0)
       await Effect.runPromise(f.registry.retryCleanupEffect())
-      assert.equal(f.physical.attempts, 1)
+      assert.equal(f.physical.attempts, 0)
+    }
+    {
+      const f = fixture({ emptyRoot: true, cleanup: true }),
+        receipt = await f.issue()
+      f.driver.cancel(receipt.handoff)
+      await assert.rejects(Effect.runPromise(f.registry.retryCleanupEffect()), /delivery cleanup fault/)
+      assert.equal(f.registry.pendingCleanup, 1)
+      await Effect.runPromise(f.registry.retryCleanupEffect())
+      assert.equal(f.physical.releases, 1)
+      assert.equal(f.physical.attempts, 2)
+      assert.equal(f.driver.resources.payloads, 0)
+      assert.equal(f.registry.pendingCleanup, 0)
     }
     {
       const f = fixture({ cancelBefore: true }),

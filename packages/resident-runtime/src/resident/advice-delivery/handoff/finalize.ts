@@ -18,7 +18,7 @@ import type { ResponseAuthority, HandoffRequest } from "../authority.ts"
 import type { Dependencies, HandoffNotices } from "./context.ts"
 import { residentCollectorGate, residentEditCollectionStatus } from "./collection-status.ts"
 import { inspectionObserveHandoffMessage } from "./observation.ts"
-import core, { type FInput, type FCommand, type FResponse, type FStep, type FSurface } from "./handoff-core.js"
+import { type FInput, type FCommand, type FResponse, type FTerminal, type FSurface } from "./handoff-core.js"
 
 const nativeHandle = <Value>(values: readonly Value[], handle: number): Value => {
   const value = values[handle]
@@ -80,13 +80,13 @@ const finalizeInput = (
  * The caller keeps this invocation inside its existing uninterruptible tail.
  * All order, loops, short circuits and accepted-finding indexing live in Bend.
  */
-export const residentResponseForHandoff = Effect.fn("ResidentRuntime.responseForHandoff")(function* (
+export const makeResidentFinalizationSession = (
   deps: Dependencies,
   request: HandoffRequest,
   response: ResidentResponse,
   sourceCurrent: ReadonlyMap<string, boolean>,
   authority?: ResponseAuthority
-): Effect.fn.Return<ResidentResponse> {
+) => {
   const advice: Advice[] = [],
     findings: Finding[] = [],
     contents: AdviceContent[] = [],
@@ -414,23 +414,22 @@ export const residentResponseForHandoff = Effect.fn("ResidentRuntime.responseFor
       }
     }
   })
-  let step: FStep = core.finalize_initial(1, finalizeInput(request, response, authority))
-  while (step.$ === "FAwait") {
-    const held = step.request
-    const result = yield* native(held.command)
-    step = core.finalize_resume(step, { $: "FReply", invocation: held.invocation, id: held.id, response: result })
+  return {
+    input: finalizeInput(request, response, authority),
+    perform: native,
+    decode: (result: FTerminal): ResidentResponse => {
+      switch (result.$) {
+        case "FOriginal":
+          return response
+        case "FEmpty":
+          return { status: "empty" }
+        case "FLost":
+          return { requestRoute: "edit", status: "unavailable", reason: "lost" }
+        case "FCredentialUnavailable":
+          return { requestRoute: "edit", status: "unavailable", reason: "credential" }
+        case "FResponseHandle":
+          return nativeHandle(responses, result.response)
+      }
+    }
   }
-  if (step.$ !== "FDone") throw new Error("Bend handoff protocol refused")
-  switch (step.result.$) {
-    case "FOriginal":
-      return response
-    case "FEmpty":
-      return { status: "empty" }
-    case "FLost":
-      return { requestRoute: "edit", status: "unavailable", reason: "lost" }
-    case "FCredentialUnavailable":
-      return { requestRoute: "edit", status: "unavailable", reason: "credential" }
-    case "FResponseHandle":
-      return nativeHandle(responses, step.result.response)
-  }
-}, Effect.uninterruptible)
+}

@@ -2295,3 +2295,122 @@ def collection_gate_resume(+step: GStep, +reply: GReply) -> GStep:
         response
       )
     case _ _: GRejected{}
+
+# One Finalize child retains the F and R continuations. Native decoding keeps
+# response identity; transport writability is observed even when R is a no-op.
+type DCommand is Data:
+  DFinalize{command: FCommand}
+  DDecode{result: FTerminal}
+  DCanWrite{}
+  DReconcile{command: RCommand}
+type DResponse is Data:
+  DFinalized{response: FResponse}
+  DDecoded{}
+  DFinishInput{input: RInput}
+  DReconciled{response: RResponse}
+type DPhase is Data:
+  DFinalizing{transport: Bool, step: FStep}
+  DDecoding{transport: Bool}
+  DWritability{}
+  DReconciling{step: RStep}
+type DRequest is Data:
+  DRequest{invocation: Nat, id: Nat, command: DCommand}
+type DReply is Data:
+  DReply{invocation: Nat, id: Nat, response: DResponse}
+type DStep is Data:
+  DAwait{invocation: Nat, id: Nat, phase: DPhase, request: DRequest}
+  DDone{empty: Bool}
+  DRejected{}
+
+def d_issue(+invocation: Nat, +id: Nat, +phase: DPhase, +command: DCommand) -> DStep:
+  DAwait{invocation, id, phase, DRequest{invocation, id, command}}
+
+def d_final(+transport: Bool, +step: FStep, +invocation: Nat, +next: Nat) -> DStep:
+  match step:
+    case FAwait{+state, FRequest{+owner, +id, +command}}:
+      d_issue(invocation, next,
+        DFinalizing{transport, FAwait{state, FRequest{owner, id, command}}},
+        DFinalize{command})
+    case FDone{+result}: d_issue(invocation, next, DDecoding{transport}, DDecode{result})
+    case FRejected{}: DRejected{}
+
+def d_reconcile(+step: RStep, +invocation: Nat, +next: Nat) -> DStep:
+  match step:
+    case RAwait{+owner, +id, +phase, RRequest{+request_owner, +request_id, +command}}:
+      d_issue(invocation, next,
+        DReconciling{RAwait{owner, id, phase, RRequest{request_owner, request_id, command}}},
+        DReconcile{command})
+    case RFinal{}: DDone{False{}}
+    case REmpty{}: DDone{True{}}
+    case RRejected{}: DRejected{}
+
+def d_final_reply(+transport: Bool, +step: FStep, +response: FResponse,
+    +invocation: Nat, +next: Nat) -> DStep:
+  match step:
+    case FAwait{+state, FRequest{+owner, +id, +command}}:
+      d_final(transport,
+        finalize_resume(FAwait{state, FRequest{owner, id, command}}, FReply{owner, id, response}),
+        invocation, next)
+    case _: DRejected{}
+
+def d_reconcile_reply(+step: RStep, +response: RResponse, +invocation: Nat, +next: Nat) -> DStep:
+  match step:
+    case RAwait{+owner, +id, +phase, +request}:
+      d_reconcile(
+        reconcile_resume(RAwait{owner, id, phase, request}, RReply{owner, id, response}),
+        invocation,
+        next
+      )
+    case _: DRejected{}
+
+def d_decoded(+transport: Bool, +invocation: Nat, +next: Nat) -> DStep:
+  match transport:
+    case False{}: DDone{False{}}
+    case True{}: d_issue(invocation, next, DWritability{}, DCanWrite{})
+
+def delivery_finalize_initial(+invocation: Nat, +transport: Bool, +input: FInput) -> DStep:
+  d_final(transport, finalize_initial(invocation, input), invocation, 1n)
+
+def d_phase(+invocation: Nat, +next: Nat, +phase: DPhase, +response: DResponse) -> DStep:
+  match phase response:
+    case DFinalizing{+transport, +step} DFinalized{+result}:
+      d_final_reply(transport, step, result, invocation, next)
+    case DDecoding{+transport} DDecoded{}: d_decoded(transport, invocation, next)
+    case DWritability{} DFinishInput{+input}:
+      d_reconcile(reconcile_initial(invocation, input), invocation, next)
+    case DReconciling{+step} DReconciled{+result}:
+      d_reconcile_reply(step, result, invocation, next)
+    case _ _: DRejected{}
+
+def d_accept(
+  +valid: Bool,
+  +invocation: Nat,
+  +next: Nat,
+  +phase: DPhase,
+  +response: DResponse
+) -> DStep:
+  match valid:
+    case False{}: DRejected{}
+    case True{}: d_phase(invocation, Nat.add(next, 1n), phase, response)
+
+def delivery_finalize_resume(+step: DStep, +reply: DReply) -> DStep:
+  match step reply:
+    case DAwait{+invocation, +id, +phase, DRequest{+owner, +request, _}} DReply{
+      +other,
+      +response_id,
+      +response
+    }:
+      d_accept(
+        Bool.and(
+          Nat.is_eq(invocation, other),
+          Bool.and(
+            Nat.is_eq(owner, other),
+            Bool.and(Nat.is_eq(id, response_id), Nat.is_eq(request, response_id))
+          )
+        ),
+        invocation,
+        id,
+        phase,
+        response
+      )
+    case _ _: DRejected{}

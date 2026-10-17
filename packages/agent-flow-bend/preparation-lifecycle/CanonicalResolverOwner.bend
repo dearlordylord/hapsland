@@ -1984,11 +1984,7 @@ def complete_collection_selection(
   result_handle: Nat,
   selection: DeliverySelection
 ) -> Step:
-  match selection:
-    case NoDeliverySelection{}: terminal_allowed(True{}, state, child, result_handle)
-    case DeliverySelection{token, advice, notices}:
-      issue_delivery(state, child, result_handle,
-        PrepareDeliveryIssued{DeliverySelection{token, advice, notices}})
+  issue_delivery(state, child, result_handle, PrepareDeliveryIssued{selection})
 
 def complete_delivery_permission(
   state: State,
