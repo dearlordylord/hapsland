@@ -147,7 +147,7 @@ Production Canonical owns their lifecycle; the global migration continues.
 
 Production Source/Post/Advice use the common Canonical Effect owner.
 Source calls packaged local Bend Core in Outcomes mode; public Trees and
-Preflight use the same core. The whole Preparation flow is accepted.
+Preflight use the same core.
 Preserve its caller-fiber, lifecycle, cancellation, resource-custody and result
 acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
@@ -172,11 +172,12 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-`701db32d`,2026-10-17 08:15 UTC analyzer/build **.6796×/.9153×**,
-17 frozen pairs, strict PASS/PASS, build23/46 cached. All five freeze checks pass;
-all34 build executions succeed. TS/Bend medians[ranges] s:
-execution.0711[.0539,.0977]/.0404[.0388,.0678];
-build3.056[2.785,4.034]/2.886[2.572,3.284]. Shared load; no causal claim.
+2026-10-17: execution `ade3e62b`08:45 **.7353×**; build `6e886c7f`08:50
+**.9009×**. Strict PASS/PASS,17 pairs; all five freeze checks pass, build34/34
+successful with23/46 cached. TS/Bend medians[ranges] s:
+execution.0633[.0502,.0705]/.0392[.0346,.0645];
+build2.950[2.818,3.262]/2.690[2.521,2.901]. Shared load; no causal claim.
+Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
 
@@ -235,18 +236,20 @@ Native sessions retain jobs, credentials, results and original Effect Causes.
 
 Candidate: whole evaluation Bend cursor composes admission, authorization,
 provider return, settlement, retention and recovery/finalization. Private ABI
-exposes commands and opaque continuations with cleanup entry; build/ABI cover it. Source/packaged consumers pass1719 tapes,49131 prefixes
-and3 typed mutants, including cleanup faults and two-fault recovery/finalization.
-Finite evidence does not establish universal proofs or whole production cleanup.
+exposes commands/opaque continuations; build/ABI cover cleanup. Source/packaged consumers pass1719 tapes,49131 prefixes
+and3 typed mutants, with cleanup and two-fault recovery.
+No universal proofs or production adoption claimed.
 
 Canonical binds evaluation to Reviewing and atomically publishes readiness/
 settlement with exact native operation/reservation metadata. Native authorization
 binds credential/root IO. Packaged Dispatch uses the same driver/registry; seven
 native cases cover the exact parent await, input refusal, controlled provider,
 interruption during pending analytics, original Cause and exact settlement.
-Independent cleanup scope permits denial/accounting only; six compiled native
-cases/73 commands cover all request phases and retry after committed settlement.
-Owner60941, native custody24, Preparation52/delivery9, build46/46 and fast44/9 pass.
+Cleanup scope permits denial/accounting only; native6/73 commands cover phases
+and retry. Root session/registry5 holds a physical Promise: no cleanup before
+drain, failed cleanup retained, one settlement, original Cause. Authorization/
+observation ports are controlled here. Native24, Preparation52/delivery9,
+build46/46 and fast44/8 pass.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
@@ -254,9 +257,8 @@ Concrete remaining obstacles:
    Preserve beforeDispatch after input validation and inside the total-call
    deadline: credential reread → budget → Canonical start → observation.
    Production root adoption and work-revocation cleanup remain open.
-2. Invoke packaged recovery from the native registry after physical provider
-   drain; retain/retry cleanup obligations and original Cause. Owner/native
-   accounting is checked; registry-driven cancellation remains unconnected.
+2. Bind verified registry recovery to real evaluation IO and committed ownership
+   receipts; preserve drain, retry and Cause across all resource boundaries.
 3. Connect the whole evaluation cursor to server and cached/fresh retention;
    transfer finding custody once to existing advice tail, preserve joining/cutoff.
    Delete TS orchestration in workflow/authorization/request/settlement/retention;
