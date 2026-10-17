@@ -214,7 +214,7 @@ export type PFrame = {
   readonly unavailable: List<number>
 }
 export type PCommand =
-  | { readonly $: "PAdvice" }
+  | { readonly $: "PAdvice" | "PResponseGate" | "PResponseBarrier" }
   | { readonly $: "PFacts" | "PStartWorkspace"; readonly advice: number }
   | { readonly $: "PCheckWorkspace"; readonly advice: number; readonly workspace: number }
   | { readonly $: "PReservePartition"; readonly advice: number; readonly members: List<number> }
@@ -371,6 +371,7 @@ declare const core: {
   collection_gate_initial(invocation: number, input: GInput): GStep
   collection_gate_resume(step: GStep, reply: GReply): GStep
   prepare_initial(invocation: number, advice: boolean): PStep
+  prepare_transport_initial(invocation: number, advice: boolean): PStep
   prepare_resume(step: PStep, reply: PReply): PStep
   prepare_member(frame: PFrame, identity: number): Maybe<PItem>
   prepare_source(frame: PFrame, root: number): Maybe<PItem>

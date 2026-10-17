@@ -1641,6 +1641,8 @@ type PItem is Data:
 type PFrame is Data:
   PFrame{eligible: List<&2, PItem>, owners: List<&2, Nat>, unavailable: List<&2, Nat>}
 type PCommand is Data:
+  PResponseGate{}
+  PResponseBarrier{}
   PAdvice{}
   PFacts{advice: Nat}
   PStartWorkspace{advice: Nat}
@@ -1656,6 +1658,8 @@ type PResponse is Data:
   PVerifiedAll{frame: PFrame}
   PAck{}
 type PPhase is Data:
+  PResponseGated{advice: Bool}
+  PResponseBarriered{advice: Bool}
   PAdviceRead{}
   PFactsRead{remaining: List<&2, Nat>, selected: List<&2, PItem>}
   PWorkspaceStarted{item: PItem, remaining: List<&2, PItem>, eligible: List<&2, PItem>}
@@ -1865,10 +1869,16 @@ def p_selected(
     case True{}: p_facts(remaining, item <> selected, invocation, next)
     case False{}: p_facts(remaining, selected, invocation, next)
 
-def prepare_initial(+invocation: Nat, +advice: Bool) -> PStep:
+def p_begin(+invocation: Nat, +advice: Bool, +next: Nat) -> PStep:
   match advice:
     case False{}: PDone{}
-    case True{}: p_issue(invocation, 1n, PAdviceRead{}, PAdvice{})
+    case True{}: p_issue(invocation, next, PAdviceRead{}, PAdvice{})
+
+def prepare_initial(+invocation: Nat, +advice: Bool) -> PStep:
+  p_begin(invocation, advice, 1n)
+
+def prepare_transport_initial(+invocation: Nat, +advice: Bool) -> PStep:
+  p_issue(invocation, 1n, PResponseGated{advice}, PResponseGate{})
 
 def p_after_reserved(
   +frame: PFrame,
@@ -1880,6 +1890,9 @@ def p_after_reserved(
 
 def p_phase(+invocation: Nat, +next: Nat, +phase: PPhase, +response: PResponse) -> PStep:
   match phase response:
+    case PResponseGated{+advice} PAck{}:
+      p_issue(invocation, next, PResponseBarriered{advice}, PResponseBarrier{})
+    case PResponseBarriered{+advice} PAck{}: p_begin(invocation, advice, next)
     case PAdviceRead{} PHandles{+advice}: p_facts(advice, [], invocation, next)
     case PFactsRead{+remaining, +selected} PAdviceFacts{+item, +owned}: p_selected(
       owned,

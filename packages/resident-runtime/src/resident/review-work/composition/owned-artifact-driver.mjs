@@ -70,7 +70,10 @@ const required = (value) => {
 /**
  * @template {NativeSession} Session
  * @typedef {Omit<SharedDriver<Session>, "drive" | "driveHandoff" | "driveAdvice" | "driveConstructedEffect" | "driveEffect" | "driveHandoffEffect" | "driveAdviceEffect" | "driveConstructedFlowEffect"> & {
- * driveConstructedEffect: (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions) => import("effect/Effect").Effect<SourceOutcome>,
+ * driveConstructedEffect: {
+ * (construct: () => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}, options?: ForeignOptions): import("effect/Effect").Effect<SourceOutcome>;
+ * (construct: () => {session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput}, options?: ForeignOptions): import("effect/Effect").Effect<DeliveryOutcome>;
+ * },
  * driveConstructedFlowEffect: (construct: () => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: Session, input: Parameters<ownedMachine.PreparationMachine["initial"]>[0]}>, options?: ForeignOptions) => Effect.Effect<PreparationOutcome>,
  * drive: Drive<Session>,
  * driveEffect: DriveEffect<Session>,
@@ -282,6 +285,7 @@ export function createOwnedArtifactDriver({
     return sharedAdviceEffect(receipt, session, options)
   }
   /** @overload @param {() => {session: Session, input: Parameters<ownedMachine.SourceMachine["initial"]>[0]}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<SourceOutcome>} */
+  /** @overload @param {() => {session: Session, input: import("../../advice-delivery/handoff/delivery-session.ts").DeliveryInput}} construct @param {ForeignOptions} [options] @returns {Effect.Effect<DeliveryOutcome>} */
   /** @param {() => {session: Session, input: ownedMachine.Input}} construct @param {ForeignOptions} [options] @returns {import("effect/Effect").Effect<TerminalOutcome>} */
   function driveConstructedEffect(construct, options) {
     return sharedConstructed(construct, options)

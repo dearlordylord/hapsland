@@ -226,8 +226,18 @@ it("the real resident driver carries an empty native Collect through Prepare and
   })
   const response = first.delivery.value.response
   const second = await Effect.runPromise(
-    f.driver.driveDeliveryEffect(first.delivery.receipt, function* (_projected, invocation) {
-      const native = yield effectNative(makeResidentSourceCurrentSession({}, response))
+    f.driver.driveDeliveryEffect(first.delivery.receipt, function* (_projected, invocation, cleanup) {
+      assert.equal(cleanup, collect.cleanupFlow)
+      const native = yield effectNative(
+        makeResidentSourceCurrentSession({}, response, {
+          gate: Effect.sync(() => {
+            trace.push("gate")
+          }),
+          barrier: Effect.sync(() => {
+            trace.push("barrier")
+          })
+        })
+      )
       const session = createPrepareDeliverySession(invocation, native, response, { $: "NoDeliverySelection" }, cleanup)
       return { session, input: session.input }
     })
@@ -238,7 +248,8 @@ it("the real resident driver carries an empty native Collect through Prepare and
     selection: { $: "NoDeliverySelection" }
   })
   const final = await Effect.runPromise(
-    f.driver.driveDeliveryEffect(second.delivery.receipt, function* (_projected, invocation) {
+    f.driver.driveDeliveryEffect(second.delivery.receipt, function* (_projected, invocation, cleanup) {
+      assert.equal(cleanup, collect.cleanupFlow)
       const native = makeResidentDeliveryFinalizationSession(
         {},
         request,
@@ -260,7 +271,7 @@ it("the real resident driver carries an empty native Collect through Prepare and
   )
   assert.equal(final.delivery.kind, "result")
   assert.equal(final.delivery.value.response, response)
-  assert.deepEqual(trace, ["canWrite"])
+  assert.deepEqual(trace, ["gate", "barrier", "canWrite"])
   assert.equal(f.registry.size, 0)
   assert.equal(f.registry.pendingCleanup, 0)
   assert.equal(f.driver.resources.payloads, 0)
@@ -403,4 +414,75 @@ it("the resident driver refuses a Finalize cursor under Collect permission befor
   assert.equal(cleaned, 1)
   assert.equal(f.registry.size, 0)
   assert.equal(f.driver.resources.payloads, 0)
+})
+
+it("the resident lifetime binding owns transport Prepare gates even for an empty collection receipt", async () => {
+  const { makeResidentReviewState } =
+    await import("../../../../../dist/resident/state/resolver-custody/review-state.js")
+  const { createResidentPreparationBinding } =
+    await import("../../../../../dist/resident/review-work/composition/preparation-binding.js")
+  const { makeResidentCollectionSession } =
+    await import("../../../../../dist/resident/advice-delivery/advice-collection.js")
+  const { makeResidentCollectionRoot } =
+    await import("../../../../../dist/resident/advice-delivery/handoff/collection-root.js")
+  const { makeResidentSourceCurrentSession } =
+    await import("../../../../../dist/resident/advice-delivery/handoff/source-current.js")
+  const { makeResidentDeliveryFinalizationSession } =
+    await import("../../../../../dist/resident/advice-delivery/handoff/delivery-finalize.js")
+  const ledger = Effect.runSync(makeResidentReviewState((_ledger, bridge) => createResidentPreparationBinding(bridge)))
+  const binding = ledger.reviewPreparation,
+    trace = []
+  const request = {
+    operation: "collect",
+    root: "/repo",
+    advicee: { host: "codex-cli", sessionId: "session", subagentId: "agent" },
+    dispatch: { credential: null },
+    composed: true,
+    finish: { token: "stop", deadlineReached: false }
+  }
+  const collection = makeResidentCollectionSession(
+    {},
+    request.root,
+    request.advicee,
+    request.dispatch,
+    "ordinary",
+    undefined,
+    true
+  )
+  const native = makeResidentCollectionRoot(
+    { residentComposedDelivery: { ownsStop: () => Effect.succeed(false) } },
+    request,
+    collection
+  )
+  const first = await Effect.runPromise(binding.collect(deliveryContext, native))
+  assert.equal(first.delivery.kind, "handoff")
+  const second = await Effect.runPromise(
+    binding.prepareDelivery(first.delivery.receipt, (response) =>
+      makeResidentSourceCurrentSession({}, response, {
+        gate: Effect.sync(() => {
+          trace.push("gate")
+        }),
+        barrier: Effect.sync(() => {
+          trace.push("barrier")
+        })
+      })
+    )
+  )
+  assert.equal(second.delivery.kind, "handoff")
+  const final = await Effect.runPromise(
+    binding.finalizeDelivery(second.delivery.receipt, (response, sources) =>
+      makeResidentDeliveryFinalizationSession({}, request, response, sources, undefined, {
+        kind: "transport",
+        original: request,
+        canWrite: () => {
+          trace.push("canWrite")
+          return false
+        }
+      })
+    )
+  )
+  assert.equal(final.delivery.kind, "result")
+  assert.deepEqual(final.delivery.value.response, { status: "empty" })
+  assert.deepEqual(trace, ["gate", "barrier", "canWrite"])
+  await Effect.runPromise(binding.cleanup())
 })

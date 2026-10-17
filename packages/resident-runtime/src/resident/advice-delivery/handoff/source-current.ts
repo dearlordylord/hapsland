@@ -18,6 +18,7 @@ import { resizePreparationAdmission } from "../../work-ownership/reservation.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { logicalBytes } from "../../state/encoded-size.ts"
 import { type Dependencies } from "./context.ts"
+import type { ResidentAdapterError } from "../../adapter-error.ts"
 import core, {
   type PCommand,
   type PResponse,
@@ -45,7 +46,11 @@ export const makeResidentSourceCurrentSession = Effect.fn("ResidentRuntime.sourc
     | "residentLifetimeController"
     | "residentReviewControls"
   >,
-  response: ResidentResponse
+  response: ResidentResponse,
+  transport?: {
+    readonly gate: Effect.Effect<void, ResidentAdapterError>
+    readonly barrier: Effect.Effect<void, ResidentAdapterError>
+  }
 ) {
   const scope = yield* Scope.make()
   let advice: readonly Advice[] = []
@@ -160,8 +165,16 @@ export const makeResidentSourceCurrentSession = Effect.fn("ResidentRuntime.sourc
   })
   const native = Effect.fn("ResidentRuntime.prepareHandoffCommand")(function* (
     command: PCommand
-  ): Effect.fn.Return<PResponse, never, Scope.Scope> {
+  ): Effect.fn.Return<PResponse, ResidentAdapterError, Scope.Scope> {
     switch (command.$) {
+      case "PResponseGate":
+        if (transport === undefined) throw new Error("missing transport response gate capability")
+        yield* transport.gate
+        return { $: "PAck" }
+      case "PResponseBarrier":
+        if (transport === undefined) throw new Error("missing transport response barrier capability")
+        yield* transport.barrier
+        return { $: "PAck" }
       case "PAdvice":
         advice = yield* deps.residentAdvice()
         return { $: "PHandles", values: list(advice.map((_item, value) => value)) }
@@ -358,7 +371,10 @@ export const makeResidentSourceCurrentSession = Effect.fn("ResidentRuntime.sourc
       )
     )
   return {
-    initial: (invocation: number) => core.prepare_initial(invocation, response.status === "advice"),
+    initial: (invocation: number) =>
+      transport === undefined
+        ? core.prepare_initial(invocation, response.status === "advice")
+        : core.prepare_transport_initial(invocation, response.status === "advice"),
     advance: Effect.fn("ResidentRuntime.sourceCurrentAdvance")(function* (step: PStep) {
       if (step.$ !== "PAwait") throw new Error("prepare cursor has no request")
       const request = step.request

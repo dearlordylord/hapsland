@@ -994,7 +994,7 @@ export function createChildExecutionDriver({
       if (!entered) yield* closeUnregisteredFlow(session)
     }
   }
-  /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
+  /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number, cleanup: DeliveryCustody["cleanup"]) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] @returns {import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<TerminalOutcome>} */
   function* driveDeliveryFlow(receipt, construct, options = {}) {
     const invocation = receipt.handoff,
       handle = receipt.receipt.input_handle
@@ -1012,7 +1012,7 @@ export function createChildExecutionDriver({
     try {
       apply(claim)
       if (!requireActive(invocation)) throw new Error("Delivery cancelled before construction")
-      constructed = yield* construct(held.value.projected, invocation)
+      constructed = yield* construct(held.value.projected, invocation, held.value.cleanup)
       if (constructed.input.invocation !== invocation || constructed.session.invocation !== invocation)
         throw new Error("Delivery construction changed Canonical invocation")
       if (!requireActive(invocation)) throw new Error("Delivery cancelled during construction")
@@ -1116,7 +1116,7 @@ export function createChildExecutionDriver({
         throw error
       }
     },
-    /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] */
+    /** @param {DeliveryHandoff} receipt @param {(projected: P, invocation: number, cleanup: DeliveryCustody["cleanup"]) => import("@hapsland/runtime-environment/runtime/native-execution").NativeFlow<{session: S, input: I}>} construct @param {ForeignOptions} [options] */
     driveDeliveryEffect(receipt, construct, options = {}) {
       return runEffectFlow((execution) => driveDeliveryFlow(receipt, construct, execution), options)
     },
