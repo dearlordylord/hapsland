@@ -1,10 +1,10 @@
 import * as Effect from "effect/Effect"
-import type { ResidentRequest, ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
 import { list } from "@hapsland/source-artifacts/direct-event/value/codec"
 import { recipientPartition } from "../../recipient/identity.ts"
 import type { RoundWork } from "../../state/round-records.ts"
 import type { Dependencies } from "./context.ts"
-import core, { type GCommand, type GResponse, type GInput, type GStep } from "./handoff-core.js"
+import { type GCommand, type GResponse, type GInput } from "./handoff-core.js"
 
 type GateDependencies = Pick<
   Dependencies,
@@ -105,46 +105,5 @@ export const makeResidentCollectionGateSession = (
     turn_end: request.mode === "turn-end",
     finish: request.finish !== undefined
   }
-  return {
-    input,
-    perform,
-    decode: (step: GStep): ResidentResponse | undefined => {
-      switch (step.$) {
-        case "GDone":
-          switch (step.result.$) {
-            case "GCollect":
-              return undefined
-            case "GEmpty":
-              return { status: "empty" }
-            case "GPending":
-              return { status: "pending" }
-            case "GUnsupported":
-              return { status: "unsupported" }
-          }
-          break
-        case "GAwait":
-          throw new Error("Bend collection gate is not terminal")
-        case "GRejected":
-          throw new Error("Bend collection gate refused native reply")
-      }
-    }
-  }
+  return { input, perform }
 }
-
-export const residentPrepareFinishCollection = Effect.fn("ResidentRuntime.prepareFinishCollection")(function* (
-  deps: GateDependencies,
-  request: Extract<ResidentRequest, { operation: "collect" }>
-) {
-  const session = makeResidentCollectionGateSession(deps, request)
-  let step = core.collection_gate_initial(1, session.input)
-  while (step.$ === "GAwait") {
-    const held = step.request
-    step = core.collection_gate_resume(step, {
-      $: "GReply",
-      invocation: held.invocation,
-      id: held.id,
-      response: yield* session.perform(held.command)
-    })
-  }
-  return session.decode(step)
-})

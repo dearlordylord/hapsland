@@ -14,8 +14,8 @@ import {
 } from "@hapsland/native-observation/direct-event/observation"
 import { packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
-import { residentPrepareFinishCollection } from "../advice-delivery/handoff/collection-gate.ts"
-import { residentReserveFinishOutput } from "../advice-delivery/handoff/finish.ts"
+import { residentCollectRequest } from "../advice-delivery/handoff/collection-root.ts"
+import type { makeResidentAdviceCollection } from "../advice-delivery/advice-collection.ts"
 import type { Advice } from "../state/advice-records.ts"
 import type { RoundWork } from "../state/round-records.ts"
 import {
@@ -89,6 +89,7 @@ type Dependencies = {
     dispatch: ResidentDispatchContext,
     now: number
   ) => Effect.Effect<ResidentResponse | undefined, never, never>
+  readonly residentCollectionSession: ReturnType<typeof makeResidentAdviceCollection>["residentCollectionSession"]
   readonly residentCollect: (
     root: string,
     advicee: DirectAdvicee,
@@ -453,22 +454,19 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "collect" }>
 ) {
-  const gateResponse = yield* residentPrepareFinishCollection(deps, request)
-  if (gateResponse !== undefined) return residentResponse(gateResponse)
-  const collected = yield* deps.residentCollect(
-    request.root,
-    request.advicee,
-    request.dispatch,
-    request.mode ?? "ordinary",
-    undefined,
-    true
-  )
-  if (request.finish !== undefined)
-    return residentResponse(yield* residentReserveFinishOutput(deps, request, collected))
   return residentResponse(
-    request.reportWorkState === true && collected.status === "empty"
-      ? yield* deps.residentCollectionWorkState(request.root, request.advicee, true)
-      : collected
+    yield* residentCollectRequest(
+      deps,
+      request,
+      deps.residentCollectionSession(
+        request.root,
+        request.advicee,
+        request.dispatch,
+        request.mode ?? "ordinary",
+        undefined,
+        true
+      )
+    )
   )
 })
 

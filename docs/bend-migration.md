@@ -233,28 +233,27 @@ remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is c
 
 ## Current unit: resident collection through final handoff
 
-Astra agreed collection → interruptible freshness → uninterruptible finalization
-using Canonical-issued handoff receipts, not a paused child or another ledger.
-Existing Collection/Handoff/Delivery state owns advice, leases and finish slots.
-Host retains native capabilities, IO and capture/encoding.
-Preserve both canWrite observations, local/IPC differences and all async boundaries.
+Astra agreed Canonical receipts and the existing registry/action sink; native
+owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 
-Current path:
-1. Collection/root finish gate/reservation run Bend; TS loops deleted.
-   Prior aborted300s; saturated30s timeout→18.86s PASS;30s timeout→41.73s PASS
-   (fixture90s, owner≤3×).
-2. Empty Collect issues NoDeliverySelection Prepare→Finalize receipts/no lease.
-   Common driver claim-once/retryable empty cleanup PASS. Wire receipt custody
-   to ResponseContext/local scope and the existing delivery family.
-3. F→decode→canWrite→R runs Bend; local stops after F.37 protocol/89 adapter tests
-   +9 selected server PASS; fast9/23 receipts PASS. Prior cache10 PASS.
-   Build: unchanged update-notice5s timeout; focused132 PASS. Second180s timeout;
-   Addressed compile/23 receipts PASS; later workspace46/46 PASS.
-   Prior360s IPC aborted; tail18+other89 PASS. Full server suite remains required.
-4. Bind Collection/Prepare/Finalize to existing driver; fence effects before IO,
-   including decode/canWrite; preserve atomic fit groups/cleanup transfer.
-   Prove trace/reply/lease/finish; qualify full IPC/whole delivery performance.
-   Unit not accepted.
+Current path / obstacles:
+1. Root G→C→R runs Bend in IPC; TS root branches deleted. Native C/P/D use
+   the existing driver/registry with pre-IO/replay/continuation fences; P retries
+   failed physical releases. Root import tags use a typed ABI codec.
+   Real-driver empty Collect→P→D PASS; public receipt custody still pending.
+2. Wire collect/prepareDelivery/finalizeDelivery through the lifetime binding;
+   transfer receipt+response atomically to ResponseContext/local scope. Move
+   transport gate→barrier into P; protect constructor Scope before registration.
+   Mask whole D drive; preserve both canWrite calls and token cleanup.
+3. Delete remaining public C/P/D interpreters; prove trace/reply/lease/finish;
+   qualify full IPC/whole-delivery performance. Unit not accepted.
+   Root ABI2/8 failed→typed codec8/8 PASS.
+   Latest: workspace46/46,23 receipts,42 protocol,fast44/16 PASS.
+   Consumers88/89: concurrent Claude IPC deadline failed; isolated same-limit
+   case and9 selected server PASS. No full-suite pass.
+4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
+   Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
+   receipts→workspace46/46 PASS. IPC360s aborted; tail18+other89 PASS.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

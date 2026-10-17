@@ -5,7 +5,7 @@ import { createGraphMachine } from "@hapsland/source-analysis/direct-event/graph
 import { createSourcePreparationMachine } from "../preparation/source-preparation-dispatcher.mjs"
 import { createPostPreparationMachine, createAdviceTailMachine } from "../preparation/post-preparation-dispatcher.mjs"
 import { createOwnedArtifactDriver } from "./owned-artifact-driver.mjs"
-import { performPreparationSessionRequest } from "./native-preparation-sessions.ts"
+import { performPreparationSessionRequest, performDeliverySessionRequest } from "./native-preparation-sessions.ts"
 import type { createPreparationSessionRegistry, PreparationNativeSession } from "./native-preparation-sessions.ts"
 import type { createResidentOwnerTransaction } from "../../state/resolver-custody/resident-owner-transaction.mjs"
 import type { ForeignOptions, Hooks, Request } from "./owned-artifact-driver.mjs"
@@ -38,6 +38,7 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
     owner,
     control: bridge.control,
     registry,
+    deliveryForeign: (request, options) => performDeliverySessionRequest(registry, request, options),
     machine: artifact,
     ...(hooks === undefined ? {} : { hooks }),
     foreign:
@@ -47,6 +48,11 @@ export function createResidentPreparationDriver({ bridge, registry, hooks, forei
         return performPreparationSessionRequest(registry, requests[0]!, options)
       }),
     selectMachine: (input, session) => {
+      if ("delivery" in input) {
+        if (!("input" in session && "delivery" in session.input && "foreign" in session))
+          throw new TypeError("Wrong delivery engine session")
+        return session.machine
+      }
       if ("finalization" in input) {
         if (!("input" in session && "finalization" in session.input && "machine" in session && session.machine))
           throw new TypeError("Wrong finalization engine session")

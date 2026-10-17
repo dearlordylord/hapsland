@@ -254,16 +254,16 @@ const collectionDispositions: Record<CandidateRoute, Disposition> = {
   ignoreCandidate: { $: "Other" },
   continueCandidate: { $: "Other" }
 }
-const residentCollectFlow = Effect.fn("ResidentRuntime.collectFlow")(function* (
+export const makeResidentCollectionSession = (
   deps: Dependencies,
   root: string,
   advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
   mode: CollectionMode,
   authority: ResponseAuthority | undefined,
-  composed: boolean,
-  onToken: (token: string) => void
-) {
+  composed: boolean
+) => {
+  let collectionToken: string | undefined
   const advice: Advice[] = [],
     findings: Finding[] = [],
     contents: AdviceContent[] = [],
@@ -307,7 +307,7 @@ const residentCollectFlow = Effect.fn("ResidentRuntime.collectFlow")(function* (
     switch (command.$) {
       case "AllocateToken": {
         const token = randomUUID()
-        onToken(token)
+        collectionToken = token
         return { $: "Handle", handle: tokens.push(token) - 1 }
       }
       case "OpenFresh":
@@ -791,40 +791,63 @@ const residentCollectFlow = Effect.fn("ResidentRuntime.collectFlow")(function* (
         return yield* readyNative(command, readFrame())
     }
   })
-  let step: FlowStep = collectionCore.collect_initial(1, composed, mode === "turn-end")
+  const finish = () =>
+    Effect.sync(() => {
+      for (const stream of streams) close(stream)
+    })
+  const release = () =>
+    Effect.suspend(() => (collectionToken === undefined ? Effect.void : deps.releaseDelivery(collectionToken)))
+  return {
+    initial: (invocation: number) => collectionCore.collect_initial(invocation, composed, mode === "turn-end"),
+    perform: flowNative,
+    atomic: collectionCore.collect_atomic,
+    resume: collectionCore.collect_resume,
+    finish,
+    cleanup: () => finish().pipe(Effect.ensuring(release())),
+    release,
+    decode: (step: FlowStep): ResidentResponse => {
+      if (step.$ === "FlowEmpty") return residentResponse({ status: "empty" })
+      if (step.$ !== "FlowDone") throw new Error("Bend collection protocol refused")
+      return residentCollectionResponse(
+        readFrame(),
+        collectionHandle(tokens, step.token),
+        unlist(step.findings).map((id) => collectionHandle(findings, id))
+      )
+    }
+  }
+}
+
+const residentCollectFlow = Effect.fn("ResidentRuntime.collectFlow")(function* (
+  deps: Dependencies,
+  root: string,
+  advicee: DirectAdvicee,
+  dispatch: ResidentDispatchContext,
+  mode: CollectionMode,
+  authority: ResponseAuthority | undefined,
+  composed: boolean
+) {
+  const session = makeResidentCollectionSession(deps, root, advicee, dispatch, mode, authority, composed)
+  let step = session.initial(1)
   const advance = Effect.fn("ResidentRuntime.advanceCollection")(function* () {
     if (step.$ !== "FlowAwait") throw new Error("collection cursor has no request")
-    const { request } = step
-    const response = yield* flowNative(request.command)
-    step = collectionCore.collect_resume(step, {
+    const request = step.request
+    step = session.resume(step, {
       $: "FlowReply",
       invocation: request.invocation,
       id: request.id,
-      response
+      response: yield* session.perform(request.command)
     })
   })
   return yield* Effect.gen(function* () {
     while (step.$ === "FlowAwait") {
-      if (collectionCore.collect_atomic(step)) {
+      if (session.atomic(step)) {
         yield* Effect.gen(function* () {
-          while (step.$ === "FlowAwait" && collectionCore.collect_atomic(step)) yield* advance()
+          while (step.$ === "FlowAwait" && session.atomic(step)) yield* advance()
         }).pipe(Effect.uninterruptible)
       } else yield* advance()
     }
-    if (step.$ === "FlowEmpty") return residentResponse({ status: "empty" })
-    if (step.$ !== "FlowDone") throw new Error("Bend collection protocol refused")
-    return residentCollectionResponse(
-      readFrame(),
-      collectionHandle(tokens, step.token),
-      unlist(step.findings).map((id) => collectionHandle(findings, id))
-    )
-  }).pipe(
-    Effect.ensuring(
-      Effect.sync(() => {
-        for (const stream of streams) close(stream)
-      })
-    )
-  )
+    return session.decode(step)
+  }).pipe(Effect.ensuring(session.finish()), Effect.onError(session.release))
 })
 
 const residentCollectionSurface = (frame: CollectionFrame) =>
@@ -880,24 +903,9 @@ const residentCollect = Effect.fn("ResidentRuntime.collect")(
     mode: CollectionMode = "ordinary",
     authority?: ResponseAuthority,
     composed = false
-  ) =>
-    Effect.suspend(() => {
-      let collectionToken: string | undefined
-      return Effect.gen(function* () {
-        return yield* residentCollectFlow(deps, root, advicee, dispatch, mode, authority, composed, (token) => {
-          collectionToken = token
-        })
-      }).pipe(
-        Effect.onError(() =>
-          Effect.gen(function* () {
-            // A failed or interrupted collector cannot retain a lease indefinitely.
-            // Source-check finalizers settle before runtime handoff is released.
-            if (collectionToken !== undefined) yield* deps.releaseDelivery(collectionToken)
-          })
-        )
-      )
-    })
+  ) => residentCollectFlow(deps, root, advicee, dispatch, mode, authority, composed)
 )
+
 const candidateRouteKinds: ReadonlySet<string> = new Set([
   "ignoreCandidate",
   "releaseCandidate",
@@ -924,6 +932,7 @@ const residentCandidateRoute = Effect.fn("ResidentRuntime.candidateRoute")(funct
 export const makeResidentAdviceCollection = (deps: Dependencies) => {
   return {
     residentCollect: residentCollect.bind(null, deps),
+    residentCollectionSession: makeResidentCollectionSession.bind(null, deps),
     residentReleaseAdviceLease: residentReleaseAdviceLease.bind(null, deps),
     residentPendingCanonicalFindings: residentPendingCanonicalFindings.bind(null, deps),
     residentAdviceExpired: residentAdviceExpired.bind(null, deps),

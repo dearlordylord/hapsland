@@ -1,3 +1,5 @@
+import type { DeliverySession, DeliveryRequest, DeliveryReply } from "../../advice-delivery/handoff/delivery-session.ts"
+import type { ForeignReply } from "@hapsland/canonical-policy/canonical/child-execution"
 import * as Effect from "effect/Effect"
 import type { FinalizationSession } from "@hapsland/review-execution/direct-event/preparation"
 import { performFinalizationAsync } from "@hapsland/review-execution/direct-event/preparation"
@@ -21,6 +23,7 @@ type SourceSession = ReturnType<typeof createSourcePreparationProvider>
 type PostSession = ReturnType<typeof createPostPreparationProvider>
 type AdviceSession = ReturnType<typeof createAdviceTailProvider>
 export type PreparationNativeSession =
+  | DeliverySession
   | FinalizationSession
   | GraphSession
   | SourceSession
@@ -58,6 +61,7 @@ export function performPreparationSessionRequest(
         throw new TypeError("Wrong finalization service session")
       return Effect.promise(() => performFinalizationAsync(request))
     }
+    if ("delivery" in request) throw new TypeError("Delivery requires its Cause-preserving execution port")
     if ("operation" in request) {
       if ("input" in session) throw new TypeError("Wrong graph service session")
       return performGraphServiceEffect(session, request, options)
@@ -173,4 +177,16 @@ export function performPreparationSessionRequest(
     const unsupported: never = command
     throw new TypeError(`Unsupported owned service command: ${String(unsupported)}`)
   })
+}
+
+/** Delivery uses Exit + synchronous map to preserve the original typed Cause. */
+export function performDeliverySessionRequest(
+  registry: ReturnType<typeof createPreparationSessionRegistry>,
+  request: DeliveryRequest,
+  options: ForeignOptions
+): ForeignReply<DeliveryReply> {
+  const session = registry.get(request.invocation)
+  if (!session || !("input" in session && "delivery" in session.input && "foreign" in session))
+    throw new TypeError("Wrong delivery service session")
+  return session.foreign(request, options)
 }

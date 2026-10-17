@@ -4,14 +4,13 @@ import { list, unlist } from "@hapsland/source-artifacts/direct-event/value/code
 import { recipientPartition } from "../../recipient/identity.ts"
 import type { RoundWork } from "../../state/round-records.ts"
 import { type Dependencies } from "./context.ts"
-import core, {
+import {
   type RCommand,
   type RResponse,
   type RReason,
   type RSnapshot,
   type RPending,
-  type RInput,
-  type RStep
+  type RInput
 } from "./handoff-core.js"
 
 const finishReason = (reason: RReason): "deadline" | "unavailable" | "no-advice" => {
@@ -171,46 +170,5 @@ export const makeResidentFinishSession = (
     can_write: canWrite,
     same_token: final.status === "advice" && provisional.status === "advice" && final.token === provisional.token
   }
-  return {
-    input,
-    perform: native,
-    decode: (step: RStep): ResidentResponse => {
-      switch (step.$) {
-        case "RFinal":
-          return final
-        case "REmpty":
-          return { status: "empty" }
-        case "RRejected":
-          throw new Error("Bend finish refused native reply")
-        case "RAwait":
-          throw new Error("Bend finish is not terminal")
-      }
-    }
-  }
+  return { input, perform: native }
 }
-
-const driveFinish = Effect.fn("ResidentRuntime.finishCursor")(function* (
-  session: ReturnType<typeof makeResidentFinishSession>,
-  initial: RStep
-) {
-  let step = initial
-  while (step.$ === "RAwait") {
-    const held = step.request
-    step = core.reconcile_resume(step, {
-      $: "RReply",
-      invocation: held.invocation,
-      id: held.id,
-      response: yield* session.perform(held.command)
-    })
-  }
-  return session.decode(step)
-})
-
-export const residentReserveFinishOutput = Effect.fn("ResidentRuntime.reserveFinishOutput")(function* (
-  deps: FinishDependencies,
-  request: ResidentRequest,
-  collected: ResidentResponse
-) {
-  const session = makeResidentFinishSession(deps, request, collected, collected, true)
-  return yield* driveFinish(session, core.reserve_finish_initial(1, session.input))
-})

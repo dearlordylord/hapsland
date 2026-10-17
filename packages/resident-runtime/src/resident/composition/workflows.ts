@@ -321,6 +321,7 @@ const makeResidentInteractionWorkflows = (
       return handoff.residentCollectorGate
     },
     residentCollect: adviceCollection.residentCollect,
+    residentCollectionSession: adviceCollection.residentCollectionSession,
     get residentEditCollectionStatus() {
       return handoff.residentEditCollectionStatus
     },
