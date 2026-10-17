@@ -10,3 +10,5 @@ export type JevRequestObservation = {
   readonly request?: number
   readonly outcome?: "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted"
 }
+
+export type JevRequestIdentity = Omit<JevRequestObservation, "stage" | "request" | "outcome">

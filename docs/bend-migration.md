@@ -244,8 +244,10 @@ Canonical binds evaluation to Reviewing and atomically publishes readiness/
 settlement with exact native operation/reservation metadata. Dispatch is bound
 to the original provider await; no later await may invoke a skipped callback.
 Four reducer cases and native transaction cover start/cancellation/settlement.
-Owner build46/46,delivery9/9,fast44/5 and six delivery proofs pass; prior shared
-metadata Jev/capacity63 pass. Whole-cursor build/packaged/ABI and fast44/2 pass after the ABI-format fix.
+Native authorization binds commands to credential/root IO and atomic readiness;
+its real Ref/Canonical consumer checks issuance, observation and interruption arm.
+Provider IO is shared with production. Build46/46, fast44/6, native custody and
+Jev/capacity63 pass; six delivery proofs remain valid.
 Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:

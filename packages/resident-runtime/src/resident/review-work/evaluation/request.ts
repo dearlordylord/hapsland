@@ -1,19 +1,10 @@
-import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
-import { captureInspectionFindings } from "@hapsland/review-execution/inspection/capture"
-import { MAX_INSPECTION_INPUT_BYTES } from "@hapsland/inspection-records/inspection/contract"
+import { runEvaluationProvider } from "./native-provider.ts"
 import * as Clock from "effect/Clock"
-import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
-import { createHash } from "node:crypto"
-import { evaluatePrepared, encodedPreparedProviderInputBytes } from "@hapsland/review-execution/direct-event/pipeline"
-import { reviewDecisionModelLayer } from "@hapsland/review-execution/review-providers/live"
-import {
-  controlledDecisionModelLayer,
-  type ControlledDecisionModelOptions
-} from "@hapsland/review-execution/review-execution/controlled-decision-model"
+import { encodedPreparedProviderInputBytes } from "@hapsland/review-execution/direct-event/pipeline"
+import { type ControlledDecisionModelOptions } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { claimDemoBudget } from "@hapsland/activity-observation/activity/demo-budget"
-import { physicalRequest } from "../../work-ownership/cancellation.ts"
 import { type EvaluationContext } from "./context.ts"
 import { resolveEvaluationCredentials, authorizePreparedUnit } from "./authorization.ts"
 import { observeRequest } from "./observation.ts"
@@ -43,11 +34,9 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
   >,
   controlled: ControlledDecisionModelOptions | undefined
 ) {
-  const offlineHttpClient = context.deps.residentOfflineHttpClient
-  const controlledRequestEffect = context.deps.residentControlledRequestEffect
   const resolved = yield* resolveEvaluationCredentials(context, controlled)
   if ("status" in resolved) return resolved
-  const { settings, dispatchCredential, credential } = resolved
+  const { dispatchCredential, credential } = resolved
   // Source and credential authority may change while waiting. Configuration
   // and rules remain the edit-owned snapshot through dispatch and delivery.
 
@@ -55,24 +44,6 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
   const deniedAuthorization = () =>
     ready.status === "notAuthorized" ? ready : { status: "notAuthorized" as const, reason: undefined }
   if (ready.status !== "issued") return deniedAuthorization()
-  const makeCredentialProvider = () => {
-    return credential?.status !== "present"
-      ? undefined
-      : ConfigProvider.layer(ConfigProvider.fromUnknown({ [settings.credentialEnvVar]: credential.value }))
-  }
-  const credentialProvider = makeCredentialProvider()
-  if (controlled === undefined && credentialProvider === undefined) return undefined
-  const makeEvaluationModel = () => {
-    return controlled === undefined
-      ? reviewDecisionModelLayer(settings, offlineHttpClient)
-      : controlledDecisionModelLayer({
-          ...controlled,
-          ...(controlledRequestEffect === undefined
-            ? {}
-            : { onRequest: physicalRequest("controlled provider request", controlledRequestEffect).pipe(Effect.orDie) })
-        })
-  }
-  const decisionModel = makeEvaluationModel()
   const makeCredentialAuthority = () => {
     return credential?.status !== "present"
       ? Effect.void
@@ -122,64 +93,13 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
       })
     )
   )
-  const evaluation = evaluatePrepared(context.job.prepared, beforeDispatch, (evidence) => {
-    if (evidence.kind === "evaluation-outcome") context.state.evaluationOutcomeObserved = true
-    if (
-      context.job.inspectionReceipt === undefined ||
-      !context.deps.inspection.isEnabled(context.job.inspectionReceipt.scope.root)
-    )
-      return
-    const fact =
-      evidence.kind === "model-input"
-        ? (() => {
-            const encoded = JSON.stringify(evidence.input)
-            const byteLength = Buffer.byteLength(encoded)
-            return {
-              kind: "model-input" as const,
-              representation: "decision-model-json" as const,
-              payload:
-                byteLength > MAX_INSPECTION_INPUT_BYTES
-                  ? { status: "missing" as const, reason: "oversized" as const }
-                  : {
-                      status: "available" as const,
-                      encoded,
-                      byteLength,
-                      sha256: createHash("sha256").update(encoded).digest("hex")
-                    }
-            }
-          })()
-        : evidence.kind === "interpreted-findings"
-          ? captureInspectionFindings(evidence.findings)
-          : evidence
-    context.deps.inspection.offer(
-      context.job.inspectionReceipt.scope,
-      context.deps.residentInspection.unitCorrelation(context.job, context.job.inspectionReceipt, ready.request),
-      fact
-    )
-  }).pipe(
-    Effect.provide(decisionModel),
-    Effect.provideService(InspectionTransportObservation, {
-      observe: (body) => {
-        const receipt = context.job.inspectionReceipt
-        if (receipt === undefined || !context.deps.inspection.isEnabled(receipt.scope.root)) return
-        const payload =
-          body === undefined
-            ? { status: "missing" as const, reason: "unavailable" as const }
-            : body.byteLength > MAX_INSPECTION_INPUT_BYTES
-              ? { status: "missing" as const, reason: "oversized" as const }
-              : {
-                  status: "available" as const,
-                  encoded: Buffer.from(body).toString("base64"),
-                  byteLength: body.byteLength,
-                  sha256: createHash("sha256").update(body).digest("hex")
-                }
-        context.deps.inspection.offer(
-          receipt.scope,
-          context.deps.residentInspection.unitCorrelation(context.job, receipt, ready.request),
-          { kind: "transport-invoked", representation: "http-body-base64", payload }
-        )
-      }
-    })
-  )
-  return yield* credentialProvider === undefined ? evaluation : evaluation.pipe(Effect.provide(credentialProvider))
+  return yield* runEvaluationProvider(context, {
+    controlled,
+    credential,
+    request: ready.request,
+    beforeDispatch,
+    observeOutcome: () => {
+      context.state.evaluationOutcomeObserved = true
+    }
+  })
 })

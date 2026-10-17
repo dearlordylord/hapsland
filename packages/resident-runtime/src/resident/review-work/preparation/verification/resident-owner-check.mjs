@@ -18,6 +18,7 @@ import { initialJoinedReviews } from "../../../state/joined-reviews.ts"
 import { initialDelivery } from "../../../state/delivery/operations.ts"
 import { createOwnedArtifactDriver } from "../../composition/owned-artifact-driver.mjs"
 import { createAdviceTailMachine } from "../post-preparation-dispatcher.mjs"
+import { makeEvaluationAuthorizationSession } from "../../evaluation/native-authorization.ts"
 import { createAdviceTailProvider } from "../../evaluation/advice-tail-provider.mjs"
 import { createGraphServiceRegistry as createServiceRegistry } from "@hapsland/source-analysis/direct-event/graph-resolution"
 import { createResidentOwnerTransaction } from "../../../state/resolver-custody/resident-owner-transaction.mjs"
@@ -261,8 +262,63 @@ const postCore = (
       ])
         assert.equal(run(bridge.evaluationReady(evaluationCredential, wrong, facts)).value.status, "stale")
       assert.equal(run(transaction.read).requestRounds.size, 0)
-      const ready = run(bridge.evaluationReady(evaluationCredential, binding, facts)).value
-      assert.equal(ready.status, "issued")
+      const observations = []
+      let armed = 0
+      const identity = {
+        partition: "agent",
+        canonicalPartition: partition,
+        lifetime: "fixture",
+        canonicalLifetime: 1,
+        round,
+        hapslandRound: null,
+        operation: binding.operation
+      }
+      const authorizationJob = {
+        partition: "agent",
+        canonicalOperationId: binding.operation,
+        canonicalRound: round,
+        reservation: binding.reservation
+      }
+      const authorization = makeEvaluationAuthorizationSession({
+        context: {
+          job: authorizationJob,
+          deps: {
+            residentObserveJevRequest: (value) => observations.push(value),
+            residentRecordAnalytics: () => Effect.void
+          }
+        },
+        bridge,
+        identity,
+        controlled: () => undefined,
+        armInterruption: () =>
+          Effect.sync(() => {
+            armed++
+          })
+      })
+      const authorizationReady = run(
+        authorization.perform(
+          {
+            $: "Authorization.ReadyRequest",
+            facts: {
+              $: "Authorization.Facts",
+              credential_ready: true,
+              selected: true,
+              current_work: true,
+              physical_available: true
+            }
+          },
+          evaluationCredential
+        )
+      )
+      assert.equal(authorizationReady.$, "Authorization.RequestDecision")
+      assert.equal(authorizationReady.decision.$, "Authorization.Issued")
+      const ready = { request: authorizationReady.decision.request }
+      assert.equal(authorizationJob.requestId, ready.request)
+      run(authorization.perform({ $: "Authorization.ObserveIssued", request: ready.request }, evaluationCredential))
+      assert.deepEqual(observations, [{ ...identity, stage: "issued", request: ready.request }])
+      assert.equal(armed, 0)
+      run(authorization.perform({ $: "Authorization.ArmInterruption" }, evaluationCredential))
+      assert.equal(armed, 1)
       const issued = owner.find(evaluationInvocation, bridge.control.readCustody().children).value.scope.permission
       assert.equal(issued.request, ready.request)
       assert.strictEqual(run(transaction.read).requestRounds.get(ready.request).reservation, binding.reservation)
