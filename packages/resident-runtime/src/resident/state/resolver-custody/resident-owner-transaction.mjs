@@ -32,14 +32,19 @@ export function createResidentOwnerTransaction({
   /**
    * @param {import("../capacity/model.ts").CapacityDraft} draft
    * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").Publication} raw
+   * @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").State["canonical"] | undefined} [inputCanonical]
    * @returns {import("./provider-authority.ts").OwnerPublication}
    */
-  const publication = (draft, raw) => {
+  const publication = (draft, raw, inputCanonical) => {
     if (raw.$ === "Refused") return { refusal: raw.refusal, actions: [], outputs: [], raw }
     if (raw.$ !== "Published") throw new TypeError("Malformed resident owner publication")
-    const canonical = fromOwner(raw.canonical)
-    projectTrustedCanonical(canonical)
-    draft.canonical = canonical
+    // Pure custody transitions return their exact Canonical input graph. Keep
+    // the already trusted host graph within this call; no cross-call cache.
+    if (inputCanonical === undefined || raw.canonical !== inputCanonical) {
+      const canonical = fromOwner(raw.canonical)
+      projectTrustedCanonical(canonical)
+      draft.canonical = canonical
+    }
     draft.resolverCustody = freezeCanonicalData(raw.custody)
     return { actions: ownerList(raw.actions), outputs: fromOwner(ownerList(raw.outputs)), raw }
   }
@@ -59,10 +64,10 @@ export function createResidentOwnerTransaction({
     )
   /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} input */
   const committedEvent = (input) =>
-    transaction.commitAllEffect((draft, records) => [
-      publication(draft, owner.resident_step(toOwnerCanonical(draft.canonical), draft.resolverCustody, input)),
-      records
-    ])
+    transaction.commitAllEffect((draft, records) => {
+      const canonical = toOwnerCanonical(draft.canonical)
+      return [publication(draft, owner.resident_step(canonical, draft.resolverCustody, input), canonical), records]
+    })
   /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").ResidentEvent} input */
   const event = (input) => finish(committedEvent(input))
   /**

@@ -87,7 +87,9 @@ const postCore = (
       preparation: Number(BigInt(preparation.operation))
     }
     const event = (name, fields = {}) => run(bridge.event({ $: name, ...fields }))
+    const beforeLaunch = run(transaction.read).canonical
     for (const input_handle of [50, 51]) assert.equal(event("LaunchEvent", { scope, input_handle }).refusal, undefined)
+    assert.strictEqual(run(transaction.read).canonical, beforeLaunch)
     assert.deepEqual(
       published.map((x) => x.invocation),
       [1, 2]
@@ -95,6 +97,7 @@ const postCore = (
     assert.equal("canonical" in run(transaction.read).resolverCustody, false)
     event("InstallEvent", { invocation: 1, generation: 0, handle: 11, request: 0 })
     event("ProviderStartEvent", { invocation: 1 })
+    assert.strictEqual(run(transaction.read).canonical, beforeLaunch)
     const credential = { invocation: 1, generation: 0, lease: 1, request: 0 }
     for (const key of ["invocation", "generation", "lease", "request"]) {
       const before = run(transaction.read)
