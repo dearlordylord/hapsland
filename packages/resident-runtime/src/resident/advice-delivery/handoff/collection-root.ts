@@ -27,7 +27,7 @@ type RootDependencies = Parameters<typeof makeResidentCollectionGateSession>[0] 
   Parameters<typeof makeResidentFinishSession>[0] &
   Pick<Dependencies, "residentCollectionWorkState">
 
-type RootConfiguration =
+export type RootConfiguration =
   | {
       readonly kind: "request"
       readonly request: Extract<ResidentRequest, { operation: "collect" }>
@@ -228,16 +228,3 @@ export const makeResidentCollectionRoot = (deps: RootDependencies, config: RootC
     }
   }
 }
-
-export const residentCollectRequest = Effect.fn("ResidentRuntime.collectRequest")(function* (
-  deps: RootDependencies,
-  request: Extract<ResidentRequest, { operation: "collect" }>,
-  collection: CollectionSession
-) {
-  const session = makeResidentCollectionRoot(deps, { kind: "request", request, collection })
-  return yield* Effect.gen(function* () {
-    let step = session.initial(1)
-    while (step.$ === "RootAwait") step = yield* session.advance(step)
-    return session.decode(step)
-  }).pipe(Effect.ensuring(session.finish()), Effect.onError(session.release))
-})

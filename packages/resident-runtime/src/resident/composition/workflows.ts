@@ -1,3 +1,4 @@
+import { makeResidentCollectionDelivery } from "../advice-delivery/collection-delivery.ts"
 import { makeResidentResponses } from "../advice-delivery/response.ts"
 import { residentAwaitBackendGate } from "../review-work/backend-gate.ts"
 import {
@@ -300,6 +301,19 @@ const makeResidentInteractionWorkflows = (
     residentReviewControls
   } = resources
   const { admission, adviceCollection, delivery, workLifecycle } = review
+  const collectDelivery = makeResidentCollectionDelivery({
+    canonicalDelivery: residentLedger.reviewPreparation,
+    residentLedger,
+    residentComposedDelivery,
+    residentNow,
+    residentPruneNoticeCooldowns: workLifecycle.residentPruneNoticeCooldowns,
+    residentCollectionWorkCount: delivery.residentCollectionWorkCount,
+    residentReleaseAdviceLease: adviceCollection.residentReleaseAdviceLease,
+    residentAllowFinish: workLifecycle.residentAllowFinish,
+    residentDiscardUnfinishedWork: workLifecycle.residentDiscardUnfinishedWork,
+    releaseDelivery: delivery.releaseDelivery,
+    residentCollectionWorkState: delivery.residentCollectionWorkState
+  })
   const requests = makeResidentRequests({
     get stats() {
       return ports.stats
@@ -320,11 +334,12 @@ const makeResidentInteractionWorkflows = (
     get residentCollectorGate() {
       return handoff.residentCollectorGate
     },
-    residentCollect: adviceCollection.residentCollect,
-    residentCollectionSession: adviceCollection.residentCollectionSession,
-    get residentEditCollectionStatus() {
-      return handoff.residentEditCollectionStatus
+    collectDelivery,
+    get residentAdvice() {
+      return ports.residentAdvice
     },
+    residentAdviceExpired: adviceCollection.residentAdviceExpired,
+    residentCollectionSession: adviceCollection.residentCollectionSession,
     residentComposedDelivery,
     residentStopExpiries,
     residentCloseRound: workLifecycle.residentCloseRound,
@@ -383,6 +398,7 @@ const makeResidentInteractionWorkflows = (
     residentAllowFinish: workLifecycle.residentAllowFinish
   })
   const responses = makeResidentResponses({
+    canonicalDelivery: residentLedger.reviewPreparation,
     handoff,
     controls: residentReviewControls,
     releaseDelivery: delivery.releaseDelivery
@@ -409,7 +425,7 @@ const makeResidentInteractionWorkflows = (
 
     inspection
   })
-  return { requests, handoff, responses, ipc }
+  return { requests, handoff, responses, ipc, collectDelivery }
 }
 
 export const makeResidentWorkflows = (resources: ResidentResources, ports: RuntimePorts) => {

@@ -14,7 +14,8 @@ import {
 } from "@hapsland/native-observation/direct-event/observation"
 import { packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
-import { residentCollectRequest } from "../advice-delivery/handoff/collection-root.ts"
+import type { makeResidentCollectionDelivery } from "../advice-delivery/collection-delivery.ts"
+import * as Clock from "effect/Clock"
 import type { makeResidentAdviceCollection } from "../advice-delivery/advice-collection.ts"
 import type { Advice } from "../state/advice-records.ts"
 import type { RoundWork } from "../state/round-records.ts"
@@ -44,13 +45,11 @@ import {
   MAX_UPDATE_NOTICE_KEYS,
   type ResidentDispatchContext,
   type ResidentRequest,
-  type ResidentResponse,
-  type CollectionMode
+  type ResidentResponse
 } from "@hapsland/resident-transport/resident/protocol"
 import type { Scope } from "effect"
 import { Ref } from "effect"
 import * as Fiber from "effect/Fiber"
-import * as Schedule from "effect/Schedule"
 import { type ResidentLedger } from "../work-ownership/jobs.ts"
 import type { ResidentAdapterError } from "../adapter-error.ts"
 import {
@@ -90,21 +89,9 @@ type Dependencies = {
     now: number
   ) => Effect.Effect<ResidentResponse | undefined, never, never>
   readonly residentCollectionSession: ReturnType<typeof makeResidentAdviceCollection>["residentCollectionSession"]
-  readonly residentCollect: (
-    root: string,
-    advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
-    mode?: CollectionMode | undefined,
-    authority?: ResponseAuthority | undefined,
-    composed?: boolean
-  ) => Effect.Effect<ResidentResponse, ResidentAdapterError, never>
-  readonly residentEditCollectionStatus: (
-    authority: ResponseAuthority,
-    root: string,
-    advicee: DirectAdvicee,
-    composed: boolean,
-    now: number
-  ) => Effect.Effect<ResidentResponse, never, never>
+  readonly collectDelivery: ReturnType<typeof makeResidentCollectionDelivery>
+  readonly residentAdvice: () => Effect.Effect<readonly Advice[]>
+  readonly residentAdviceExpired: ReturnType<typeof makeResidentAdviceCollection>["residentAdviceExpired"]
   readonly residentComposedDelivery: ReturnType<ResidentLedger["delivery"]>
   readonly residentStopExpiries: Map<string, Fiber.Fiber<void, never>>
   readonly residentCloseRound: (
@@ -208,7 +195,8 @@ const residentAdmittedResponseAuthority = Effect.fn("ResidentRuntime.admittedRes
 const residentAdmitAndCollect = Effect.fn("ResidentRuntime.admitAndCollect")(function* (
   deps: Dependencies,
   request: EditRequest,
-  context: Ref.Ref<ResponseContext>
+  context: Ref.Ref<ResponseContext>,
+  localDelivery: boolean
 ): Effect.fn.Return<ResidentResponse, ResidentAdapterError> {
   const { observation, dispatch } = request
   const startedAt = deps.residentNow()
@@ -227,38 +215,23 @@ const residentAdmitAndCollect = Effect.fn("ResidentRuntime.admitAndCollect")(fun
     }
   const authority = yield* residentAdmittedResponseAuthority(deps, request, group, admission.settings, startedAt)
   yield* Ref.set(context, { authority })
-  const pass = Effect.fn("ResidentRuntime.collectEditResponse")(function* () {
-    const gate = yield* deps.residentCollectorGate(authority, dispatch, deps.residentNow())
-    if (gate !== undefined) return gate
-    const response = yield* Effect.uninterruptibleMask((restore) =>
-      restore(deps.residentCollect(observation.root, observation.advicee, dispatch, "ordinary", authority, true)).pipe(
-        Effect.flatMap(
-          (response): Effect.Effect<ResidentResponse> =>
-            response.status === "advice"
-              ? Ref.update(context, (state) => ({ ...state, token: response.token })).pipe(Effect.as(response))
-              : Effect.succeed(response)
-        )
-      )
-    )
-    return response.status === "advice"
-      ? response
-      : yield* deps.residentEditCollectionStatus(
-          authority,
-          observation.root,
-          observation.advicee,
-          true,
-          deps.residentNow()
-        )
-  })
-  return yield* pass().pipe(
-    Effect.repeat({ schedule: Schedule.spaced("50 millis"), while: (response) => response.status === "pending" }),
-    Effect.timeoutOrElse({
-      duration: request.waitMs,
-      orElse: () => Effect.succeed<ResidentResponse>({ requestRoute: "edit", status: "pending" })
-    }),
-    Effect.catch(() =>
-      Effect.succeed<ResidentResponse>({ requestRoute: "edit", status: "unavailable", reason: "lost" })
-    )
+  const deadline = (yield* Clock.monotonicTimeNanos) + BigInt(request.waitMs) * 1_000_000n
+  return yield* deps.collectDelivery(
+    {
+      kind: "edit",
+      partition: group,
+      deadline,
+      startPass: () =>
+        deps.residentCollectionSession(observation.root, observation.advicee, dispatch, "ordinary", authority, true),
+      gate: () => deps.residentCollectorGate(authority, dispatch, deps.residentNow()),
+      advice: deps.residentAdvice,
+      expired: deps.residentAdviceExpired,
+      workCount: () => deps.residentCollectionWorkCount(observation.root, observation.advicee, true),
+      now: deps.residentNow
+    },
+    group,
+    localDelivery,
+    context
   )
 })
 
@@ -452,20 +425,27 @@ const residentHandleAdmit = Effect.fn("ResidentRuntime.handle.admit")(function* 
 
 const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(function* (
   deps: Dependencies,
-  request: Extract<ResidentRequest, { operation: "collect" }>
+  request: Extract<ResidentRequest, { operation: "collect" }>,
+  context: Ref.Ref<ResponseContext>,
+  localDelivery: boolean
 ) {
   return residentResponse(
-    yield* residentCollectRequest(
-      deps,
-      request,
-      deps.residentCollectionSession(
-        request.root,
-        request.advicee,
-        request.dispatch,
-        request.mode ?? "ordinary",
-        undefined,
-        true
-      )
+    yield* deps.collectDelivery(
+      {
+        kind: "request",
+        request,
+        collection: deps.residentCollectionSession(
+          request.root,
+          request.advicee,
+          request.dispatch,
+          request.mode ?? "ordinary",
+          undefined,
+          true
+        )
+      },
+      recipientPartition(request.advicee),
+      localDelivery,
+      context
     )
   )
 })
@@ -554,15 +534,17 @@ const residentRouteBoundary = Effect.fn("ResidentRuntime.routeBoundary")(functio
 const residentRouteReview = Effect.fn("ResidentRuntime.routeReview")(function* (
   deps: Dependencies,
   request: ResidentRequest,
-  context: Ref.Ref<ResponseContext>
+  context: Ref.Ref<ResponseContext>,
+  localDelivery: boolean
 ) {
   if (request.operation === "begin-submission") return yield* residentHandleBeginSubmission(deps, request)
   if (request.operation === "release") return yield* residentHandleRelease(deps, request)
   if (request.operation === "register-edit" || request.operation === "retire-edit")
     return yield* residentHandleRegisterEdit(deps, request)
-  if (request.operation === "admit-and-collect") return yield* residentAdmitAndCollect(deps, request, context)
+  if (request.operation === "admit-and-collect")
+    return yield* residentAdmitAndCollect(deps, request, context, localDelivery)
   if (request.operation === "admit") return yield* residentHandleAdmit(deps, request)
-  if (request.operation === "collect") return yield* residentHandleCollect(deps, request)
+  if (request.operation === "collect") return yield* residentHandleCollect(deps, request, context, localDelivery)
   return undefined
 })
 
@@ -690,7 +672,8 @@ const incompatibleCaller = (deps: Dependencies, request: ResidentRequest) =>
 const residentHandle = Effect.fn("ResidentRuntime.handle")(function* (
   deps: Dependencies,
   request: ResidentRequest,
-  responseContext?: Ref.Ref<ResponseContext>
+  responseContext?: Ref.Ref<ResponseContext>,
+  localDelivery = true
 ) {
   const incompatible = yield* incompatibleCaller(deps, request)
   if (incompatible !== undefined) return incompatible
@@ -707,7 +690,8 @@ const residentHandle = Effect.fn("ResidentRuntime.handle")(function* (
   }
   for (const route of [
     residentRouteBoundary.bind(null, deps),
-    residentRouteReview.bind(null, deps),
+    (request: ResidentRequest, context: Ref.Ref<ResponseContext>) =>
+      residentRouteReview(deps, request, context, localDelivery),
     residentRouteAdministration.bind(null, deps)
   ]) {
     const response = yield* route(request, context)

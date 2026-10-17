@@ -1,24 +1,8 @@
-import * as Effect from "effect/Effect"
-import { type ResponseAuthority, type EditCollectionRequest, type HandoffRequest } from "../authority.ts"
 import { type Dependencies } from "./context.ts"
-import { residentCollectorGate, residentEditCollectionStatus } from "./collection-status.ts"
-import { residentFinalizeHandoff } from "./delivery-finalize.ts"
-import { residentHandoffSourceCurrent } from "./source-current.ts"
+import { residentCollectorGate } from "./collection-status.ts"
+import { residentFinalizeHandoff, makeResidentDeliveryFinalizationSession } from "./delivery-finalize.ts"
+import { residentHandoffSourceCurrent, makeResidentSourceCurrentSession } from "./source-current.ts"
 import { residentResponseGate } from "./response-gate.ts"
-
-export const residentCollectorLifetimeCurrent = Effect.fn("ResidentRuntime.collectorLifetimeCurrent")(function* (
-  deps: Pick<Dependencies, "lifetime" | "residentLedger" | "residentRoundActive">,
-  authority: ResponseAuthority
-) {
-  return (
-    authority.lifetime === deps.lifetime &&
-    (yield* deps.residentLedger.runtime.snapshot()).lifecycle === "active" &&
-    (yield* deps.residentRoundActive(authority.round))
-  )
-})
-
-export const residentEditCollectRequest = (request: HandoffRequest): request is EditCollectionRequest =>
-  request.requestRoute === "edit" && request.operation === "collect"
 
 export const makeResidentHandoff = (
   deps: Pick<
@@ -54,10 +38,11 @@ export const makeResidentHandoff = (
   >
 ) => {
   return {
+    sourceCurrentSession: makeResidentSourceCurrentSession.bind(null, deps),
+    finalizationSession: makeResidentDeliveryFinalizationSession.bind(null, deps),
     residentHandoffSourceCurrent: residentHandoffSourceCurrent.bind(null, deps),
     residentFinalizeHandoff: residentFinalizeHandoff.bind(null, deps),
     residentCollectorGate: residentCollectorGate.bind(null, deps),
-    residentEditCollectionStatus: residentEditCollectionStatus.bind(null, deps),
     residentResponseGate
   }
 }

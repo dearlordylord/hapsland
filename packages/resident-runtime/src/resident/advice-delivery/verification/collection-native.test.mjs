@@ -121,13 +121,28 @@ const fixture = (hooks = {}) => {
         state.content = content
       })
   })
-  return {
-    trace,
-    state,
-    collection,
-    advicee,
-    collect: collection.residentCollect("/repo", advicee, { credential: null })
-  }
+  const native = makeResidentCollectionRoot(
+    {},
+    {
+      kind: "direct",
+      composed: false,
+      turnEnd: false,
+      collection: collection.residentCollectionSession(
+        "/repo",
+        advicee,
+        { credential: null },
+        "ordinary",
+        undefined,
+        false
+      )
+    }
+  )
+  const collect = Effect.gen(function* () {
+    let step = native.initial(71)
+    while (step.$ === "RootAwait") step = yield* native.advance(step)
+    return native.decode(step)
+  }).pipe(Effect.ensuring(native.finish()), Effect.onError(native.release))
+  return { trace, state, collection, advicee, collect }
 }
 
 it(

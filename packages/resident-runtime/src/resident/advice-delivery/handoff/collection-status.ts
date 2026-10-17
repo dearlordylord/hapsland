@@ -6,7 +6,16 @@ import { type ResidentDispatchContext, type ResidentResponse } from "@hapsland/r
 import { type ResponseAuthority } from "../authority.ts"
 import { recipientPartition } from "../../recipient/identity.ts"
 import { type Dependencies } from "./context.ts"
-import { residentCollectorLifetimeCurrent } from "./workflow.ts"
+export const residentCollectorLifetimeCurrent = Effect.fn("ResidentRuntime.collectorLifetimeCurrent")(function* (
+  deps: Pick<Dependencies, "lifetime" | "residentLedger" | "residentRoundActive">,
+  authority: ResponseAuthority
+) {
+  return (
+    authority.lifetime === deps.lifetime &&
+    (yield* deps.residentLedger.runtime.snapshot()).lifecycle === "active" &&
+    (yield* deps.residentRoundActive(authority.round))
+  )
+})
 
 export const residentCollectorGate = Effect.fn("ResidentRuntime.collectorGate")(function* (
   deps: Pick<Dependencies, "lifetime" | "residentLedger" | "residentRoundActive">,

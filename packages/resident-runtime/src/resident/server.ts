@@ -55,8 +55,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     },
     releaseInspectionConnection: () => lifecycle.releaseInspectionConnection()
   })
-  const { admission, adviceCollection, delivery, workLifecycle, preparation, evaluation, requests, responses } =
-    workflows
+  const {
+    admission,
+    adviceCollection,
+    delivery,
+    workLifecycle,
+    preparation,
+    evaluation,
+    requests,
+    responses,
+    collectDelivery
+  } = workflows
   const lifecycle = yield* makeResidentLifecycle(resources, workflows, {
     get residentDispatcher() {
       return residentDispatcher
@@ -101,7 +110,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* workLifecycle.residentPruneNoticeCooldowns(now)
     return yield* residentLedger.runtime.cleanup(logicalBytes)
   })
-  const { collect, handle } = makeLocalResidentOperations({ lifetime, adviceCollection, responses, requests })
+  const { collect, handle } = makeLocalResidentOperations({
+    lifetime,
+    adviceCollection,
+    responses,
+    requests,
+    collectDelivery
+  })
   const residentRun = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>
     job.kind === "ingress" ? preparation.residentPrepare(job, sequence) : evaluation.residentEvaluateUnit(job, sequence)
   )

@@ -36,4 +36,8 @@ type LocalCollectionRequest = Omit<Extract<ResidentRequest, { operation: "collec
 
 export type HandoffRequest = ResidentRequest | EditCollectionRequest | LocalCollectionRequest
 
-export type ResponseContext = { readonly authority?: ResponseAuthority; readonly token?: string }
+export type ResponseContext = {
+  readonly authority?: ResponseAuthority
+  readonly token?: string
+  readonly delivery?: import("@hapsland/canonical-policy/canonical/child-execution").DeliveryHandoff
+}

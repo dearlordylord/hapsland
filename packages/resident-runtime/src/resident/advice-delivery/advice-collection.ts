@@ -7,7 +7,7 @@ import type { Advice, AdviceContent } from "../state/advice-records.ts"
 import { type WorkRevision } from "../state/revision.ts"
 import * as Effect from "effect/Effect"
 import { randomUUID } from "node:crypto"
-import collectionCore, {
+import {
   type Command,
   type Response,
   type FlowStep,
@@ -798,10 +798,7 @@ export const makeResidentCollectionSession = (
   const release = () =>
     Effect.suspend(() => (collectionToken === undefined ? Effect.void : deps.releaseDelivery(collectionToken)))
   return {
-    initial: (invocation: number) => collectionCore.collect_initial(invocation, composed, mode === "turn-end"),
     perform: flowNative,
-    atomic: collectionCore.collect_atomic,
-    resume: collectionCore.collect_resume,
     finish,
     cleanup: () => finish().pipe(Effect.ensuring(release())),
     release,
@@ -816,39 +813,6 @@ export const makeResidentCollectionSession = (
     }
   }
 }
-
-const residentCollectFlow = Effect.fn("ResidentRuntime.collectFlow")(function* (
-  deps: Dependencies,
-  root: string,
-  advicee: DirectAdvicee,
-  dispatch: ResidentDispatchContext,
-  mode: CollectionMode,
-  authority: ResponseAuthority | undefined,
-  composed: boolean
-) {
-  const session = makeResidentCollectionSession(deps, root, advicee, dispatch, mode, authority, composed)
-  let step = session.initial(1)
-  const advance = Effect.fn("ResidentRuntime.advanceCollection")(function* () {
-    if (step.$ !== "FlowAwait") throw new Error("collection cursor has no request")
-    const request = step.request
-    step = session.resume(step, {
-      $: "FlowReply",
-      invocation: request.invocation,
-      id: request.id,
-      response: yield* session.perform(request.command)
-    })
-  })
-  return yield* Effect.gen(function* () {
-    while (step.$ === "FlowAwait") {
-      if (session.atomic(step)) {
-        yield* Effect.gen(function* () {
-          while (step.$ === "FlowAwait" && session.atomic(step)) yield* advance()
-        }).pipe(Effect.uninterruptible)
-      } else yield* advance()
-    }
-    return session.decode(step)
-  }).pipe(Effect.ensuring(session.finish()), Effect.onError(session.release))
-})
 
 const residentCollectionSurface = (frame: CollectionFrame) =>
   frame.authority === undefined
@@ -894,18 +858,6 @@ const residentCollectionResponse = (
         }
   )
 }
-const residentCollect = Effect.fn("ResidentRuntime.collect")(
-  (
-    deps: Dependencies,
-    root: string,
-    advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
-    mode: CollectionMode = "ordinary",
-    authority?: ResponseAuthority,
-    composed = false
-  ) => residentCollectFlow(deps, root, advicee, dispatch, mode, authority, composed)
-)
-
 const candidateRouteKinds: ReadonlySet<string> = new Set([
   "ignoreCandidate",
   "releaseCandidate",
@@ -931,7 +883,6 @@ const residentCandidateRoute = Effect.fn("ResidentRuntime.candidateRoute")(funct
 })
 export const makeResidentAdviceCollection = (deps: Dependencies) => {
   return {
-    residentCollect: residentCollect.bind(null, deps),
     residentCollectionSession: makeResidentCollectionSession.bind(null, deps),
     residentReleaseAdviceLease: residentReleaseAdviceLease.bind(null, deps),
     residentPendingCanonicalFindings: residentPendingCanonicalFindings.bind(null, deps),

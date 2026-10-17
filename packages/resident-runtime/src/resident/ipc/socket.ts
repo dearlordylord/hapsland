@@ -34,9 +34,13 @@ type Dependencies = {
   readonly releaseDelivery: (token: string) => Effect.Effect<void>
   readonly residentHandle: (
     request: ResidentRequest,
-    responseContext?: Ref.Ref<ResponseContext> | undefined
+    responseContext?: Ref.Ref<ResponseContext> | undefined,
+    localDelivery?: boolean
   ) => Effect.Effect<ResidentResponse, ResidentAdapterError, never>
-  readonly responses: Pick<ReturnType<typeof makeResidentResponses>, "prepareTransport" | "finalizeTransport">
+  readonly responses: Pick<
+    ReturnType<typeof makeResidentResponses>,
+    "prepareTransport" | "finalizeTransport" | "cancelContext"
+  >
   readonly residentEditCollectionRequest: (request: EditRequest) => EditCollectionRequest
   readonly residentScheduleRetirementClose: () => Effect.Effect<void, never, never>
   readonly runtimeConfiguration: Effect.Success<ReturnType<typeof makeResidentRuntimeConfiguration>>
@@ -70,9 +74,9 @@ const residentServe = Effect.fn("ResidentIpc.serve")(function* (deps: Dependenci
   let responseToken: string | undefined
   let handedToTransport = false
   const respond = Effect.gen(function* () {
-    const response = yield* deps.residentHandle(decoded, context)
+    const response = yield* deps.residentHandle(decoded, context, false)
     if (response.status === "advice") responseToken = response.token
-    const sourceCurrent = yield* deps.responses.prepareTransport(decoded, response)
+    const sourceCurrent = yield* deps.responses.prepareTransport(decoded, response, context)
     // Keep final authorization and socket handoff within one ownership
     // boundary; the response finalizer owns any untransferred lease.
     yield* Effect.uninterruptible(
@@ -86,7 +90,8 @@ const residentServe = Effect.fn("ResidentIpc.serve")(function* (deps: Dependenci
           response,
           sourceCurrent,
           authority,
-          () => port.canWrite()
+          () => port.canWrite(),
+          context
         )
         yield* deps.residentPruneCollectionTokenIds()
         if (!port.canWrite()) {
@@ -105,6 +110,7 @@ const residentServe = Effect.fn("ResidentIpc.serve")(function* (deps: Dependenci
     ),
     Effect.ensuring(
       Effect.gen(function* () {
+        yield* deps.responses.cancelContext(context)
         const token = (yield* Ref.get(context)).token ?? responseToken
         if ((!handedToTransport || port.errored()) && token !== undefined) yield* deps.releaseDelivery(token)
         yield* Ref.set(context, {})

@@ -41,13 +41,16 @@ export function createResidentPreparationBinding(bridge: ReturnType<typeof creat
     acceptActions: driver.acceptActions,
     validateAdviceInput: driver.validateAdviceInput,
     collect: Effect.fn("ResidentRuntime.canonicalCollection")(function* (
-      context: DeliveryContext,
+      context: Omit<DeliveryContext, "request">,
       native: ReturnType<typeof makeResidentCollectionRoot>
     ): Effect.fn.Return<DeliveryOutcome> {
       return yield* driver.driveConstructedEffect(() => {
-        const invocation = driver.allocateCollectionInvocation(context, function* () {
-          yield effectNative(native.cleanup(), false)
-        })
+        const invocation = driver.allocateCollectionInvocation(
+          { ...context, request: driver.state.next_invocation },
+          function* () {
+            yield effectNative(native.cleanup(), false)
+          }
+        )
         const child = owner.find(invocation, driver.state.children)
         const inputHandle =
           child.$ === "Some" && child.value.scope.$ === "DeliveryScope" ? child.value.scope.input_handle : undefined
