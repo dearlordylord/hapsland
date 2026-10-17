@@ -256,14 +256,9 @@ Acceptance path / evidence:
    Profile45s stop under load45/12 retained; corrected5ms diagnostic passed.
    Per-call unchanged-graph reuse has native/fast/physical187 PASS, no persistent cache.
    ABI caches discarded. Canonical proof fills6/6; no TODO or added State premise.
-   Server91/92 failed fanout reason: cancelled2/native1. One native advance for
-   cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
-   Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
-   Stale fixtures→rebuild PASS. Prior88/89: Claude
-   IPC deadline failed; isolated same-limit case and9 server PASS.
-4. Retained failures: aborted300s;30s→18.86s/30s→41.73s PASS (fixture90s).
-   Build update-notice5s timeout→focused132 PASS;180s timeout→addressed compile/
-   receipts→workspace46/46 PASS. IPC360s aborted; tail18+other89 PASS.
+4. Historical failures, their fixes and superseded experiments remain in Git;
+   none is relabeled as current passing evidence.
+
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
