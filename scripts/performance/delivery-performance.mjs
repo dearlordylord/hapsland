@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -14,7 +14,8 @@ assert.equal(
   execFileSync("git", ["rev-parse", "HEAD"], { cwd: roots.typescript, encoding: "utf8" }).trim(),
   "a0773f79ffa4babdba219c773832fa3a61cc803c"
 )
-const probe = process.argv.includes("--probe"),
+const profile = process.argv.includes("--profile"),
+  probe = profile || process.argv.includes("--probe"),
   stop = Date.now() + 600_000
 const temporary = mkdtempSync(join(tmpdir(), "haps-delivery-bench-"))
 const worker = resolve(
@@ -25,6 +26,11 @@ const golden = join(temporary, "golden.json"),
   fixture = join(temporary, "fixture.json")
 const startedAt = new Date().toISOString(),
   samples = { typescript: [], integratedBend: [] }
+// Profiling is a single diagnostic pair, never a qualification run.
+const profileDirectory = profile
+  ? resolve(roots.integratedBend, ".test-runs/bend-migration/profiles", startedAt.replaceAll(":", "-"))
+  : undefined
+if (profileDirectory) mkdirSync(profileDirectory, { recursive: true })
 const files = {
   "a.ts": "type Count = number\n",
   "b.ts": "type OtherCount = number\n",
@@ -53,6 +59,7 @@ try {
         else environment[name] = value
       }
     }
+    if (profile) environment.HAPSLAND_DELIVERY_PROFILE_INTERVALS = "1"
     return environment
   }
   const invoke = (lane, mode) =>
@@ -62,6 +69,14 @@ try {
         "-c",
         "11",
         join(roots.integratedBend, "node_modules/bun/bin/bun.exe"),
+        ...(profileDirectory && mode === "measure"
+          ? [
+              "--cpu-prof",
+              "--cpu-prof-interval=5000",
+              `--cpu-prof-dir=${profileDirectory}`,
+              `--cpu-prof-name=${lane}.cpuprofile`
+            ]
+          : []),
         worker,
         roots[lane],
         mode,
@@ -88,8 +103,9 @@ try {
       console.log(JSON.stringify({ pair, lane, ...sample }))
     }
   }
-  if (probe) console.log(JSON.stringify({ probe: true, passed: true }))
-  else {
+  if (probe) {
+    console.log(JSON.stringify({ probe: true, passed: true, profileDirectory }))
+  } else {
     const mean = (values) => values.reduce((sum, sample) => sum + sample.seconds, 0) / values.length
     const meanRatio = mean(samples.integratedBend) / mean(samples.typescript)
     const fixtureRatios = samples.typescript[0].fixtures.map(({ name }, index) => ({

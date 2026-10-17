@@ -50,7 +50,7 @@ const observation = (path, edit) =>
       )
     : run(adaptCodexDirectEvent(addEvent(root, [path])))
 
-async function invoke(name) {
+async function invoke(name, phase) {
   const edit = name === "edit-ready",
     ready = name.endsWith("ready"),
     ipc = !name.startsWith("local")
@@ -144,13 +144,15 @@ async function invoke(name) {
         composed: true
       }
     events.length = 0
+    const wallStart = Date.now() * 1000
     const started = performance.now(),
       cpu = process.cpuUsage()
     const response = await run(
-      ipc ? residentRequestEffect(server.paths, request, 2500) : server.collect(root, a.advicee, dispatch)
+      ipc ? residentRequestEffect(server.paths, request) : server.collect(root, a.advicee, dispatch)
     )
     const elapsed = (performance.now() - started) / 1000,
       used = process.cpuUsage(cpu)
+    const wallStop = Date.now() * 1000
     assert.equal(response.status, ready ? "advice" : "empty")
     assert.equal(events.filter((event) => event === "transport-barrier").length, ipc ? 1 : 0)
     if (ready) {
@@ -179,7 +181,17 @@ async function invoke(name) {
     assert.equal(stats.running, 0)
     assert.equal(stats.queued, 0)
     assert.equal(existsSync(server.paths.socket), false)
-    return { name, seconds: elapsed, cpuSeconds: (used.user + used.system) / 1e6, result }
+    return {
+      name,
+      seconds: elapsed,
+      cpuSeconds: (used.user + used.system) / 1e6,
+      ...(process.env.HAPSLAND_DELIVERY_PROFILE_INTERVALS === "1"
+        ? { profileInterval: { start: wallStart, stop: wallStop } }
+        : {}),
+      result
+    }
+  } catch (cause) {
+    throw new Error(`Delivery fixture ${name} failed during ${phase}`, { cause })
   } finally {
     held = false
     await run(Deferred.succeed(allow, undefined))
@@ -188,12 +200,12 @@ async function invoke(name) {
   }
 }
 
-const suite = async () => {
+const suite = async (phase) => {
   const samples = []
-  for (const name of cases) samples.push(await invoke(name))
+  for (const name of cases) samples.push(await invoke(name, phase))
   return samples
 }
-const first = await suite(),
+const first = await suite(mode === "prepare" ? "prepare" : "validation"),
   actual = first.map(({ name, result }) => ({ name, result }))
 if (mode === "prepare") {
   writeFileSync(goldenPath, JSON.stringify(actual))
@@ -202,10 +214,10 @@ if (mode === "prepare") {
   assert.deepEqual(actual, golden)
   for (let warmup = 0; warmup < 2; warmup++)
     assert.deepEqual(
-      (await suite()).map(({ name, result }) => ({ name, result })),
+      (await suite(`warmup-${warmup}`)).map(({ name, result }) => ({ name, result })),
       golden
     )
-  const samples = await suite()
+  const samples = await suite("measurement")
   assert.deepEqual(
     samples.map(({ name, result }) => ({ name, result })),
     golden

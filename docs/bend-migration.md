@@ -233,13 +233,18 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:15 draft laws;5 approved proofs pending; delivery timing.
+3. Open:15 draft laws;4 approved proofs pending; delivery timing.
    At whole acceptance move semantic properties to domain laws; delete
    temporary exact equations/specs/proofs.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
    Build46/46,owner60941,fast44/3; current ae590315 physical187 PASS.
-   Custody reads bypass Canonical conversion; native24/41 PASS; probe3.29×
-   equal outputs, unqualified. ABI caches discarded.
+   Custody reads avoid Canonical conversion; native24/41+80 metadata reads PASS.
+   Whole delivery17-pair attempt stopped at pair11 by fixture IPC2.5s timeout;
+   incomplete/unqualified. Benchmark now uses both products' default4s.
+   Under load45/12, profiling hit its worker45s stop; no retry under that load.
+   Corrected diagnostic5ms profile passed equal results/cleanup; sampled edit
+   publication12/32 stacks suggests an operation-local ABI-copy cut; no speed claim.
+   ABI caches remain discarded. Typed claim proof fills2/6; root still4 TODO.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
