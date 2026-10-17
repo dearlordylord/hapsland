@@ -220,13 +220,14 @@ P/K/F/R/D/Root/C:992 tapes,4 mutants; owner60941 assertions including59523
 independent comparisons. Matching build46/46,protocol9/9,fast44/1; unchanged
 product e6928b73 physical187 PASS. Native24/41+80 metadata reads PASS.
 
-Whole delivery `016fce4d`,2026-10-17 06:38 UTC:17 frozen pairs, exact
-results/cleanup, all five freeze checks pass. **2.3664×**, owner≤3× PASS,
-strict parity false. TS/Bend total medians[ranges] s:
-.0986[.0855,.1105]/.2262[.2082,.2966]. Scenario ratios: local-empty5.50×,
-local-ready2.47×,IPC-empty2.81×,IPC-ready2.13×,edit-ready2.41×.
-Shared-machine timings, not isolated optimization speedup. Product IPC deadline
-remains4s. Per-call unchanged-graph retention has no persistent cache.
+Whole delivery requalification `2f5cfcfd`,2026-10-17 09:55 UTC:17 pairs,
+exact results/cleanup, five freezes pass. **2.7812×**, owner≤3× PASS, strict parity
+false. TS/Bend suite medians[ranges] s:
+.0913[.0803,.1966]/.2542[.1786,.5163]. Scenario ratios: local-empty6.80×,
+local-ready2.35×,IPC-empty2.66×,IPC-ready3.07×,edit-ready2.86×.
+Shared-machine timings, no causal claim; budget applies to the whole suite.
+Product IPC deadline remains4s. Per-call unchanged-graph retention has no
+persistent cache.
 
 ## Current unit: resident evaluation through retained advice
 
