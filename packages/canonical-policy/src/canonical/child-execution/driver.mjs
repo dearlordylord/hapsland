@@ -136,6 +136,8 @@ export function createChildExecutionDriver({
   /** @type {EntryTable} */
   const entries = owner
   const current = () => (control ? control.readState() : required(state))
+  // Internal metadata reads need the existing custody snapshot, not Canonical ABI conversion.
+  const currentCustody = () => control?.readCustody?.() ?? current()
   /**
    * @template {Method} M
    * @param {M} method
@@ -153,7 +155,7 @@ export function createChildExecutionDriver({
   }
   /** @param {number} invocation */
   const findChild = (invocation) => {
-    const child = owner.find(invocation, current().children)
+    const child = owner.find(invocation, currentCustody().children)
     if (child.$ !== "Some") throw new Error("Missing Canonical invocation")
     return child.value
   }
@@ -163,7 +165,7 @@ export function createChildExecutionDriver({
    */
   const readActive = (invocation) => {
     if (control?.readActive) return control.readActive(invocation)
-    const found = owner.find(invocation, current().children)
+    const found = owner.find(invocation, currentCustody().children)
     return found.$ === "Some" ? { $: "Some", value: owner.child_active(found.value) } : { $: "None" }
   }
   /** @param {number} invocation */
@@ -403,7 +405,7 @@ export function createChildExecutionDriver({
         try {
           const projected = load(raw.input_handle, invocation, "result")
           if (constructionFailure(projected)) throw new Error("Invalid delivery handoff payload")
-          const child = owner.find(raw.invocation, current().children)
+          const child = owner.find(raw.invocation, currentCustody().children)
           if (child.$ !== "Some" || !owner.delivery_receipt_matches(child.value, raw))
             throw new Error("Delivery handoff lacks Canonical custody")
           const receipt = Object.freeze({ handoff: raw.invocation, receipt: raw })
@@ -413,7 +415,7 @@ export function createChildExecutionDriver({
             kind: "delivery-input",
             value: { receipt, projected, cleanup: transfer.cleanup, cleaned: false, retained: false }
           })
-          const previous = owner.find(invocation, current().children)
+          const previous = owner.find(invocation, currentCustody().children)
           const input =
             previous.$ === "Some" && previous.value.scope.$ === "DeliveryScope"
               ? resources.get(previous.value.scope.input_handle)
@@ -442,7 +444,7 @@ export function createChildExecutionDriver({
         const held = resources.get(command.input_handle)
         if (!held || held.invocation !== 0 || held.kind !== "advice-input" || held.value.origin !== command.origin)
           throw new Error("Advice launch requires its prepared opaque input")
-        const child = owner.find(invocation, current().children)
+        const child = owner.find(invocation, currentCustody().children)
         if (child.$ !== "Some" || child.value.scope.$ !== "AdviceTailScope")
           throw new Error("Advice launch lacks Canonical custody")
         const receipt = Object.freeze({ handoff: invocation, scope: child.value.scope })
@@ -667,7 +669,7 @@ export function createChildExecutionDriver({
           let abortFailure
           const abort = () => {
             try {
-              const child = owner.find(invocation, current().children)
+              const child = owner.find(invocation, currentCustody().children)
               if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
             } catch (error) {
               const receipt = takeFailure(error)
@@ -769,7 +771,7 @@ export function createChildExecutionDriver({
               } catch (error) {
                 taskFailure = takeFailure(error)
                 try {
-                  const child = owner.find(invocation, current().children)
+                  const child = owner.find(invocation, currentCustody().children)
                   if (child.$ === "Some" && owner.child_active(child.value))
                     applyInInvocation(invoke("cancel", invocation))
                 } catch (cleanupError) {
@@ -803,7 +805,7 @@ export function createChildExecutionDriver({
           } catch (error) {
             taskFailure ??= takeFailure(error)
             try {
-              const child = owner.find(invocation, current().children)
+              const child = owner.find(invocation, currentCustody().children)
               if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
             } catch (cleanupError) {
               taskFailure = takeFailure(cleanupError)
@@ -828,7 +830,7 @@ export function createChildExecutionDriver({
     } catch (error) {
       if (!registryRejected) takeFailure(error)
       try {
-        const child = owner.find(invocation, current().children)
+        const child = owner.find(invocation, currentCustody().children)
         if (child.$ === "Some" && owner.child_active(child.value)) applyInInvocation(invoke("cancel", invocation))
         if (!taskEntered && child.$ === "Some" && child.value.scope.$ === "AdviceTailScope") {
           constructionError = required(failures[0])
@@ -866,7 +868,7 @@ export function createChildExecutionDriver({
           attemptFailures.push(...cleanup.failures)
           if (cleanup.rejection) return { failures: attemptFailures, rejection: attemptFailures[0] }
         }
-        let child = owner.find(invocation, current().children)
+        let child = owner.find(invocation, currentCustody().children)
         if (child.$ === "Some" && child.value.lease.$ !== "None")
           throw new Error("Finalization still owns a provider lease")
         // Call finish directly here: a failing retry must not replace its registry
@@ -888,11 +890,11 @@ export function createChildExecutionDriver({
             release(id, invocation)
           }
         }
-        child = owner.find(invocation, current().children)
+        child = owner.find(invocation, currentCustody().children)
         if (child.$ === "Some" && owner.child_active(child.value)) {
           if (applyAttempt(invoke("cancel", invocation)))
             return { failures: attemptFailures, rejection: attemptFailures[0] }
-          child = owner.find(invocation, current().children)
+          child = owner.find(invocation, currentCustody().children)
           if (child.$ === "Some" && owner.child_active(child.value))
             throw new Error("Finalization has no closed Canonical owner")
         }
@@ -924,7 +926,7 @@ export function createChildExecutionDriver({
     if (failures.length && nativeInput?.kind === "input" && nativeInput.successor) {
       const receipt = nativeInput.successor
       const held = resources.get(receipt.receipt.input_handle)
-      const child = owner.find(receipt.handoff, current().children)
+      const child = owner.find(receipt.handoff, currentCustody().children)
       if (
         held?.kind === "delivery-input" &&
         held.value.receipt === receipt &&
@@ -987,7 +989,7 @@ export function createChildExecutionDriver({
       entered = true
       return yield* driveInvocationFlow(session, input, options)
     } catch (error) {
-      const child = owner.find(invocation, current().children)
+      const child = owner.find(invocation, currentCustody().children)
       if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
       throw error
     } finally {
@@ -1021,7 +1023,7 @@ export function createChildExecutionDriver({
     } catch (error) {
       const failures = [error]
       try {
-        const child = owner.find(invocation, current().children)
+        const child = owner.find(invocation, currentCustody().children)
         if (child.$ === "Some" && owner.child_active(child.value)) apply(invoke("cancel", invocation))
       } catch (cleanupError) {
         failures.push(cleanupError)
@@ -1057,9 +1059,9 @@ export function createChildExecutionDriver({
         throw new TypeError("Independent operation requires a root invocation")
       if (!independentOperation && (!parent || preparation) && !issuedScope)
         throw new TypeError("Missing owned invocation scope")
-      if (current().next_invocation < 1 || current().next_invocation > Number.MAX_SAFE_INTEGER)
+      if (currentCustody().next_invocation < 1 || currentCustody().next_invocation > Number.MAX_SAFE_INTEGER)
         throw new RangeError("Invocation exceeds exact native ID range")
-      const invocation = current().next_invocation
+      const invocation = currentCustody().next_invocation
       const inputId = save(invocation, { kind: "input", value: undefined })
       try {
         apply(
@@ -1081,7 +1083,7 @@ export function createChildExecutionDriver({
         )
         return Number(BigInt(invocation))
       } catch (error) {
-        const child = owner.find(invocation, current().children)
+        const child = owner.find(invocation, currentCustody().children)
         if (child.$ === "Some") {
           try {
             driver.constructionFailed(Number(BigInt(invocation)), { inputHandle: inputId })
@@ -1096,7 +1098,7 @@ export function createChildExecutionDriver({
     },
     /** @param {import("@hapsland/agent-flow-bend/canonical-resolver-owner").DeliveryContext} context @param {DeliveryCustody["cleanup"]} cleanup @returns {number} */
     allocateCollectionInvocation(context, cleanup) {
-      const invocation = current().next_invocation
+      const invocation = currentCustody().next_invocation
       if (!Number.isSafeInteger(invocation) || invocation < 1)
         throw new RangeError("Invocation exceeds exact native ID range")
       const inputId = save(invocation, {
@@ -1136,7 +1138,7 @@ export function createChildExecutionDriver({
             held.value.receipt !== receipt
           )
             return Effect.succeed(false)
-          const child = owner.find(invocation, current().children)
+          const child = owner.find(invocation, currentCustody().children)
           if (child.$ === "Some" && owner.delivery_receipt_matches(child.value, receipt.receipt)) {
             apply(invoke("cancel", invocation))
           } else if (!held.value.retained || (child.$ === "Some" && owner.child_active(child.value))) {
@@ -1239,7 +1241,7 @@ export function createChildExecutionDriver({
       const ownerInvocation = Number(BigInt(invocation))
       const held = inputHandle === undefined ? undefined : resources.get(inputHandle)
       const custody = held?.kind === "input" ? held.custody : undefined
-      const child = owner.find(ownerInvocation, current().children)
+      const child = owner.find(ownerInvocation, currentCustody().children)
       let cancelCommitted = !!custody && (child.$ === "None" || !owner.child_active(child.value))
       /** @type {Extract<Step, {$: "Advanced"}>["outputs"] | undefined} */
       let pendingOutputs
@@ -1258,7 +1260,7 @@ export function createChildExecutionDriver({
             const step = invoke("cancel", ownerInvocation)
             const outcome = applyOutcome(step)
             // A committed cancel may still have unfinished actual resource actions.
-            const child = owner.find(ownerInvocation, current().children)
+            const child = owner.find(ownerInvocation, currentCustody().children)
             cancelCommitted = step.$ === "Advanced" && (child.$ === "None" || !owner.child_active(child.value))
             if (step.$ === "Advanced" && outcome.failures.some((receipt) => receipt.phase === "outputs"))
               pendingOutputs = step.outputs

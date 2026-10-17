@@ -5,7 +5,9 @@ import ./DeliveryExecution.bend as Execution
 import ./PrepareSpecification.bend as Specification
 
 # DRAFT for owner approval: no proof bodies are authorized by this file.
-# These are retained behavioral contracts, not temporary TypeScript parity laws.
+# Temporary exact-correspondence checks for migration, not permanent product contracts.
+# Cleanup: at whole delivery acceptance, move retained semantic properties to
+# the delivery owner laws, then delete these internal-state equations/specs/proofs.
 # Root, full Finalize/F/R and Canonical receipt laws remain separate obligations.
 
 # Every reply tape preserves ordered local Prepare effects, exact final state

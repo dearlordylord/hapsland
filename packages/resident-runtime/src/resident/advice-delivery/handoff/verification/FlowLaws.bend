@@ -7,6 +7,8 @@ import ./RootSpecification.bend as RootSpec
 import ./FinalizeSpecification.bend as FinalSpec
 
 # DRAFT whole-flow laws for owner review; no proofs are claimed or authorized.
+# Temporary exact correspondence: at whole delivery acceptance, move retained
+# semantic properties to delivery owner laws and delete these trace equations/specs/proofs.
 # Native IO/physical identity/cleanup and Canonical receipt custody retain their
 # own obligations. Ordered requests include nested Collection/F/R commands.
 # Root events additionally preserve the exact atomic-group boundary.

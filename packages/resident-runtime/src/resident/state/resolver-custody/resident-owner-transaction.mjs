@@ -694,6 +694,9 @@ export function createResidentOwnerTransaction({
   // Synchronous driver calls are serialized through the actual Ref transaction.
   // readState assembles a transient call snapshot; the driver stores no C.State.
   const control = {
+    readCustody() {
+      return Effect.runSync(transaction.read).resolverCustody
+    },
     /** @param {number} invocation */
     readActive(invocation) {
       const snapshot = Effect.runSync(transaction.read)

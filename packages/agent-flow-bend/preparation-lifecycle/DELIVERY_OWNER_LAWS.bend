@@ -2,7 +2,9 @@ import Base
 import ./CanonicalResolverOwner.bend as O
 import ./DeliveryOwnerSpecification.bend as S
 
-# DRAFT for owner approval. No proof bodies are authorized or supplied.
+# Six statements approved by the owner on 2026-10-17 at ce04c4a1; proofs pending.
+# Temporary exact correspondence: at whole delivery acceptance, move retained
+# semantic properties to Canonical laws and delete these equations/specs/proofs.
 # Exact pure lifecycle of the connected Collect -> Prepare -> Finalize family.
 # Native pointer custody, cleanup retries, masking and physical lifetime checks
 # remain real-consumer obligations; these equations pin the actions they execute.

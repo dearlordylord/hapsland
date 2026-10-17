@@ -31,7 +31,8 @@ const postCore = (
   const run = Effect.runSync,
     limits = { globalItems: 100, globalBytes: 10000, partitionItems: 16, partitionBytes: 10000 }
   let cases = 0,
-    callerChecks = 0
+    callerChecks = 0,
+    custodyReads = 0
   for (const variant of [
     "completed",
     "interrupted",
@@ -780,7 +781,16 @@ const postCore = (
     if (tailVariant.startsWith("driver-")) {
       adviceDriver = createOwnedArtifactDriver({
         owner,
-        control: bridge.control,
+        control: {
+          ...bridge.control,
+          readState() {
+            throw new Error("Driver metadata must not assemble the Canonical state")
+          },
+          readCustody() {
+            custodyReads++
+            return bridge.control.readCustody()
+          }
+        },
         registry,
         machine: tailMachine,
         selectMachine: () => {
@@ -1134,11 +1144,13 @@ const postCore = (
     cases++
   }
   assert.ok(callerChecks > 0)
+  assert.ok(custodyReads > 0)
   console.log(
     JSON.stringify({
       passed: true,
       cases,
       callerChecks,
+      custodyReads,
       scope:
         "actual resident Ref/capacity/revision/advice owners; atomic insertion and independent Canonical advice-tail driver; revoked and duplicate birth rollback, insertion/removal ack loss, parent cancellation, expiry fate, absent publication and replacement identity, persistent resource/observer cleanup obligations; controlled source handles, full cached settlement and production adoption remain open"
     })

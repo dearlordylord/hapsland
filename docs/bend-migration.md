@@ -241,12 +241,13 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open:21 draft laws await approval; whole delivery timing.
-   P/K/F/R/D/Root/C:992 tapes,4 typed mutants rejected; all68 C,
-   11 Root/11 G phases compared; Canonical lifecycle59523 comparisons.
-   Build46/46,owner60941,fast44/1; prior server92/consumers95 PASS.
-   Drain keeps revoke/stage/invocation fences, atomic groups and receipts.
-   Equal-output probes exceed3×; both ABI-cache experiments discarded.
+3. Open:15 draft laws;6 approved proofs pending; delivery timing.
+   At whole acceptance move semantic properties to domain laws; delete
+   temporary exact equations/specs/proofs.
+   P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
+   Build46/46,owner60941,fast44/3; prior ce04c4a1 physical187 PASS.
+   Custody reads bypass Canonical conversion; native24/41 PASS; probe3.29×
+   equal outputs, unqualified. ABI caches discarded.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
    Context cold180s timeout→writer audit→3 compiles→build46/46 PASS.
