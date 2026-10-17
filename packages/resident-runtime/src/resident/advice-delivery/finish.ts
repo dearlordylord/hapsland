@@ -5,11 +5,6 @@ import { type ResidentResponse } from "@hapsland/resident-transport/resident/pro
 
 type Dependencies = { readonly residentLedger: ResidentLedger }
 
-export const residentFindingResponse = (
-  response: ResidentResponse
-): response is Extract<ResidentResponse, { status: "advice" }> =>
-  response.status === "advice" && response.findingCount > 0
-
 export const residentNoticeResponse = (response: ResidentResponse): boolean =>
   response.status === "advice" && response.findingCount === 0
 

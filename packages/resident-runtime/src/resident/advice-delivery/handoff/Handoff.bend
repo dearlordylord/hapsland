@@ -1294,3 +1294,254 @@ def finalize_resume(+step: FStep, +reply: FReply) -> FStep:
         response
       )
     case _ _: FRejected{}
+
+# Reconcile the provisional finish reservation in the same handoff owner.
+# Snapshot handles preserve physical round identity; Bend filters and binds them.
+type RInput is Data:
+  RInput{
+    finish: Bool,
+    provisional_findings: Bool,
+    advice: Bool,
+    findings: Nat,
+    can_write: Bool,
+    same_token: Bool
+  }
+type RSnapshot is Data:
+  RSnapshot{
+    handle: Nat,
+    owned: Bool,
+    same_round: Bool,
+    work: Bool,
+    delivery: Bool,
+    count: Nat,
+    operation: Nat
+  }
+type RPending is Data:
+  RPending{operation: Nat, count: Nat}
+type RReason is Data:
+  RNoAdvice{}
+  RDeadline{}
+  RUnavailable{}
+type RDecision is Data:
+  RReserved{}
+  RAllowed{reason: RReason}
+  RRefused{}
+type RCommand is Data:
+  RRevoke{}
+  RRound{}
+  RSnapshots{}
+  RPendingFindings{}
+  RClock{}
+  RDecide{selected: List<&2, Nat>, binding: Bool, can_write: Bool}
+  RRelease{provisional: Bool}
+  RAllow{reason: RReason}
+type RResponse is Data:
+  RAck{}
+  RTruth{value: Bool}
+  RSnapshotValues{values: List<&2, RSnapshot>}
+  RPendingValues{values: List<&2, RPending>}
+  RDecided{decision: RDecision}
+type RSelection is Data:
+  RSelection{selected: List<&2, Nat>, count: Nat, valid: Bool}
+type RPhase is Data:
+  RRevoked{input: RInput}
+  RReleasedProvisional{}
+  RRoundRead{input: RInput}
+  RSnapshotsRead{input: RInput, round: Bool}
+  RPendingRead{input: RInput, round: Bool, snapshots: List<&2, RSnapshot>}
+  RClockRead{input: RInput, selection: RSelection}
+  ROutputDecided{advice: Bool}
+  RReleasedFinal{reason: RReason}
+  RAllowedFinish{}
+type RRequest is Data:
+  RRequest{invocation: Nat, id: Nat, command: RCommand}
+type RReply is Data:
+  RReply{invocation: Nat, id: Nat, response: RResponse}
+type RStep is Data:
+  RAwait{invocation: Nat, id: Nat, phase: RPhase, request: RRequest}
+  RFinal{}
+  REmpty{}
+  RRejected{}
+
+def r_issue(+invocation: Nat, +id: Nat, +phase: RPhase, +command: RCommand) -> RStep:
+  RAwait{invocation, id, phase, RRequest{invocation, id, command}}
+
+def r_pending_value(+same: Bool, +count: Nat, +rest: Nat) -> Nat:
+  match same:
+    case True{}: count
+    case False{}: rest
+
+def r_pending(+pending: List<&2, RPending>, +operation: Nat) -> Nat:
+  match pending:
+    case Nil{}: 0n
+    case RPending{+other, +count} <> +rest:
+      r_pending_value(Nat.is_eq(operation, other), count, r_pending(rest, operation))
+
+def r_selected_item(
+  +owned: Bool,
+  +handle: Nat,
+  +count: Nat,
+  +valid: Bool,
+  +tail: RSelection
+) -> RSelection:
+  match owned tail:
+    case False{} +result: result
+    case True{} RSelection{+selected, +total, +remaining_valid}:
+      RSelection{handle <> selected, Nat.add(count, total), Bool.and(valid, remaining_valid)}
+
+def r_select(+snapshots: List<&2, RSnapshot>, +pending: List<&2, RPending>) -> RSelection:
+  match snapshots:
+    case Nil{}: RSelection{[], 0n, True{}}
+    case RSnapshot{+handle, +owned, +same_round, +work, +delivery, +count, +operation} <> +rest:
+      r_selected_item(
+        owned,
+        handle,
+        count,
+        Bool.and(
+          same_round,
+          Bool.and(work, Bool.and(delivery, Nat.is_le(count, r_pending(pending, operation))))
+        ),
+        r_select(rest, pending)
+      )
+
+def r_binding(+advice: Bool, +findings: Nat, +round: Bool, +count: Nat, +valid: Bool) -> Bool:
+  Bool.or(
+    Bool.not(advice),
+    Bool.or(Nat.is_eq(findings, 0n), Bool.and(round, Bool.and(Nat.is_eq(findings, count), valid)))
+  )
+
+def r_read_snapshots(
+  +advice: Bool,
+  +invocation: Nat,
+  +next: Nat,
+  +input: RInput,
+  +round: Bool
+) -> RStep:
+  match advice:
+    case True{}: r_issue(invocation, next, RSnapshotsRead{input, round}, RSnapshots{})
+    case False{}: r_issue(invocation, next, RPendingRead{input, round, []}, RPendingFindings{})
+
+def r_clock(
+  +invocation: Nat,
+  +next: Nat,
+  +input: RInput,
+  +round: Bool,
+  +selection: RSelection
+) -> RStep:
+  match input selection:
+    case RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token} RSelection{
+      +selected,
+      +count,
+      +valid
+    }:
+      r_issue(invocation, next,
+        RClockRead{RInput{finish, provisional, advice, findings, can_write, same_token},
+          RSelection{selected, count, r_binding(advice, findings, round, count, valid)}}, RClock{})
+
+def r_allow_after_release(+advice: Bool, +invocation: Nat, +next: Nat, +reason: RReason) -> RStep:
+  match advice:
+    case True{}: r_issue(invocation, next, RReleasedFinal{reason}, RRelease{False{}})
+    case False{}: r_issue(invocation, next, RAllowedFinish{}, RAllow{reason})
+
+def r_begin(+needed: Bool, +invocation: Nat, +input: RInput) -> RStep:
+  match needed:
+    case False{}: RFinal{}
+    case True{}: r_issue(invocation, 1n, RRevoked{input}, RRevoke{})
+
+def reconcile_initial(+invocation: Nat, +input: RInput) -> RStep:
+  match input:
+    case RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token}:
+      r_begin(
+        Bool.and(finish, provisional),
+        invocation,
+        RInput{finish, provisional, advice, findings, can_write, same_token}
+      )
+
+def r_phase(+invocation: Nat, +next: Nat, +phase: RPhase, +response: RResponse) -> RStep:
+  match phase response:
+    case RRevoked{+input} RTruth{True{}}: r_issue(invocation, next, RRoundRead{input}, RRound{})
+    case RRevoked{_} RTruth{False{}}: r_issue(
+      invocation,
+      next,
+      RReleasedProvisional{},
+      RRelease{True{}}
+    )
+    case RReleasedProvisional{} RAck{}: r_issue(
+      invocation,
+      next,
+      RAllowedFinish{},
+      RAllow{RUnavailable{}}
+    )
+    case RRoundRead{RInput{+finish, +provisional, +advice, +findings, +can_write, +same_token}} RTruth{
+      +round
+    }:
+      r_read_snapshots(
+        advice,
+        invocation,
+        next,
+        RInput{finish, provisional, advice, findings, can_write, same_token},
+        round
+      )
+    case RSnapshotsRead{+input, +round} RSnapshotValues{+snapshots}:
+      r_issue(invocation, next, RPendingRead{input, round, snapshots}, RPendingFindings{})
+    case RPendingRead{+input, +round, +snapshots} RPendingValues{+pending}:
+      r_clock(invocation, next, input, round, r_select(snapshots, pending))
+    case RClockRead{
+      RInput{_, _, +advice, _, +can_write, +same_token},
+      RSelection{+selected, _, +valid}
+    } RAck{}:
+      r_issue(
+        invocation,
+        next,
+        ROutputDecided{advice},
+        RDecide{selected, valid, Bool.and(can_write, Bool.and(advice, same_token))}
+      )
+    case ROutputDecided{_} RDecided{RReserved{}}: RFinal{}
+    case ROutputDecided{+advice} RDecided{RAllowed{+reason}}: r_allow_after_release(
+      advice,
+      invocation,
+      next,
+      reason
+    )
+    case ROutputDecided{+advice} RDecided{RRefused{}}: r_allow_after_release(
+      advice,
+      invocation,
+      next,
+      RUnavailable{}
+    )
+    case RReleasedFinal{+reason} RAck{}: r_issue(invocation, next, RAllowedFinish{}, RAllow{reason})
+    case RAllowedFinish{} RAck{}: REmpty{}
+    case _ _: RRejected{}
+
+def r_accept(
+  +valid: Bool,
+  +invocation: Nat,
+  +next: Nat,
+  +phase: RPhase,
+  +response: RResponse
+) -> RStep:
+  match valid:
+    case False{}: RRejected{}
+    case True{}: r_phase(invocation, Nat.add(next, 1n), phase, response)
+
+def reconcile_resume(+step: RStep, +reply: RReply) -> RStep:
+  match step reply:
+    case RAwait{+invocation, +id, +phase, RRequest{+owner, +request, _}} RReply{
+      +other,
+      +received,
+      +response
+    }:
+      r_accept(
+        Bool.and(
+          Nat.is_eq(invocation, other),
+          Bool.and(
+            Nat.is_eq(owner, other),
+            Bool.and(Nat.is_eq(id, received), Nat.is_eq(request, received))
+          )
+        ),
+        invocation,
+        id,
+        phase,
+        response
+      )
+    case _ _: RRejected{}

@@ -164,3 +164,160 @@ it("refits once after blocking advice disappears and captures all contents befor
   assert.ok(lastContent < firstProjection)
   assert.equal(trace.filter((command) => command.$ === "FObserveMessage").length, 1)
 })
+
+const reconcileInput = (overrides = {}) => ({
+  $: "RInput",
+  finish: true,
+  provisional_findings: true,
+  advice: true,
+  findings: 3,
+  can_write: true,
+  same_token: true,
+  ...overrides
+})
+const reconcile = (initial, perform) => {
+  let step = core.reconcile_initial(89, initial)
+  const trace = []
+  for (let count = 0; step.$ === "RAwait" && count < 20; count++) {
+    const request = step.request
+    trace.push(request.command)
+    const reply = { $: "RReply", invocation: request.invocation, id: request.id, response: perform(request.command) }
+    assert.deepEqual(core.reconcile_resume(step, { ...reply, id: request.id + 1 }), { $: "RRejected" })
+    assert.deepEqual(core.reconcile_resume(step, { ...reply, invocation: 90 }), { $: "RRejected" })
+    step = core.reconcile_resume(step, reply)
+  }
+  assert.ok(step.$ === "RFinal" || step.$ === "REmpty")
+  assert.deepEqual(core.reconcile_resume(step, { $: "RReply", invocation: 89, id: 1, response: { $: "RAck" } }), {
+    $: "RRejected"
+  })
+  return { step, trace }
+}
+const rAck = { $: "RAck" }
+
+it("finish reconciliation keeps early no-op and failed revoke release-before-allow", () => {
+  for (const overrides of [{ finish: false }, { provisional_findings: false }]) {
+    assert.deepEqual(
+      reconcile(reconcileInput(overrides), () => assert.fail("no-op performed IO")),
+      { step: { $: "RFinal" }, trace: [] }
+    )
+  }
+  const result = reconcile(reconcileInput(), (command) =>
+    command.$ === "RRevoke" ? { $: "RTruth", value: false } : rAck
+  )
+  assert.deepEqual(result.trace, [
+    { $: "RRevoke" },
+    { $: "RRelease", provisional: true },
+    { $: "RAllow", reason: { $: "RUnavailable" } }
+  ])
+  assert.deepEqual(result.step, { $: "REmpty" })
+})
+
+it("finish binding preserves selected order, physical round facts, first pending match and write fencing", () => {
+  for (const round of [false, true])
+    for (const same_round of [false, true])
+      for (const work of [false, true])
+        for (const delivery of [false, true])
+          for (const findings of [0, 2, 3, 4])
+            for (const can_write of [false, true])
+              for (const same_token of [false, true]) {
+                const snapshots = [
+                  { $: "RSnapshot", handle: 7, owned: true, same_round, work, delivery, count: 2, operation: 10 },
+                  {
+                    $: "RSnapshot",
+                    handle: 8,
+                    owned: false,
+                    same_round: false,
+                    work: false,
+                    delivery: false,
+                    count: 100,
+                    operation: 12
+                  },
+                  {
+                    $: "RSnapshot",
+                    handle: 9,
+                    owned: true,
+                    same_round: true,
+                    work: true,
+                    delivery: true,
+                    count: 1,
+                    operation: 11
+                  }
+                ]
+                const result = reconcile(reconcileInput({ findings, can_write, same_token }), (command) => {
+                  switch (command.$) {
+                    case "RRevoke":
+                      return { $: "RTruth", value: true }
+                    case "RRound":
+                      return { $: "RTruth", value: round }
+                    case "RSnapshots":
+                      return { $: "RSnapshotValues", values: list(snapshots) }
+                    case "RPendingFindings":
+                      return {
+                        $: "RPendingValues",
+                        values: list([
+                          { $: "RPending", operation: 10, count: 2 },
+                          { $: "RPending", operation: 10, count: 0 },
+                          { $: "RPending", operation: 11, count: 1 }
+                        ])
+                      }
+                    case "RClock":
+                      return rAck
+                    case "RDecide":
+                      assert.deepEqual(unlist(command.selected), [7, 9])
+                      assert.equal(
+                        command.binding,
+                        findings === 0 || (round && findings === 3 && same_round && work && delivery)
+                      )
+                      assert.equal(command.can_write, can_write && same_token)
+                      return { $: "RDecided", decision: { $: "RReserved" } }
+                    default:
+                      assert.fail(`reserved finish performed ${command.$}`)
+                  }
+                })
+                assert.deepEqual(result.step, { $: "RFinal" })
+                assert.deepEqual(
+                  result.trace.map((command) => command.$),
+                  ["RRevoke", "RRound", "RSnapshots", "RPendingFindings", "RClock", "RDecide"]
+                )
+              }
+})
+
+it("finish refusal releases only final advice and preserves allowed reasons; non-advice skips snapshots", () => {
+  for (const advice of [false, true])
+    for (const decision of [
+      { $: "RRefused" },
+      { $: "RAllowed", reason: { $: "RNoAdvice" } },
+      { $: "RAllowed", reason: { $: "RDeadline" } },
+      { $: "RAllowed", reason: { $: "RUnavailable" } }
+    ]) {
+      const result = reconcile(reconcileInput({ advice, findings: 0 }), (command) => {
+        switch (command.$) {
+          case "RRevoke":
+            return { $: "RTruth", value: true }
+          case "RRound":
+            return { $: "RTruth", value: false }
+          case "RSnapshots":
+            assert.equal(advice, true)
+            return { $: "RSnapshotValues", values: list([]) }
+          case "RPendingFindings":
+            return { $: "RPendingValues", values: list([]) }
+          case "RClock":
+            return rAck
+          case "RDecide":
+            assert.equal(command.binding, true)
+            assert.equal(command.can_write, advice)
+            return { $: "RDecided", decision }
+          case "RRelease":
+            assert.equal(advice, true)
+            assert.equal(command.provisional, false)
+            return rAck
+          case "RAllow":
+            assert.deepEqual(command.reason, decision.$ === "RAllowed" ? decision.reason : { $: "RUnavailable" })
+            return rAck
+        }
+      })
+      assert.deepEqual(result.step, { $: "REmpty" })
+      assert.equal(result.trace.filter((command) => command.$ === "RRelease").length, advice ? 1 : 0)
+      assert.equal(result.trace.at(-1).$, "RAllow")
+    }
+})

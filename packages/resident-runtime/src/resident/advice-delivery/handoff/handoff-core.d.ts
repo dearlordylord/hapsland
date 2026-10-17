@@ -137,7 +137,63 @@ export type FStep =
   | { readonly $: "FDone"; readonly result: FTerminal }
   | { readonly $: "FRejected" }
 
+export type RInput = {
+  readonly $: "RInput"
+  readonly finish: boolean
+  readonly provisional_findings: boolean
+  readonly advice: boolean
+  readonly findings: number
+  readonly can_write: boolean
+  readonly same_token: boolean
+}
+export type RSnapshot = {
+  readonly $: "RSnapshot"
+  readonly handle: number
+  readonly owned: boolean
+  readonly same_round: boolean
+  readonly work: boolean
+  readonly delivery: boolean
+  readonly count: number
+  readonly operation: number
+}
+export type RPending = { readonly $: "RPending"; readonly operation: number; readonly count: number }
+export type RReason = { readonly $: "RNoAdvice" | "RDeadline" | "RUnavailable" }
+export type RDecision = { readonly $: "RReserved" | "RRefused" } | { readonly $: "RAllowed"; readonly reason: RReason }
+export type RCommand =
+  | { readonly $: "RRevoke" | "RRound" | "RSnapshots" | "RPendingFindings" | "RClock" }
+  | { readonly $: "RDecide"; readonly selected: List<number>; readonly binding: boolean; readonly can_write: boolean }
+  | { readonly $: "RRelease"; readonly provisional: boolean }
+  | { readonly $: "RAllow"; readonly reason: RReason }
+export type RResponse =
+  | { readonly $: "RAck" }
+  | { readonly $: "RTruth"; readonly value: boolean }
+  | { readonly $: "RSnapshotValues"; readonly values: List<RSnapshot> }
+  | { readonly $: "RPendingValues"; readonly values: List<RPending> }
+  | { readonly $: "RDecided"; readonly decision: RDecision }
+export type RReply = {
+  readonly $: "RReply"
+  readonly invocation: number
+  readonly id: number
+  readonly response: RResponse
+}
+export type RStep =
+  | {
+      readonly $: "RAwait"
+      readonly invocation: number
+      readonly id: number
+      readonly phase: unknown
+      readonly request: {
+        readonly $: "RRequest"
+        readonly invocation: number
+        readonly id: number
+        readonly command: RCommand
+      }
+    }
+  | { readonly $: "RFinal" | "REmpty" | "RRejected" }
+
 declare const core: {
+  reconcile_initial(invocation: number, input: RInput): RStep
+  reconcile_resume(step: RStep, reply: RReply): RStep
   finalize_initial(invocation: number, input: FInput): FStep
   finalize_resume(step: FStep, reply: FReply): FStep
 }
