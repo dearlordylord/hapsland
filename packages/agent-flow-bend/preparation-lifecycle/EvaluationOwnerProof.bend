@@ -614,5 +614,398 @@ def live_from_scope_exact(+state: O.State, +child: O.Child,
       }
       {==}
 
+def active_exact(+phase: O.Phase) -> {O.active(phase) == S.active(phase) : Bool}:
+  match phase:
+
+    case O.ChildInstalling{}: {==}
+
+    case O.ChildReady{}: {==}
+
+    case O.ChildAwaiting{}: {==}
+
+    case O.ChildResuming{}: {==}
+
+    case O.ChildAccepted{}: {==}
+
+    case O.ChildCancelled{}: {==}
+
+def retire_exact(+inv: Nat, +handle: Nat) -> {
+  O.retire(inv, handle) == S.retire(inv, handle) : List<&2, O.Action>
+}:
+  match handle:
+    case 0n: {==}
+    case 1n++value:
+      %N.add_comm(value, 1n) : {
+        O.RetireHandle{inv, Nat.add(value, 1n)} <> Nil{}
+        == O.RetireHandle{inv, _} <> Nil{} : List<&2, O.Action>
+      }
+      {==}
+
+
+def cancel_update_exact(
+  +child: O.Child
+) -> {O.cancel_child(child) == S.cancel_update(child) : O.ChildUpdate}:
+  match child:
+    case O.Child{scope, inv, epoch, handle, phase, _, held, parent}:
+      %active_exact(phase) : {
+        O.cancel_child(child)
+        == O.ChildUpdate{
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, held, parent},
+          Bool.pick(
+            List<&2, O.Action>,
+            _,
+            O.CancelChild{inv, handle} <> S.retire(inv, handle),
+            Nil{}
+          )
+        }
+        : O.ChildUpdate
+      }
+      %retire_exact(inv, handle) : {
+        O.cancel_child(child)
+        == O.ChildUpdate{
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, held, parent},
+          Bool.pick(List<&2, O.Action>, O.active(phase), O.CancelChild{inv, handle} <> _, Nil{})
+        }
+        : O.ChildUpdate
+      }
+      {==}
+
+def invalidated_exact(+valid: Bool, +child: O.Child) -> {
+  O.invalidate_live(valid, child) == S.invalidated(valid, child) : O.ChildUpdate
+}:
+  match valid:
+    case True{}: {==}
+    case False{}: cancel_update_exact(child)
+
+def invalidate_from_live_exact(
+  +state: O.State,
+  +scope: O.Scope,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  validity: {O.validity_needed(phase, scope) == S.active(phase) : Bool},
+  live: {
+    O.child_live(
+      S.canonical(state),
+      S.children(state),
+      O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+    )
+    == S.live(state, O.Child{scope, inv, epoch, handle, phase, pending, held, parent})
+    : Bool
+  }
+) -> {
+      O.invalidate(
+        S.canonical(state),
+        S.children(state),
+        O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+      )
+      == S.invalidated(
+        Bool.or(
+          Bool.not(S.active(phase)),
+          S.live(state, O.Child{scope, inv, epoch, handle, phase, pending, held, parent})
+        ),
+        O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+      )
+      : O.ChildUpdate
+    }:
+  match state:
+    case O.State{canon, _, _, rest}:
+      %validity : {
+        O.invalidate(canon, rest, O.Child{scope, inv, epoch, handle, phase, pending, held, parent})
+        == S.invalidated(
+          Bool.or(
+            Bool.not(_),
+            S.live(state, O.Child{scope, inv, epoch, handle, phase, pending, held, parent})
+          ),
+          O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+        )
+        : O.ChildUpdate
+      }
+      %live : {
+        O.invalidate(canon, rest, O.Child{scope, inv, epoch, handle, phase, pending, held, parent})
+        == S.invalidated(Bool.or(Bool.not(O.validity_needed(phase, scope)), _),
+          O.Child{scope, inv, epoch, handle, phase, pending, held, parent}) : O.ChildUpdate
+      }
+      invalidated_exact(
+        Bool.or(
+          Bool.not(O.validity_needed(phase, scope)),
+          O.child_live(
+            canon,
+            rest,
+            O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+          )
+        ),
+        O.Child{scope, inv, epoch, handle, phase, pending, held, parent}
+      )
+
+def root_validity_exact(+phase: O.Phase, +operation: Nat, +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission, +origin: Nat, +id: Nat) -> {
+    O.validity_needed(phase, O.EvaluationScope{operation, context, permission})
+    == S.active(phase)
+    : Bool
+  }:
+  match phase:
+
+    case O.ChildInstalling{}: {==}
+
+    case O.ChildReady{}: {==}
+
+    case O.ChildAwaiting{}: {==}
+
+    case O.ChildResuming{}: {==}
+
+    case O.ChildAccepted{}: {==}
+
+    case O.ChildCancelled{}: {==}
+
+def cleanup_validity_exact(+phase: O.Phase, +operation: Nat, +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission, +origin: Nat, +id: Nat) -> {
+    O.validity_needed(phase, O.EvaluationCleanupScope{operation, origin, context, permission})
+    == S.active(phase)
+    : Bool
+  }:
+  match phase:
+
+    case O.ChildInstalling{}: {==}
+
+    case O.ChildReady{}: {==}
+
+    case O.ChildAwaiting{}: {==}
+
+    case O.ChildResuming{}: {==}
+
+    case O.ChildAccepted{}: {==}
+
+    case O.ChildCancelled{}: {==}
+
+def dispatch_validity_exact(+phase: O.Phase, +operation: Nat, +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission, +origin: Nat, +id: Nat) -> {
+    O.validity_needed(phase, O.EvaluationDispatchScope{operation, context, id})
+    == S.active(phase)
+    : Bool
+  }:
+  match phase:
+
+    case O.ChildInstalling{}: {==}
+
+    case O.ChildReady{}: {==}
+
+    case O.ChildAwaiting{}: {==}
+
+    case O.ChildResuming{}: {==}
+
+    case O.ChildAccepted{}: {==}
+
+    case O.ChildCancelled{}: {==}
+
+def invalidate_exact(+state: O.State, +child: O.Child) -> {
+  O.invalidate(S.canonical(state), S.children(state), child)
+  == S.invalidate(state, child)
+  : O.ChildUpdate
+}:
+  match child:
+
+    case O.Child{
+      O.EvaluationScope{operation, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    }:
+      invalidate_from_live_exact(
+        state,
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent,
+        root_validity_exact(phase, operation, context, permission, 0n, 0n),
+        live_from_scope_exact(
+          state,
+          child,
+          root_scope_live_exact(
+            state,
+            operation,
+            context,
+            permission,
+            0n,
+            0n,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          )
+        )
+      )
+
+    case O.Child{
+      O.EvaluationCleanupScope{operation, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    }:
+      invalidate_from_live_exact(
+        state,
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent,
+        cleanup_validity_exact(phase, operation, context, permission, origin, 0n),
+        live_from_scope_exact(
+          state,
+          child,
+          cleanup_scope_live_exact(
+            state,
+            operation,
+            context,
+            permission,
+            origin,
+            0n,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          )
+        )
+      )
+
+    case O.Child{
+      O.EvaluationDispatchScope{operation, context, id},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    }:
+      invalidate_from_live_exact(
+        state,
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent,
+        dispatch_validity_exact(phase, operation, context, O.EvaluationUnissued{}, 0n, id),
+        live_from_scope_exact(
+          state,
+          child,
+          dispatch_scope_live_exact(
+            state,
+            operation,
+            context,
+            O.EvaluationUnissued{},
+            0n,
+            id,
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          )
+        )
+      )
+
+    case O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+def invalidation_join_exact(+head: O.ChildUpdate, +tail: O.Invalidated) -> {
+  O.invalidate_join(head, tail) == S.invalidation_join(head, tail) : O.Invalidated
+}:
+  match head tail:
+    case O.ChildUpdate{_, _} O.Invalidated{_, _}: {==}
+
+def invalidation_scan_exact(+state: O.State, +rest: List<&2, O.Child>) -> {
+  O.invalidate_scan(S.canonical(state), S.children(state), rest)
+  == S.invalidation_scan(state, rest) : O.Invalidated
+}:
+  match rest:
+    case Nil{}: {==}
+    case child <> tail:
+      %invalidate_exact(state, child) : {
+        O.invalidate_scan(S.canonical(state), S.children(state), rest)
+        == S.invalidation_join(_, S.invalidation_scan(state, tail)) : O.Invalidated
+      }
+      %invalidation_scan_exact(state, tail) : {
+        O.invalidate_scan(S.canonical(state), S.children(state), rest)
+        == S.invalidation_join(O.invalidate(S.canonical(state), S.children(state), child), _)
+        : O.Invalidated
+      }
+      invalidation_join_exact(O.invalidate(S.canonical(state), S.children(state), child),
+        O.invalidate_scan(S.canonical(state), S.children(state), tail))
+
+def reconciled_exact(+state: O.State, +outputs: List<&2, C.Output>, +actions: List<&2, O.Action>,
+  +invalidated: O.Invalidated) -> {
+  O.reconcile_cancel_join(state, outputs, actions, invalidated)
+  == S.reconciled(state, outputs, actions, invalidated) : O.Step
+}:
+  match state invalidated:
+    case O.State{_, _, _, _} O.Invalidated{_, _}: {==}
+
+def reconcile_advanced_exact(
+  +state: O.State,
+  +outputs: List<&2, C.Output>,
+  +actions: List<&2, O.Action>
+) -> {
+  O.reconcile_cancel(O.Advanced{state, outputs, actions})
+  == S.reconcile(O.Advanced{state, outputs, actions}) : O.Step
+}:
+  match state:
+    case O.State{canon, _, _, rest}:
+      %invalidation_scan_exact(state, rest) : {
+        O.reconcile_cancel(O.Advanced{state, outputs, actions})
+        == S.reconciled(state, outputs, actions, _) : O.Step
+      }
+      reconciled_exact(state, outputs, actions, O.invalidate_scan(canon, rest, rest))
+
+def reconcile_exact(+step: O.Step) -> {O.reconcile_cancel(step) == S.reconcile(step) : O.Step}:
+  match step:
+    case O.Advanced{state, outputs, actions}: reconcile_advanced_exact(state, outputs, actions)
+    case O.Rejected{_, _}: {==}
+
 def main() -> Unit:
   Unit{}
