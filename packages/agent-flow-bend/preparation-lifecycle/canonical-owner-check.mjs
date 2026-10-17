@@ -2485,6 +2485,127 @@ try {
         assert.deepEqual(list(m.complete_public_preparation(state, 1, 1, 1, operation, observation)), expected)
         assertions++
       }
+  // Independently specified delivery lifecycle, including every refusal and
+  // cleanup action. Imported Owner exports share nominal tags with this spec.
+  {
+    const specPath = join(temp, "delivery-owner-spec.mjs")
+    execFileSync(
+      "taskset",
+      ["-c", "10", "bend", join(import.meta.dirname, "DeliveryOwnerSpecification.bend"), "-o", specPath],
+      { timeout: 10000 }
+    )
+    const spec = (await import(pathToFileURL(specPath))).default
+    const O = "CanonicalResolverOwner."
+    const f = (n, ...args) => spec[O + n](...args)
+    const t = (name, fields = {}) => ({ $: O + name, ...fields })
+    const none = { $: "None" },
+      some = (value) => ({ $: "Some", value }),
+      nil = { $: "Nil" },
+      list = (...xs) => xs.reduceRight((tail, head) => ({ $: "Con", head, tail }), nil)
+    let count = 0
+    const eq = (a, b, name) => {
+      assert.deepEqual(a, b, name)
+      count++
+    }
+    const base = f("initial_limits", 100, 100, 100, 100)
+    const context = t("DeliveryContext", {
+      request: 5,
+      recipient: "r",
+      partition: none,
+      lifetime: 8,
+      round: some(9),
+      local_delivery: false
+    })
+    const selected = t("DeliverySelection", { token: 3, advice: list(4, 4, 5), notices: list(6) })
+    const permissions = [
+      t("CollectDelivery"),
+      t("PrepareDeliveryIssued", { selection: selected }),
+      t("PrepareDelivery", { selection: selected }),
+      t("FinalizeDeliveryIssued", { selection: selected }),
+      t("FinalizeDelivery", { selection: selected })
+    ]
+    for (const permission of permissions)
+      for (const phaseName of [
+        "ChildInstalling",
+        "ChildReady",
+        "ChildAwaiting",
+        "ChildResuming",
+        "ChildAccepted",
+        "ChildCancelled"
+      ])
+        for (let bits = 0; bits < 64; bits++) {
+          const child = t("Child", {
+            scope: t("DeliveryScope", { operation: bits & 1 ? 2 : 1, origin: 1, context, permission, input_handle: 7 }),
+            invocation: 1,
+            generation: bits & 2 ? 1 : 0,
+            handle: bits & 4 ? 0 : 11,
+            phase: t(phaseName),
+            request: bits & 8 ? none : some(13),
+            lease: bits & 16 ? none : some(t("Lease", { id: 17, request: 13 })),
+            parent: bits & 32 ? some(t("Parent", { invocation: 99, generation: 0, request: 13 })) : none
+          })
+          const state = spec.state_with({ ...base, next_invocation: 2 }, child)
+          for (const generation of [0, 1, 2]) {
+            eq(
+              f("install", state, 1, generation, 19, 13),
+              spec.install_delivery(state, child, generation, 19, 13),
+              "install"
+            )
+            eq(
+              f("complete_delivery", state, 1, generation, 23, selected),
+              spec.complete_delivery(state, 1, generation, 23, selected),
+              "complete"
+            )
+            for (const lease of [17, 18])
+              for (const request of [13, 14])
+                eq(
+                  f("provider_live", state, 1, generation, lease, request),
+                  spec.provider_live(child, 1, generation, lease, request),
+                  "live"
+                )
+          }
+          eq(f("provider_start", state, 1), spec.provider_start(state, child), "start")
+          eq(f("cancel", state, 1), spec.cancel_delivery(state, child), "cancel")
+          for (const lease of [17, 18])
+            for (const request of [13, 14])
+              eq(
+                f("provider_completed", state, 1, lease, request, 21),
+                spec.provider_completed(state, child, lease, request, 21),
+                "completed"
+              )
+          const receipt = t("DeliveryReceipt", {
+            invocation: 1,
+            generation: child.generation,
+            origin: 1,
+            context,
+            permission,
+            input_handle: 7
+          })
+          for (const changed of [
+            receipt,
+            { ...receipt, generation: 5 },
+            { ...receipt, input_handle: 9 },
+            { ...receipt, context: { ...context, recipient: "other" } },
+            { ...receipt, invocation: 99 }
+          ])
+            eq(f("claim_delivery", state, changed), spec.claim_delivery(state, changed), "claim")
+          eq(f("launch_collection", state, context, 7), spec.launch_collection(state, context, 7), "launch")
+          eq(
+            f("terminal", state, 1, child.generation, 23),
+            t("Rejected", { state, refusal: t("WrongPhase") }),
+            "bypass"
+          )
+        }
+    for (const next_invocation of [0, 1, 2])
+      eq(
+        f("launch_collection", { ...base, next_invocation }, context, 7),
+        spec.launch_collection({ ...base, next_invocation }, context, 7),
+        "launch-empty"
+      )
+
+    assert.equal(count, 59523)
+    assertions += count
+  }
   console.log(
     JSON.stringify({
       passed: true,
