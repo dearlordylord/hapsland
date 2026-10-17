@@ -185,15 +185,15 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Root finish (`f85d6797`), 2026-10-17 01:25/01:28 UTC: analyzer/build **.8422×/.9753×**,
+- Finalize (`0f1ddbf0`), 2026-10-17 01:58/02:00 UTC: analyzer/build **.7660×/.8650×**,
   17 frozen pairs, both strict parity PASS; build23/46 cached. TS/Bend medians[ranges] s:
-  execution .3176[.1504,.8685]/.2495[.1119,.6208];
-  build14.057[8.604,46.352]/12.004[6.865,47.447]. Shared load; no causal claim.
+  execution .1107[.0773,.7288]/.1093[.0555,.1972];
+  build6.780[5.486,12.042]/5.830[4.814,9.363]. Shared load; no causal claim.
   Prior00:49 build1.0153 failed strict parity, within owner’s ≤3× budget.
   First build external220s timeout:28 samples at owned-tree stop remain unqualified;
   no live custody remained; both warm23/46 before the complete600s series.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence latest43.4/39.4min: serial consumer qualification delayed both. Analyzer/build only.
+  Cadence43.4/39.4→32.8/32.1min; serial gates delayed both. Analyzer/build only.
   Baseline double serialization refused; corrected env passed prepare/warm23/46.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
@@ -249,7 +249,7 @@ Current path:
 3. F→decode→canWrite→R runs Bend; local stops after F.37 protocol/89 adapter tests
    +9 selected server PASS; fast9/23 receipts PASS. Prior cache10 PASS.
    Build: unchanged update-notice5s timeout; focused132 PASS. Second180s timeout;
-   addressed ordinary package compilation/23 receipts PASS.
+   Addressed compile/23 receipts PASS; later workspace46/46 PASS.
    Prior360s IPC aborted; tail18+other89 PASS. Full server suite remains required.
 4. Bind Collection/Prepare/Finalize to existing driver; fence effects before IO,
    including decode/canWrite; preserve atomic fit groups/cleanup transfer.
