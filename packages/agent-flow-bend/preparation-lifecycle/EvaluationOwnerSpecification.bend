@@ -3,8 +3,8 @@ import ./CanonicalResolverOwner.bend as O
 import ../Canonical.bend as C
 import ../Dispatch.bend as D
 
-# Draft complete Evaluation-family Owner public relation, not approved laws or
-# proofs. Generic entries are scoped to Evaluation/Dispatch/cleanup children.
+# Independent Evaluation-family Owner relation, proved by EVALUATION_OWNER_PROOF.
+# Generic entries are scoped to Evaluation/Dispatch/cleanup children.
 # Existing State/Child/Scope are the only representation. Canonical C.step,
 # first-match lookups, mechanical replacement, bounded cross-family parent
 # ancestry and non-Evaluation invalidation are explicit shared primitives. Evaluation

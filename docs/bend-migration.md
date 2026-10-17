@@ -264,11 +264,11 @@ work is inside timers; cancellation includes physical drain, other Scope cleanup
 and runtime construction are outside. Separate profiling points to CPU in
 Canonical transactions/transport/driver; shared load permits no causal claim.
 
-Three whole laws (Astra path), owner approved2026-10-17; proofs pending:
+Three whole laws (Astra path), owner approved2026-10-17; all proved:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
-2. `EVALUATION_OWNER_LAWS`: Dispatch start/complete proved too; only Dispatch launch + whole-law assembly open.
+2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle proved.
 3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Proof gate pass; latest finite Owner gate compile timed out; full source/law open.
+Kernel pass; latest finite Owner gate compile timed out; source/acceptance open.
 Whole evaluation is not accepted.
 
 

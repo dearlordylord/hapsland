@@ -3,7 +3,7 @@ import ./CanonicalResolverOwner.bend as O
 import ./EvaluationOwnerSpecification.bend as S
 import ../Canonical.bend as C
 
-# Owner approved 2026-10-17 ("нормально продолжай"); whole law not yet proved. One complete ownership contract.
+# Owner approved 2026-10-17 ("нормально продолжай"); whole law proved in EVALUATION_OWNER_PROOF.bend. One complete ownership contract.
 # Exact public state/outputs/actions/refusals for Evaluation, Dispatch and cleanup.
 # Canonical step, first-match lookups, mechanical replacement, bounded generic
 # parent ancestry and non-Evaluation invalidation are explicitly shared; this

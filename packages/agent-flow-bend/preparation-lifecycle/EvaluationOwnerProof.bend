@@ -11546,5 +11546,704 @@ def evaluation_start_request_exact(
       request
     )
 
+def same_parent_exact(
+  +left: O.Parent,
+  +right: O.Parent
+) -> {O.parent_equal(left, right) == S.same_parent(left, right) : Bool}:
+  match left right:
+    case O.Parent{_, _, _} O.Parent{_, _, _}: {==}
+
+def parent_matches_exact(
+  +parent: O.Parent,
+  +found: Maybe<&2, O.Child>
+) -> {O.parent_matches(parent, found) == S.parent_matches(parent, found) : Bool}:
+  match parent found:
+    case O.Parent{_, _, _} None{}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildInstalling{}, _, _, _}}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildReady{}, _, _, _}}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildResuming{}, _, _, _}}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildAccepted{}, _, _, _}}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildCancelled{}, _, _, _}}: {==}
+
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildAwaiting{}, None{}, _, _}}: {==}
+    case O.Parent{_, _, _} Some{O.Child{_, _, _, _, O.ChildAwaiting{}, Some{_}, None{}, _}}: {==}
+    case O.Parent{_, _, _} Some{
+      O.Child{_, _, _, _, O.ChildAwaiting{}, Some{_}, Some{O.Lease{_, _}}, _}
+    }: {==}
+
+def parent_used_exact(
+  +parent: O.Parent,
+  +rest: List<&2, O.Child>
+) -> {O.parent_used(parent, rest) == S.parent_used(parent, rest) : Bool}:
+  match rest:
+    case Nil{}: {==}
+    case O.Child{_, _, _, _, _, _, _, None{}} <> tail: parent_used_exact(parent, tail)
+    case O.Child{_, _, _, _, _, _, _, Some{other}} <> tail:
+      %same_parent_exact(parent, other) : {
+        O.parent_used(parent, rest)
+        == Bool.or(_, S.parent_used(parent, tail))
+        : Bool
+      }
+      %parent_used_exact(parent, tail) : {
+        O.parent_used(parent, rest)
+        == Bool.or(O.parent_equal(parent, other), _)
+        : Bool
+      }
+      {==}
+
+def nested_birth_exact(
+  +valid: Bool,
+  +state: O.State,
+  +parent: O.Parent,
+  +scope: O.Scope,
+  +input: Nat
+) -> {
+  O.launched_nested(valid, state, parent, scope, input)
+  == S.birth(valid, state, scope, Some{parent}, input, O.WrongPhase{})
+  : O.Step
+}:
+  match valid state:
+    case False{} _: {==}
+    case True{} O.State{_, _, _, _}: {==}
+
+def dispatch_parent_exact(
+  +state: O.State,
+  +parent: O.Parent,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +jev: Nat,
+  +expected: O.Parent,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +ancestor: Maybe<&2, O.Parent>,
+  +input: Nat
+) -> {
+    O.evaluation_dispatch_parent(
+      state,
+      parent,
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      input
+    )
+    == S.dispatch_found(
+      state,
+      parent,
+      Some{
+        O.Child{
+          O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        }
+      },
+      input
+    )
+    : O.Step
+  }:
+  match state:
+    case O.State{canon, next, _, rest}:
+
+      %free_exact(next, O.find(next, rest)) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            _,
+            Bool.and(
+              Bool.not(S.parent_used(parent, rest)),
+              Bool.and(
+                Bool.and(
+                  S.same_parent(parent, expected),
+                  S.parent_matches(
+                    parent,
+                    Some{
+                      O.Child{
+                        O.EvaluationScope{
+                          operation,
+                          context,
+                          O.EvaluationAtProvider{jev, expected}
+                        },
+                        inv,
+                        epoch,
+                        handle,
+                        phase,
+                        pending,
+                        held,
+                        ancestor
+                      }
+                    }
+                  )
+                ),
+                Bool.and(
+                  S.live(
+                    state,
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  ),
+                  S.pending_dispatch(canon, context, jev)
+                )
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      %parent_used_exact(parent, rest) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.and(
+              Bool.not(_),
+              Bool.and(
+                Bool.and(
+                  S.same_parent(parent, expected),
+                  S.parent_matches(
+                    parent,
+                    Some{
+                      O.Child{
+                        O.EvaluationScope{
+                          operation,
+                          context,
+                          O.EvaluationAtProvider{jev, expected}
+                        },
+                        inv,
+                        epoch,
+                        handle,
+                        phase,
+                        pending,
+                        held,
+                        ancestor
+                      }
+                    }
+                  )
+                ),
+                Bool.and(
+                  S.live(
+                    state,
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  ),
+                  S.pending_dispatch(canon, context, jev)
+                )
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      %same_parent_exact(parent, expected) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.and(
+              Bool.not(O.parent_used(parent, rest)),
+              Bool.and(
+                Bool.and(
+                  _,
+                  S.parent_matches(
+                    parent,
+                    Some{
+                      O.Child{
+                        O.EvaluationScope{
+                          operation,
+                          context,
+                          O.EvaluationAtProvider{jev, expected}
+                        },
+                        inv,
+                        epoch,
+                        handle,
+                        phase,
+                        pending,
+                        held,
+                        ancestor
+                      }
+                    }
+                  )
+                ),
+                Bool.and(
+                  S.live(
+                    state,
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  ),
+                  S.pending_dispatch(canon, context, jev)
+                )
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      %parent_matches_exact(
+        parent,
+        Some{
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          }
+        }
+      ) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.and(
+              Bool.not(O.parent_used(parent, rest)),
+              Bool.and(
+                Bool.and(O.parent_equal(parent, expected), _),
+                Bool.and(
+                  S.live(
+                    state,
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  ),
+                  S.pending_dispatch(canon, context, jev)
+                )
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      %live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        },
+        root_scope_live_exact(
+          state,
+          operation,
+          context,
+          O.EvaluationAtProvider{jev, expected},
+          0n,
+          0n,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        )
+      ) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.and(
+              Bool.not(O.parent_used(parent, rest)),
+              Bool.and(
+                Bool.and(
+                  O.parent_equal(parent, expected),
+                  O.parent_matches(
+                    parent,
+                    Some{
+                      O.Child{
+                        O.EvaluationScope{
+                          operation,
+                          context,
+                          O.EvaluationAtProvider{jev, expected}
+                        },
+                        inv,
+                        epoch,
+                        handle,
+                        phase,
+                        pending,
+                        held,
+                        ancestor
+                      }
+                    }
+                  )
+                ),
+                Bool.and(_, S.pending_dispatch(canon, context, jev))
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      %pending_dispatch_exact(canon, context, jev) : {
+        O.evaluation_dispatch_parent(
+          state,
+          parent,
+          O.Child{
+            O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            ancestor
+          },
+          input
+        )
+        == S.birth(
+          Bool.and(
+            O.settings_next_free(next, O.find(next, rest)),
+            Bool.and(
+              Bool.not(O.parent_used(parent, rest)),
+              Bool.and(
+                Bool.and(
+                  O.parent_equal(parent, expected),
+                  O.parent_matches(
+                    parent,
+                    Some{
+                      O.Child{
+                        O.EvaluationScope{
+                          operation,
+                          context,
+                          O.EvaluationAtProvider{jev, expected}
+                        },
+                        inv,
+                        epoch,
+                        handle,
+                        phase,
+                        pending,
+                        held,
+                        ancestor
+                      }
+                    }
+                  )
+                ),
+                Bool.and(
+                  O.child_live(
+                    canon,
+                    rest,
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  ),
+                  _
+                )
+              )
+            )
+          ),
+          state,
+          O.EvaluationDispatchScope{next, context, jev},
+          Some{parent},
+          input,
+          O.WrongPhase{}
+        )
+        : O.Step
+      }
+
+      nested_birth_exact(
+        Bool.and(
+          O.settings_next_free(next, O.find(next, rest)),
+          Bool.and(
+            Bool.not(O.parent_used(parent, rest)),
+            Bool.and(
+              Bool.and(
+                O.parent_equal(parent, expected),
+                O.parent_matches(
+                  parent,
+                  Some{
+                    O.Child{
+                      O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    }
+                  }
+                )
+              ),
+              Bool.and(
+                O.child_live(
+                  canon,
+                  rest,
+                  O.Child{
+                    O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+                    inv,
+                    epoch,
+                    handle,
+                    phase,
+                    pending,
+                    held,
+                    ancestor
+                  }
+                ),
+                O.evaluation_dispatch_pending(canon, context, jev)
+              )
+            )
+          )
+        ),
+        state,
+        parent,
+        O.EvaluationDispatchScope{next, context, jev},
+        input
+      )
+
+def dispatch_launch_found_exact(
+  +state: O.State,
+  +parent: O.Parent,
+  +found: Maybe<&2, O.Child>,
+  +input: Nat
+) -> {
+  O.evaluation_dispatch_found(state, parent, found, input)
+  == S.dispatch_found(state, parent, found, input)
+  : O.Step
+}:
+  match state found:
+    case O.State{_, _, _, _} None{}: {==}
+    case O.State{_, _, _, _} Some{
+      O.Child{
+        O.EvaluationScope{operation, context, O.EvaluationAtProvider{jev, expected}},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      }
+    }: dispatch_parent_exact(
+      state,
+      parent,
+      operation,
+      context,
+      jev,
+      expected,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      ancestor,
+      input
+    )
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.EvaluationScope{_, _, O.EvaluationUnissued{}}, _, _, _, _, _, _, _}
+    }: {==}
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.EvaluationScope{_, _, O.EvaluationIssued{_}}, _, _, _, _, _, _, _}
+    }: {==}
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.EvaluationScope{_, _, O.EvaluationSettled{}}, _, _, _, _, _, _, _}
+    }: {==}
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.EvaluationCleanupScope{_, _, _, _}, _, _, _, _, _, _, _}
+    }: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.SourceScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.AfterSourceScope{_, _, _, _, _, _, _}, _, _, _, _, _, _, _}
+    }: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.PreparationScope{_, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.RetainingScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{
+      O.Child{O.AdviceTailScope{_, _, _, _, _, _}, _, _, _, _, _, _, _}
+    }: {==}
+
+def launch_evaluation_dispatch_exact(+state: O.State, +parent: O.Parent, +input: Nat) -> {
+  O.launch_evaluation_dispatch(state, parent, input)
+  == S.launch_evaluation_dispatch(state, parent, input)
+  : O.Step
+}:
+  match state parent:
+    case O.State{_, _, _, rest} O.Parent{inv, _, _}: dispatch_launch_found_exact(
+      state,
+      parent,
+      O.find(inv, rest),
+      input
+    )
+
 def main() -> Unit:
   Unit{}
