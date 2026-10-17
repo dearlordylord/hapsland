@@ -237,13 +237,14 @@ Current path / obstacles:
    At whole acceptance move semantic properties to domain laws; delete
    temporary exact equations/specs/proofs.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
-   Build46/46,owner60941,fast44/3; current ae590315 physical187 PASS.
+   Build46/46,owner60941,fast44/2; current e6928b73 physical187 PASS.
    Custody reads avoid Canonical conversion; native24/41+80 metadata reads PASS.
    Whole delivery17-pair attempt stopped at pair11 by fixture IPC2.5s timeout;
    incomplete/unqualified. Benchmark now uses both products' default4s.
    Under load45/12, profiling hit its worker45s stop; no retry under that load.
    Corrected diagnostic5ms profile passed equal results/cleanup; sampled edit
-   publication12/32 stacks suggests an operation-local ABI-copy cut; no speed claim.
+   publication12/32 stacks led to per-call unchanged-graph reuse (no cache);
+   native24/41, fast and physical187 PASS; whole speed remains unqualified.
    ABI caches remain discarded. Typed claim proof fills2/6; root still4 TODO.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
    cutoff/discard/allow fixed focused2/full92; no global lock/count/reason change.
