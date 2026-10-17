@@ -172,7 +172,7 @@ projection/freeze and lifecycle boundaries remain.
 | Attachment proof | Owner raised this root’s deadline on 2026-10-16. Original law passed11.35s wall/11.04s CPU; latest focused PASS18.93s/18.52s, unchanged SHA073e9514. A20s timeout remains recorded, not a pass. Ordinary capability runner now permits 20s for this root only; other roots keep 10s. No guarantee or premise changed. |
 
 | Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:56 UTC (`34b2e70b`) qualifies **1.3378×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
-| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust orchestration/reference drivers are deleted. Production Source/Graph/resident consumers, public181/7 files and protocol19 pass. Source gate248/248 covers473 Bend files/108 roots, including14 exact mutant rejections. Six duplicate declarations removed; identical proved laws retained. Build46/46, fast41, receipts23 and Go public75 pass. |
+| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers are deleted. Accepted Preparation checks: public181/7 files, protocol19, source248/248 (473 Bend files/108 roots;14 exact mutant refusals), build46/46, fast41, receipts23 and Go75. Six duplicate declarations removed; proved laws retained. |
 
 Accepted Preparation candidate: `299e7894`. RANK source-gate10s timeout
 remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU.
@@ -185,19 +185,20 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Finish (`b6a34a80`), 2026-10-17 00:16 UTC: analyzer/build **.7052×/.8505×**,
-  17 frozen pairs; build23/46 cached. Both strict parity gates pass.
-  TS/Bend median[range] seconds: execution .0831[.0619,.1058]/.0575[.0424,.0844];
-  build3.900[3.440,4.686]/3.394[3.070,3.893]. Load8–9/12 cores; no causal speedup.
+- Prepare (`b8e92c9c`), 2026-10-17 00:42/00:49 UTC: analyzer/build **.7778×/1.0153×**,
+  17 frozen pairs; build23/46 cached. Execution strict parity passes; build fails,
+  within owner’s ≤3× budget. TS/Bend median[range] seconds:
+  execution .1028[.0703,.8224]/.0920[.0520,.3885];
+  build19.848[4.491,34.247]/19.977[4.302,36.997]. Shared load; no causal claim.
+  First build external220s timeout:28 samples at owned-tree stop remain unqualified;
+  no live custody remained; both warm23/46 before the complete600s series.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence: prior32.5,31.3,42.1min; latest28.0/27.9min. Scope analyzer/build only.
-  Baseline prepare refused double serialization; preserved its serialized producer
-  environment, then prepare/warm23/46 passed before measurement.
+  Cadence: prior32.5,31.3,42.1min; latest26.0/32.4min. Scope analyzer/build only.
+  Baseline double serialization refused; corrected env passed prepare/warm23/46.
   First workspace preparation timed out60s before measurement; registered writers stopped,
   custody reconciled,180s prepare and23/46 warm verification passed before retry.
   First 19:23 build was not comparable: candidate cache15/46 on sample0; ratio1.1535, warm gate failed. Both prepared23/46 before rerun.
-  New build series retains ordinary scheduler/parallelism in both lanes; earlier
-  CPU11 series is not directly comparable.
+  Both lanes use ordinary scheduler/parallelism; CPU11 timings not comparable.
   First 17:31 build refused a leaked candidate producer in baseline; corrected environment passed. The 04:54 CPU11 baseline admission-lock
   failure and unchanged retries remain unqualified.
   Prior 21:01 execution failed 1.1571; grouped preflight whole at 23:20 UTC
@@ -245,13 +246,12 @@ Current path:
    Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
    Prior aborted300s; saturated30s timeout→18.86s PASS; 30s timeout→41.73s PASS
    (90s fixture, owner≤3×).
-   Canonical root and whole laws remain open.
-2. Canonical root custody/empty terminal PASS1416 across Await; cancellation precedes cleanup,
-   retained across launch/registration faults. Claimed successors survive old cleanup.
-   Production root caller and whole laws remain open.
+2. Custody PASS1416 across Await/launch/registration faults; cancel precedes cleanup,
+   successors survive old cleanup. Wire root pre-finish/prune/reservation.
+   Empty terminal is partial: empty collect needs a NoDeliverySelection receipt/no lease.
 3. Prepare/finalize/reconcileFinish run Bend;33 protocol/10 cache tests PASS.
-   185 public/5 files PASS. Connect receipts via request-local ResponseContext/
-   local scope; prove whole ordered trace/reply fencing/lease/finish.
+   185 public/5 files PASS. Use request-local ResponseContext/local scope; compose
+   F→decode→canWrite→R in one Finalize child; prove trace/reply fencing/lease/finish.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer
    and output regressions plus whole-path performance. Unit not accepted.
 
