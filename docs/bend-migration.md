@@ -140,7 +140,7 @@ that a subsystem has migrated.
 
 **Scope:** accept the complete Preparation flow: graph/source preparation,
 finalization, Post and Advice through the production Canonical owner.
-**Accepted whole migration units: 2 — Preparation; Collection through final handoff.**
+**Accepted whole migration units: 3 — Preparation; Collection through final handoff; Evaluation through retained advice.**
 Production Canonical owns their lifecycle; the global migration continues.
 
 ### Selected implementation
@@ -220,19 +220,16 @@ P/K/F/R/D/Root/C:992 tapes,4 mutants; owner60941 assertions including59523
 independent comparisons. Matching build46/46,protocol9/9,fast44/1; unchanged
 product e6928b73 physical187 PASS. Native24/41+80 metadata reads PASS.
 
-Whole delivery requalification `2f5cfcfd`,2026-10-17 09:55 UTC:17 pairs,
-exact results/cleanup, five freezes pass. **2.7812×**, owner≤3× PASS, strict parity
+Whole delivery requalification `14892a49`,2026-10-17 23:29 UTC:17 pairs,
+exact results/cleanup, five freezes pass. **2.5895×**, owner≤3× PASS, strict parity
 false. TS/Bend suite medians[ranges] s:
-.0913[.0803,.1966]/.2542[.1786,.5163]. Scenario ratios: local-empty6.80×,
-local-ready2.35×,IPC-empty2.66×,IPC-ready3.07×,edit-ready2.86×.
+.0959[.0818,.1356]/.2613[.2322,.3753]. Scenario ratios: local-empty8.80×,
+local-ready2.16×,IPC-empty2.02×,IPC-ready2.59×,edit-ready2.86×.
 Shared-machine timings, no causal claim; budget applies to the whole suite.
 Product IPC deadline remains4s. Per-call unchanged-graph retention has no
 persistent cache.
 
-## Current unit: resident evaluation through retained advice
-
-Astra reviewed this whole path on 2026-10-17: reuse Canonical owner/driver/
-registry and advice tail; native sessions retain IO values and original Causes.
+## Accepted unit: resident evaluation through retained advice
 
 Production cutover `9c42a671`: server evaluation invokes the whole Bend cursor
 through Canonical. Bend owns admission, authorization, provider return,
@@ -248,28 +245,29 @@ advice tail; cached/fresh enrollment and observation share evaluation-owned
 helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-`7044c5ed`: sources280/280; protocol29/29; fast1.
-Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
-Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
-`2d7067fa` build46/46, receipts23. Native cleanup6/73, registry5: drain/retry/Cause.
-Cancelled Prepare lease cleanup and safe recovery diagnostics are fixed.
+Three whole laws, owner approved2026-10-17; all proved:
+1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps.
+2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle.
+3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation.
+The unchanged Bend closure passed sources280/280 at `7044c5ed`.
 
-Whole evaluation `828c8d55`,2026-10-17 09:45 UTC, fixed TS `a0773f79`:
-**2.0033×**, owner≤3× PASS, strict parity false.17 alternating pairs, five freezes,
+Accepted `14892a49`: build46/46, receipts23, production authority/canonical ABI,
+fast8, product257/16, preparation protocol29/29 and delivery protocol9/9 PASS.
+Native25/45 caller checks/90 custody reads and collection27 pass. Driver lifetime
+cancellation closes the independent tail after drain. Same-round native custody,
+work-before-advice snapshots and per-request work observations close publication
+gaps without treating submitted advice as pending. Response authority is checked
+through actual native/IPC consumers; the obsolete TS source-pattern check is deleted.
+No open obstacle for this unit's local acceptance; global migration continues.
+
+Whole evaluation `14892a49`,2026-10-17 23:26 UTC, fixed TS `a0773f79`:
+**1.8967×**, owner≤3× PASS, strict parity false.17 alternating pairs, five freezes,
 exact outputs/request chronology/controls, zero retained resources. TS/Bend
-suite medians[ranges] s: .2782[.2257,.3592]/.5411[.4570,.9249]. Public scenarios:
+suite medians[ranges] s: .3379[.2706,1.0874]/.7728[.5343,2.1933]. Public scenarios:
 clear/finding/credential refusal/backend failure/cancellation. Source/provider
-work is inside timers; cancellation includes physical drain, other Scope cleanup
-and runtime construction are outside. Separate profiling points to CPU in
-Canonical transactions/transport/driver; shared load permits no causal claim.
-
-Three whole laws (Astra path), owner approved2026-10-17; all proved:
-1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
-2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle proved.
-3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Tail cancel native25/fast4 pass. Transfer: native custody/work-before-advice and per-request work observation; native27/focused8 pass, including suppression. Product257/16, fast8 pass; protocol/whole qualification remain.
-Whole evaluation is not accepted.
-
+work and local collection are inside timers; cancellation includes physical drain,
+other Scope cleanup and runtime construction are outside. Prior profiling points
+to CPU in Canonical transactions/transport/driver; no causal speedup claim.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
