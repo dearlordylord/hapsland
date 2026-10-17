@@ -156,15 +156,15 @@ with their native owners.
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
 
-### Preparation acceptance evidence
+### Accepted Preparation evidence
 
-| Obstacle | Required change or evidence |
-| --- | --- |
-| Analyzer/preflight | Bend owns Trees/Preflight/Outcomes through Canonical. Superseded TS traversal/preflight and native oracle chains are deleted; physical consumers, laws and mutation checks pass. |
-| Whole-path performance | Owner accepts ≤3×. Fixed TS master `a0773f79` public whole comparison at 2026-10-16 20:56 UTC (`34b2e70b`) qualifies **1.3378×**: 17 frozen pairs, exact results/controls, seven fixtures/five languages. Strict parity false. Current-native oracle/profiling paths are removed. |
-| Full consumers and deletion | TS Source/Post, traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers are deleted. Accepted Preparation checks: public181/7 files, protocol19, source248/248 (473 Bend files/108 roots;14 exact mutant refusals), build46/46, fast41, receipts23 and Go75. |
-
-Accepted Preparation candidate: `299e7894`; historical failed runs remain unqualified.
+Accepted `299e7894`: Canonical owns Trees/Preflight/Outcomes. TS Source/Post,
+traversal/preflight, plan/sizing and native Graph/local/Go/Python/Rust drivers
+are deleted. Checks: public181/7, protocol19, sources248/248 (473 Bend/108 roots;
+14 mutant refusals), build46/46, fast41, receipts23, Go75. Whole `34b2e70b`,
+2026-10-16 20:56 UTC, fixed TS `a0773f79`: **1.3378×**, owner≤3× PASS,
+strict parity false;17 frozen pairs, seven fixtures/five languages, exact
+results/controls. Native oracle/profiling paths are removed.
 
 ### Current qualification limits
 
@@ -213,12 +213,10 @@ Native owners retain capabilities/IO and masked atomic publication.
 Non-collection administrative replies/pre-admission refusals retain their
 separate host path; the whole resident is not migrated.
 
-Six owner-approved Owner implementation laws pass full verdict2.03s/10s without
-added State premise or public layout requirement. Fifteen unapproved trace/frame
-drafts were withdrawn; independent specs/finite comparisons/mutants remain.
-P/K/F/R/D/Root/C:992 tapes,4 mutants; owner60941 assertions including59523
-independent comparisons. Matching build46/46,protocol9/9,fast44/1; unchanged
-product e6928b73 physical187 PASS. Native24/41+80 metadata reads PASS.
+Six owner-approved Owner laws pass full verdict2.03s/10s without added State
+premises. Independent P/K/F/R/D/Root/C specs:992 tapes/4 mutants;
+owner60941 assertions,59523 independent comparisons. Actual native custody and
+physical consumers qualify separately from these pure laws.
 
 Whole delivery requalification `14892a49`,2026-10-17 23:29 UTC:17 pairs,
 exact results/cleanup, five freezes pass. **2.5895×**, owner≤3× PASS, strict parity
@@ -268,6 +266,17 @@ clear/finding/credential refusal/backend failure/cancellation. Source/provider
 work and local collection are inside timers; cancellation includes physical drain,
 other Scope cleanup and runtime construction are outside. Prior profiling points
 to CPU in Canonical transactions/transport/driver; no causal speedup claim.
+
+## Current unit: whole resident admission
+
+Astra path2026-10-17: pre-round `AdmissionScope`, common Canonical owner/driver;
+retain the serialized uninterruptible entry. Current obstacles:
+1. Atomic permit/observation/round/enqueue: actual dispatch refusal leaves a
+   root pin. Reuse dispatch-record commit; publish custody together.
+2. Connect the complete routing/retry cursor and delete admission TS orchestration.
+3. Approve/prove whole protocol, lifecycle and transfer laws; run actual routing,
+   capacity, settings, inspection/IPC consumers and ≤3× qualification.
+Not accepted; the native refusal regression is intentionally red until fixed.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never
