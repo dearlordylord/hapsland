@@ -185,12 +185,12 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Finalize (`e6a10f96`), 2026-10-16 23:48 UTC: analyzer/build **.6386×/.8650×**,
+- Finish (`b6a34a80`), 2026-10-17 00:16 UTC: analyzer/build **.7052×/.8505×**,
   17 frozen pairs; build23/46 cached. Both strict parity gates pass.
-  TS/Bend median[range] seconds: execution .0888[.0654,.1602]/.0533[.0439,.1013];
-  build4.532[3.938,5.424]/3.723[3.208,5.286]. Load10–12/12 cores; no causal speedup.
+  TS/Bend median[range] seconds: execution .0831[.0619,.1058]/.0575[.0424,.0844];
+  build3.900[3.440,4.686]/3.394[3.070,3.893]. Load8–9/12 cores; no causal speedup.
   Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
-  Cadence: prior32.5,31.3,42.1min; latest28.2/28.2min. Scope analyzer/build only.
+  Cadence: prior32.5,31.3,42.1min; latest28.0/27.9min. Scope analyzer/build only.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
