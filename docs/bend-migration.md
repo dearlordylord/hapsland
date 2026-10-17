@@ -140,8 +140,8 @@ that a subsystem has migrated.
 
 **Scope:** accept the complete Preparation flow: graph/source preparation,
 finalization, Post and Advice through the production Canonical owner.
-**Accepted whole migration units: 1 — Preparation.** Accepted scope: production
-Canonical Source/Graph/Finalization/Post/Advice; the global migration continues.
+**Accepted whole migration units: 2 — Preparation; Collection through final handoff.**
+Production Canonical owns their lifecycle; the global migration continues.
 
 ### Selected implementation
 
@@ -222,29 +222,36 @@ earlier results remain historical.
 Scope: Linux offline physical consumers; native parser/Unicode/IEEE/hash/IO engines
 remain trusted. No Darwin, live-provider, browser or cold-IPC qualification is claimed.
 
-## Current unit: resident collection through final handoff
+## Accepted unit: resident collection through final handoff
 
 Astra agreed Canonical receipts and the existing registry/action sink; native
 owners retain capabilities/IO. Preserve local/IPC behavior and async boundaries.
 
-Current path / obstacles:
+Accepted scope: admitted request/direct/edit/status collection through Prepare and
+Finalize, local and IPC. Non-collection administrative replies and pre-admission
+refusals retain their separate host path; the whole resident is not migrated.
+
+Acceptance path / evidence:
 1. Production Root G→C→R and C/P/D share driver/registry fences; P retries
    releases. Root ABI2/8 failed→codec8/8 PASS.
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open: final source/protocol and performance qualification.
+3. Accepted on `016fce4d`: source/protocol and whole-consumer gates pass.
    Six approved Bend Owner implementation laws pass full verdict2.03s/10s;
    no public State-layout requirement. Withdraw15 unapproved trace/frame drafts;
    retain independent specifications, finite comparisons and typed mutants.
    P/K/F/R/D/Root/C:992 tapes,4 mutants; Canonical lifecycle59523 comparisons.
    Build46/46,owner60941,protocol9/9,fast44/1; current e6928b73 physical187 PASS.
    Custody reads avoid Canonical conversion; native24/41+80 metadata reads PASS.
-   Whole delivery e47617bd:17 frozen pairs, exact results/cleanup; total2.9108×,
-   strict false. TS/Bend total medians[ranges] s:.0986[.0749,.1592]/.2479[.2146,.6520].
-   Per-case gate rejected only local-empty10.66× (.232→2.476ms); others2.50–2.96×.
-   That unaccepted extra gate is removed: use whole≤3× as Preparation; keep all
-   scenario diagnostics. Original denial retained; fresh qualification pending.
+   Whole delivery `016fce4d`,2026-10-17 06:38 UTC:17 frozen pairs,
+   exact results/cleanup; total2.3664×, owner≤3× PASS, strict parity false.
+   TS/Bend total medians[ranges] s:.0986[.0855,.1105]/.2262[.2082,.2966].
+   All five freeze checks pass. Scenario ratios: local-empty5.50×,
+   local-ready2.47×, IPC-empty2.81×, IPC-ready2.13×, edit-ready2.41×.
+   These are shared-machine timings, not an isolated optimization speedup.
+   Earlier e47617bd2.9108× denied by an unaccepted extra per-case gate;
+   that historical denial is retained. Current gate uses whole≤3× as Preparation.
    Earlier pair11 IPC2.5s failure remains unqualified; runner now uses product4s.
    Profile45s stop under load45/12 retained; corrected5ms diagnostic passed.
    Per-call unchanged-graph reuse has native/fast/physical187 PASS, no persistent cache.
