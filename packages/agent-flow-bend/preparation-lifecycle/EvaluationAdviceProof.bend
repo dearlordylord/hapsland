@@ -1,4 +1,5 @@
 import Base
+import ../../../vendor/bendlib/packages/bend-mathlib/bool.bend as B
 import ../../../vendor/bendlib/packages/bend-mathlib/nat.bend as N
 import ./CanonicalResolverOwner.bend as O
 import ./EvaluationAdviceSpecification.bend as S
@@ -1169,6 +1170,621 @@ def cancel_cleanup_entry_exact(
       parent
     )
   )
+
+def current_root_awaiting_exact(+custody: Nat, +inv: Nat, +epoch: Nat,
+  +context: O.EvaluationContext, +permission: O.EvaluationPermission, +origin: Nat,
+  +handle: Nat, +pending: Maybe<&2, Nat>, +lease: Maybe<&2, O.Lease>) -> {
+    O.evaluation_current(
+      custody,
+      inv,
+      epoch,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          pending,
+          lease,
+          None{}
+        }
+      }
+    )
+    == Nat.is_eq(custody, inv)
+    : Bool
+  }:
+  %Equal.sym(Bool, Nat.is_eq(custody, custody), True{}, N.is_eq_refl(custody)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, Bool.and(Nat.is_eq(inv, inv),
+      Bool.and(Nat.is_eq(epoch, epoch), True{})))) == Nat.is_eq(custody, inv) : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, Bool.and(Nat.is_eq(epoch, epoch), True{})))
+      == Nat.is_eq(custody, inv) : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(epoch, epoch), True{}, N.is_eq_refl(epoch)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, True{})) == Nat.is_eq(custody, inv) : Bool
+  }
+  B.and_true(Nat.is_eq(custody, inv))
+
+def current_cleanup_awaiting_exact(+custody: Nat, +inv: Nat, +epoch: Nat,
+  +context: O.EvaluationContext, +permission: O.EvaluationPermission, +origin: Nat,
+  +handle: Nat, +pending: Maybe<&2, Nat>, +lease: Maybe<&2, O.Lease>) -> {
+    O.evaluation_current(
+      custody,
+      inv,
+      epoch,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          pending,
+          lease,
+          None{}
+        }
+      }
+    )
+    == Nat.is_eq(custody, inv)
+    : Bool
+  }:
+  %Equal.sym(Bool, Nat.is_eq(custody, custody), True{}, N.is_eq_refl(custody)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, Bool.and(Nat.is_eq(inv, inv),
+      Bool.and(Nat.is_eq(epoch, epoch), True{})))) == Nat.is_eq(custody, inv) : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, Bool.and(Nat.is_eq(epoch, epoch), True{})))
+      == Nat.is_eq(custody, inv) : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(epoch, epoch), True{}, N.is_eq_refl(epoch)) : {
+    Bool.and(Nat.is_eq(custody, inv), Bool.and(_, True{})) == Nat.is_eq(custody, inv) : Bool
+  }
+  B.and_true(Nat.is_eq(custody, inv))
+
+def permit_join_exact(+a: Bool, +b: Bool) -> {
+  Bool.and(a, Bool.and(b, True{})) == Bool.and(b, a) : Bool
+}:
+  match a b:
+    case True{} True{}: {==}
+    case True{} False{}: {==}
+    case False{} True{}: {==}
+    case False{} False{}: {==}
+
+def permit_root_awaiting_exact(+canon: C.State, +rest: List<&2, O.Child>,
+  +custody: Nat, +inv: Nat, +epoch: Nat, +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission, +origin: Nat, +handle: Nat,
+  +pending: Nat, +id: Nat, +leased: Nat, +generation: Nat, +lease: Nat, +request: Nat) -> {
+    O.provider_permit_found(
+      canon,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      } <> rest,
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    : Bool
+  }:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      inv,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      } <> rest
+    ),
+    Some{
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      }
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      },
+      rest
+    )
+  ) : {
+      Bool.and(
+        O.provider_permit_matches(
+          inv,
+          generation,
+          lease,
+          request,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending},
+            Some{O.Lease{id, leased}},
+            None{}
+          }
+        ),
+        Bool.and(O.evaluation_current(custody, inv, epoch, _), True{})
+      )
+      == S.permit(
+        inv,
+        generation,
+        lease,
+        request,
+        Some{
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending},
+            Some{O.Lease{id, leased}},
+            None{}
+          }
+        }
+      )
+      : Bool
+    }
+  %Equal.sym(
+    Bool,
+    O.evaluation_current(
+      custody,
+      inv,
+      epoch,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    ),
+    Nat.is_eq(custody, inv),
+    current_root_awaiting_exact(
+      custody,
+      inv,
+      epoch,
+      context,
+      permission,
+      origin,
+      handle,
+      Some{pending},
+      Some{O.Lease{id, leased}}
+    )
+  ) : {
+        Bool.and(
+          O.provider_permit_matches(
+            inv,
+            generation,
+            lease,
+            request,
+            O.Child{
+              O.EvaluationScope{custody, context, permission},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending},
+              Some{O.Lease{id, leased}},
+              None{}
+            }
+          ),
+          Bool.and(_, True{})
+        )
+        == S.permit(
+          inv,
+          generation,
+          lease,
+          request,
+          Some{
+            O.Child{
+              O.EvaluationScope{custody, context, permission},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending},
+              Some{O.Lease{id, leased}},
+              None{}
+            }
+          }
+        )
+        : Bool
+      }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(
+      Bool.and(
+        _,
+        Bool.and(
+          Nat.is_eq(generation, epoch),
+          Bool.and(
+            Nat.is_eq(lease, id),
+            Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+          )
+        )
+      ),
+      Bool.and(Nat.is_eq(custody, inv), True{})
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(
+      Bool.and(
+        Nat.is_eq(generation, epoch),
+        Bool.and(
+          Nat.is_eq(lease, id),
+          Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+        )
+      ),
+      Bool.and(Nat.is_eq(custody, inv), True{})
+    )
+    == Bool.and(
+      _,
+      Bool.and(
+        Nat.is_eq(custody, inv),
+        Bool.and(
+          Nat.is_eq(generation, epoch),
+          Bool.and(
+            Nat.is_eq(lease, id),
+            Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+          )
+        )
+      )
+    )
+    : Bool
+  }
+  permit_join_exact(Bool.and(Nat.is_eq(generation, epoch), Bool.and(Nat.is_eq(lease, id),
+    Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased)))), Nat.is_eq(custody, inv))
+
+def permit_cleanup_awaiting_exact(+canon: C.State, +rest: List<&2, O.Child>,
+  +custody: Nat, +inv: Nat, +epoch: Nat, +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission, +origin: Nat, +handle: Nat,
+  +pending: Nat, +id: Nat, +leased: Nat, +generation: Nat, +lease: Nat, +request: Nat) -> {
+    O.provider_permit_found(
+      canon,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      } <> rest,
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    : Bool
+  }:
+  %Equal.sym(
+    Maybe<&2, O.Child>,
+    O.find(
+      inv,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      } <> rest
+    ),
+    Some{
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      }
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        O.ChildAwaiting{},
+        Some{pending},
+        Some{O.Lease{id, leased}},
+        None{}
+      },
+      rest
+    )
+  ) : {
+      Bool.and(
+        O.provider_permit_matches(
+          inv,
+          generation,
+          lease,
+          request,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending},
+            Some{O.Lease{id, leased}},
+            None{}
+          }
+        ),
+        Bool.and(O.evaluation_current(custody, inv, epoch, _), True{})
+      )
+      == S.permit(
+        inv,
+        generation,
+        lease,
+        request,
+        Some{
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending},
+            Some{O.Lease{id, leased}},
+            None{}
+          }
+        }
+      )
+      : Bool
+    }
+  %Equal.sym(
+    Bool,
+    O.evaluation_current(
+      custody,
+      inv,
+      epoch,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    ),
+    Nat.is_eq(custody, inv),
+    current_cleanup_awaiting_exact(
+      custody,
+      inv,
+      epoch,
+      context,
+      permission,
+      origin,
+      handle,
+      Some{pending},
+      Some{O.Lease{id, leased}}
+    )
+  ) : {
+        Bool.and(
+          O.provider_permit_matches(
+            inv,
+            generation,
+            lease,
+            request,
+            O.Child{
+              O.EvaluationCleanupScope{custody, origin, context, permission},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending},
+              Some{O.Lease{id, leased}},
+              None{}
+            }
+          ),
+          Bool.and(_, True{})
+        )
+        == S.permit(
+          inv,
+          generation,
+          lease,
+          request,
+          Some{
+            O.Child{
+              O.EvaluationCleanupScope{custody, origin, context, permission},
+              inv,
+              epoch,
+              handle,
+              O.ChildAwaiting{},
+              Some{pending},
+              Some{O.Lease{id, leased}},
+              None{}
+            }
+          }
+        )
+        : Bool
+      }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(
+      Bool.and(
+        _,
+        Bool.and(
+          Nat.is_eq(generation, epoch),
+          Bool.and(
+            Nat.is_eq(lease, id),
+            Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+          )
+        )
+      ),
+      Bool.and(Nat.is_eq(custody, inv), True{})
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          O.ChildAwaiting{},
+          Some{pending},
+          Some{O.Lease{id, leased}},
+          None{}
+        }
+      }
+    )
+    : Bool
+  }
+  %Equal.sym(Bool, Nat.is_eq(inv, inv), True{}, N.is_eq_refl(inv)) : {
+    Bool.and(
+      Bool.and(
+        Nat.is_eq(generation, epoch),
+        Bool.and(
+          Nat.is_eq(lease, id),
+          Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+        )
+      ),
+      Bool.and(Nat.is_eq(custody, inv), True{})
+    )
+    == Bool.and(
+      _,
+      Bool.and(
+        Nat.is_eq(custody, inv),
+        Bool.and(
+          Nat.is_eq(generation, epoch),
+          Bool.and(
+            Nat.is_eq(lease, id),
+            Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased))
+          )
+        )
+      )
+    )
+    : Bool
+  }
+  permit_join_exact(Bool.and(Nat.is_eq(generation, epoch), Bool.and(Nat.is_eq(lease, id),
+    Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased)))), Nat.is_eq(custody, inv))
 
 def main() -> Unit:
   Unit{}
