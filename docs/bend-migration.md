@@ -155,8 +155,6 @@ with their native owners.
 
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
-Preparation/Finalization and Graph Effect forward Bend trees directly; native
-projection/freeze and lifecycle boundaries remain.
 
 ### Preparation acceptance evidence
 
@@ -235,19 +233,21 @@ Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
 registry and advice tail; add evaluation scope and a nested Dispatch child.
 Native sessions retain jobs, credentials, results and original Effect Causes.
 
-Candidate: authorization/dispatch cursors pass49152+16 finite tapes, not
-universal proofs. Canonical binds evaluation to Reviewing and atomically publishes
-readiness/settlement with native metadata. Request map retains exact operation
-and reservation capability, including settlement after work removal.
+Candidate: whole evaluation Bend cursor now composes admission, authorization,
+provider return, settlement, retention and recovery/finalization. Private ABI
+exposes commands and opaque continuations; the normal build emits it and the
+ABI gate checks its declaration. Standalone/packaged consumers pass1421 tapes,
+46249 prefixes and3 typed whole-flow mutants, including two-fault recovery and
+finalization. These are finite cursor checks, not native cleanup or universal proofs.
 
-Nested dispatch is bound to the exact provider await; no later await can call a
-skipped callback. Canonical start is one-use, requires live work, and only the
-started request may complete successfully. Four reducer cases cover ordinary,
-revoked-before/after-start and never-called callback. Actual native transaction
-covers bound child start, parent continuation and clear/never-sent settlement.
-Build46/46,delivery9/9,fast44/5 and six existing delivery proofs pass. Prior
-Jev/capacity63 pass with shared metadata. Production evaluation still uses TS;
-no evaluation acceptance/deletion claimed.
+Canonical binds evaluation to Reviewing and atomically publishes readiness/
+settlement with exact native operation/reservation metadata. Dispatch is bound
+to the original provider await; no later await may invoke a skipped callback.
+Four reducer cases and native transaction cover start/cancellation/settlement.
+Owner build46/46,delivery9/9,fast44/5 and six delivery proofs pass; prior shared
+metadata Jev/capacity63 pass. Whole-cursor build/packaged/ABI gates pass; fast44
+passed before declaration-format failure, focused formatter/lint now pass.
+Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
 
 Concrete remaining obstacles:
 1. Connect nested Dispatch to the waiting parent invocation/generation/request.
