@@ -1,6 +1,6 @@
 // Canonical lifecycle library ABI. Bend 2.0.37 uses number Nat; host conversion relocates imported tags.
 import type { Canonical_Output, Canonical_Reason, Canonical_State } from "./raw-canonical-state.d.ts"
-import type { Canonical_CanonicalEvent } from "./raw-canonical-event.d.ts"
+import type { Canonical_CanonicalEvent, Canonical_RequestOutcome } from "./raw-canonical-event.d.ts"
 export type OwnerTransport<Value> = Value extends object ? { readonly [Key in keyof Value]: Key extends "$" ? Value[Key] extends `${string}.${string}` ? `../${Value[Key]}` : Value[Key] : OwnerTransport<Value[Key]> } : Value
 export type List<Value> = { readonly $: "Nil" } | { readonly $: "Con"; readonly head: Value; readonly tail: List<Value> }
 type Maybe<Value> = { readonly $: "None" } | { readonly $: "Some"; readonly value: Value }
@@ -23,7 +23,15 @@ export type DeliveryPermission =
   | { readonly $: "FinalizeDelivery"; readonly selection: DeliverySelection }
 export type DeliveryReceipt = { readonly $: "DeliveryReceipt"; readonly invocation: number; readonly generation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
 
+export type EvaluationContext = { readonly $: "EvaluationContext"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
+export type EvaluationPermission =
+  | { readonly $: "EvaluationUnissued" }
+  | { readonly $: "EvaluationIssued"; readonly request: number }
+  | { readonly $: "EvaluationSettled" }
+export type EvaluationFacts = { readonly $: "EvaluationFacts"; readonly root_valid: boolean; readonly configuration_valid: boolean; readonly credential_ready: boolean; readonly selected: boolean; readonly current_work: boolean; readonly physical_available: boolean }
+
 export type Scope =
+  | { readonly $: "EvaluationScope"; readonly operation: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
   | { readonly $: "DeliveryScope"; readonly operation: number; readonly origin: number; readonly context: DeliveryContext; readonly permission: DeliveryPermission; readonly input_handle: number }
   | { readonly $: "SettingsScope"; readonly operation: number }
   | { readonly $: "FreshnessScope"; readonly operation: number }
@@ -103,6 +111,9 @@ export type Refusal =
   | { readonly $: "CanonicalRejected"; readonly reason: OwnerTransport<Canonical_Reason> }
 
 export type ResidentEvent =
+  | { readonly $: "LaunchEvaluationEvent"; readonly context: EvaluationContext; readonly input_handle: number }
+  | { readonly $: "EvaluationReadyEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly facts: EvaluationFacts }
+  | { readonly $: "EvaluationSettleEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly outcome: OwnerTransport<Canonical_RequestOutcome>; readonly current: boolean }
   | { readonly $: "LaunchCollectionEvent"; readonly context: DeliveryContext; readonly input_handle: number }
   | { readonly $: "ClaimDeliveryEvent"; readonly receipt: DeliveryReceipt }
   | { readonly $: "CompleteDeliveryEvent"; readonly invocation: number; readonly generation: number; readonly result_handle: number; readonly selection: DeliverySelection }
@@ -151,6 +162,9 @@ export interface CanonicalResolverOwner {
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
   launch_settings(state: State, input_handle: number): Step
   launch_freshness(state: State, input_handle: number): Step
+  launch_evaluation(state: State, context: EvaluationContext, input_handle: number): Step
+  evaluation_ready(state: State, invocation: number, generation: number, lease: number, request: number, facts: EvaluationFacts): Step
+  evaluation_settle(state: State, invocation: number, generation: number, lease: number, request: number, outcome: OwnerTransport<Canonical_RequestOutcome>, current: boolean): Step
   launch_collection(state: State, context: DeliveryContext, input_handle: number): Step
   claim_delivery(state: State, receipt: DeliveryReceipt): Step
   delivery_receipt_matches(child: Child, receipt: DeliveryReceipt): boolean

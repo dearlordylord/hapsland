@@ -210,6 +210,29 @@ const postCore = (
       assert.equal(snapshot.reservations.size, 2)
       assert.equal(snapshot.records.runtime.peakLedgerBytes, 100)
       assert.equal(published.filter((x) => x.$ === "AcceptResult").length, 2)
+      const evaluationContext = {
+        $: "EvaluationContext",
+        partition,
+        lifetime: 1,
+        round,
+        operation: completed.value[0].operation
+      }
+      const evaluationInvocation = bridge.control.readCustody().next_invocation
+      assert.equal(bridge.control.invoke("launch_evaluation", [evaluationContext, 902]).$, "Advanced")
+      assert.strictEqual(run(transaction.read).canonical, snapshot.canonical)
+      const evaluation = owner.find(evaluationInvocation, bridge.control.readCustody().children).value
+      assert.deepEqual(evaluation.scope, {
+        $: "EvaluationScope",
+        operation: evaluationInvocation,
+        context: evaluationContext,
+        permission: { $: "EvaluationUnissued" }
+      })
+      assert.equal(bridge.control.invoke("launch_evaluation", [evaluationContext, 903]).$, "Rejected")
+      bridge.control.invoke("cancel", [evaluationInvocation])
+      assert.equal(
+        owner.find(evaluationInvocation, bridge.control.readCustody().children).value.phase.$,
+        "ChildCancelled"
+      )
     } else {
       if (variant === "interrupted")
         run(

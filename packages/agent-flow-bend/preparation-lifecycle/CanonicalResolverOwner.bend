@@ -45,8 +45,18 @@ type DeliveryPermission is Data:
 type DeliveryReceipt is Data:
   DeliveryReceipt{invocation: Nat, generation: Nat, origin: Nat,
     context: DeliveryContext, permission: DeliveryPermission, input_handle: Nat}
+type EvaluationContext is Data:
+  EvaluationContext{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
+type EvaluationPermission is Data:
+  EvaluationUnissued{}
+  EvaluationIssued{request: Nat}
+  EvaluationSettled{}
+type EvaluationFacts is Data:
+  EvaluationFacts{root_valid: Bool, configuration_valid: Bool, credential_ready: Bool,
+    selected: Bool, current_work: Bool, physical_available: Bool}
 
 type Scope is Data:
+  EvaluationScope{operation: Nat, context: EvaluationContext, permission: EvaluationPermission}
   DeliveryScope{operation: Nat, origin: Nat, context: DeliveryContext,
     permission: DeliveryPermission, input_handle: Nat}
   SettingsScope{operation: Nat}
@@ -144,6 +154,7 @@ def preparing_live(
 
 def resolver_scope(scope: Scope) -> Scope:
   match scope:
+    case EvaluationScope{_, _, _}: scope
     case DeliveryScope{_, _, _, _, _}: scope
     case SettingsScope{operation}: SettingsScope{operation}
     case FreshnessScope{operation}: FreshnessScope{operation}
@@ -229,6 +240,7 @@ def source_scope_live(
 
 def live(+canonical: C.State, scope: Scope) -> Bool:
   match canonical scope:
+    case _ EvaluationScope{_, _, _}: False{}
     case _ DeliveryScope{_, _, _, _, _}: False{}
     case _ SettingsScope{_}: False{}
     case _ FreshnessScope{_}: False{}
@@ -426,8 +438,29 @@ def delivery_current(+operation: Nat, +invocation: Nat, generation: Nat,
       )
     case _: False{}
 
+# Like delivery, this is issued invocation custody, not permission to start or
+# retain work. Request issuance still checks Reviewing; after invalidation only
+# the exact already-issued request may be accounted for by evaluation_settle.
+def evaluation_current(+operation: Nat, +invocation: Nat, generation: Nat,
+    found: Maybe<&2, Child>) -> Bool:
+  match found:
+    case Some{Child{EvaluationScope{actual, _, _}, current, epoch, _, phase, _, _, None{}}}:
+      Bool.and(
+        Nat.is_eq(operation, invocation),
+        Bool.and(
+          Nat.is_eq(operation, actual),
+          Bool.and(
+            Nat.is_eq(invocation, current),
+            Bool.and(Nat.is_eq(generation, epoch), active(phase))
+          )
+        )
+      )
+    case _: False{}
+
 def child_scope_live(+canonical: C.State, +children: List<&2, Child>, child: Child) -> Bool:
   match child:
+    case Child{EvaluationScope{operation, _, _}, +invocation, generation, _, _, _, _, _}:
+      evaluation_current(operation, invocation, generation, find(invocation, children))
     case Child{DeliveryScope{operation, _, _, _, _}, +invocation, generation, _, _, _, _, _}:
       delivery_current(operation, invocation, generation, find(invocation, children))
     case Child{SettingsScope{operation}, +invocation, generation, _, _, _, _, _}:
@@ -1521,6 +1554,8 @@ def terminal_source_failed(
 
 def terminal_scope(scope: Scope) -> Bool:
   match scope:
+    case EvaluationScope{_, _, EvaluationSettled{}}: True{}
+    case EvaluationScope{_, _, _}: False{}
     case DeliveryScope{_, _, _, _, _}: False{}
     case PreparationScope{_, _, _, _}: False{}
     case SourceScope{_, _, _, _, _}: False{}
@@ -2393,9 +2428,198 @@ def complete_public_preparation(
     observation
   )
 
+# Evaluation remains attached to its exact request through physical settlement.
+# This does not keep cancelled work eligible for another request or retention.
+def evaluation_context_equal(left: EvaluationContext, right: EvaluationContext) -> Bool:
+  match left right:
+    case EvaluationContext{p, l, r, o} EvaluationContext{q, m, s, t}:
+      Bool.and(
+        Nat.is_eq(p, q),
+        Bool.and(Nat.is_eq(l, m), Bool.and(Nat.is_eq(r, s), Nat.is_eq(o, t)))
+      )
+
+def evaluation_claimed(+context: EvaluationContext, children: List<&2, Child>) -> Bool:
+  match children:
+    case Nil{}: False{}
+    case Child{EvaluationScope{_, actual, _}, _, _, _, _, _, _, _} <> rest:
+      Bool.or(evaluation_context_equal(context, actual), evaluation_claimed(context, rest))
+    case _ <> rest: evaluation_claimed(context, rest)
+
+def evaluation_reviewing(context: EvaluationContext, found: Maybe<&2, C.Work>,
+    current: Maybe<&2, C.Round>) -> Bool:
+  match context found current:
+    case EvaluationContext{p, l, r, _} Some{C.Work{_, _, _, _, _, C.Reviewing{}, _}} Some{actual}:
+      C.same_round(p, l, r, actual)
+    case _ _ _: False{}
+
+def evaluation_admissible(canonical: C.State, +context: EvaluationContext) -> Bool:
+  match canonical context:
+    case C.State{_, rounds, work, _, _, _, _, _, _} EvaluationContext{+p, l, r, o}:
+      evaluation_reviewing(context, C.find_work(p, l, r, o, work), C.find_round(p, rounds))
+
+def launch_evaluation(+state: State, +context: EvaluationContext, +input_handle: Nat) -> Step:
+  match state:
+    case State{canonical, +next, _, +children}:
+      launched(
+        Bool.and(
+          settings_next_free(next, find(next, children)),
+          Bool.and(
+            evaluation_admissible(canonical, context),
+            Bool.not(evaluation_claimed(context, children))
+          )
+        ),
+        state,
+        EvaluationScope{next, context, EvaluationUnissued{}},
+        input_handle
+      )
+
+def evaluation_ready_event(context: EvaluationContext, facts: EvaluationFacts) -> C.CanonicalEvent:
+  match context facts:
+    case EvaluationContext{p, l, r, o} EvaluationFacts{
+      root,
+      config,
+      credential,
+      selected,
+      current,
+      available
+    }:
+      C.JevRequestReady{p, l, r, o, root, config, credential, selected, current, available}
+
+def evaluation_ready_permission(outputs: List<&2, C.Output>) -> EvaluationPermission:
+  match outputs:
+    case Nil{}: EvaluationSettled{}
+    case C.EventEstablished{C.JevRequestIssued{_, _, _, _, request}} <> _:
+      EvaluationIssued{request}
+    case _ <> rest: evaluation_ready_permission(rest)
+
+def evaluation_commit(
+  +state: State,
+  child: Child,
+  permission: EvaluationPermission,
+  result: C.Step
+) -> Step:
+  match state child result:
+    case State{_, next_invocation, next_lease, children}
+        Child{
+          EvaluationScope{operation, context, _},
+          +invocation,
+          generation,
+          handle,
+          phase,
+          request,
+          lease,
+          parent
+        }
+        C.Advanced{canonical, outputs}:
+      reconcile_cancel(
+        Advanced{
+          State{
+            canonical,
+            next_invocation,
+            next_lease,
+            replace(
+              invocation,
+              children,
+              Child{
+                EvaluationScope{operation, context, permission},
+                invocation,
+                generation,
+                handle,
+                phase,
+                request,
+                lease,
+                parent
+              }
+            )
+          },
+          outputs,
+          Nil{}
+        }
+      )
+    case _ _ C.Rejected{_, reason}: Rejected{state, CanonicalRejected{reason}}
+    case _ _ _: Rejected{state, WrongPhase{}}
+
+def evaluation_ready_result(state: State, child: Child, +result: C.Step) -> Step:
+  match result:
+    case C.Advanced{_, outputs}: evaluation_commit(
+      state,
+      child,
+      evaluation_ready_permission(outputs),
+      result
+    )
+    case C.Rejected{_, reason}: Rejected{state, CanonicalRejected{reason}}
+
+def evaluation_ready_child(+state: State, +child: Child, facts: EvaluationFacts) -> Step:
+  match child:
+    case Child{EvaluationScope{_, context, EvaluationUnissued{}}, _, _, _, _, _, _, _}:
+      evaluation_ready_result(
+        state,
+        child,
+        C.step(state_canonical(state), evaluation_ready_event(context, facts))
+      )
+    case _: Rejected{state, WrongPhase{}}
+
+def evaluation_ready_found(
+  valid: Bool,
+  state: State,
+  found: Maybe<&2, Child>,
+  facts: EvaluationFacts
+) -> Step:
+  match valid found:
+    case True{} Some{child}: evaluation_ready_child(state, child, facts)
+    case _ _: Rejected{state, WrongPhase{}}
+
+def evaluation_ready(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat,
+    facts: EvaluationFacts) -> Step:
+  evaluation_ready_found(provider_live(state, invocation, generation, lease, request), state,
+    find(invocation, state_children(state)), facts)
+
+def evaluation_settle_event(context: EvaluationContext, request: Nat, outcome: C.RequestOutcome,
+    current: Bool) -> C.CanonicalEvent:
+  match context:
+    case EvaluationContext{p, l, r, o}: C.JevRequestSettled{p, l, r, o, request, outcome, current}
+
+def evaluation_settle_child(
+  +state: State,
+  +child: Child,
+  outcome: C.RequestOutcome,
+  current: Bool
+) -> Step:
+  match child:
+    case Child{EvaluationScope{_, context, EvaluationIssued{request}}, _, _, _, _, _, _, _}:
+      evaluation_commit(state, child, EvaluationSettled{}, C.step(state_canonical(state),
+        evaluation_settle_event(context, request, outcome, current)))
+    case _: Rejected{state, WrongPhase{}}
+
+def evaluation_settle_found(
+  valid: Bool,
+  state: State,
+  found: Maybe<&2, Child>,
+  outcome: C.RequestOutcome,
+  current: Bool
+) -> Step:
+  match valid found:
+    case True{} Some{child}: evaluation_settle_child(state, child, outcome, current)
+    case _ _: Rejected{state, WrongPhase{}}
+
+def evaluation_settle(+state: State, +invocation: Nat, generation: Nat, lease: Nat, request: Nat,
+    outcome: C.RequestOutcome, current: Bool) -> Step:
+  evaluation_settle_found(provider_live(state, invocation, generation, lease, request), state,
+    find(invocation, state_children(state)), outcome, current)
+
 type Custody is Data:
   Custody{next_invocation: Nat, next_lease: Nat, children: List<&2, Child>}
 type ResidentEvent is Data:
+  LaunchEvaluationEvent{context: EvaluationContext, input_handle: Nat}
+  EvaluationReadyEvent{
+    invocation: Nat,
+    generation: Nat,
+    lease: Nat,
+    request: Nat,
+    facts: EvaluationFacts
+  }
+  EvaluationSettleEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat,
+    outcome: C.RequestOutcome, current: Bool}
   CanonicalEvent{event: C.CanonicalEvent}
   LaunchSettingsEvent{input_handle: Nat}
   LaunchFreshnessEvent{input_handle: Nat}
@@ -2478,6 +2702,15 @@ def publish(step: Step) -> Publication:
 
 def resident_event(state: State, event: ResidentEvent) -> Step:
   match event:
+    case LaunchEvaluationEvent{context, input_handle}: launch_evaluation(
+      state,
+      context,
+      input_handle
+    )
+    case EvaluationReadyEvent{invocation, generation, lease, request, facts}:
+      evaluation_ready(state, invocation, generation, lease, request, facts)
+    case EvaluationSettleEvent{invocation, generation, lease, request, outcome, current}:
+      evaluation_settle(state, invocation, generation, lease, request, outcome, current)
     case CanonicalEvent{event}: canonical_event(state, event)
     case LaunchSettingsEvent{input_handle}: launch_settings(state, input_handle)
     case LaunchFreshnessEvent{input_handle}: launch_freshness(state, input_handle)

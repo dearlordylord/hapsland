@@ -80,7 +80,88 @@ try {
     assert.equal(m.live(s.canonical, scope), true)
     return s
   }
-  let assertions = 0
+  let assertions = 0,
+    evaluationCases = 0
+  // Evaluation invocation custody is distinct from Preparing and from the
+  // canonical Jev request. Readiness/settlement update both owners atomically.
+  for (const revokeWork of [false, true]) {
+    const context = { $: "EvaluationContext", partition: 1, lifetime: 1, round: 1, operation: 3 }
+    let state = fresh()
+    reject(m.launch_evaluation(state, context, 80), "NotPreparing")
+    state = advanced(
+      m.canonical_event(
+        state,
+        c("PreparationCompleted", {
+          partition: 1,
+          lifetime: 1,
+          round: 1,
+          operation: 2,
+          unit_bytes: { $: "Con", head: 100, tail: { $: "Nil" } }
+        })
+      )
+    )
+    for (const field of ["partition", "lifetime", "round", "operation"])
+      reject(m.launch_evaluation(state, { ...context, [field]: 99 }, 80), "NotPreparing")
+    state = advanced(m.launch_evaluation(state, context, 80))
+    const child = m.find(1, state.children).value
+    assert.equal(child.scope.$, "EvaluationScope")
+    assert.equal(m.live(state.canonical, child.scope), false)
+    assert.equal(m.child_live(state.canonical, state.children, child), true)
+    reject(m.launch(state, child.scope, 81), "NotPreparing")
+    reject(m.launch_evaluation(state, context, 81), "NotPreparing")
+    reject(m.terminal(state, 1, 0, 100), "WrongPhase")
+    state = advanced(m.install(state, 1, 0, 90, 0))
+    state = advanced(m.provider_start(state, 1))
+    const lease = m.find(1, state.children).value.lease.value.id
+    const facts = {
+      $: "EvaluationFacts",
+      root_valid: true,
+      configuration_valid: true,
+      credential_ready: true,
+      selected: true,
+      current_work: true,
+      physical_available: true
+    }
+    for (const args of [
+      [99, 0, lease, 0],
+      [1, 1, lease, 0],
+      [1, 0, lease + 1, 0],
+      [1, 0, lease, 1]
+    ])
+      reject(m.evaluation_ready(state, ...args, facts), "WrongPhase")
+    state = advanced(m.evaluation_ready(state, 1, 0, lease, 0, facts))
+    const issued = m.find(1, state.children).value.scope.permission
+    assert.equal(issued.$, "EvaluationIssued")
+    assert.ok(issued.request > 0)
+    reject(m.evaluation_ready(state, 1, 0, lease, 0, facts), "WrongPhase")
+    const invalidOutcome = m.evaluation_settle(state, 1, 0, lease, 0, c("RequestClear"), true)
+    reject(invalidOutcome, "CanonicalRejected")
+    assert.deepEqual(invalidOutcome.state, state)
+    if (revokeWork) {
+      state = advanced(
+        m.canonical_event(
+          state,
+          c("ReviewCompleted", { partition: 1, lifetime: 1, round: 1, operation: 3, outcome: c("Unavailable") })
+        )
+      )
+      assert.equal(m.provider_live(state, 1, 0, lease, 0), true)
+    }
+    for (const args of [
+      [99, 0, lease, 0],
+      [1, 1, lease, 0],
+      [1, 0, lease + 1, 0],
+      [1, 0, lease, 1]
+    ])
+      reject(m.evaluation_settle(state, ...args, c("NeverSent"), false), "WrongPhase")
+    state = advanced(m.evaluation_settle(state, 1, 0, lease, 0, c("NeverSent"), false))
+    assert.equal(m.find(1, state.children).value.scope.permission.$, "EvaluationSettled")
+    reject(m.evaluation_settle(state, 1, 0, lease, 0, c("NeverSent"), false), "WrongPhase")
+    state = advanced(m.provider_completed(state, 1, lease, 0, 91))
+    state = advanced(m.terminal(state, 1, 1, 100))
+    assert.equal(m.find(1, state.children).value.phase.$, "ChildAccepted")
+    reject(m.launch_evaluation(state, context, 81), "NotPreparing")
+    evaluationCases++
+  }
   // Unknown recipients need no capacity identity allocation. Absence is exact
   // receipt context, never a wildcard shared by different recipient keys.
   for (const partition of [{ $: "None" }, { $: "Some", value: 1 }]) {
@@ -2610,6 +2691,7 @@ try {
     JSON.stringify({
       passed: true,
       assertions,
+      evaluationCases,
       scope:
         "actual Canonical admission/work invalidation plus source-free child generations, unique terminal and separate late-provider cleanup; opaque controlled handles only; actual split-child resident consumer, provisional rejected-handle disposal, retention/revision and universal proofs remain open"
     })

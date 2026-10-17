@@ -153,8 +153,6 @@ acceptance guarantees. Native identity, clock, settings, hash/reuse authority,
 IEEE operations, serialization engines and atomic resource operations remain
 with their native owners.
 
-FrozenInput and Finalization connect the batch in production. The superseded per-primitive FrozenInput request path
-is removed. Preparation is accepted after deletion, full consumers and source qualification.
 `migration/bend-abi-2037` uses Bend 2.0.37 with numeric Nat/shared records.
 Compiler cohort: [43097ad4](https://github.com/dearlordylord/bend/commit/43097ad479b8dea99ddd1ba4610c7b32cdaf7084).
 Preparation/Finalization and Graph Effect forward Bend trees directly; native
@@ -230,41 +228,41 @@ strict parity false. TS/Bend total medians[ranges] s:
 local-ready2.47×,IPC-empty2.81×,IPC-ready2.13×,edit-ready2.41×.
 Shared-machine timings, not isolated optimization speedup. Product IPC deadline
 remains4s. Per-call unchanged-graph retention has no persistent cache.
-Prior denials/timeouts and discarded ABI-cache experiments remain in Git;
-none is relabeled as current passing evidence.
 
 ## Current unit: resident evaluation through retained advice
 
-Astra reviewed the whole path on 2026-10-17: use the existing Canonical child
-owner/driver/registry, an evaluation-specific scope, and the existing advice
-tail after insertion. Ordinary Preparing scope cannot fence Reviewing/AtJev.
-Native sessions keep jobs, credentials, result and original Effect Causes.
+Astra reviewed the whole path on 2026-10-17: reuse Canonical child owner/driver/
+registry and advice tail; add evaluation scope and a nested Dispatch child.
+Native sessions retain jobs, credentials, results and original Effect Causes.
 
-Concrete obstacles, in execution order:
-1. Move complete authorization/request/settlement/retention orchestration into
-   evaluation-owned Bend. Authorization candidate now includes both root reads,
-   both generation checks around credential suspension, readiness and ordered
-   issued/unavailable observations. Emitted authorization/dispatch checks pass
-   49152+16 tapes with correlation/failure refusals. Neither is connected yet.
-2. Add exact evaluation scope and nested Dispatch child bound to the waiting
-   parent invocation/generation/request. Keep beforeDispatch inside the existing
-   provider-input validation and total-call deadline: credential reread → budget
-   claim → Canonical start → started observation; dispatch cursor is checked. Issued is not started.
-3. Drain cancellation/defects through physical settlement. Revocation prohibits
-   new requests/advice, but retains only exact interrupt/settle/observe/release
-   authority. No generic live=true or preparing-scope fallback. Preserve Cause.
-4. Transfer exact finding custody once to the existing advice tail; retain
-   duplicate joining and cutoff behavior. Delete replaced TS in workflow,
-   authorization, request, settlement and retention; observations retain only
-   serialization/IO. Connect the real server and cached/fresh retention callers.
-5. Review exact correspondence/lifecycle/retention laws before proof work; reuse
-   current outcome and advice-tail proofs, no public layout/helper-law expansion.
-   Run matching build/fast, actual request/server/security/reuse/revision/ownership/
-   inspection and affected transport fixtures, including shared Preparation.
-   Qualify full admission→provider→settlement→collection against fixed TS,
+Implemented candidate: authorization/dispatch cursors pass49152+16 finite tapes;
+no universal proof claimed. Canonical issues exact Reviewing-bound evaluation
+custody; readiness and settlement publish request/child state atomically. Only
+its bound issued request survives work removal for settlement; duplicate issuance,
+settlement and forged invocation/generation/lease/request are rejected. Actual
+owner and native transaction cases pass. Build46/46,delivery protocol9/9,
+fast44/4 and existing six delivery proofs pass after adding the scope.
+Production evaluation still uses TS; no evaluation acceptance/deletion claimed.
+
+Concrete remaining obstacles:
+1. Connect native reservation/request metadata to atomic Owner ready/settle
+   publications; preserve existing disposition, rollback and accounting.
+2. Connect nested Dispatch to the waiting parent invocation/generation/request.
+   Keep beforeDispatch after input validation and inside the original total-call
+   deadline: credential reread → budget claim → Canonical start → observation.
+   Issuance is not physical start. Prevent new dispatch after work revocation.
+3. Drain explicit scope cancellation and provider defects through physical
+   settlement with only exact interrupt/settle/observe/release authority. Preserve
+   Cause; no preparing-scope or unconditional-liveness fallback.
+4. Connect the whole evaluation cursor to server and cached/fresh retention;
+   transfer finding custody once to existing advice tail, preserve joining/cutoff.
+   Delete TS orchestration in workflow/authorization/request/settlement/retention;
+   observation retains only serialization/IO.
+5. Review correspondence/lifecycle/retention laws before proving; reuse outcome/
+   advice-tail proofs. Run matching fast/build, actual request/server/security/
+   reuse/revision/ownership/inspection/transport and shared Preparation consumers.
+   Qualify full admission→provider→settlement→collection against fixed TS for
    clear/finding/refusal/cancellation/failure, ≤3×; strict parity separately.
-
-No evaluation unit acceptance or TS deletion is claimed for the candidate.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

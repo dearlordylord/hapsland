@@ -9,6 +9,7 @@ export type Method =
   | "launch_settings"
   | "launch_freshness"
   | "launch_collection"
+  | "launch_evaluation"
   | "claim_delivery"
   | "complete_delivery"
   | "launch_source"
