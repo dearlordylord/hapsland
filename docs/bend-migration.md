@@ -248,7 +248,7 @@ advice tail; cached/fresh enrollment and observation share evaluation-owned
 helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-Sources281/281; protocol26/26; fast4.
+`de0fb23d`: sources281/281; protocol26/26; fast4.
 Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
 Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
 build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
@@ -264,14 +264,12 @@ work is inside timers; cancellation includes physical drain, other Scope cleanup
 and runtime construction are outside. Separate profiling points to CPU in
 Canonical transactions/transport/driver; shared load permits no causal claim.
 
-Remaining obligations (Astra,2026-10-17):
-1. Complete independent Evaluation/Auth/Dispatch initial/cleanup/interruption/
-   resume correspondence: full independent tables; finite checks, proofs open.
-2. Full Canonical lifecycle: independent table/check; callback/cleanup mutants
-   rejected. Universal proofs open.
-3. Exact advice transfer: independent table/check/mutant; proof open.
-Use existing types/policies and flat independent steps; falsify, approve,
-prove/recheck.
+Three whole laws (Astra path,2026-10-17), owner approval/proofs pending:
+1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps.
+2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle.
+3. `EVALUATION_ADVICE_LAWS`: exact transfer and cancellation.
+Independent tables, finite checks and eight mutants pass. New law files each
+report one open TODO; no new proof or current source-gate pass is claimed.
 Whole evaluation is not accepted.
 
 
