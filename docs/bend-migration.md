@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: candidate `e487d14e`,22:39 UTC: execution **.6096×**;
-build **1.0066×**. Strict PASS/FAIL,17 pairs; five freeze checks pass, build34/34
+2026-10-17: candidate `9414db99`,23:12 UTC: execution **.7044×**;
+build **.9836×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution0.0776[0.0549,0.2533]/0.0557[0.0398,0.1075];
-build5.3301[3.4618,37.6980]/5.3171[3.0673,36.8639]. Shared load; no causal claim.
+execution.0604[.0493,.0939]/.0425[.0361,.0653];
+build3.5185[3.2058,5.4474]/3.4841[2.8452,5.5980]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -251,9 +251,8 @@ the committed tail and original Cause.
 `7044c5ed`: sources280/280; protocol29/29; fast1.
 Evidence:1718 tapes/49057 steps/585900 typed states/5 mutants; cached793;
 Post23360. Production/IPC/collection233/12, dispatch/settings/analytics22/4, Source59, Delivery9,
-`2d7067fa` build46/46, receipts23. Native cleanup6/73 and registry5 check drain/retry/Cause
-with controlled authorization/observation ports. Expanded consumers found and
-fixed cancelled Prepare lease cleanup and missing safe recovery diagnostics.
+`2d7067fa` build46/46, receipts23. Native cleanup6/73, registry5: drain/retry/Cause.
+Cancelled Prepare lease cleanup and safe recovery diagnostics are fixed.
 
 Whole evaluation `828c8d55`,2026-10-17 09:45 UTC, fixed TS `a0773f79`:
 **2.0033×**, owner≤3× PASS, strict parity false.17 alternating pairs, five freezes,
@@ -268,7 +267,7 @@ Three whole laws (Astra path), owner approved2026-10-17; all proved:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle proved.
 3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Tail cancel native25/fast4 pass. Transfer fixed: native custody plus work-before-advice; native27 pass. Product/fast and whole-path qualification remain.
+Tail cancel native25/fast4 pass. Transfer: native custody/work-before-advice and per-request work observation; native27/focused8 pass, including suppression. Product257/16, fast8 pass; protocol/whole qualification remain.
 Whole evaluation is not accepted.
 
 

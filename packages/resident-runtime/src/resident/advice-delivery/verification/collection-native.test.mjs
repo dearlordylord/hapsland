@@ -1,8 +1,5 @@
 import rootCore from "../../../../dist/resident/advice-delivery/handoff/collection-handoff-core.js"
-import {
-  makeResidentCollectionWorkState,
-  residentEditCollectionStatus
-} from "../../../../dist/resident/advice-delivery/handoff/collection-status.js"
+import { residentEditCollectionStatus } from "../../../../dist/resident/advice-delivery/handoff/collection-status.js"
 import assert from "node:assert/strict"
 import { it } from "node:test"
 import * as Effect from "effect/Effect"
@@ -125,9 +122,12 @@ const fixture = (hooks = {}) => {
     residentNow: () => 0,
     residentExpirePending: () => Effect.void,
     residentPruneNoticeCooldowns: () => Effect.void,
-    residentAdvice: () => Effect.sync(() => [state.retained]),
+    residentAdvice: () => Effect.sync(() => hooks.advice?.() ?? [state.retained]),
     residentInspection: { observeAdviceFate: () => assert.fail("Unexpected suppressed finding") },
-    residentComposedDelivery: { isDeciding: () => Effect.succeed(true), suppresses: () => Effect.succeed(false) },
+    residentComposedDelivery: {
+      isDeciding: () => Effect.succeed(hooks.deciding ?? true),
+      suppresses: () => Effect.succeed(false)
+    },
     residentJoined: { hasAdmission: () => Effect.succeed(false) },
     residentRemoveAdvice: failUnexpected,
     residentIsCurrentWork: () => Effect.succeed(true),
@@ -561,13 +561,57 @@ for (const publication of ["before-advice", "after-advice"]) {
   })
 }
 
-it("shared work reporting sees advice published after an empty collection pass", async () => {
-  const f = fixture()
-  const workState = makeResidentCollectionWorkState({
-    residentAdvice: () => Effect.succeed([f.state.advice]),
-    residentAdviceExpired: () => Effect.succeed(false),
-    residentCollectionWorkCount: () => Effect.succeed(0),
-    residentNow: () => 127
+it("shared collection carries prepass work through reporting and finalization, then forgets it", async () => {
+  const { makeResidentDelivery } = await import("../../../../dist/resident/advice-delivery/delivery.js")
+  const { residentFinalizeHandoff } =
+    await import("../../../../dist/resident/advice-delivery/handoff/delivery-finalize.js")
+  let work = 1
+  const f = fixture({
+    deciding: false,
+    advice: () => {
+      work = 0
+      return []
+    }
   })
-  assert.deepEqual(await Effect.runPromise(workState("/repo", f.advicee, true)), { status: "pending" })
+  const delivery = makeResidentDelivery({
+    residentLedger: {
+      rounds: { get: () => Effect.succeed(undefined) },
+      advice: { snapshots: () => Effect.succeed([]) }
+    },
+    residentComposedDelivery: { hasPendingEdits: () => Effect.succeed(false) },
+    residentNotices: { entries: () => Effect.succeed([]) }
+  })
+  const request = {
+    requestRoute: "shared",
+    operation: "collect",
+    root: "/repo",
+    advicee: f.advicee,
+    composed: true,
+    reportWorkState: true,
+    dispatch: { credential: null }
+  }
+  const deps = { ...delivery, residentCollectionWorkCount: () => Effect.succeed(work) }
+  const empty = f.collection.residentCollectionSession(
+    "/repo",
+    f.advicee,
+    request.dispatch,
+    "ordinary",
+    undefined,
+    false
+  )
+  const root = makeResidentCollectionRoot({ kind: "request", deps, request, collection: empty })
+  // Completion after an empty native snapshot cannot erase the prepass observation.
+  let step = root.initial(71)
+  while (step.$ === "RootAwait") step = await Effect.runPromise(root.advance(step))
+  const response = root.decode(step)
+  assert.equal(work, 0)
+  assert.equal(response.status, "pending")
+  work = 0
+  const final = await Effect.runPromise(
+    residentFinalizeHandoff(deps, request, response, new Map(), undefined, { kind: "local" })
+  )
+  assert.equal(final.status, "pending")
+  assert.deepEqual(await Effect.runPromise(delivery.residentCollectionWorkState("/repo", f.advicee, true)), {
+    status: "empty"
+  })
 })

@@ -510,6 +510,16 @@ const residentCollectionWorkCount = Effect.fn("ResidentRuntime.collectionWorkCou
     (yield* residentLeasedNoticeCount(deps, partition, composed))
   )
 })
+const residentCollectionWorkState = Effect.fn("ResidentRuntime.collectionWorkState")(function* (
+  deps: Dependencies,
+  root: string,
+  advicee: DirectAdvicee,
+  composed = false,
+  observedWork = 0
+): Effect.fn.Return<{ readonly status: "pending" | "empty" }> {
+  const work = observedWork + (yield* residentCollectionWorkCount(deps, root, advicee, composed))
+  return { status: work > 0 ? "pending" : "empty" }
+})
 const whenIdle = Effect.fn("ResidentRuntime.whenIdle")((deps: Dependencies) => deps.residentDispatcher.whenIdle())
 const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")(function* (
   deps: Dependencies
@@ -567,6 +577,7 @@ const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(functio
 export const makeResidentDelivery = (deps: Dependencies) => {
   return {
     residentCollectionWorkCount: residentCollectionWorkCount.bind(null, deps),
+    residentCollectionWorkState: residentCollectionWorkState.bind(null, deps),
     whenIdle: whenIdle.bind(null, deps),
     acknowledge: acknowledge.bind(null, deps),
     finalize: finalize.bind(null, deps),

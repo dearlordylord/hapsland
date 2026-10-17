@@ -138,7 +138,8 @@ type Dependencies = {
   readonly residentCollectionWorkState: (
     root: string,
     advicee: DirectAdvicee,
-    composed?: boolean
+    composed?: boolean,
+    observedWork?: number
   ) => Effect.Effect<{ readonly status: "pending" | "empty" }, never, never>
   readonly cleanup: () => Effect.Effect<"busy" | "cleaned", never, never>
   readonly paths: ResidentPaths

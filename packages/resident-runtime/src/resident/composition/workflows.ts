@@ -1,4 +1,3 @@
-import { makeResidentCollectionWorkState } from "../advice-delivery/handoff/collection-status.ts"
 import { makeResidentCollectionDelivery } from "../advice-delivery/collection-delivery.ts"
 import { makeResidentResponses } from "../advice-delivery/response.ts"
 import { residentAwaitBackendGate } from "../review-work/backend-gate.ts"
@@ -307,14 +306,6 @@ const makeResidentInteractionWorkflows = (
     canonicalDelivery: residentLedger.reviewPreparation,
     residentLedger
   })
-  const residentCollectionWorkState = makeResidentCollectionWorkState({
-    get residentAdvice() {
-      return ports.residentAdvice
-    },
-    residentAdviceExpired: adviceCollection.residentAdviceExpired,
-    residentCollectionWorkCount: delivery.residentCollectionWorkCount,
-    residentNow
-  })
   const requests = makeResidentRequests({
     get stats() {
       return ports.stats
@@ -355,7 +346,7 @@ const makeResidentInteractionWorkflows = (
     residentCollectionWorkCount: delivery.residentCollectionWorkCount,
     residentDiscardUnfinishedWork: workLifecycle.residentDiscardUnfinishedWork,
     residentAllowFinish: workLifecycle.residentAllowFinish,
-    residentCollectionWorkState,
+    residentCollectionWorkState: delivery.residentCollectionWorkState,
     get cleanup() {
       return ports.cleanup
     },
@@ -383,7 +374,7 @@ const makeResidentInteractionWorkflows = (
     residentIsCurrentWork: workLifecycle.residentIsCurrentWork,
     residentCaptureSource,
     inspection,
-    residentCollectionWorkState,
+    residentCollectionWorkState: delivery.residentCollectionWorkState,
     residentNow,
     residentExpirePending: workLifecycle.residentExpirePending,
     residentPruneNoticeCooldowns: workLifecycle.residentPruneNoticeCooldowns,

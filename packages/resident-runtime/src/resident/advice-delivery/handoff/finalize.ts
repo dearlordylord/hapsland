@@ -140,7 +140,12 @@ export const makeResidentFinalizationSession = (
         return { $: "FAck" }
       case "FWorkState": {
         const value = collectRequest()
-        const result = yield* deps.residentCollectionWorkState(value.root, value.advicee, value.composed === true)
+        const result = yield* deps.residentCollectionWorkState(
+          value.root,
+          value.advicee,
+          value.composed === true,
+          Number(response.status === "pending")
+        )
         return { $: "FHandle", handle: responses.push(result) - 1 }
       }
       case "FCollectorGate":

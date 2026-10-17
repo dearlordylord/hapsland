@@ -67,6 +67,7 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
   let statusAdvice: readonly Advice[] = []
   let statusNow = 0
   let statusWorkCount = 0
+  let prepassWork: number | undefined
   const currentCollection = () => {
     if (collection === undefined) throw new Error("missing collection pass capability")
     return collection
@@ -89,6 +90,17 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
         if (gate === undefined) throw new Error("missing collection gate capability")
         return { $: "RootGated", response: encodeGResponse(yield* gate.perform(decodeGCommand(command.command))) }
       case "RootCollect":
+        if (
+          config.kind === "request" &&
+          config.request.composed === true &&
+          config.request.reportWorkState === true &&
+          prepassWork === undefined
+        )
+          prepassWork = yield* config.deps.residentCollectionWorkCount(
+            config.request.root,
+            config.request.advicee,
+            true
+          )
         return {
           $: "RootCollected",
           response: encodeFlowResponse(yield* currentCollection().perform(decodeFlowCommand(command.command)))
@@ -111,7 +123,12 @@ export const makeResidentCollectionRoot = (config: RootConfiguration) => {
         return { $: "RootReserved", response: encodeRResponse(yield* finish.perform(decodeRCommand(command.command))) }
       case "RootWorkState":
         if (config.kind !== "request") throw new Error("missing work state request capability")
-        selected = yield* config.deps.residentCollectionWorkState(config.request.root, config.request.advicee, true)
+        selected = yield* config.deps.residentCollectionWorkState(
+          config.request.root,
+          config.request.advicee,
+          true,
+          prepassWork ?? 0
+        )
         return { $: "RootWorkStateRead" }
       case "RootEditGate": {
         if (config.kind !== "edit") throw new Error("missing edit gate capability")
