@@ -90,7 +90,8 @@ const send = (server: ResidentRuntime, observation: DirectObservation, dispatch:
 
 describe("edit-owned settings", () => {
   it("retains registration rules and feedback through review, socket handoff and later collection", async () => {
-    const f = await fixture()
+    const observations: unknown[] = []
+    const f = await fixture({ jevRequestObserver: (observation) => observations.push(observation) })
     await register(f.server, f.observation, f.user)
     // A partially saved rule and changed file policy cannot replace this edit's snapshot.
     await put(f.root, "rule.jsonc", "{")
@@ -98,7 +99,7 @@ describe("edit-owned settings", () => {
     await put(f.root, ".hapsland.jsonc", JSON.stringify({ version: 1, excludes: ["type.ts"], rules: [] }))
     await f.server.listen().pipe(Effect.runPromise)
     const response = await send(f.server, f.observation, f.dispatch)
-    expect(response.status, JSON.stringify(response)).toBe("advice")
+    expect(response.status, JSON.stringify({ response, observations })).toBe("advice")
     if (response.status !== "advice") throw new Error("missing snapshot advice")
     expect(response.output).toMatchObject({ decision: "block", reason: expect.stringContaining("original edit rule") })
     await Effect.runPromise(f.server.releaseDelivery(response.token))
