@@ -2,7 +2,7 @@ import Base
 import ./CanonicalResolverOwner.bend as O
 import ./EvaluationAdviceSpecification.bend as S
 
-# Owner approved 2026-10-17 ("нормально продолжай"); whole law not yet proved. One exact Evaluation -> Advice transfer.
+# Owner approved 2026-10-17 ("нормально продолжай"); whole law proved in EVALUATION_ADVICE_PROOF.bend. One exact Evaluation -> Advice transfer.
 # Exact live lease, EvaluationSettled, same operation, first matching PendingFinding
 # and no prior claim determine birth: exact TailNew scope/origin/input/action and
 # parent=None. Cleanup/wrong authority/duplicates refuse. Cancellation is composed

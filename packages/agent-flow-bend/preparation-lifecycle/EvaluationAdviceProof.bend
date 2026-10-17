@@ -1786,5 +1786,1144 @@ def permit_cleanup_awaiting_exact(+canon: C.State, +rest: List<&2, O.Child>,
   permit_join_exact(Bool.and(Nat.is_eq(generation, epoch), Bool.and(Nat.is_eq(lease, id),
     Bool.and(Nat.is_eq(request, pending), Nat.is_eq(pending, leased)))), Nat.is_eq(custody, inv))
 
+def permit_root_found_exact(+phase: O.Phase, +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>, +ancestor: Maybe<&2, O.Parent>,
+  +canon: C.State, +rest: List<&2, O.Child>, +custody: Nat, +inv: Nat, +epoch: Nat,
+  +context: O.EvaluationContext, +permission: O.EvaluationPermission, +origin: Nat,
+  +handle: Nat, +generation: Nat, +lease: Nat, +request: Nat) -> {
+    O.provider_permit_found(
+      canon,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      } <> rest,
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        }
+      }
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        }
+      }
+    )
+    : Bool
+  }:
+  match phase pending held ancestor:
+
+    case O.ChildInstalling{} _ _ _: {==}
+
+    case O.ChildReady{} _ _ _: {==}
+
+    case O.ChildResuming{} _ _ _: {==}
+
+    case O.ChildAccepted{} _ _ _: {==}
+
+    case O.ChildCancelled{} _ _ _: {==}
+
+    case O.ChildAwaiting{} None{} _ _: {==}
+    case O.ChildAwaiting{} Some{_} None{} _: {==}
+    case O.ChildAwaiting{} Some{pending_id} Some{O.Lease{id, leased}} None{}:
+      permit_root_awaiting_exact(canon, rest, custody, inv, epoch, context, permission, origin,
+        handle, pending_id, id, leased, generation, lease, request)
+    case O.ChildAwaiting{} Some{pending_id} Some{O.Lease{id, leased}} Some{O.Parent{a, b, c}}:
+      %Equal.sym(
+        Maybe<&2, O.Child>,
+        O.find(
+          inv,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          } <> rest
+        ),
+        Some{
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          }
+        },
+        find_head_exact(
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          },
+          rest
+        )
+      ) : {
+          Bool.and(
+            O.provider_permit_matches(
+              inv,
+              generation,
+              lease,
+              request,
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                handle,
+                O.ChildAwaiting{},
+                Some{pending_id},
+                Some{O.Lease{id, leased}},
+                Some{O.Parent{a, b, c}}
+              }
+            ),
+            Bool.and(
+              O.evaluation_current(custody, inv, epoch, _),
+              O.parent_live(
+                Some{O.Parent{a, b, c}},
+                O.Child{
+                  O.EvaluationScope{custody, context, permission},
+                  inv,
+                  epoch,
+                  handle,
+                  O.ChildAwaiting{},
+                  Some{pending_id},
+                  Some{O.Lease{id, leased}},
+                  Some{O.Parent{a, b, c}}
+                } <> rest
+              )
+            )
+          )
+          == False{}
+          : Bool
+        }
+      B.and_false(
+        O.provider_permit_matches(
+          inv,
+          generation,
+          lease,
+          request,
+          O.Child{
+            O.EvaluationScope{custody, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          }
+        )
+      )
+
+def permit_cleanup_found_exact(+phase: O.Phase, +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>, +ancestor: Maybe<&2, O.Parent>,
+  +canon: C.State, +rest: List<&2, O.Child>, +custody: Nat, +inv: Nat, +epoch: Nat,
+  +context: O.EvaluationContext, +permission: O.EvaluationPermission, +origin: Nat,
+  +handle: Nat, +generation: Nat, +lease: Nat, +request: Nat) -> {
+    O.provider_permit_found(
+      canon,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      } <> rest,
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        }
+      }
+    )
+    == S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      Some{
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        }
+      }
+    )
+    : Bool
+  }:
+  match phase pending held ancestor:
+
+    case O.ChildInstalling{} _ _ _: {==}
+
+    case O.ChildReady{} _ _ _: {==}
+
+    case O.ChildResuming{} _ _ _: {==}
+
+    case O.ChildAccepted{} _ _ _: {==}
+
+    case O.ChildCancelled{} _ _ _: {==}
+
+    case O.ChildAwaiting{} None{} _ _: {==}
+    case O.ChildAwaiting{} Some{_} None{} _: {==}
+    case O.ChildAwaiting{} Some{pending_id} Some{O.Lease{id, leased}} None{}:
+      permit_cleanup_awaiting_exact(canon, rest, custody, inv, epoch, context, permission, origin,
+        handle, pending_id, id, leased, generation, lease, request)
+    case O.ChildAwaiting{} Some{pending_id} Some{O.Lease{id, leased}} Some{O.Parent{a, b, c}}:
+      %Equal.sym(
+        Maybe<&2, O.Child>,
+        O.find(
+          inv,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          } <> rest
+        ),
+        Some{
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          }
+        },
+        find_head_exact(
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          },
+          rest
+        )
+      ) : {
+          Bool.and(
+            O.provider_permit_matches(
+              inv,
+              generation,
+              lease,
+              request,
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                handle,
+                O.ChildAwaiting{},
+                Some{pending_id},
+                Some{O.Lease{id, leased}},
+                Some{O.Parent{a, b, c}}
+              }
+            ),
+            Bool.and(
+              O.evaluation_current(custody, inv, epoch, _),
+              O.parent_live(
+                Some{O.Parent{a, b, c}},
+                O.Child{
+                  O.EvaluationCleanupScope{custody, origin, context, permission},
+                  inv,
+                  epoch,
+                  handle,
+                  O.ChildAwaiting{},
+                  Some{pending_id},
+                  Some{O.Lease{id, leased}},
+                  Some{O.Parent{a, b, c}}
+                } <> rest
+              )
+            )
+          )
+          == False{}
+          : Bool
+        }
+      B.and_false(
+        O.provider_permit_matches(
+          inv,
+          generation,
+          lease,
+          request,
+          O.Child{
+            O.EvaluationCleanupScope{custody, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            O.ChildAwaiting{},
+            Some{pending_id},
+            Some{O.Lease{id, leased}},
+            Some{O.Parent{a, b, c}}
+          }
+        )
+      )
+
+def permit_lookup_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +child: O.Child,
+  found: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  found_right: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  selected: {
+    O.provider_permit_found(
+      O.state_canonical(state),
+      O.state_children(state),
+      inv,
+      generation,
+      lease,
+      request,
+      Some{child}
+    )
+    == S.permit(inv, generation, lease, request, Some{child})
+    : Bool
+  }
+) -> {
+  O.provider_live(state, inv, generation, lease, request)
+  == S.permit(inv, generation, lease, request, O.find(inv, S.children(state))) : Bool
+}:
+  match state:
+    case O.State{_, _, _, _}:
+      %Equal.sym(
+        Maybe<&2, O.Child>,
+        O.find(inv, O.state_children(state)),
+        Some{child},
+        found_right
+      ) : {
+        O.provider_live(state, inv, generation, lease, request)
+        == S.permit(inv, generation, lease, request, _)
+        : Bool
+      }
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, O.state_children(state)), Some{child}, found) : {
+        O.provider_permit_found(
+          O.state_canonical(state),
+          O.state_children(state),
+          inv,
+          generation,
+          lease,
+          request,
+          _
+        )
+        == S.permit(inv, generation, lease, request, Some{child})
+        : Bool
+      }
+      selected
+
+def handoff_checked_exact(+valid: Bool, +state: O.State, +inv: Nat, +operation: Nat, +input: Nat,
+  +child: O.Child,
+  found: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  found_right: {O.find(inv, O.state_children(state)) == Some{child} : Maybe<&2, O.Child>},
+  selected: {O.advice_handoff_child(state, Some{child}, operation, input)
+    == S.selected(state, Some{child}, operation, input) : O.Step}) -> {
+  O.handoff_advice_checked(valid, state, inv, operation, input)
+  == S.allowed(valid, state, inv, operation, input) : O.Step
+}:
+  match valid state:
+    case False{} _: {==}
+    case True{} O.State{_, _, _, _}:
+      %Equal.sym(
+        Maybe<&2, O.Child>,
+        O.find(inv, O.state_children(state)),
+        Some{child},
+        found_right
+      ) : {
+        O.advice_handoff_child(state, O.find(inv, O.state_children(state)), operation, input)
+        == S.selected(state, _, operation, input) : O.Step
+      }
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, O.state_children(state)), Some{child}, found) : {
+        O.advice_handoff_child(state, _, operation, input)
+        == S.selected(state, Some{child}, operation, input) : O.Step
+      }
+      selected
+
+def handoff_root_entry_exact(+canon: C.State, +next: Nat, +next_lease: Nat,
+  +rest: List<&2, O.Child>, +context: O.EvaluationContext, +phase: O.Phase,
+  +permission: O.EvaluationPermission, +held: Maybe<&2, O.Lease>, +custody: Nat,
+  +origin: Nat, +inv: Nat, +epoch: Nat, +handle: Nat, +pending: Maybe<&2, Nat>,
+  +ancestor: Maybe<&2, O.Parent>, +generation: Nat, +lease: Nat, +request: Nat,
+  +operation: Nat, +input: Nat) -> {
+    O.handoff_advice(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      operation,
+      input
+    )
+    == S.handoff_evaluation(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      operation,
+      input
+    )
+    : O.Step
+  }:
+  %Equal.sym(
+    Bool,
+    O.provider_live(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request
+    ),
+    S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      O.find(
+        inv,
+        S.children(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationScope{custody, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              ancestor
+            } <> rest
+          }
+        )
+      )
+    ),
+    permit_lookup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      find_head_exact(
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        },
+        rest
+      ),
+      find_head_exact(
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        },
+        rest
+      ),
+      permit_root_found_exact(
+        phase,
+        pending,
+        held,
+        ancestor,
+        canon,
+        rest,
+        custody,
+        inv,
+        epoch,
+        context,
+        permission,
+        origin,
+        handle,
+        generation,
+        lease,
+        request
+      )
+    )
+  ) : {
+          O.handoff_advice_checked(
+            _,
+            O.State{
+              canon,
+              next,
+              next_lease,
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                held,
+                ancestor
+              } <> rest
+            },
+            inv,
+            operation,
+            input
+          )
+          == S.allowed(
+            S.permit(
+              inv,
+              generation,
+              lease,
+              request,
+              O.find(
+                inv,
+                S.children(
+                  O.State{
+                    canon,
+                    next,
+                    next_lease,
+                    O.Child{
+                      O.EvaluationScope{custody, context, permission},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    } <> rest
+                  }
+                )
+              )
+            ),
+            O.State{
+              canon,
+              next,
+              next_lease,
+              O.Child{
+                O.EvaluationScope{custody, context, permission},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                held,
+                ancestor
+              } <> rest
+            },
+            inv,
+            operation,
+            input
+          )
+          : O.Step
+        }
+  handoff_checked_exact(
+    S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      O.find(
+        inv,
+        S.children(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationScope{custody, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              ancestor
+            } <> rest
+          }
+        )
+      )
+    ),
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      } <> rest
+    },
+    inv,
+    operation,
+    input,
+    O.Child{
+      O.EvaluationScope{custody, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      ancestor
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{custody, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      rest
+    ),
+    selected_root_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{custody, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      context,
+      phase,
+      permission,
+      held,
+      custody,
+      inv,
+      epoch,
+      handle,
+      pending,
+      ancestor,
+      operation,
+      input
+    )
+  )
+
+def handoff_cleanup_entry_exact(+canon: C.State, +next: Nat, +next_lease: Nat,
+  +rest: List<&2, O.Child>, +context: O.EvaluationContext, +phase: O.Phase,
+  +permission: O.EvaluationPermission, +held: Maybe<&2, O.Lease>, +custody: Nat,
+  +origin: Nat, +inv: Nat, +epoch: Nat, +handle: Nat, +pending: Maybe<&2, Nat>,
+  +ancestor: Maybe<&2, O.Parent>, +generation: Nat, +lease: Nat, +request: Nat,
+  +operation: Nat, +input: Nat) -> {
+    O.handoff_advice(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      operation,
+      input
+    )
+    == S.handoff_evaluation(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      operation,
+      input
+    )
+    : O.Step
+  }:
+  %Equal.sym(
+    Bool,
+    O.provider_live(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request
+    ),
+    S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      O.find(
+        inv,
+        S.children(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationCleanupScope{custody, origin, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              ancestor
+            } <> rest
+          }
+        )
+      )
+    ),
+    permit_lookup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      find_head_exact(
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        },
+        rest
+      ),
+      find_head_exact(
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        },
+        rest
+      ),
+      permit_cleanup_found_exact(
+        phase,
+        pending,
+        held,
+        ancestor,
+        canon,
+        rest,
+        custody,
+        inv,
+        epoch,
+        context,
+        permission,
+        origin,
+        handle,
+        generation,
+        lease,
+        request
+      )
+    )
+  ) : {
+          O.handoff_advice_checked(
+            _,
+            O.State{
+              canon,
+              next,
+              next_lease,
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                held,
+                ancestor
+              } <> rest
+            },
+            inv,
+            operation,
+            input
+          )
+          == S.allowed(
+            S.permit(
+              inv,
+              generation,
+              lease,
+              request,
+              O.find(
+                inv,
+                S.children(
+                  O.State{
+                    canon,
+                    next,
+                    next_lease,
+                    O.Child{
+                      O.EvaluationCleanupScope{custody, origin, context, permission},
+                      inv,
+                      epoch,
+                      handle,
+                      phase,
+                      pending,
+                      held,
+                      ancestor
+                    } <> rest
+                  }
+                )
+              )
+            ),
+            O.State{
+              canon,
+              next,
+              next_lease,
+              O.Child{
+                O.EvaluationCleanupScope{custody, origin, context, permission},
+                inv,
+                epoch,
+                handle,
+                phase,
+                pending,
+                held,
+                ancestor
+              } <> rest
+            },
+            inv,
+            operation,
+            input
+          )
+          : O.Step
+        }
+  handoff_checked_exact(
+    S.permit(
+      inv,
+      generation,
+      lease,
+      request,
+      O.find(
+        inv,
+        S.children(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationCleanupScope{custody, origin, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              ancestor
+            } <> rest
+          }
+        )
+      )
+    ),
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      } <> rest
+    },
+    inv,
+    operation,
+    input,
+    O.Child{
+      O.EvaluationCleanupScope{custody, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      ancestor
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{custody, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        ancestor
+      },
+      rest
+    ),
+    selected_cleanup_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{custody, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          ancestor
+        } <> rest
+      },
+      context,
+      phase,
+      permission,
+      held,
+      custody,
+      origin,
+      inv,
+      epoch,
+      handle,
+      pending,
+      ancestor,
+      operation,
+      input
+    )
+  )
+
 def main() -> Unit:
   Unit{}
