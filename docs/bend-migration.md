@@ -241,10 +241,10 @@ Current path / obstacles:
 2. IPC/local Canonical receipts own C→P→D. Root owns polling/deadline/status;
    TS polling/C runner/status scan deleted. F preserves fixed now, matching
    modes and expiry. Masked publication/cancellation preserve custody.
-3. Open: Root/C/F/R laws, custody, timing. P/K draft9 await approval.
-   P/K256,F/R/D384 traces;140514 comparisons;2 typed mutants rejected.
-   Proof gate open. Checker metadata/format/diagnostic/lint failed→fixed.
-   Build46/46,protocol7files,fast44/3; prior server92/consumers95 PASS.
+3. Open: proofs15 draft laws await approval; Canonical receipt custody, timing.
+   P/K/F/R/D/Root/C:992 tapes,4 typed mutants rejected; all68 C,
+   11 Root/11 G phases compared. Proof gate open; runner fixes verified.
+   Build46/46,protocol8files,fast44/2; prior server92/consumers95 PASS.
    Drain keeps revoke/stage/invocation fences, atomic groups and receipts.
    Equal-output probes5.8×→3.37×→4.59×; ABI cache3.97× discarded; unqualified.
    Server91/92 failed fanout reason: cancelled2/native1. One native advance for
