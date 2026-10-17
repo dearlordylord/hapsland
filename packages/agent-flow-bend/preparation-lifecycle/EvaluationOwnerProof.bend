@@ -6574,5 +6574,834 @@ def ready_child_exact(
       _
     }: {==}
 
+def ready_foreign_scope(scope: O.Scope) -> Bool:
+  match scope:
+    case O.EvaluationScope{_, _, _}: False{}
+    case O.EvaluationCleanupScope{_, _, _, _}: False{}
+    case _: True{}
+
+
+def ready_same_authority_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +child: O.Child,
+  +facts: O.EvaluationFacts,
+  live: {O.child_live(S.canonical(state), S.children(state), child) == S.live(state, child) : Bool}
+) -> {
+    O.evaluation_ready_found(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        Some{child}
+      ),
+      state,
+      Some{child},
+      facts
+    )
+    == S.ready_child(
+      S.permitted(state, inv, generation, lease, request, Some{child}),
+      state,
+      Some{child},
+      facts
+    )
+    : O.Step
+  }:
+  %provider_live_found_exact(state, inv, generation, lease, request, child, live) : {
+    O.evaluation_ready_found(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        Some{child}
+      ),
+      state,
+      Some{child},
+      facts
+    )
+    == S.ready_child(_, state, Some{child}, facts)
+    : O.Step
+  }
+  ready_child_exact(
+    O.provider_permit_found(
+      S.canonical(state),
+      S.children(state),
+      inv,
+      generation,
+      lease,
+      request,
+      Some{child}
+    ),
+    state,
+    Some{child},
+    facts
+  )
+
+def ready_non_evaluation_exact(
+  +left: Bool,
+  +right: Bool,
+  +scope: O.Scope,
+  +facts: O.EvaluationFacts,
+  +state: O.State,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  unrelated: {ready_foreign_scope(scope) == True{} : Bool}
+) -> {
+    O.evaluation_ready_found(
+      left,
+      state,
+      Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+      facts
+    )
+    == S.ready_child(
+      right,
+      state,
+      Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+      facts
+    )
+    : O.Step
+  }:
+  match left right scope facts:
+
+    case False{} False{} O.EvaluationCleanupScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} False{} O.EvaluationDispatchScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.EvaluationScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} False{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.Scope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.SourceScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.AfterSourceScope{_, _, _, _, _, _, _} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
+
+    case False{} False{} O.PreparationScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.RetainingScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} False{} O.AdviceTailScope{_, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.EvaluationCleanupScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} True{} O.EvaluationDispatchScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.EvaluationScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case False{} True{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.Scope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.SourceScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.AfterSourceScope{_, _, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.PreparationScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.RetainingScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case False{} True{} O.AdviceTailScope{_, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.EvaluationCleanupScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} False{} O.EvaluationDispatchScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.EvaluationScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} False{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.Scope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.SourceScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.AfterSourceScope{_, _, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.PreparationScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.RetainingScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} False{} O.AdviceTailScope{_, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.EvaluationCleanupScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} True{} O.EvaluationDispatchScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.EvaluationScope{_, _, _} O.EvaluationFacts{_, _, _, _, _, _}: Empty.absurd(
+      {
+        O.evaluation_ready_found(
+          left,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        == S.ready_child(
+          right,
+          state,
+          Some{O.Child{scope, inv, epoch, handle, phase, pending, held, parent}},
+          facts
+        )
+        : O.Step
+      },
+      B.false_ne_true()(unrelated)
+    )
+
+    case True{} True{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.Scope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.SourceScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.AfterSourceScope{_, _, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.PreparationScope{_, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.RetainingScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.AdviceTailScope{_, _, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+def ready_found_exact(
+  +state: O.State,
+  +found: Maybe<&2, O.Child>,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +facts: O.EvaluationFacts
+) -> {
+  O.evaluation_ready_found(
+    O.provider_permit_found(
+      S.canonical(state),
+      S.children(state),
+      inv,
+      generation,
+      lease,
+      request,
+      found
+    ),
+    state,
+    found,
+    facts
+  )
+  == S.ready_child(S.permitted(state, inv, generation, lease, request, found), state, found, facts)
+  : O.Step
+}:
+  match found:
+    case None{}: ready_child_exact(False{}, state, None{}, facts)
+
+    case Some{
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_same_authority_exact(
+      state,
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      facts,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        cleanup_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          origin,
+          0n,
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationDispatchScope{v0, v1, v2},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.EvaluationDispatchScope{v0, v1, v2},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_same_authority_exact(
+      state,
+      inv,
+      generation,
+      lease,
+      request,
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      facts,
+      live_from_scope_exact(
+        state,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        root_scope_live_exact(
+          state,
+          operation,
+          context,
+          permission,
+          0n,
+          0n,
+          actual,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+
+    case Some{
+      O.Child{
+        O.DeliveryScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.DeliveryScope{v0, v1, v2, v3, v4},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{O.Child{O.SettingsScope{v0}, actual, epoch, handle, phase, pending, held, parent}}: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.SettingsScope{v0},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{O.Child{O.FreshnessScope{v0}, actual, epoch, handle, phase, pending, held, parent}}: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.FreshnessScope{v0},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{O.Scope{v0, v1, v2, v3}, actual, epoch, handle, phase, pending, held, parent}
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.Scope{v0, v1, v2, v3},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.SourceScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.SourceScope{v0, v1, v2, v3, v4},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AfterSourceScope{v0, v1, v2, v3, v4, v5, v6},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.PreparationScope{v0, v1, v2, v3},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.PreparationScope{v0, v1, v2, v3},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.RetainingScope{v0, v1, v2, v3, v4},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.RetainingScope{v0, v1, v2, v3, v4},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AdviceTailScope{v0, v1, v2, v3, v4, v5},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+def evaluation_ready_exact(
+  +state: O.State,
+  +inv: Nat,
+  +generation: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +facts: O.EvaluationFacts
+) -> {
+  O.evaluation_ready(state, inv, generation, lease, request, facts)
+  == S.evaluation_ready(state, inv, generation, lease, request, facts)
+  : O.Step
+}:
+  match state:
+    case O.State{_, _, _, rest}: ready_found_exact(
+      state,
+      O.find(inv, rest),
+      inv,
+      generation,
+      lease,
+      request,
+      facts
+    )
+
 def main() -> Unit:
   Unit{}
