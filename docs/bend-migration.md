@@ -268,7 +268,7 @@ Three whole laws (Astra path), owner approved2026-10-17; all proved:
 1. `EVALUATION_LAWS`: all public Evaluation/Auth/Dispatch steps proved.
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle proved.
 3. `EVALUATION_ADVICE_LAWS`: complete public transfer/cancellation proved.
-Tail lifetime-cancel: native25/fast4 pass; intermittent edit-settings Empty remains open.
+Tail cancel native25/fast4 pass; edit-settings Empty intermittent; TS baseline22/22; acceptance open.
 Whole evaluation is not accepted.
 
 
