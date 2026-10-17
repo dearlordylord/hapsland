@@ -185,12 +185,12 @@ remains unqualified; unchanged focused checker+kernel passed6.25s wall/6.22s CPU
 - UnitEvidence arbitrary-input laws pass. Post and Workspace delete their TS
   algorithms, preserving ordered queries, IEEE and coercion/error boundaries;
   compiled consumers and semantic mutants qualify the stated finite scopes.
-- Collection (`916aa4c1`+root custody), 2026-10-16 23:19/20 UTC: analyzer/build
-  **.7461×/1.0561×**, 17 frozen pairs; build23/46 cached. Build strict parity
-  failed (runner limit1); within owner’s ≤3× budget. No causal speedup claim.
-  TS/Bend median[range] seconds: execution .0919[.0749,.1330]/.0761[.0488,.1396];
-  build5.080[3.602,6.219]/4.890[3.421,9.325]. Load10/12 cores; scope analyzer/build.
-  Cadence: prior32.5,31.3,42.1min; latest27.5/27.5min.
+- Finalize (`e6a10f96`), 2026-10-16 23:48 UTC: analyzer/build **.6386×/.8650×**,
+  17 frozen pairs; build23/46 cached. Both strict parity gates pass.
+  TS/Bend median[range] seconds: execution .0888[.0654,.1602]/.0533[.0439,.1013];
+  build4.532[3.938,5.424]/3.723[3.208,5.286]. Load10–12/12 cores; no causal speedup.
+  Prior23:20 build1.0561 failed strict parity, within owner’s ≤3× budget.
+  Cadence: prior32.5,31.3,42.1min; latest28.2/28.2min. Scope analyzer/build only.
   Baseline prepare refused double serialization; preserved its serialized producer
   environment, then prepare/warm23/46 passed before measurement.
   First workspace preparation timed out60s before measurement; registered writers stopped,
@@ -243,12 +243,13 @@ Current path:
    both passes and final handoff loops are deleted from TS; native bridge grows TS.
    Owner23/native happy/64-item PASS; fast41 and23 receipts PASS.
    Public219/7 files PASS: Deferred replaces fixture spin starving Effect.
-   Prior aborted300s; saturated30s timeout→18.86s PASS; latest26.69s.
+   Prior aborted300s; saturated30s timeout→18.86s PASS; 30s timeout→41.73s PASS
+   (90s fixture, owner≤3×).
    Canonical root and whole laws remain open.
 2. Canonical root custody/empty terminal PASS1416 across Await; cancellation precedes cleanup,
    retained across launch/registration faults. Claimed successors survive old cleanup.
    Production root caller and whole laws remain open.
-3. Finalize runs Bend;512 old TS lines removed,89 public tests PASS. Source-current
+3. Finalize runs Bend;512 old TS lines removed,181 public tests PASS. Source-current
    and reconcileFinish remain TS. Connect receipts via request-local ResponseContext/
    local scope; prove whole ordered trace/reply fencing/lease/finish.
 4. Qualify real IPC overlap/disconnect/stale/credential/10KiB/four-slot/uncertain-reoffer

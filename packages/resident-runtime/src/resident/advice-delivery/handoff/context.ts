@@ -12,7 +12,6 @@ import { type ResidentResponse } from "@hapsland/resident-transport/resident/pro
 import { type FindingSelectionFacts, type CanonicalFindingOffer } from "../../state/collection-facts.ts"
 import type { ReviewControls } from "../../execution-controls/review-controls.ts"
 import { type ResidentLedger } from "../../work-ownership/jobs.ts"
-import { type ResponseAuthority, type HandoffRequest } from "../authority.ts"
 import type { CandidateRoute } from "../advice-collection.ts"
 
 export type Dependencies = {
@@ -102,15 +101,6 @@ export type Dependencies = {
     token: string,
     reason: "deadline" | "unavailable" | "limit" | "no-advice" | "output-failed" | "abandoned-stop" | "quiescent"
   ) => Effect.Effect<void, never, never>
-}
-
-export type HandoffContext<Needs extends keyof Dependencies = keyof Dependencies> = {
-  readonly deps: Pick<Dependencies, Needs>
-  readonly request: HandoffRequest
-  readonly response: Extract<ResidentResponse, { status: "advice" }>
-  readonly sourceCurrent: ReadonlyMap<string, boolean>
-  readonly authority: ResponseAuthority | undefined
-  readonly now: number
 }
 
 export type HandoffNotices = Effect.Success<ReturnType<Dependencies["residentNoticesForToken"]>>
