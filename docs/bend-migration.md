@@ -248,7 +248,7 @@ advice tail; cached/fresh enrollment and observation share evaluation-owned
 helpers. Successful observation publishes normally; failed observation preserves
 the committed tail and original Cause.
 
-Evidence: source1716 tapes/48961 prefixes/3 mutants; cached enrollment793;
+Evidence: source1718 tapes/49057 prefixes/5 mutants; cached enrollment793;
 Post23360. Production/IPC/collection pass233/12 files, Source59, Delivery9,
 build46/46 and fast23. Native cleanup6/73 and registry5 check drain/retry/Cause
 with controlled authorization/observation ports. Expanded consumers found and
@@ -263,13 +263,15 @@ work is inside timers; cancellation includes physical drain, other Scope cleanup
 and runtime construction are outside. Separate profiling points to CPU in
 Canonical transactions/transport/driver; shared load permits no causal claim.
 
-Remaining acceptance obstacle: approve/prove the seven proposed pure cursor
-laws in `evaluation/EVALUATION_LAWS.bend`, then mutate/recheck affected gates.
-Specification uses existing types, no native values or TS oracle. Concrete
-falsification passes all equations (240–58320 inputs each). Kernel reports7
-TODOs; source gate stays open. No whole-unit acceptance or universal phase-table/
-physical IO proof claimed. The full phase table has independent finite trace/
-mutation checks. Reuse existing Canonical/Work/advice-tail proofs.
+Remaining obligations (Astra,2026-10-17):
+1. Complete independent Evaluation/Auth/Dispatch initial/cleanup/interruption/
+   resume correspondence.
+2. Exact Canonical evaluation lifecycle, context/lease/request and dispatch-parent
+   fences; cleanup authority, cancellation and reconciliation.
+3. Exact one-claim advice transfer, pending-finding authority and parent=None.
+Seven helper drafts withdrawn: they allowed skipped provider/cache. Use existing
+types/policies and flat independent steps; falsify, approve, prove/recheck.
+Whole evaluation is not accepted.
 
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under

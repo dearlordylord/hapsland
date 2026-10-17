@@ -102,7 +102,6 @@ const suites = {
     "packages/resident-runtime/src/resident/work-ownership/workspace/verification/workspace-sizing-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/post-enrollment-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/resident-owner-check.mjs",
-    "packages/resident-runtime/src/resident/review-work/evaluation/verification/evaluation-laws-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/dispatch-native-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/cleanup-native-check.mjs",
     "packages/resident-runtime/src/resident/review-work/evaluation/verification/registry-cleanup-check.mjs",

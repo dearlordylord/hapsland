@@ -520,10 +520,12 @@ try {
       : value
   }
   const rejectedMutants = []
-  for (const [method, mutant, facts] of [
+  for (const [method, mutant, facts, branch] of [
     ["first_matching", "discard_existing", { existing: true }],
     ["signal_scope", "suppress_work_signal", {}],
-    ["observed_failure", "never_sent", { result: tag("Timeout") }]
+    ["observed_failure", "never_sent", { result: tag("Timeout") }],
+    ["advance", "skip_provider_result", {}, 'arguments[1].$ === "Provider" && arguments[2].$ === "ProviderReturned"'],
+    ["advance", "skip_cache_store", {}, 'arguments[1].$ === "DemoRecorded" && arguments[2].$ === "Ack"']
   ]) {
     const original = core
     // Calls within emitted Bend use lexical bindings, not the export facade.
@@ -533,14 +535,15 @@ try {
     const emitted = readFileSync(output, "utf8")
     const declaration = new RegExp(`^function \\$${method}\\$\\([^)]*\\) \\{[\\s\\S]*?^\\}`, "gmu")
     assert.equal([...emitted.matchAll(declaration)].length, 1, "missing unique emitted mutation target " + method)
-    const replaced = emitted.replace(
-      declaration,
-      (body) =>
-        body.slice(0, body.indexOf("{") + 1) +
-        `\n  return $mutation_relocate($typed_mutant.${mutant}(...arguments));\n}`
-    )
-    const argumentsList = method === "observed_failure" ? "a0,a1,a2" : "a0"
-    const arity = method === "observed_failure" ? 3 : 1
+    const replaced = emitted.replace(declaration, (body) => {
+      const start = body.indexOf("{") + 1
+      const invoke = `return $mutation_relocate($typed_mutant.${mutant}(...Array.from(arguments, $mutation_encode)));`
+      return (
+        body.slice(0, start) + (branch ? `\n  if (${branch}) { ${invoke} }` + body.slice(start) : `\n  ${invoke}\n}`)
+      )
+    })
+    const arity = method === "advance" ? 5 : method === "observed_failure" ? 3 : 1
+    const argumentsList = Array.from({ length: arity }, (_, index) => "a" + index).join(",")
     const probed = replaced.replace(
       "export default {",
       `export default {
@@ -552,6 +555,7 @@ try {
       mutatedOutput,
       `import $typed_mutant from ${JSON.stringify(pathToFileURL(mutantOutput).href)};\n` +
         `const $mutation_relocate = value => (${relocate.toString()})(value, ${JSON.stringify(rootPrefix)});\n` +
+        `const $mutation_encode = value => value && typeof value === "object" ? Object.fromEntries(Object.entries(value).map(([key,item]) => [key, key === "$" && typeof item === "string" && !item.includes(".") && !["Nil","Con","None","Some"].includes(item) ? ${JSON.stringify(rootPrefix)} + item : $mutation_encode(item)])) : value;\n` +
         probed
     )
     core = (await import(pathToFileURL(mutatedOutput))).default
