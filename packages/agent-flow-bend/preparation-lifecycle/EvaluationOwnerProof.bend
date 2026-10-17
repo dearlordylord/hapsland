@@ -2447,5 +2447,888 @@ def dispatch_provider_start_entry_exact(
     )
   )
 
+def completed_exact(+valid: Bool, +state: O.State, +child: O.Child, +reply: Nat) -> {
+  O.completion_active(valid, state, child, reply)
+  == S.completed(valid, state, child, reply)
+  : O.Step
+}:
+  match valid child:
+
+    case False{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildInstalling{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildReady{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildAwaiting{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(
+          state,
+          O.ChildUpdate{
+            O.Child{scope, inv, Nat.add(epoch, 1n), 0n, O.ChildResuming{}, None{}, None{}, parent},
+            O.Resume{
+              inv,
+              Nat.add(epoch, 1n),
+              handle,
+              reply
+            } <> List.append(&2, O.Action, _, [O.CleanupProvider{inv, lease}])
+          }
+        )
+        : O.Step
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildResuming{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildAccepted{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case True{} O.Child{
+      scope,
+      inv,
+      epoch,
+      handle,
+      O.ChildCancelled{},
+      pending,
+      Some{O.Lease{lease, expected}},
+      parent
+    }:
+      %retire_exact(inv, handle) : {
+        O.completion_active(valid, state, child, reply)
+        == O.updated(state, O.ChildUpdate{
+
+          O.Child{scope, inv, epoch, 0n, O.ChildCancelled{}, None{}, None{}, parent},
+          O.CleanupProvider{inv, lease} <> _}) : O.Step
+
+      }
+      {==}
+
+    case False{} O.Child{_, _, _, _, _, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildInstalling{}, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildReady{}, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildAwaiting{}, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildResuming{}, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildAccepted{}, _, None{}, _}: {==}
+
+    case True{} O.Child{_, _, _, _, O.ChildCancelled{}, _, None{}, _}: {==}
+
+
+def completion_selected_from_live_exact(
+  +matches: Bool,
+  +state: O.State,
+  +child: O.Child,
+  +reply: Nat,
+  live: {O.child_live(S.canonical(state), S.children(state), child) == S.live(state, child) : Bool}
+) -> {
+    O.completion_matched(matches, state, child, reply)
+    == S.completion_selected(matches, state, child, reply)
+    : O.Step
+  }:
+  match matches state:
+    case False{} _: {==}
+    case True{} O.State{canon, _, _, rest}:
+      %live : {
+        O.completion_matched(matches, state, child, reply)
+        == S.reconcile(S.completed(_, state, child, reply))
+        : O.Step
+      }
+      %completed_exact(O.child_live(canon, rest, child), state, child, reply) : {
+        O.completion_matched(matches, state, child, reply) == S.reconcile(_) : O.Step
+      }
+      reconcile_exact(O.completion_active(O.child_live(canon, rest, child), state, child, reply))
+
+def completion_found_from_live_exact(
+  +state: O.State,
+  +child: O.Child,
+  +lease: Nat,
+  +request: Nat,
+  +reply: Nat,
+  live: {O.child_live(S.canonical(state), S.children(state), child) == S.live(state, child) : Bool}
+) -> {
+  O.completion_found(state, Some{child}, lease, request, reply)
+  == S.completion_found(state, Some{child}, lease, request, reply) : O.Step
+}:
+  match child:
+    case O.Child{_, _, _, _, _, _, None{}, _}: {==}
+    case O.Child{_, _, _, _, _, _, Some{O.Lease{id, expected}}, _}:
+      %N.is_eq_comm(id, lease) : {
+        O.completion_found(state, Some{child}, lease, request, reply)
+        == S.completion_selected(Bool.and(_, Nat.is_eq(request, expected)), state, child, reply)
+        : O.Step
+      }
+      %N.is_eq_comm(expected, request) : {
+        O.completion_found(state, Some{child}, lease, request, reply)
+        == S.completion_selected(Bool.and(Nat.is_eq(id, lease), _), state, child, reply) : O.Step
+      }
+      completion_selected_from_live_exact(
+        Bool.and(Nat.is_eq(id, lease), Nat.is_eq(expected, request)),
+        state,
+        child,
+        reply,
+        live
+      )
+
+def completion_lookup_exact(
+  +state: O.State,
+  +inv: Nat,
+  +lease: Nat,
+  +request: Nat,
+  +reply: Nat,
+  +child: O.Child,
+  found: {O.find(inv, S.children(state)) == Some{child} : Maybe<&2, O.Child>},
+  found_right: {O.find(inv, S.children(state)) == Some{child} : Maybe<&2, O.Child>},
+  selected: {
+    O.completion_found(state, Some{child}, lease, request, reply)
+    == S.completion_found(state, Some{child}, lease, request, reply)
+    : O.Step
+  }
+) -> {
+      O.provider_completed(state, inv, lease, request, reply)
+      == S.provider_completed(state, inv, lease, request, reply)
+      : O.Step
+    }:
+  match state:
+    case O.State{_, _, _, rest}:
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, rest), Some{child}, found_right) : {
+        O.completion_found(state, O.find(inv, rest), lease, request, reply)
+        == S.completion_found(state, _, lease, request, reply) : O.Step
+      }
+      %Equal.sym(Maybe<&2, O.Child>, O.find(inv, rest), Some{child}, found) : {
+        O.completion_found(state, _, lease, request, reply)
+        == S.completion_found(state, Some{child}, lease, request, reply) : O.Step
+      }
+      selected
+
+def root_provider_completed_entry_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +lease: Nat,
+  +request: Nat,
+  +reply: Nat
+) -> {
+    O.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    == S.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    : O.Step
+  }:
+  completion_lookup_exact(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      } <> rest
+    },
+    inv,
+    lease,
+    request,
+    reply,
+    O.Child{
+      O.EvaluationScope{operation, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    completion_found_from_live_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Child{
+        O.EvaluationScope{operation, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      lease,
+      request,
+      reply,
+      live_from_scope_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationScope{operation, context, permission},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Child{
+          O.EvaluationScope{operation, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        root_scope_live_exact(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationScope{operation, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              parent
+            } <> rest
+          },
+          operation,
+          context,
+          permission,
+          origin,
+          id,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+  )
+
+def cleanup_provider_completed_entry_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +lease: Nat,
+  +request: Nat,
+  +reply: Nat
+) -> {
+    O.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    == S.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    : O.Step
+  }:
+  completion_lookup_exact(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      } <> rest
+    },
+    inv,
+    lease,
+    request,
+    reply,
+    O.Child{
+      O.EvaluationCleanupScope{operation, origin, context, permission},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    completion_found_from_live_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Child{
+        O.EvaluationCleanupScope{operation, origin, context, permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      lease,
+      request,
+      reply,
+      live_from_scope_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationCleanupScope{operation, origin, context, permission},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Child{
+          O.EvaluationCleanupScope{operation, origin, context, permission},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        cleanup_scope_live_exact(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationCleanupScope{operation, origin, context, permission},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              parent
+            } <> rest
+          },
+          operation,
+          context,
+          permission,
+          origin,
+          id,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+  )
+
+def dispatch_provider_completed_entry_exact(
+  +canon: C.State,
+  +next: Nat,
+  +next_lease: Nat,
+  +rest: List<&2, O.Child>,
+  +operation: Nat,
+  +context: O.EvaluationContext,
+  +permission: O.EvaluationPermission,
+  +origin: Nat,
+  +id: Nat,
+  +inv: Nat,
+  +epoch: Nat,
+  +handle: Nat,
+  +phase: O.Phase,
+  +pending: Maybe<&2, Nat>,
+  +held: Maybe<&2, O.Lease>,
+  +parent: Maybe<&2, O.Parent>,
+  +lease: Nat,
+  +request: Nat,
+  +reply: Nat
+) -> {
+    O.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    == S.provider_completed(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      inv,
+      lease,
+      request,
+      reply
+    )
+    : O.Step
+  }:
+  completion_lookup_exact(
+    O.State{
+      canon,
+      next,
+      next_lease,
+      O.Child{
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      } <> rest
+    },
+    inv,
+    lease,
+    request,
+    reply,
+    O.Child{
+      O.EvaluationDispatchScope{operation, context, id},
+      inv,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent
+    },
+    find_head_exact(
+      O.Child{
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    find_head_exact(
+      O.Child{
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      rest
+    ),
+    completion_found_from_live_exact(
+      O.State{
+        canon,
+        next,
+        next_lease,
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        } <> rest
+      },
+      O.Child{
+        O.EvaluationDispatchScope{operation, context, id},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      lease,
+      request,
+      reply,
+      live_from_scope_exact(
+        O.State{
+          canon,
+          next,
+          next_lease,
+          O.Child{
+            O.EvaluationDispatchScope{operation, context, id},
+            inv,
+            epoch,
+            handle,
+            phase,
+            pending,
+            held,
+            parent
+          } <> rest
+        },
+        O.Child{
+          O.EvaluationDispatchScope{operation, context, id},
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        },
+        dispatch_scope_live_exact(
+          O.State{
+            canon,
+            next,
+            next_lease,
+            O.Child{
+              O.EvaluationDispatchScope{operation, context, id},
+              inv,
+              epoch,
+              handle,
+              phase,
+              pending,
+              held,
+              parent
+            } <> rest
+          },
+          operation,
+          context,
+          permission,
+          origin,
+          id,
+          inv,
+          epoch,
+          handle,
+          phase,
+          pending,
+          held,
+          parent
+        )
+      )
+    )
+  )
+
 def main() -> Unit:
   Unit{}
