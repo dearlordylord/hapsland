@@ -269,7 +269,7 @@ Three whole laws (Astra path), owner approved2026-10-17; proofs pending:
 2. `EVALUATION_OWNER_LAWS`: complete Canonical family lifecycle.
 3. `EVALUATION_ADVICE_LAWS`: exact transfer and cancellation.
 Independent tables, finite checks and eight mutants pass. New law files each
-remain open. Dispatch public entries/resume proved; whole proofs/source gate open.
+remain open. Auth/Dispatch public entries/resume proved; whole proofs/source gate open.
 Whole evaluation is not accepted.
 
 
