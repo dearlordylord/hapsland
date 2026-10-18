@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: candidate `029e0d5c`,23:45 UTC: execution **.5459×**;
-build **.8901×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-18: candidate `6c80960d`,00:27 UTC: execution **.6790×**;
+build **.9156×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0717[.0545,.2942]/.0460[.0369,.0808];
-build4.1946[3.5044,5.6129]/3.7123[3.0749,5.3736]. Shared load; no causal claim.
+execution.0715[.0603,.1123]/.0457[.0389,.0769];
+build4.7953[3.2078,12.6517]/4.3209[3.1125,10.5205]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -271,7 +271,7 @@ to CPU in Canonical transactions/transport/driver; no causal speedup claim.
 
 Astra path: pre-round `AdmissionScope`, shared owner/driver, serialized uninterruptible entry.
 1. Publication `48ccfea8` qualified; scope candidate `8c48b0c5`: receipt custody,
-   owner6/build46/source280 pass. Bind exact native receipt and cleanup drain.
+   owner6/build46/source282/protocol31/fast2 pass. Bind exact native receipt and cleanup drain.
 2. Connect the complete routing/retry cursor and delete admission TS orchestration.
 3. Approve/prove whole protocol, lifecycle and transfer laws; run actual routing,
    capacity, settings, inspection/IPC consumers and ≤3× qualification.
