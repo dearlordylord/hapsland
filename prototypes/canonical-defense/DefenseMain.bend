@@ -131,6 +131,10 @@ def events_fold(
         recorded : File <- event_record(file, frame, event, path, header)
         events_fold(tail, recorded, event_step(frame, event), path, header)
 
+# One simulation tick remains 20 virtual milliseconds; display at half speed.
+def frame_millis() -> U32: 40
+def clock_steps(total: U32) -> U32: U32.min(8, (total / frame_millis() : U32))
+
 def physics(fuel: Nat, world: M.World) -> M.World: Recording.ticks(fuel, world)
 
 def clock_enabled(
@@ -145,11 +149,11 @@ def clock_enabled(
     case False{}: Frame{[world], now, 0, False{}, 0, held}
     case True{}:
       +total = (carry + elapsed : U32)
-      +steps = U32.min(8, (total / 20 : U32))
+      +steps = clock_steps(total)
       Frame{
         [physics(U32.to_nat(steps), world)],
         now,
-        M.sub(total, (steps * 20 : U32)),
+        M.sub(total, (steps * frame_millis() : U32)),
         False{},
         0,
         held
@@ -177,7 +181,7 @@ def clock_record(active: Bool, +now: Nat, file: File, +frame: FrameState) -> IO(
     case True{} Frame{_, last, carry, _, _, held}:
       do IO<File & FrameState>:
         recorded : File <- tick_record(
-          U32.min(8, ((carry + U32.from_nat(Nat.sub(now, last))) / 20 : U32)),
+          clock_steps((carry + U32.from_nat(Nat.sub(now, last)) : U32)),
           file
         )
         return (recorded, clock_step(now, frame))
@@ -228,7 +232,7 @@ def finish_at(+now: Nat, file: File, +frame: FrameState) -> IO(File & FrameState
         frame
       )
     case Frame{_, last, _, False{}, 1, held}: playback_clock(
-      (Nat.sub(now, last) >= 20n : Nat),
+      (Nat.sub(now, last) >= U32.to_nat(frame_millis()) : Nat),
       now,
       file,
       frame

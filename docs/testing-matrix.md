@@ -722,6 +722,8 @@ and changed owners, without rerunning a broad gate merely to update a commit ID.
 
 For changes to movement semantics, run `timeout 130 node prototypes/canonical-defense/verify-motion-laws.mjs` and `node --test prototypes/canonical-defense/motion-law-tools.test.mjs`. The gate checks five structural laws with Bend and its mathematical kernel, nine unsigned U32 arithmetic laws through explicit source-to-Lean lowering, and one isolated mutant per law. Each subprocess retains a five-second deadline. Selected owner declarations are retained exactly except that the observation lemmas generalize the appended-path field to every well-typed suffix. The U32 primitive correspondence and lowering remain trusted; this is not a Bend proof of the compiler bridge. No simulator calendar, full frame mapping, interpolation or platform qualification follows. See the [game guide](../prototypes/canonical-defense/README.md) for the exact scope. This gate remains optional for unrelated production releases.
 
+For native wall-clock pacing changes, run `node --test prototypes/canonical-defense/clock.test.mjs`. It compares complete serialized worlds at 40 ms boundaries, fractional carry, bounded catch-up and pause/resume against unchanged virtual physics ticks. This does not establish platform FPS.
+
 ### Optional game native raster
 
 For native pixel output changes, run `node --test prototypes/canonical-defense/native-raster.test.mjs`.
