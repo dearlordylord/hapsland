@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer"
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
@@ -55,7 +56,11 @@ describe("OpenAI Decisions wire contract", () => {
       const state = { artifact: { source: 'SOURCE-SENTINEL 日本語 "quoted"', domain: "src/type.ts" } }
       const plain = Decision.probability({ instructions: "Another question?" })
       const result = yield* decide({ state, decisions: { "namespace/rule": decision, other: plain } }).pipe(
-        Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+        Effect.provide(
+          liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+            Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+          )
+        ),
         Effect.provide(tokenLayer),
         Effect.provideService(InspectionTransportObservation, {
           observe: (bytes) => {
@@ -126,7 +131,11 @@ describe("OpenAI Decisions wire contract", () => {
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(payload, { status })))
         })
         const result = yield* decide({ state: "SOURCE-SENTINEL", decisions: { rule: decision } }).pipe(
-          Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+          Effect.provide(
+            liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
+          ),
           Effect.provide(tokenLayer),
           Effect.result
         )
@@ -154,7 +163,11 @@ describe("OpenAI Decisions wire contract", () => {
         )
       )
       const result = yield* decide({ state: {}, decisions: { first: decision, second: decision } }).pipe(
-        Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+        Effect.provide(
+          liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+            Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+          )
+        ),
         Effect.provide(tokenLayer),
         Effect.result
       )
@@ -173,9 +186,8 @@ describe("OpenAI Decisions wire contract", () => {
         Effect.provide(
           liveLayer({
             identity: { ...identity(), destination: "https://other.invalid" },
-            credentialEnvVar: "OPENAI_API_KEY",
-            httpClient
-          })
+            credentialEnvVar: "OPENAI_API_KEY"
+          }).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient)))
         ),
         Effect.provide(tokenLayer),
         Effect.result
@@ -196,7 +208,11 @@ describe("OpenAI Decisions wire contract", () => {
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope())))
         })
         const result = yield* decide({ state: {}, decisions: { rule: decision } }).pipe(
-          Effect.provide(liveLayer({ identity: invalidIdentity, credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+          Effect.provide(
+            liveLayer({ identity: invalidIdentity, credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
+          ),
           Effect.provide(tokenLayer),
           Effect.result
         )
@@ -215,7 +231,11 @@ describe("OpenAI Decisions wire contract", () => {
       })
       const tooLong = Decision.probability({ instructions: "x".repeat(1_048_577) })
       const result = yield* decide({ state: {}, decisions: { rule: tooLong } }).pipe(
-        Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+        Effect.provide(
+          liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+            Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+          )
+        ),
         Effect.provide(tokenLayer),
         Effect.result
       )
@@ -241,7 +261,11 @@ describe("OpenAI Decisions wire contract", () => {
           { input: {} }
         )
       }).pipe(
-        Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+        Effect.provide(
+          liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+            Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+          )
+        ),
         Effect.provide(tokenLayer),
         Effect.result
       )
@@ -264,7 +288,11 @@ describe("OpenAI Decisions wire contract", () => {
           )
         })
         const request = decide({ state: {}, decisions: { rule: decision } }).pipe(
-          Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })),
+          Effect.provide(
+            liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
+          ),
           Effect.provide(tokenLayer)
         )
         const fiber = yield* (mode === "deadline" ? request.pipe(Effect.timeout("1 second")) : request).pipe(
@@ -288,7 +316,9 @@ describe("OpenAI Decisions wire contract", () => {
         calls++
         return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(envelope())))
       })
-      const layer = liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY", httpClient })
+      const layer = liveLayer({ identity: identity(), credentialEnvVar: "OPENAI_API_KEY" }).pipe(
+        Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+      )
       const atLimit = Decision.probability({ instructions: "x".repeat(1_048_576) })
       const accepted = yield* decide({ state: {}, decisions: { rule: atLimit } }).pipe(
         Effect.provide(layer),

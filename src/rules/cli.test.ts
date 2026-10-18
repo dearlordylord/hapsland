@@ -20,7 +20,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, expect, it, vi } from "vitest"
 import { execFileSync, spawnSync } from "../../scripts/test-harness/process.mjs"
-import { makeRuleChangeOwner, runRulesCommand } from "@hapsland/administration/rules/command"
+import { makeRuleChangeOwner, runRulesCommand, rulesCommandLiveLayer } from "@hapsland/administration/rules/command"
 import { scriptedInteraction } from "@hapsland/build-tooling/test-support/scripted-interaction"
 import type { Interaction } from "@hapsland/administration/interaction/interaction"
 
@@ -299,7 +299,10 @@ it("runs the terminal rules command through scripted preview, approval, and owne
   process.env.REVIEW_USER_CONFIG_PATH = join(root, "personal/config.jsonc")
   try {
     await Effect.runPromise(
-      runRulesCommand({ action: "create", id: "interactive", path: undefined, scope: undefined, json: false })
+      runRulesCommand(
+        { action: "create", id: "interactive", path: undefined, scope: undefined, json: false },
+        root
+      ).pipe(Effect.provide(rulesCommandLiveLayer))
     )
     expect(script.remaining()).toBe(0)
     expect(script.transcript.join("\n")).toContain("Rule change preview")

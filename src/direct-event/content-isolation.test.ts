@@ -1,3 +1,5 @@
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import * as Layer from "effect/Layer"
 import { createHash } from "node:crypto"
 import { createServer } from "node:http"
 import { describe, expect, it } from "@effect/vitest"
@@ -128,7 +130,9 @@ const observe = (
     })
     const result = yield* evaluatePrepared(unit, Effect.void, evidenceObserver).pipe(
       Effect.provide(
-        liveLayer({ apiUrl: "https://content-test.invalid/v1", credentialEnvVar: "CONTENT_TEST_KEY", httpClient: http })
+        liveLayer({ apiUrl: "https://content-test.invalid/v1", credentialEnvVar: "CONTENT_TEST_KEY" }).pipe(
+          Layer.provide(Layer.succeed(HttpClient.HttpClient, http))
+        )
       ),
       Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CONTENT_TEST_KEY: "SYNTHETIC_AUTH" }))),
       Effect.provideService(InspectionTransportObservation, { observe: observer ?? (() => {}) }),
@@ -273,7 +277,9 @@ describe("review content isolation at the actual Jev HTTP boundary", () => {
       const result = await Effect.runPromise(
         evaluatePrepared(unit).pipe(
           Effect.provide(
-            liveLayer({ apiUrl: `http://127.0.0.1:${address.port}/v1`, credentialEnvVar: "CONTENT_TEST_KEY" })
+            liveLayer({ apiUrl: `http://127.0.0.1:${address.port}/v1`, credentialEnvVar: "CONTENT_TEST_KEY" }).pipe(
+              Layer.provide(FetchHttpClient.layer)
+            )
           ),
           Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CONTENT_TEST_KEY: "SYNTHETIC_AUTH" }))),
           Effect.provideService(InspectionTransportObservation, {

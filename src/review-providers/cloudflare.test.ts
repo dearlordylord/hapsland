@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer"
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
@@ -43,7 +44,9 @@ describe("Cloudflare DecisionModel wire contract", () => {
         const state = { artifact: { source: "SOURCE-SENTINEL", domain: "src/type.ts" } }
         const result = yield* decide({ state, decisions: { "namespace/rule": decision } }).pipe(
           Effect.provide(
-            liveLayer({ identity: identity(model), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
+            liveLayer({ identity: identity(model), credentialEnvVar: "CLOUDFLARE_API_TOKEN" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
           ),
           Effect.provide(tokenLayer),
           Effect.provideService(InspectionTransportObservation, {
@@ -91,7 +94,11 @@ describe("Cloudflare DecisionModel wire contract", () => {
           return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json(payload, { status })))
         })
         const result = yield* decide({ state: "SOURCE-SENTINEL", decisions: { rule: decision } }).pipe(
-          Effect.provide(liveLayer({ identity: identity(), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })),
+          Effect.provide(
+            liveLayer({ identity: identity(), credentialEnvVar: "CLOUDFLARE_API_TOKEN" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
+          ),
           Effect.provide(tokenLayer),
           Effect.result
         )
@@ -116,7 +123,9 @@ describe("Cloudflare DecisionModel wire contract", () => {
       ]) {
         const result = yield* decide({ state: {}, decisions: { rule: decision } }).pipe(
           Effect.provide(
-            liveLayer({ identity: invalidIdentity, credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
+            liveLayer({ identity: invalidIdentity, credentialEnvVar: "CLOUDFLARE_API_TOKEN" }).pipe(
+              Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+            )
           ),
           Effect.provide(tokenLayer),
           Effect.result
@@ -144,7 +153,9 @@ describe("Cloudflare DecisionModel wire contract", () => {
           )
         )
       })
-      const layer = liveLayer({ identity: identity(), credentialEnvVar: "CLOUDFLARE_API_TOKEN", httpClient })
+      const layer = liveLayer({ identity: identity(), credentialEnvVar: "CLOUDFLARE_API_TOKEN" }).pipe(
+        Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient))
+      )
       const rules = (length: number) => Object.fromEntries(Array.from({ length }, (_, i) => [`pack/r${i}`, decision]))
       const accepted = yield* decide({ state: {}, decisions: rules(64) }).pipe(
         Effect.provide(layer),

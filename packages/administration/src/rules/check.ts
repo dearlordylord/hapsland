@@ -2,10 +2,9 @@ import * as Config from "effect/Config"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import type * as HttpClient from "effect/http/HttpClient"
 import { discoverPhysicalWorkingTreeRoot, rootRelativePath } from "@hapsland/native-observation/repository/root"
-import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-config"
-import { resolveCredential } from "@hapsland/credential-storage/credentials/owner"
+import { ReviewSettingsService, settingsSource } from "@hapsland/review-definition/runtime/review-settings"
+import { CredentialResolver } from "@hapsland/credential-storage/credentials/owner"
 import { reviewDecisionModelLayer } from "@hapsland/review-execution/review-providers/live"
 import {
   prepareSourceLine,
@@ -34,7 +33,8 @@ const resolveRuleCheckContext = Effect.fn("Rules.resolveCheckContext")(function*
   const path = rootRelativePath(repository.root, repository.physicalCwd, request.path)
   if (path === undefined) return yield* Effect.fail(new Error("--path must stay inside the current Git working tree."))
   const userConfigPath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
-  const settings = yield* loadReviewSettings(repository.root, userConfigPath === undefined ? {} : { userConfigPath })
+  const settingsService = yield* ReviewSettingsService
+  const settings = yield* settingsService.capture(settingsSource(repository.root, userConfigPath))
   const rules = (settings.rules ?? []).filter((rule) => request.id === undefined || rule.id === request.id)
   if (request.id !== undefined && rules.length === 0)
     return yield* Effect.fail(
@@ -64,11 +64,8 @@ const capturedSelection = (prepared: PreparedSource) => ({
 })
 
 /** Manual review shares capture, graph, evidence admission, credentials and model execution with hooks. */
-export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
-  request: RuleCheckRequest,
-  options: { readonly cwd?: string; readonly httpClient?: HttpClient.HttpClient } = {}
-) {
-  const { repository, path, settings, rules } = yield* resolveRuleCheckContext(request, options.cwd ?? process.cwd())
+export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (request: RuleCheckRequest, cwd: string) {
+  const { repository, path, settings, rules } = yield* resolveRuleCheckContext(request, cwd)
   const selection = { root: repository.root, rootIdentity: repository.rootIdentity, path, line: request.line }
   const omissions: Array<{ path: string; declaration: string; reason: string }> = []
   const context = {
@@ -125,7 +122,8 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
   }
   const prepared = ready[0]!
   const captured = { ...base, ...capturedSelection(prepared) }
-  const credential = yield* resolveCredential({
+  const credentials = yield* CredentialResolver
+  const credential = yield* credentials.resolve({
     root: repository.root,
     envVar: settings.credentialEnvVar,
     environmentOnly: settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in"
@@ -152,7 +150,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (
     if (evidence.kind === "validated-answers") answers = evidence.answers
     if (evidence.kind === "evaluation-outcome") outcome = evidence.outcome
   }).pipe(
-    Effect.provide(reviewDecisionModelLayer(settings, options.httpClient)),
+    Effect.provide(reviewDecisionModelLayer(settings)),
     Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ [settings.credentialEnvVar]: credential.value })))
   )
   if (evaluated.status !== "evaluated")

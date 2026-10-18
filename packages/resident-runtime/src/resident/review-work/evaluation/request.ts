@@ -1,3 +1,6 @@
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import * as HttpClient from "effect/http/HttpClient"
+import * as Layer from "effect/Layer"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import { captureInspectionFindings } from "@hapsland/review-execution/inspection/capture"
 import { MAX_INSPECTION_INPUT_BYTES } from "@hapsland/inspection-records/inspection/contract"
@@ -64,7 +67,13 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
   if (controlled === undefined && credentialProvider === undefined) return undefined
   const makeEvaluationModel = () => {
     return controlled === undefined
-      ? reviewDecisionModelLayer(settings, offlineHttpClient)
+      ? reviewDecisionModelLayer(settings).pipe(
+          Layer.provide(
+            offlineHttpClient === undefined
+              ? FetchHttpClient.layer
+              : Layer.succeed(HttpClient.HttpClient, offlineHttpClient)
+          )
+        )
       : controlledDecisionModelLayer({
           ...controlled,
           ...(controlledRequestEffect === undefined

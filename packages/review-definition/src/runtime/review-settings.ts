@@ -56,25 +56,26 @@ export class ReviewSettingsService extends Context.Service<ReviewSettingsService
   "@hapsland/ReviewSettings"
 ) {}
 
+const captureReviewSettings = Effect.fn("ReviewSettings.load")(function* (source: SettingsSource) {
+  const settings = yield* loadReviewSettings(source.root, {
+    userConfigPath: source.userConfiguration,
+    projectConfigPath: source.projectConfiguration
+  })
+  return freezeCanonicalData({
+    ...settings,
+    source,
+    rules: settings.rules ?? [],
+    ruleDigests: settings.ruleDigests ?? []
+  })
+})
+
+export const uncachedReviewSettingsLayer = Layer.succeed(ReviewSettingsService, { capture: captureReviewSettings })
+
 export const makeReviewSettings = Effect.fn("ReviewSettings.make")(function* () {
-  const cache = yield* Cache.makeWith(
-    Effect.fn("ReviewSettings.load")(function* (source: SettingsSource) {
-      const settings = yield* loadReviewSettings(source.root, {
-        userConfigPath: source.userConfiguration,
-        projectConfigPath: source.projectConfiguration
-      })
-      return freezeCanonicalData({
-        ...settings,
-        source,
-        rules: settings.rules ?? [],
-        ruleDigests: settings.ruleDigests ?? []
-      })
-    }),
-    {
-      capacity: REVIEW_SETTINGS_CACHE_CAPACITY,
-      timeToLive: (exit) => (Exit.isSuccess(exit) ? REVIEW_SETTINGS_CACHE_TTL_MS : 0)
-    }
-  )
+  const cache = yield* Cache.makeWith(captureReviewSettings, {
+    capacity: REVIEW_SETTINGS_CACHE_CAPACITY,
+    timeToLive: (exit) => (Exit.isSuccess(exit) ? REVIEW_SETTINGS_CACHE_TTL_MS : 0)
+  })
   return ReviewSettingsService.of({
     capture: Effect.fn("ReviewSettings.capture")((source) => Cache.get(cache, Object.freeze({ ...source })))
   })

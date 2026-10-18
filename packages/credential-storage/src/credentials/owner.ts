@@ -27,6 +27,8 @@ import { dirname, join } from "node:path"
 import * as Clock from "effect/Clock"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
+import * as Context from "effect/Context"
+import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
@@ -539,6 +541,13 @@ export const logoutCredential = Effect.fn("Credentials.logout")((path?: string) 
     )
   )
 )
+
+export class CredentialResolver extends Context.Service<
+  CredentialResolver,
+  { readonly resolve: typeof resolveCredential }
+>()("@hapsland/CredentialResolver") {}
+
+export const credentialResolverLayer = Layer.succeed(CredentialResolver, { resolve: resolveCredential })
 
 export type { ActiveCredentialObservation, CredentialSaveResult } from "@hapsland/runtime-inputs/credentials/policy"
 export interface CredentialOwner {

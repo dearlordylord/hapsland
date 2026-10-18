@@ -166,8 +166,12 @@ const dispatchInvocation = Effect.fn("Cli.dispatch")(function* (session: Invocat
   }
   if (writeIdentityOutput(session)) return
   if (invocation.kind === "rules") {
-    const { runRulesCommand } = yield* Effect.promise(() => import("@hapsland/administration/rules/command"))
-    return yield* cliJourney("rules", () => runRulesCommand(invocation.options))
+    const { runRulesCommand, rulesCommandLiveLayer } = yield* Effect.promise(
+      () => import("@hapsland/administration/rules/command")
+    )
+    return yield* cliJourney("rules", () => runRulesCommand(invocation.options, process.cwd())).pipe(
+      Effect.provide(rulesCommandLiveLayer)
+    )
   }
   if (invocation.kind === "lifecycle" || cliSwitch(session, "pilot")) return yield* runLifecycle(session, invocation)
   return yield* runAutomation(session)

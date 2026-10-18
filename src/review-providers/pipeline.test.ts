@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer"
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
@@ -58,7 +59,9 @@ describe("Cloudflare review integration", () => {
           dispatches++
         })
       ).pipe(
-        Effect.provide(reviewDecisionModelLayer(settings, httpClient)),
+        Effect.provide(
+          reviewDecisionModelLayer(settings).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient)))
+        ),
         Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CLOUDFLARE_API_TOKEN: "fixture-token" })))
       )
       expect(result.status).toBe("input-limit")
@@ -102,7 +105,9 @@ describe("Cloudflare review integration", () => {
         )
       })
       const result = yield* evaluatePrepared(outcome.prepared).pipe(
-        Effect.provide(reviewDecisionModelLayer(settings, httpClient)),
+        Effect.provide(
+          reviewDecisionModelLayer(settings).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient)))
+        ),
         Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CLOUDFLARE_API_TOKEN: "fixture-token" })))
       )
       expect(result.status).toBe("evaluated")

@@ -1,3 +1,4 @@
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -219,7 +220,7 @@ const runLayer = (options: EvaluationCommandOptions, suite: DefaultEvaluationSui
           liveLayer({
             apiUrl: JEV_API_BASE,
             credentialEnvVar: options.credentialEnvVar ?? JEV_PROVIDER.credentialEnvVar
-          })
+          }).pipe(Layer.provide(FetchHttpClient.layer))
         )
       )
       .pipe(Layer.orDie)

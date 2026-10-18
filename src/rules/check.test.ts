@@ -1,9 +1,14 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import { CredentialResolver, credentialResolverLayer } from "@hapsland/credential-storage/credentials/owner"
+import { uncachedReviewSettingsLayer } from "@hapsland/review-definition/runtime/review-settings"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { rm } from "node:fs/promises"
+import { parseInvocation } from "@hapsland/administration/cli-command"
+import { runRulesCommand } from "@hapsland/administration/rules/command"
 import { join } from "node:path"
 import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { discoverPhysicalWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
@@ -65,7 +70,10 @@ const configuration = (root: string, extra: Record<string, string> = {}) =>
   )
 const run = (root: string, line: number, httpClient: HttpClient.HttpClient, id?: string) =>
   Effect.runPromise(
-    checkRuleAtLine({ path: "target.ts", line, id }, { cwd: root, httpClient }).pipe(
+    checkRuleAtLine({ path: "target.ts", line, id }, root).pipe(
+      Effect.provide(uncachedReviewSettingsLayer),
+      Effect.provide(credentialResolverLayer),
+      Effect.provide(Layer.succeed(HttpClient.HttpClient, httpClient)),
       Effect.provide(configuration(root))
     )
   )
@@ -167,7 +175,10 @@ describe("one-off file and line rule checks", () => {
     )
     const fake = transport(0.4)
     const result = await Effect.runPromise(
-      checkRuleAtLine({ path, line: 2 }, { cwd: root, httpClient: fake.httpClient }).pipe(
+      checkRuleAtLine({ path, line: 2 }, root).pipe(
+        Effect.provide(uncachedReviewSettingsLayer),
+        Effect.provide(credentialResolverLayer),
+        Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
         Effect.provide(configuration(root))
       )
     )
@@ -246,7 +257,10 @@ describe("one-off file and line rule checks", () => {
     await put(root, ".env.local", "TYPESAFE_API_KEY=project-file-key\n")
     const fake = transport(0.2)
     const result = await Effect.runPromise(
-      checkRuleAtLine({ path: "target.ts", line: 4 }, { cwd: root, httpClient: fake.httpClient }).pipe(
+      checkRuleAtLine({ path: "target.ts", line: 4 }, root).pipe(
+        Effect.provide(uncachedReviewSettingsLayer),
+        Effect.provide(credentialResolverLayer),
+        Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
         Effect.provide(configuration(root, { TYPESAFE_API_KEY: "" }))
       )
     )
@@ -293,7 +307,10 @@ describe("one-off file and line rule checks", () => {
     const fake = transport(0.4)
     await expect(
       Effect.runPromise(
-        checkRuleAtLine({ path: "../outside.ts", line: 1 }, { cwd: root, httpClient: fake.httpClient }).pipe(
+        checkRuleAtLine({ path: "../outside.ts", line: 1 }, root).pipe(
+          Effect.provide(uncachedReviewSettingsLayer),
+          Effect.provide(credentialResolverLayer),
+          Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
           Effect.provide(configuration(root))
         )
       )
@@ -308,4 +325,108 @@ describe("one-off file and line rule checks", () => {
     await expect(run(root, 0, fake.httpClient)).rejects.toThrow("positive one-based integer")
     expect(fake.requests).toEqual([])
   })
+  it("does not access credentials for an excluded declaration through the Layer-composed workflow", async () => {
+    const root = await fixture()
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, rules: ["rule.json"], excludes: ["target.ts"] }))
+    const fake = transport(0.9)
+    const result = await Effect.runPromise(
+      checkRuleAtLine({ path: "target.ts", line: 4 }, root).pipe(
+        Effect.provide(uncachedReviewSettingsLayer),
+        Effect.provide(
+          Layer.succeed(CredentialResolver, {
+            resolve: () => Effect.die("Excluded source must not trigger credential lookup")
+          })
+        ),
+        Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+        Effect.provide(configuration(root))
+      )
+    )
+    expect(result).toMatchObject({ status: "skipped", classifierCalls: 0 })
+    expect(fake.requests).toEqual([])
+  })
+
+  it("reloads configuration for consecutive explicit checks sharing the same Layers", async () => {
+    const root = await fixture()
+    const fake = transport(0.2)
+    const [first, second] = await Effect.runPromise(
+      Effect.gen(function* () {
+        const first = yield* checkRuleAtLine({ path: "target.ts", line: 4 }, root)
+        yield* Effect.promise(() =>
+          put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, rules: ["rule.json"], excludes: ["target.ts"] }))
+        )
+        const second = yield* checkRuleAtLine({ path: "target.ts", line: 4 }, root)
+        return [first, second]
+      }).pipe(
+        Effect.provide(uncachedReviewSettingsLayer),
+        Effect.provide(credentialResolverLayer),
+        Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+        Effect.provide(configuration(root))
+      )
+    )
+    expect(first).toMatchObject({ status: "evaluated", classifierCalls: 1 })
+    expect(second).toMatchObject({ status: "skipped", classifierCalls: 0 })
+    expect(fake.requests).toHaveLength(1)
+  })
+
+  it.each(["clear", "finding", "excluded"])(
+    "runs the real rule CLI with controlled Layers and preserves %s JSON and exit behavior",
+    async (scenario) => {
+      const root = await fixture()
+      if (scenario === "excluded") {
+        await put(
+          root,
+          ".hapsland.jsonc",
+          JSON.stringify({ version: 1, rules: ["rule.json"], excludes: ["target.ts"] })
+        )
+      }
+      const fake = transport(scenario === "finding" ? 0.9 : 0.2)
+      const previousExitCode = process.exitCode
+      let output = ""
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+        output += String(chunk)
+        return true
+      })
+      try {
+        process.exitCode = 0
+        await Effect.runPromise(
+          Effect.gen(function* () {
+            const invocation = yield* parseInvocation([
+              "rules",
+              "check",
+              "--path",
+              "target.ts",
+              "--line",
+              "4",
+              "--id",
+              "test/concern",
+              "--json"
+            ])
+            if (invocation?.kind !== "rules") return yield* Effect.die("Expected a rules invocation")
+            yield* runRulesCommand(invocation.options, root)
+          }).pipe(
+            Effect.provide(uncachedReviewSettingsLayer),
+            Effect.provide(credentialResolverLayer),
+            Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+            Effect.provide(configuration(root))
+          )
+        )
+        const result = JSON.parse(output)
+        expect(result).toMatchObject({
+          version: 1,
+          operation: "rule-check",
+          path: "target.ts",
+          line: 4,
+          status: scenario === "excluded" ? "skipped" : "evaluated"
+        })
+        expect(process.exitCode).toBe(scenario === "excluded" ? 6 : 0)
+        expect(fake.requests).toHaveLength(scenario === "excluded" ? 0 : 1)
+        if (scenario !== "excluded")
+          expect(result.results).toMatchObject([{ ruleId: "test/concern", finding: scenario === "finding" }])
+        expect(output).not.toContain("fixture-only-key")
+      } finally {
+        stdout.mockRestore()
+        process.exitCode = previousExitCode
+      }
+    }
+  )
 })

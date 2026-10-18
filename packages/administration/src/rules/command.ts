@@ -1,4 +1,7 @@
-import { Config, Effect, Option } from "effect"
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import { uncachedReviewSettingsLayer } from "@hapsland/review-definition/runtime/review-settings"
+import { credentialResolverLayer } from "@hapsland/credential-storage/credentials/owner"
+import { Config, Effect, Layer, Option } from "effect"
 import type { RulesOptions } from "./cli-definition.ts"
 import { discoverWorkingTreeRoot } from "@hapsland/native-observation/repository/root"
 import { RULE_CHECK_EXIT_CODES } from "./cli-definition.ts"
@@ -8,6 +11,12 @@ import { runRuleConversation } from "./conversation.ts"
 import type { RulePlan } from "./interaction-model.ts"
 import { loadRuleInventory, formatRuleInventory, formatRule, explainRule } from "./inventory.ts"
 import { applyRuleChange, previewRuleChange, type RuleChange } from "./management.ts"
+
+export const rulesCommandLiveLayer = Layer.mergeAll(
+  uncachedReviewSettingsLayer,
+  credentialResolverLayer,
+  FetchHttpClient.layer
+)
 
 type RuleInspectionAction = "list" | "show" | "explain"
 const inspectionAction = (action: RulesOptions["action"]): action is RuleInspectionAction =>
@@ -99,18 +108,18 @@ const ruleChangeOutput = (
   const file = "path" in result ? `Rule file: ${result.path}\n` : ""
   return `${change.action} completed in ${change.scope} scope.${activation}\nConfiguration: ${result.configurationPath}\n${file}Local structural validation only; classifier quality was not validated.\n`
 }
-const checkRules = Effect.fn("Rules.checkCommand")(function* (options: RulesOptions) {
+const checkRules = Effect.fn("Rules.checkCommand")(function* (options: RulesOptions, cwd: string) {
   if (options.path === undefined || options.line === undefined)
     return yield* Effect.fail(new Error("rules check requires --path and --line."))
   const { checkRuleAtLine, formatRuleCheck } = yield* Effect.promise(() => import("./check.ts"))
-  const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id })
+  const result = yield* checkRuleAtLine({ path: options.path, line: options.line, id: options.id }, cwd)
   process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleCheck(result))
   if (result.status !== "evaluated") process.exitCode = RULE_CHECK_EXIT_CODES.unavailable
   return
 })
-export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions) {
-  if (options.action === "check") return yield* checkRules(options)
-  const root = yield* discoverWorkingTreeRoot(process.cwd())
+export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions, cwd: string) {
+  if (options.action === "check") return yield* checkRules(options, cwd)
+  const root = yield* discoverWorkingTreeRoot(cwd)
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))
   const configuration = configured === undefined ? {} : { userConfigPath: configured }
   const action = options.action

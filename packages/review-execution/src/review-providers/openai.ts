@@ -6,7 +6,6 @@ import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import { AiError, DecisionModel } from "effect/ai"
-import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
@@ -74,11 +73,7 @@ const decodeAnswers = Effect.fn("OpenAIDecisionModel.decodeAnswers")(function* (
 })
 
 /** One OpenAI Decisions request. Refusal of any question fails the complete review unit. */
-export const liveLayer = (options: {
-  readonly identity: ProviderIdentity
-  readonly credentialEnvVar: string
-  readonly httpClient?: HttpClient.HttpClient
-}) =>
+export const liveLayer = (options: { readonly identity: ProviderIdentity; readonly credentialEnvVar: string }) =>
   Layer.effect(
     DecisionModel.DecisionModel,
     Effect.gen(function* () {
@@ -123,11 +118,9 @@ export const liveLayer = (options: {
     })
   ).pipe(
     Layer.provide(
-      options.httpClient === undefined
-        ? Layer.effect(
-            HttpClient.HttpClient,
-            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, OPENAI_PROVIDER.requestContent))
-          ).pipe(Layer.provide(FetchHttpClient.layer))
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, OPENAI_PROVIDER.requestContent))
+      Layer.effect(
+        HttpClient.HttpClient,
+        Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, OPENAI_PROVIDER.requestContent))
+      )
     )
   )

@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer"
 import { describe, expect, it } from "@effect/vitest"
 import * as ConfigProvider from "effect/ConfigProvider"
 import * as Effect from "effect/Effect"
@@ -57,7 +58,9 @@ describe("OpenAI review integration", () => {
         )
       })
       const result = yield* evaluatePrepared(outcome.prepared).pipe(
-        Effect.provide(reviewDecisionModelLayer(settings, httpClient)),
+        Effect.provide(
+          reviewDecisionModelLayer(settings).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, httpClient)))
+        ),
         Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ OPENAI_API_KEY: "fixture-token" })))
       )
       expect(result.status).toBe("evaluated")

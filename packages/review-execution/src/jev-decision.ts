@@ -32,12 +32,7 @@ export const decide = <const Decisions extends ProbabilityDecisions>(options: {
  * environment variable. The destination is part of consent identity; it is not
  * silently replaced by a provider default after dispatch authorization.
  */
-export const liveLayer = (options: {
-  readonly apiUrl: string
-  readonly credentialEnvVar: string
-  /** Explicit offline transport for resident conformance witnesses. */
-  readonly httpClient?: HttpClient.HttpClient
-}) => {
+export const liveLayer = (options: { readonly apiUrl: string; readonly credentialEnvVar: string }) => {
   const client = Layer.effect(
     TypeSafeClient.TypeSafeClient,
     Effect.gen(function* () {
@@ -46,16 +41,16 @@ export const liveLayer = (options: {
     })
   ).pipe(
     Layer.provide(
-      options.httpClient === undefined
-        ? Layer.effect(
-            HttpClient.HttpClient,
-            Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, JEV_PROVIDER.requestContent))
-          ).pipe(Layer.provide(FetchHttpClient.layer))
-        : Layer.succeed(HttpClient.HttpClient, reviewHttpTransport(options.httpClient, JEV_PROVIDER.requestContent))
+      Layer.effect(
+        HttpClient.HttpClient,
+        Effect.map(HttpClient.HttpClient, (client) => reviewHttpTransport(client, JEV_PROVIDER.requestContent))
+      )
     )
   )
   return TypeSafeDecisionModel.model(MODEL).pipe(Layer.provide(client))
 }
 
 /** Reads TYPESAFE_API_KEY and uses the TypeSafe service's default destination. */
-export const Live = liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: JEV_PROVIDER.credentialEnvVar })
+export const Live = liveLayer({ apiUrl: JEV_API_BASE, credentialEnvVar: JEV_PROVIDER.credentialEnvVar }).pipe(
+  Layer.provide(FetchHttpClient.layer)
+)
