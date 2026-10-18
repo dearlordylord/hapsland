@@ -119,6 +119,7 @@ describe("production resident activity subprocess", () => {
     const environment = {
       ...process.env,
       ...sourceRuntime.environment,
+      HOME: root,
       REVIEW_STATE_PATH: state,
       REVIEW_RESIDENT_DIR: runtime,
       REVIEW_ACTIVITY_PATH: activity,
