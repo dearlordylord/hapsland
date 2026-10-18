@@ -172,11 +172,11 @@ Rope/tree, batch and UnitEvidence laws retain arbitrary-input scope; production
 imports no proof/spec owner. Native engine and physical-effect correctness stay
 outside those proofs.
 
-2026-10-17: candidate `9414db99`,23:12 UTC: execution **.7044×**;
-build **.9836×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
+2026-10-17: candidate `029e0d5c`,23:45 UTC: execution **.5459×**;
+build **.8901×**. Strict PASS/PASS,17 pairs; five freeze checks pass, build34/34
 successful with23/46 cached. TS/Bend medians[ranges] s:
-execution.0604[.0493,.0939]/.0425[.0361,.0653];
-build3.5185[3.2058,5.4474]/3.4841[2.8452,5.5980]. Shared load; no causal claim.
+execution.0717[.0545,.2942]/.0460[.0369,.0808];
+build4.1946[3.5044,5.6129]/3.7123[3.0749,5.3736]. Shared load; no causal claim.
 Cache-mismatched runs are unqualified; qualifier now enforces warm preparation.
 These lanes do not qualify whole evaluation performance. Historical failures
 remain failures; later passes do not relabel them.
@@ -271,12 +271,12 @@ to CPU in Canonical transactions/transport/driver; no causal speedup claim.
 
 Astra path2026-10-17: pre-round `AdmissionScope`, common Canonical owner/driver;
 retain the serialized uninterruptible entry. Current obstacles:
-1. Atomic permit/observation/round/enqueue: actual dispatch refusal leaves a
-   root pin. Reuse dispatch-record commit; publish custody together.
+1. Native4/fast7 pass; prior product336/protocol30. Astra custody fix applied.
+   Bind AdmissionScope transfer/cleanup; fault test proves explicit recovery only.
 2. Connect the complete routing/retry cursor and delete admission TS orchestration.
 3. Approve/prove whole protocol, lifecycle and transfer laws; run actual routing,
    capacity, settings, inspection/IPC consumers and ≤3× qualification.
-Not accepted; the native refusal regression is intentionally red until fixed.
+Not accepted: native publication is connected; admission orchestration is still TS.
 
 Retained sources/tests/proofs/runners belong to ordinary domain owners under
 [source organization](source-organization.md), with one tracked authority, never

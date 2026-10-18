@@ -52,6 +52,9 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     Effect.suspend(() => (lifecycleOwnsScopes ? Effect.void : Scope.close(residentDispatchScope, Exit.void)))
   )
   const residentStopExpiries = new Map<string, Fiber.Fiber<void>>()
+  const residentPublishAdmission = residentLedger.admissionPublication((diagnostic) => {
+    recordRepeatEditDiagnostic(paths.directory, diagnostic)
+  })
   const residentComposedDelivery = residentLedger.delivery((diagnostic) => {
     recordRepeatEditDiagnostic(paths.directory, diagnostic)
   })
@@ -112,6 +115,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     residentDispatchScope,
     residentStopExpiries,
     residentComposedDelivery,
+    residentPublishAdmission,
     residentIdleChecks,
     residentQuietChecks,
     residentLifetimeController,

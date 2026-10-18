@@ -63,6 +63,7 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     residentReuse
   } = resources
   const admission = makeResidentAdmission({
+    residentPublishAdmission: resources.residentPublishAdmission,
     residentComposedDelivery,
     residentLedger,
     residentNotices,

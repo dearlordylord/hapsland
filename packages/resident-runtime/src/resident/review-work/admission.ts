@@ -1,3 +1,4 @@
+import type { residentAdmissionPublication } from "../state/resident/admission.ts"
 import { type makeResidentInspection } from "../inspection/observer.ts"
 import { type InspectionReceipt } from "../inspection/receipt.ts"
 import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
@@ -25,9 +26,8 @@ import {
   type ReviewSettingsOperations
 } from "@hapsland/review-definition/runtime/review-settings"
 import { type ResidentDispatchContext, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { type CapacityReservation } from "../state/resident/state.ts"
 import { type Dispatcher } from "../state/dispatch.ts"
-import { type ResidentLedger, type IngressJob, type Job } from "../work-ownership/jobs.ts"
+import { type ResidentLedger, type Job } from "../work-ownership/jobs.ts"
 import { RESERVATION_OVERHEAD_BYTES } from "../work-ownership/reservation.ts"
 import { recipientPartition, editPermitIdentity, dispatchForSourceRoot } from "../recipient/identity.ts"
 import { logicalBytes } from "../state/encoded-size.ts"
@@ -70,6 +70,7 @@ type Dependencies = {
   readonly residentDispatcher: Dispatcher<string, Job>
   readonly inspection: Effect.Success<ReturnType<typeof makeResidentInspection>>["recorder"]
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
+  readonly residentPublishAdmission: ReturnType<ReturnType<typeof residentAdmissionPublication>>
   readonly admissionLock: Semaphore.Semaphore
 }
 const residentPruneCollectionTokenIds = Effect.fn("ResidentRuntime.pruneCollectionTokenIds")(function* (
@@ -115,83 +116,6 @@ const residentRejectAdmissionCapacity = Effect.fn("ResidentRuntime.rejectAdmissi
   yield* deps.residentRecordAnalytics({ observation, dispatch }, "capacity-rejected")
   recordResidentObservationActivity(deps, observation, dispatch, "unavailable")
 })
-const residentAdmissionGeneration = Effect.fn("ResidentRuntime.admissionGeneration")(function* (
-  deps: Dependencies,
-  group: string,
-  observation: DirectObservation,
-  composed: boolean,
-  requirePermit: boolean
-) {
-  return composed
-    ? yield* deps.residentComposedDelivery.admitEditObservation(
-        group,
-        editPermitIdentity(observation.root, observation.advicee),
-        monotonicNow(),
-        requirePermit
-      )
-    : undefined
-})
-const residentBindAdmissionRound = Effect.fn("ResidentRuntime.bindAdmissionRound")(function* (
-  deps: Dependencies,
-  group: string,
-  generation: number | undefined,
-  observation: DirectObservation,
-  dispatch: ResidentDispatchContext
-) {
-  return generation === undefined
-    ? undefined
-    : yield* deps.residentLedger.rounds.bind(
-        group,
-        generation,
-        {
-          root: observation.root,
-          rootIdentity: observation.rootIdentity,
-          advicee: observation.advicee,
-          activityPath: dispatch.activityPath
-        },
-        randomUUID()
-      )
-})
-const residentAdmissionCanonicalRound = Effect.fn("ResidentRuntime.admissionCanonicalRound")(function* (
-  deps: Dependencies,
-  round: RoundWork | undefined,
-  partition: string
-) {
-  return round?.canonicalRound ?? (yield* deps.residentLedger.roundId(partition))
-})
-const residentAdmissionJob = Effect.fn("ResidentRuntime.admissionJob")(function* (
-  deps: Dependencies,
-  observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
-  partition: string,
-  canonicalRound: number,
-  canonicalObservationId: number,
-  reservation: CapacityReservation,
-  round: RoundWork | undefined,
-  settings: ReviewSettingsSnapshot,
-  inspectionReceipt: InspectionReceipt | undefined
-): Effect.fn.Return<IngressJob> {
-  const roundFields =
-    round === undefined
-      ? {}
-      : {
-          round,
-          work: (yield* residentRoundSnapshot(deps, round)).work,
-          workObservationId: (yield* deps.residentLedger.rounds.policyWork(round)).admit(canonicalObservationId)
-        }
-  return {
-    kind: "ingress",
-    ...(inspectionReceipt === undefined ? {} : { inspectionReceipt }),
-    settings,
-    canonicalRound,
-    ...roundFields,
-    observation,
-    canonicalObservationId,
-    partition,
-    reservation,
-    dispatch
-  }
-})
 const residentTraceAdvicee = (
   advicee: DirectAdvicee
 ): advicee is DirectAdvicee & { readonly sessionId: string; readonly toolUseId: string } =>
@@ -214,8 +138,6 @@ function residentRecordAdmissionDiagnostics(deps: Dependencies, observation: Dir
   if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined)
   residentRecordAdmissionTrace(deps, observation)
 }
-const residentAdmissionStale = (composed: boolean, generation: number | undefined): boolean =>
-  composed && generation === undefined
 const residentAdmissionSettings = Effect.fn("ResidentRuntime.admissionSettings")(function* (
   deps: Dependencies,
   observation: DirectObservation,
@@ -279,18 +201,6 @@ const residentSourceRefusal = Effect.fn("ResidentRuntime.sourceRefusal")(functio
   if (!residentRootIdentityMatches(pin.rootIdentity, observation.rootIdentity)) return "rejected-stale" as const
   return undefined
 })
-const residentCanonicalAdmissionIds = Effect.fn("ResidentRuntime.canonicalAdmissionIds")(function* (
-  deps: Dependencies,
-  editAdmission: Effect.Success<ReturnType<typeof residentAdmissionGeneration>>,
-  round: RoundWork | undefined,
-  partition: string
-) {
-  const canonicalRound =
-    editAdmission?.canonicalRound ?? (yield* residentAdmissionCanonicalRound(deps, round, partition))
-  const canonicalObservationId =
-    editAdmission?.canonicalObservationId ?? (yield* deps.residentLedger.admitObservation(partition, canonicalRound))
-  return { canonicalRound, canonicalObservationId }
-})
 const residentAdmissionPreflight = Effect.fn("ResidentRuntime.admissionPreflight")(function* (
   deps: Dependencies,
   observation: DirectObservation,
@@ -335,43 +245,37 @@ const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
   const preflight = yield* residentAdmissionPreflight(deps, observation, dispatch, composed)
   if ("response" in preflight) return { response: preflight.response }
   const { group, settings, reservation } = preflight
-  const editAdmission = yield* residentAdmissionGeneration(deps, group, observation, composed, requirePermit)
-  const generation = editAdmission?.generation
-  const editSettings = editAdmission?.settings ?? settings
-  if (residentAdmissionStale(composed, generation)) {
+  const publication = yield* deps.residentPublishAdmission({
+    observation,
+    dispatch,
+    partition: group,
+    settings,
+    reservation,
+    ...(inspectionReceipt === undefined ? {} : { inspectionReceipt }),
+    mode: composed
+      ? {
+          kind: "composed",
+          requirePermit,
+          eventId: editPermitIdentity(observation.root, observation.advicee),
+          now: monotonicNow(),
+          cohortId: randomUUID()
+        }
+      : { kind: "direct" }
+  })
+  if (publication.kind === "stale") {
     recordResidentObservationActivity(deps, observation, dispatch, "incomplete")
     yield* deps.residentLedger.release(reservation)
     return { response: { status: "rejected-stale" } }
   }
-  const round = yield* residentBindAdmissionRound(deps, group, generation, observation, dispatch)
-  const partition = group
-  const { canonicalRound, canonicalObservationId } = yield* residentCanonicalAdmissionIds(
-    deps,
-    editAdmission,
-    round,
-    partition
-  )
-  const job = yield* residentAdmissionJob(
-    deps,
-    observation,
-    dispatch,
-    partition,
-    canonicalRound,
-    canonicalObservationId,
-    reservation,
-    round,
-    editSettings,
-    inspectionReceipt
-  )
-  if (!(yield* deps.residentDispatcher.enqueue(partition, job))) {
-    yield* deps.residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound)
+  if (publication.kind === "capacity") {
     yield* deps.residentLedger.release(reservation)
     yield* residentRejectAdmissionCapacity(deps, observation, dispatch)
     return { response: { status: "rejected-capacity" } }
   }
+  yield* deps.residentDispatcher.startCommitted()
   residentRecordAdmissionDiagnostics(deps, observation)
   recordResidentObservationActivity(deps, observation, dispatch, "pending")
-  return { response: { status: "accepted" }, settings: editSettings }
+  return { response: { status: "accepted" }, settings: publication.job.settings }
 }, Effect.uninterruptible)
 const residentRetireCandidateRoots = Effect.fn("ResidentRuntime.retireCandidateRoots")(function* (
   deps: Dependencies,

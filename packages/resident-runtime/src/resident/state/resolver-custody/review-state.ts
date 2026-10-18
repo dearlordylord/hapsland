@@ -1,3 +1,4 @@
+import { residentAdmissionPublication } from "../resident/admission.ts"
 import * as Effect from "effect/Effect"
 import resolverOwner from "@hapsland/agent-flow-bend/canonical-resolver-owner"
 import type { Action } from "@hapsland/agent-flow-bend/canonical-resolver-owner"
@@ -47,7 +48,11 @@ export const makeResidentReviewState = <Binding extends ResidentOwnerBinding>(
       onActions: (actions) => Effect.sync(() => bound().acceptActions(actions)),
       validateAdviceInput: (invocation, inputHandle) => bound().validateAdviceInput(invocation, inputHandle)
     })
-    const ledger = residentStateFacades(providerTransaction(guarded, bridge))
+    const authorized = providerTransaction(guarded, bridge)
+    const ledger = {
+      ...residentStateFacades(authorized),
+      admissionPublication: residentAdmissionPublication(authorized)
+    }
     resources.binding = bind(ledger, bridge)
     return { ...ledger, reviewPreparation: resources.binding }
   }).pipe(Effect.withSpan("ResidentState.makeReview"))

@@ -10,6 +10,7 @@ export type DispatchEntry<K, A> = { readonly key: K; readonly sequence: number; 
 export type DispatchSnapshot = { readonly queued: number; readonly running: number }
 type Match<K, A> = (entry: { readonly key: K; readonly value: A }) => boolean
 export interface Dispatcher<K, A> {
+  readonly startCommitted: () => Effect.Effect<void>
   readonly enqueue: (key: K, value: A) => Effect.Effect<boolean>
   readonly snapshot: () => Effect.Effect<DispatchSnapshot>
   readonly hasWork: (key: K) => Effect.Effect<boolean>
@@ -148,6 +149,7 @@ export const makeDispatcher = <K, A>(
       close().pipe(Effect.andThen(idle.await), Effect.andThen(Scope.close(scope, Exit.void)))
     )
     return {
+      startCommitted: () => updateIdle().pipe(Effect.andThen(startCommitted())),
       enqueue: Effect.fn("ResidentDispatch.enqueue")(function* (key: K, value: A) {
         if (typeof key !== "string") return yield* Effect.die(new TypeError("dispatch partition must be a string"))
         return yield* Effect.uninterruptible(
