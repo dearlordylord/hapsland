@@ -81,6 +81,16 @@ def claimed_exact(+p: Nat, +l: Nat, +r: Nat, +operation: Nat, +origin: Nat, +own
       permission,
       tail
     )
+    case O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _} <> tail: claimed_exact(
+      p,
+      l,
+      r,
+      operation,
+      origin,
+      own,
+      permission,
+      tail
+    )
     case O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _} <> tail: claimed_exact(
       p,
       l,

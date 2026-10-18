@@ -57,7 +57,22 @@ type EvaluationFacts is Data:
   EvaluationFacts{root_valid: Bool, configuration_valid: Bool, credential_ready: Bool,
     selected: Bool, current_work: Bool, physical_available: Bool}
 
+# Admission starts before any round. Held resources belong to this invocation;
+# transferred resources belong to the independent dispatcher, even after cancel.
+type AdmissionPermission is Data:
+  AdmissionUnreserved{}
+  AdmissionHeld{receipt: Nat, partition: Nat, lifetime: Nat, charge: Nat}
+  AdmissionTransferred{
+    receipt: Nat,
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    observation: Nat,
+    charge: Nat
+  }
+
 type Scope is Data:
+  AdmissionScope{operation: Nat, permission: AdmissionPermission}
   EvaluationCleanupScope{
     operation: Nat,
     origin: Nat,
@@ -163,6 +178,7 @@ def preparing_live(
 
 def resolver_scope(scope: Scope) -> Scope:
   match scope:
+    case AdmissionScope{_, _}: scope
     case EvaluationCleanupScope{_, _, _, _}: scope
     case EvaluationDispatchScope{_, _, _}: scope
     case EvaluationScope{_, _, _}: scope
@@ -251,6 +267,7 @@ def source_scope_live(
 
 def live(+canonical: C.State, scope: Scope) -> Bool:
   match canonical scope:
+    case _ AdmissionScope{_, _}: False{}
     case _ EvaluationDispatchScope{_, _, _}: False{}
     case _ EvaluationCleanupScope{_, _, _, _}: False{}
     case _ EvaluationScope{_, _, _}: False{}
@@ -413,6 +430,18 @@ def settings_current(
       )
     case _: False{}
 
+# An admission capability is issued with its root child. Resource progression
+# never changes its invocation, generation, lease or parent identity.
+def admission_current(+operation: Nat, +invocation: Nat, generation: Nat,
+    found: Maybe<&2, Child>) -> Bool:
+  match found:
+    case Some{Child{AdmissionScope{actual, _}, current, epoch, _, phase, _, _, None{}}}:
+      Bool.and(Nat.is_eq(operation, invocation),
+        Bool.and(Nat.is_eq(operation, actual),
+          Bool.and(Nat.is_eq(invocation, current),
+            Bool.and(Nat.is_eq(generation, epoch), active(phase)))))
+    case _: False{}
+
 # A freshness operation is its own Canonical-issued invocation, never a
 # manufactured settings or source preparation scope.
 def freshness_current(
@@ -566,6 +595,8 @@ def evaluation_dispatch_current(+operation: Nat, +invocation: Nat, generation: N
 
 def child_scope_live(+canonical: C.State, +children: List<&2, Child>, child: Child) -> Bool:
   match child:
+    case Child{AdmissionScope{operation, _}, +invocation, generation, _, _, _, _, _}:
+      admission_current(operation, invocation, generation, find(invocation, children))
     case Child{
       EvaluationDispatchScope{operation, context, request},
       +invocation,
@@ -700,6 +731,206 @@ def state_children(state: State) -> List<&2, Child>:
 def state_canonical(state: State) -> C.State:
   match state:
     case State{canonical, _, _, _}: canonical
+
+# Native allocates each receipt once for an exact object. Charge numbers can be
+# reused after clear; receipt handles cannot. Canonical owns the progression,
+# while the closed native boundary establishes pointer identity and physical IO.
+def admission_charge(canonical: C.State, charge: Nat) -> Maybe<&2, Ledger.Charge>:
+  match canonical:
+    case C.State{Ledger.Ledger{_, _, charges}, _, _, _, _, _, _, _, _}:
+      Ledger.find(charge, charges)
+
+def admission_charge_matches(found: Maybe<&2, Ledger.Charge>, +partition: Nat,
+    +charge: Nat) -> Bool:
+  match found:
+    case Some{Ledger.Charge{id, owner, _, Ledger.ObservationDispatch{}}}:
+      Bool.and(Nat.is_eq(id, charge), Nat.is_eq(owner, partition))
+    case _: False{}
+
+# Transferred receipts are replay tombstones, not retained resource ownership.
+def admission_claimed(items: List<&2, Child>, +receipt: Nat) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case Child{AdmissionScope{_, AdmissionHeld{id, _, _, _}}, _, _, _, _, _, _, _} <> rest:
+      Bool.or(Nat.is_eq(id, receipt), admission_claimed(rest, receipt))
+    case Child{AdmissionScope{_, AdmissionTransferred{id, _, _, _, _, _}}, _, _, _, _, _, _, _} <> rest:
+      Bool.or(Nat.is_eq(id, receipt), admission_claimed(rest, receipt))
+    case _ <> rest: admission_claimed(rest, receipt)
+
+def admission_changed(valid: Bool, state: State, child: Child,
+    permission: AdmissionPermission) -> Step:
+  match valid state child:
+    case True{} State{canonical, next, lease, children}
+        Child{
+          AdmissionScope{operation, _},
+          +invocation,
+          generation,
+          handle,
+          phase,
+          request,
+          permit,
+          parent
+        }:
+      Advanced{State{canonical, next, lease,
+        replace(invocation, children,
+          Child{AdmissionScope{operation, permission}, invocation, generation, handle,
+            phase, request, permit, parent})}, Nil{}, Nil{}}
+    case _ _ _: Rejected{state, NotPreparing{}}
+
+def admission_unreserved(child: Child) -> Bool:
+  match child:
+    case Child{AdmissionScope{_, AdmissionUnreserved{}}, _, _, _, _, _, _, _}: True{}
+    case _: False{}
+
+def admission_held(child: Child) -> Maybe<&2, AdmissionPermission>:
+  match child:
+    case Child{
+      AdmissionScope{_, AdmissionHeld{receipt, partition, lifetime, charge}},
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }:
+      Some{AdmissionHeld{receipt, partition, lifetime, charge}}
+    case _: None{}
+
+def admission_hold_found(+state: State, found: Maybe<&2, Child>, valid: Bool,
+    +partition: Nat, +lifetime: Nat, +charge: Nat, +receipt: Nat) -> Step:
+  match found:
+    case Some{+child}:
+      admission_changed(
+        Bool.and(
+          Bool.and(valid, admission_unreserved(child)),
+          Bool.and(
+            Bool.and(Nat.is_eq(lifetime, 1n), Nat.is_lt(0n, receipt)),
+            Bool.and(
+              admission_charge_matches(
+                admission_charge(state_canonical(state), charge),
+                partition,
+                charge
+              ),
+              Bool.not(admission_claimed(state_children(state), receipt))
+            )
+          )
+        ),
+        state,
+        child,
+        AdmissionHeld{receipt, partition, lifetime, charge}
+      )
+    case _: Rejected{state, NotPreparing{}}
+
+def hold_admission(+state: State, +invocation: Nat, generation: Nat, lease: Nat,
+    request: Nat, partition: Nat, lifetime: Nat, charge: Nat, receipt: Nat) -> Step:
+  admission_hold_found(
+    state,
+    find(invocation, state_children(state)),
+    provider_live(state, invocation, generation, lease, request),
+    partition,
+    lifetime,
+    charge,
+    receipt
+  )
+
+# This is an acknowledgment of the closed native release of exactly this
+# receipt. Numeric charge absence cannot establish that fact across clear/reuse.
+def admission_release_held(state: State, child: Child, valid: Bool, receipt: Nat,
+    held: Maybe<&2, AdmissionPermission>) -> Step:
+  match held:
+    case Some{AdmissionHeld{expected, _, _, _}}:
+      admission_changed(
+        Bool.and(valid, Nat.is_eq(receipt, expected)),
+        state,
+        child,
+        AdmissionUnreserved{}
+      )
+    case _: Rejected{state, NotPreparing{}}
+
+def admission_release_found(
+  state: State,
+  found: Maybe<&2, Child>,
+  valid: Bool,
+  receipt: Nat
+) -> Step:
+  match found:
+    case Some{+child}: admission_release_held(state, child, valid, receipt, admission_held(child))
+    case _: Rejected{state, NotPreparing{}}
+
+def release_admission(+state: State, +invocation: Nat, generation: Nat, lease: Nat,
+    request: Nat, receipt: Nat) -> Step:
+  admission_release_found(state, find(invocation, state_children(state)),
+    provider_live(state, invocation, generation, lease, request), receipt)
+
+def admission_cancelled_generation(child: Child, generation: Nat) -> Bool:
+  match child:
+    case Child{_, _, epoch, _, ChildCancelled{}, _, None{}, _}: Nat.is_eq(generation, epoch)
+    case _: False{}
+
+# Cancel alone is not physical drain. The retained provider lease must first be
+# cleared by actual provider completion, then native releases this exact receipt.
+def admission_cleanup_found(
+  state: State,
+  found: Maybe<&2, Child>,
+  generation: Nat,
+  receipt: Nat
+) -> Step:
+  match found:
+    case Some{+child}:
+      admission_release_held(state, child, admission_cancelled_generation(child, generation),
+        receipt, admission_held(child))
+    case _: Rejected{state, NotPreparing{}}
+
+def cleanup_admission(+state: State, invocation: Nat, generation: Nat, receipt: Nat) -> Step:
+  admission_cleanup_found(state, find(invocation, state_children(state)), generation, receipt)
+
+def admission_published(canonical: C.State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +observation: Nat) -> Bool:
+  match canonical:
+    case C.State{_, _, work, _, _, _, dispatch, _, _}:
+      Bool.and(C.dispatch_preparation(C.find_work(partition, lifetime, round, observation, work)),
+        Dispatch.known(dispatch, partition, lifetime, round, observation))
+
+def admission_transfer_held(+state: State, child: Child, valid: Bool,
+    +round: Nat, +observation: Nat, held: Maybe<&2, AdmissionPermission>) -> Step:
+  match held:
+    case Some{AdmissionHeld{receipt, +partition, +lifetime, +charge}}:
+      admission_changed(
+        Bool.and(
+          valid,
+          Bool.and(
+            admission_charge_matches(
+              admission_charge(state_canonical(state), charge),
+              partition,
+              charge
+            ),
+            admission_published(state_canonical(state), partition, lifetime, round, observation)
+          )
+        ),
+        state,
+        child,
+        AdmissionTransferred{receipt, partition, lifetime, round, observation, charge}
+      )
+    case _: Rejected{state, NotPreparing{}}
+
+def admission_transfer_found(state: State, found: Maybe<&2, Child>, valid: Bool,
+    round: Nat, observation: Nat) -> Step:
+  match found:
+    case Some{+child}: admission_transfer_held(
+      state,
+      child,
+      valid,
+      round,
+      observation,
+      admission_held(child)
+    )
+    case _: Rejected{state, NotPreparing{}}
+
+def transfer_admission(+state: State, +invocation: Nat, generation: Nat, lease: Nat,
+    request: Nat, round: Nat, observation: Nat) -> Step:
+  admission_transfer_found(state, find(invocation, state_children(state)),
+    provider_live(state, invocation, generation, lease, request), round, observation)
 
 def installed_canonical(
   state: State,
@@ -891,6 +1122,12 @@ def launch_settings(+state: State, input_handle: Nat) -> Step:
     case State{_, +next_invocation, _, +children}:
       launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
         SettingsScope{next_invocation}, input_handle)
+
+def launch_admission(+state: State, input_handle: Nat) -> Step:
+  match state:
+    case State{_, +next_invocation, _, +children}:
+      launched(settings_next_free(next_invocation, find(next_invocation, children)), state,
+        AdmissionScope{next_invocation, AdmissionUnreserved{}}, input_handle)
 
 # Issue the independent freshness operation and root child in one transition.
 def launch_freshness(+state: State, input_handle: Nat) -> Step:
@@ -1677,6 +1914,7 @@ def terminal_source_failed(
 
 def terminal_scope(scope: Scope) -> Bool:
   match scope:
+    case AdmissionScope{_, AdmissionHeld{_, _, _, _}}: False{}
     case EvaluationCleanupScope{_, _, _, _}: False{}
     case EvaluationDispatchScope{_, _, _}: False{}
     case EvaluationScope{_, _, EvaluationSettled{}}: True{}
@@ -3200,6 +3438,13 @@ type ResidentEvent is Data:
   EvaluationSettleEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat,
     outcome: C.RequestOutcome, current: Bool}
   CanonicalEvent{event: C.CanonicalEvent}
+  CleanupAdmissionEvent{invocation: Nat, generation: Nat, receipt: Nat}
+  LaunchAdmissionEvent{input_handle: Nat}
+  HoldAdmissionEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat,
+    partition: Nat, lifetime: Nat, charge: Nat, receipt: Nat}
+  ReleaseAdmissionEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat, receipt: Nat}
+  TransferAdmissionEvent{invocation: Nat, generation: Nat, lease: Nat, request: Nat,
+    round: Nat, observation: Nat}
   LaunchSettingsEvent{input_handle: Nat}
   LaunchFreshnessEvent{input_handle: Nat}
   LaunchCollectionEvent{context: DeliveryContext, input_handle: Nat}
@@ -3313,6 +3558,38 @@ def resident_event(state: State, event: ResidentEvent) -> Step:
     case EvaluationSettleEvent{invocation, generation, lease, request, outcome, current}:
       evaluation_settle(state, invocation, generation, lease, request, outcome, current)
     case CanonicalEvent{event}: canonical_event(state, event)
+    case CleanupAdmissionEvent{invocation, generation, receipt}: cleanup_admission(
+      state,
+      invocation,
+      generation,
+      receipt
+    )
+    case LaunchAdmissionEvent{input_handle}: launch_admission(state, input_handle)
+    case HoldAdmissionEvent{
+      invocation,
+      generation,
+      lease,
+      request,
+      partition,
+      lifetime,
+      charge,
+      receipt
+    }:
+      hold_admission(
+        state,
+        invocation,
+        generation,
+        lease,
+        request,
+        partition,
+        lifetime,
+        charge,
+        receipt
+      )
+    case ReleaseAdmissionEvent{invocation, generation, lease, request, receipt}:
+      release_admission(state, invocation, generation, lease, request, receipt)
+    case TransferAdmissionEvent{invocation, generation, lease, request, round, observation}:
+      transfer_admission(state, invocation, generation, lease, request, round, observation)
     case LaunchSettingsEvent{input_handle}: launch_settings(state, input_handle)
     case LaunchFreshnessEvent{input_handle}: launch_freshness(state, input_handle)
     case LaunchCollectionEvent{context, input_handle}: launch_collection(

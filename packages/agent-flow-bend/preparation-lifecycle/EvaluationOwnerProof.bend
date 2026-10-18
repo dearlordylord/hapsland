@@ -44,6 +44,7 @@ def claimed_exact(+context: O.EvaluationContext, +rest: List<&2, O.Child>) -> {
       context,
       tail
     )
+    case O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _} <> tail: claimed_exact(context, tail)
     case O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _} <> tail: claimed_exact(context, tail)
     case O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _} <> tail: claimed_exact(context, tail)
     case O.Child{O.Scope{_, _, _, _}, _, _, _, _, _, _, _} <> tail: claimed_exact(context, tail)
@@ -286,6 +287,8 @@ def root_current_exact(
 
     case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
 
+    case Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
+
     case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
@@ -328,6 +331,8 @@ def dispatch_current_exact(
     case Some{O.Child{O.EvaluationScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
@@ -936,6 +941,8 @@ def invalidate_exact(+state: O.State, +child: O.Child) -> {
       )
 
     case O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}: {==}
+
+    case O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}: {==}
 
     case O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}: {==}
 
@@ -5387,6 +5394,8 @@ def permission_scope_exact(+scope: O.Scope, +permission: O.EvaluationPermission)
 
     case O.DeliveryScope{_, _, _, _, _}: {==}
 
+    case O.AdmissionScope{_, _}: {==}
+
     case O.SettingsScope{_}: {==}
 
     case O.FreshnessScope{_}: {==}
@@ -6509,6 +6518,14 @@ def ready_child_exact(
       _,
       _
     }: {==}
+    case True{} Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}} O.EvaluationFacts{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _
+    }: {==}
     case True{} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}} O.EvaluationFacts{
       _,
       _,
@@ -6719,6 +6736,8 @@ def ready_non_evaluation_exact(
 
     case False{} False{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
+    case False{} False{} O.AdmissionScope{_, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
     case False{} False{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
     case False{} False{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
@@ -6784,6 +6803,8 @@ def ready_non_evaluation_exact(
 
     case False{} True{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
+    case False{} True{} O.AdmissionScope{_, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
     case False{} True{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
     case False{} True{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
@@ -6842,6 +6863,8 @@ def ready_non_evaluation_exact(
 
     case True{} False{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
+    case True{} False{} O.AdmissionScope{_, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
     case True{} False{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
     case True{} False{} O.FreshnessScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
@@ -6899,6 +6922,8 @@ def ready_non_evaluation_exact(
     )
 
     case True{} True{} O.DeliveryScope{_, _, _, _, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
+
+    case True{} True{} O.AdmissionScope{_, _} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
     case True{} True{} O.SettingsScope{_} O.EvaluationFacts{_, _, _, _, _, _}: {==}
 
@@ -7119,6 +7144,41 @@ def ready_found_exact(
       ),
       S.permitted(state, inv, generation, lease, request, found),
       O.DeliveryScope{v0, v1, v2, v3, v4},
+      facts,
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AdmissionScope{v0, +admission_permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: ready_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AdmissionScope{v0, admission_permission},
       facts,
       state,
       actual,
@@ -7674,6 +7734,8 @@ def settle_child_exact(
 
     case True{} Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
 
+    case True{} Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
+
     case True{} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
     case True{} Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
@@ -7840,6 +7902,8 @@ def settle_non_evaluation_exact(
 
     case False{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
 
+    case False{} False{} O.AdmissionScope{_, _}: {==}
+
     case False{} False{} O.SettingsScope{_}: {==}
 
     case False{} False{} O.FreshnessScope{_}: {==}
@@ -7901,6 +7965,8 @@ def settle_non_evaluation_exact(
     )
 
     case False{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case False{} True{} O.AdmissionScope{_, _}: {==}
 
     case False{} True{} O.SettingsScope{_}: {==}
 
@@ -7964,6 +8030,8 @@ def settle_non_evaluation_exact(
 
     case True{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
 
+    case True{} False{} O.AdmissionScope{_, _}: {==}
+
     case True{} False{} O.SettingsScope{_}: {==}
 
     case True{} False{} O.FreshnessScope{_}: {==}
@@ -8025,6 +8093,8 @@ def settle_non_evaluation_exact(
     )
 
     case True{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case True{} True{} O.AdmissionScope{_, _}: {==}
 
     case True{} True{} O.SettingsScope{_}: {==}
 
@@ -8256,6 +8326,42 @@ def settle_found_exact(
       ),
       S.permitted(state, inv, generation, lease, request, found),
       O.DeliveryScope{v0, v1, v2, v3, v4},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      outcome,
+      current,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AdmissionScope{v0, +admission_permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: settle_non_evaluation_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AdmissionScope{v0, admission_permission},
       state,
       actual,
       epoch,
@@ -8928,6 +9034,8 @@ def provider_install_found_exact(
 
     case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
 
+    case Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
+
     case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
@@ -9012,6 +9120,8 @@ def complete_scope_exact(+canon: C.State, +scope: O.Scope) -> {
     case O.EvaluationScope{_, context, O.EvaluationSettled{}}: {==}
 
     case O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case O.AdmissionScope{_, _}: {==}
 
     case O.SettingsScope{_}: {==}
 
@@ -9256,6 +9366,33 @@ def complete_found_exact(
       result
     )
 
+    case Some{
+      O.Child{
+        O.AdmissionScope{v0, +admission_permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: accepted_exact(
+      False{},
+      state,
+      O.Child{
+        O.AdmissionScope{v0, admission_permission},
+        inv,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      },
+      result
+    )
+
     case Some{O.Child{O.SettingsScope{v0}, inv, epoch, handle, phase, pending, held, parent}}: accepted_exact(
       False{},
       state,
@@ -9411,6 +9548,11 @@ def cleanup_claimed_exact(+origin: Nat, +rest: List<&2, O.Child>) -> {
     )
 
     case O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
+      origin,
+      tail
+    )
+
+    case O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _} <> tail: cleanup_claimed_exact(
       origin,
       tail
     )
@@ -9675,6 +9817,8 @@ def cleanup_found_exact(+state: O.State, +origin: Nat, +input: Nat, +found: Mayb
     case Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
@@ -10728,6 +10872,8 @@ def dispatch_complete_found_exact(
 
     case Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
 
+    case Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
+
     case Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 
     case Some{O.Child{O.FreshnessScope{_}, _, _, _, _, _, _, _}}: {==}
@@ -10936,6 +11082,8 @@ def start_foreign_exact(
 
     case False{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
 
+    case False{} False{} O.AdmissionScope{_, _}: {==}
+
     case False{} False{} O.SettingsScope{_}: {==}
 
     case False{} False{} O.FreshnessScope{_}: {==}
@@ -10974,6 +11122,8 @@ def start_foreign_exact(
     case False{} True{} O.EvaluationScope{_, _, _}: {==}
 
     case False{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case False{} True{} O.AdmissionScope{_, _}: {==}
 
     case False{} True{} O.SettingsScope{_}: {==}
 
@@ -11014,6 +11164,8 @@ def start_foreign_exact(
 
     case True{} False{} O.DeliveryScope{_, _, _, _, _}: {==}
 
+    case True{} False{} O.AdmissionScope{_, _}: {==}
+
     case True{} False{} O.SettingsScope{_}: {==}
 
     case True{} False{} O.FreshnessScope{_}: {==}
@@ -11052,6 +11204,8 @@ def start_foreign_exact(
     case True{} True{} O.EvaluationScope{_, _, _}: {==}
 
     case True{} True{} O.DeliveryScope{_, _, _, _, _}: {==}
+
+    case True{} True{} O.AdmissionScope{_, _}: {==}
 
     case True{} True{} O.SettingsScope{_}: {==}
 
@@ -11273,6 +11427,40 @@ def start_with_permit_exact(
       ),
       S.permitted(state, inv, generation, lease, request, found),
       O.DeliveryScope{v0, v1, v2, v3, v4},
+      state,
+      actual,
+      epoch,
+      handle,
+      phase,
+      pending,
+      held,
+      parent,
+      {==}
+    )
+
+    case Some{
+      O.Child{
+        O.AdmissionScope{v0, +admission_permission},
+        actual,
+        epoch,
+        handle,
+        phase,
+        pending,
+        held,
+        parent
+      }
+    }: start_foreign_exact(
+      O.provider_permit_found(
+        S.canonical(state),
+        S.children(state),
+        inv,
+        generation,
+        lease,
+        request,
+        found
+      ),
+      S.permitted(state, inv, generation, lease, request, found),
+      O.AdmissionScope{v0, admission_permission},
       state,
       actual,
       epoch,
@@ -12211,6 +12399,8 @@ def dispatch_launch_found_exact(
     case O.State{_, _, _, _} Some{O.Child{O.EvaluationDispatchScope{_, _, _}, _, _, _, _, _, _, _}}: {==}
 
     case O.State{_, _, _, _} Some{O.Child{O.DeliveryScope{_, _, _, _, _}, _, _, _, _, _, _, _}}: {==}
+
+    case O.State{_, _, _, _} Some{O.Child{O.AdmissionScope{_, _}, _, _, _, _, _, _, _}}: {==}
 
     case O.State{_, _, _, _} Some{O.Child{O.SettingsScope{_}, _, _, _, _, _, _, _}}: {==}
 

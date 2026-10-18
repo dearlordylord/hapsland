@@ -31,7 +31,13 @@ export type EvaluationPermission =
   | { readonly $: "EvaluationSettled" }
 export type EvaluationFacts = { readonly $: "EvaluationFacts"; readonly root_valid: boolean; readonly configuration_valid: boolean; readonly credential_ready: boolean; readonly selected: boolean; readonly current_work: boolean; readonly physical_available: boolean }
 
+export type AdmissionPermission =
+  | { readonly $: "AdmissionUnreserved" }
+  | { readonly $: "AdmissionHeld"; readonly receipt: number; readonly partition: number; readonly lifetime: number; readonly charge: number }
+  | { readonly $: "AdmissionTransferred"; readonly receipt: number; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly charge: number }
+
 export type Scope =
+  | { readonly $: "AdmissionScope"; readonly operation: number; readonly permission: AdmissionPermission }
   | { readonly $: "EvaluationCleanupScope"; readonly operation: number; readonly origin: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
   | { readonly $: "EvaluationDispatchScope"; readonly operation: number; readonly context: EvaluationContext; readonly request: number }
   | { readonly $: "EvaluationScope"; readonly operation: number; readonly context: EvaluationContext; readonly permission: EvaluationPermission }
@@ -127,6 +133,11 @@ export type ResidentEvent =
   | { readonly $: "ClaimDeliveryEvent"; readonly receipt: DeliveryReceipt }
   | { readonly $: "CompleteDeliveryEvent"; readonly invocation: number; readonly generation: number; readonly result_handle: number; readonly selection: DeliverySelection }
   | { readonly $: "CanonicalEvent"; readonly event: OwnerTransport<Canonical_CanonicalEvent> }
+  | { readonly $: "CleanupAdmissionEvent"; readonly invocation: number; readonly generation: number; readonly receipt: number }
+  | { readonly $: "LaunchAdmissionEvent"; readonly input_handle: number }
+  | { readonly $: "HoldAdmissionEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly partition: number; readonly lifetime: number; readonly charge: number; readonly receipt: number }
+  | { readonly $: "ReleaseAdmissionEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly receipt: number }
+  | { readonly $: "TransferAdmissionEvent"; readonly invocation: number; readonly generation: number; readonly lease: number; readonly request: number; readonly round: number; readonly observation: number }
   | { readonly $: "LaunchSettingsEvent"; readonly input_handle: number }
   | { readonly $: "LaunchFreshnessEvent"; readonly input_handle: number }
   | { readonly $: "LaunchEvent"; readonly scope: Scope; readonly input_handle: number }
@@ -169,6 +180,11 @@ export interface CanonicalResolverOwner {
   begin_public_preparation(state: State, partition: number, lifetime: number, round: number, bytes: number): List<Step>
   complete_public_preparation(state: State, partition: number, lifetime: number, round: number, operation: number, observation: number): List<Step>
   canonical_event(state: State, event: OwnerTransport<Canonical_CanonicalEvent>): Step
+  cleanup_admission(state: State, invocation: number, generation: number, receipt: number): Step
+  launch_admission(state: State, input_handle: number): Step
+  hold_admission(state: State, invocation: number, generation: number, lease: number, request: number, partition: number, lifetime: number, charge: number, receipt: number): Step
+  release_admission(state: State, invocation: number, generation: number, lease: number, request: number, receipt: number): Step
+  transfer_admission(state: State, invocation: number, generation: number, lease: number, request: number, round: number, observation: number): Step
   launch_settings(state: State, input_handle: number): Step
   launch_freshness(state: State, input_handle: number): Step
   install_evaluation_provider(state: State, invocation: number, generation: number, handle: number, request: number): Step
