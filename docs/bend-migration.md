@@ -269,6 +269,8 @@ to CPU in Canonical transactions/transport/driver; no causal speedup claim.
 
 ## Current unit: whole resident admission
 
+Paused by owner. Resume from [task #281 handoff](bend-migration-handoff.md).
+
 Astra path: pre-round `AdmissionScope`, shared owner/driver, serialized uninterruptible entry.
 1. Publication `48ccfea8` qualified; scope candidate `8c48b0c5`: receipt custody,
    owner6/build46/source282/protocol31/fast2 pass. Bind exact native receipt and cleanup drain.
