@@ -17,7 +17,12 @@ fi
 # Keep Bend's -O3/musttail ABI and scope the workaround to this compiler/host.
 native_cc="${CC:-clang}"
 compiler_version="$("$native_cc" --version 2>/dev/null || true)"
-if [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 \
+if [[ "${HAPSLAND_GAME_OPTIMIZATION:-3}" != 0 && "${HAPSLAND_GAME_OPTIMIZATION:-3}" != 3 ]]; then
+  echo 'HAPSLAND_GAME_OPTIMIZATION must be 0 or 3.' >&2
+  exit 1
+fi
+if [[ "${HAPSLAND_GAME_OPTIMIZATION:-3}" == 0 ]] || \
+  [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 \
   && "$compiler_version" == *"Apple clang version 21."* ]]; then
   prototype_binary="$(BEND_CANONICAL_DEFENSE_CC="$native_cc" \
     CC="$prototype_dir/clang-no-stack-check.sh" \

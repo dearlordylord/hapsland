@@ -4,227 +4,245 @@ import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import {
-  createNativePreflight,
-  validateNativeFixture,
-  cleanupNativePreflight,
-  captureNativeFixtureIdentity,
-  assertNativeFixtureIdentity
-} from "../packages/monkey-business-bend/conformance/native-preflight.mjs"
+import { createGameStreams } from "../prototypes/canonical-defense/game-stream-runner.mjs"
 
-const root = fileURLToPath(new URL("../", import.meta.url))
-const owner = join(root, "prototypes/canonical-defense/DefenseLabTests.bend")
-const transport = join(root, "prototypes/canonical-defense/DefenseNumericOutput.bend")
+// Compile the shared graph once; each unchanged predicate still runs separately.
+// Replaces repeated C30 roots after measured compiler-only timeouts, not failed assertions.
+// The authenticated supervisor owns380s total; source5s and each execution5s remain.
+const root = resolve(fileURLToPath(new URL("../", import.meta.url)))
+const hash = (bytes) => createHash("sha256").update(bytes).digest("hex")
 const labels = [
-  "Jev Service costs60",
-  "Delivery Relay costs55",
-  "Access Repair costs45",
+  "Work Accelerator costs50",
+  "Result Courier costs40",
+  "removed building kind refused",
   "custom construction price17",
   "illegal placement costs zero",
   "unaffordable purchase costs zero",
   "absent tower upgrade costs zero",
-  "service upgrade40+60 and maximum3",
-  "repair maximum1",
+  "accelerator upgrade40+60 and maximum3",
+  "courier maximum3 costs40+32+48",
   "hard one-event and zero-event budgets",
-  "early request captures1600 and forced clear",
+  "construction preserves captured3200 and forced clear",
   "late request retains3200",
-  "relay future output400 and lease5000",
+  "courier construction preserves output800 and lease5000",
   "issued individual output lease5000",
   "late output retains800",
-  "repair restores access with generation1",
+  "accelerator does not invent access",
   "failed source work is gone",
-  "repair does not resurrect work",
-  "late repair preserves generation1",
-  "repair issues no abandoned request"
+  "construction does not resurrect work",
+  "construction does not restore blocked access",
+  "construction issues no abandoned request",
+  "active accelerator50 and courier40 investments",
+  "targeted shot costs zero and arms cooldown",
+  "selected operation completes while sibling remains at Jev",
+  "absent active work and clear courier refuse free",
+  "second tower can stack a visible hit or choose a sibling",
+  "expired output authority refuses courier without cooldown"
 ]
-const requested = process.argv.slice(2).map((value) => {
-  if (!/^(?:[0-9]|1[0-9])$/.test(value)) throw new Error("Select distinct property ids0..19")
-  return Number(value)
-})
-if (new Set(requested).size !== requested.length) throw new Error("Duplicate property selection")
-const selected = requested.length ? requested : labels.map((_, index) => index)
-const hash = (bytes) => createHash("sha256").update(bytes).digest("hex")
-const ownerText = readFileSync(owner, "utf8")
-const sourceHash = hash(ownerText)
-const ownerParts = ownerText.split(/(?=^def )/m)
-const definitions = new Map(ownerParts.slice(1).map((text) => [text.match(/^def (\w+)/)[1], text]))
-const originalImports = ownerParts[0]
-  .split("\n")
-  .filter((line) => line.startsWith("import "))
-  .map((line) => line.replace(/^(import )([.][^ ]+)/, (_, prefix, path) => prefix + resolve(dirname(owner), path)))
-function selectedDefinitions(id) {
-  const selected = new Set([`test_${id}`])
-  const pending = [...selected]
-  while (pending.length) {
-    const text = definitions.get(pending.pop())
-    for (const name of definitions.keys()) {
-      if (!selected.has(name) && new RegExp(`\\b${name}\\b`).test(text)) {
-        selected.add(name)
-        pending.push(name)
-      }
-    }
-  }
-  return [...definitions.keys()].filter((name) => selected.has(name))
-}
-const runnerHash = hash(readFileSync(fileURLToPath(import.meta.url)))
-const deadline = Date.now() + 30 * 60 * 1000
-const allowance = (cap) => {
-  const remaining = deadline - Date.now()
-  if (remaining <= 0) throw new Error("Lab native assertion runner overall30-minute deadline exhausted")
-  return Math.min(cap, remaining)
-}
-const artifactRoot = join(root, ".tools/canonical-defense")
-mkdirSync(artifactRoot, { recursive: true })
-const directory = mkdtempSync(join(artifactRoot, "lab-assertions-"))
-const evidenceRoot = join(root, ".test-runs")
-mkdirSync(evidenceRoot, { recursive: true })
-const evidence = mkdtempSync(join(evidenceRoot, "lab-native-assertions-"))
-const records = []
-const summary = (outcome) => ({
-  format: 1,
-  outcome,
-  selected,
-  unselected: labels.map((_, i) => i).filter((i) => !selected.includes(i)),
-  owner,
-  sourceHash,
-  runnerHash,
-  deadline,
-  records,
-  scope: "selected actual-Lab independently expected native/emitted predicates; no platform or full-project claim"
-})
-function run(command, args, cap, label, sourceCheck = false) {
-  const start = Date.now()
-  const result = spawnSync(command, args, {
-    cwd: root,
-    encoding: "utf8",
-    timeout: allowance(cap),
-    maxBuffer: 4 * 1024 * 1024
+export function selection(args) {
+  const ids = args.map((value) => {
+    if (!/^(?:[0-9]|1[0-9]|2[0-5])$/.test(value)) throw new Error("Select distinct property ids0..25")
+    return Number(value)
   })
-  const stage = {
-    label,
-    command,
-    args,
-    elapsedMs: Date.now() - start,
-    status: result.status,
-    error: result.error?.code,
-    stdout: result.stdout,
-    stderr: result.stderr
-  }
-  writeFileSync(join(evidence, `${records.length}-${label}.json`), JSON.stringify(stage, null, 2) + "\n")
-  const foreignNames = result.stderr.trim().split("\n").slice(2)
-  const expectedForeignNames = ["checked", "inputs", "arguments", "main"]
-  const foreign =
-    sourceCheck &&
-    result.status === 1 &&
-    /^SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n/.test(result.stderr) &&
-    foreignNames.length === 5 &&
-    foreignNames.filter((line) => /^- .*DefenseNumericOutput\.write$/.test(line)).length === 1 &&
-    expectedForeignNames.every((name) => foreignNames.filter((line) => line === `- ${name}`).length === 1)
-  if (result.error || (result.status !== 0 && !foreign))
-    throw new Error(`${label} failed (${result.error?.code ?? result.status}): ${result.stdout}${result.stderr}`)
-  return result.stdout
+  if (new Set(ids).size !== ids.length) throw new Error("Duplicate property selection")
+  return ids.length ? ids : labels.map((_, id) => id)
 }
-function fixtureText(id) {
-  return `${originalImports.join("\n")}
+export function fixtureText(ownerText, owner, transport, selected) {
+  const parts = ownerText.split(/(?=^def )/m)
+  const definitions = new Map(parts.slice(1).map((text) => [text.match(/^def (\w+)/)[1], text]))
+  const names = new Set(selected.map((id) => `test_${id}`)),
+    pending = [...names]
+  while (pending.length) {
+    const name = pending.pop(),
+      text = definitions.get(name)
+    assert.ok(text, `missing predicate ${name}`)
+    for (const candidate of definitions.keys())
+      if (!names.has(candidate) && new RegExp(`\\b${candidate}\\b`).test(text)) {
+        names.add(candidate)
+        pending.push(candidate)
+      }
+  }
+  const imports = parts[0]
+    .split("\n")
+    .filter((line) => line.startsWith("import "))
+    .map((line) => line.replace(/^(import )([.][^ ]+)/, (_, prefix, path) => prefix + resolve(dirname(owner), path)))
+  return `${imports.join("\n")}
 import ${transport} as NumericOutput
-
-${selectedDefinitions(id)
-  .map((name) => definitions.get(name))
+${[...definitions]
+  .filter(([name]) => names.has(name))
+  .map(([, text]) => text)
   .join("")}
 def flag(ok: Bool) -> Nat:
   match ok:
     case True{}: 1n
     case False{}: 0n
+def predicate(id: Nat,seed: Nat,budget: U32,fuel: Nat) -> Bool:
+  match id:
+${selected.map((id) => `    case ${id}n: test_${id}(seed,budget${id >= 12 && id <= 14 ? ",fuel" : ""})`).join("\n")}
+    case _: False{}
 def three(text: String) -> Nat:
   match text:
     case SCon{a,SCon{b,SCon{c,SNil{}}}}:
       (U32.to_nat((Char.to_u32(a) - 48 : U32)) * 100n + U32.to_nat((Char.to_u32(b) - 48 : U32)) * 10n + U32.to_nat((Char.to_u32(c) - 48 : U32)) : Nat)
-    case _: 0n
-def checked(valid: Bool,+seed: Nat,+budget: Nat,fuel: Nat) -> IO(Unit):
+    case _: 999n
+def checked(valid: Bool,+id: Nat,seed: Nat,budget: Nat,fuel: Nat) -> IO(Unit):
   match valid:
-    case True{}: NumericOutput.write([${id}n,flag(test_${id}(seed,U32.from_nat(budget)${id >= 12 && id <= 14 ? ",fuel" : ""}))])
-    case False{}: IO.die(Unit,1,"expected152 160 250")
-def inputs(+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):
-  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),seed,budget,fuel)
+    case True{}: NumericOutput.write([id,flag(predicate(id,seed,U32.from_nat(budget),fuel))])
+    case False{}: IO.die(Unit,1,"expected id 152 160 250")
+def inputs(+id: Nat,+seed: Nat,+budget: Nat,+fuel: Nat) -> IO(Unit):
+  checked(Nat.is_eq(seed,152n) && Nat.is_eq(budget,160n) && Nat.is_eq(fuel,250n),id,seed,budget,fuel)
 def arguments(args: List<String>) -> IO(Unit):
   match args:
-    case _ <> seed <> budget <> fuel <> Nil{}: inputs(three(seed),three(budget),three(fuel))
-    case _: IO.die(Unit,1,"expected152 160 250")
+    case _ <> id <> seed <> budget <> fuel <> Nil{}: inputs(three(id),three(seed),three(budget),three(fuel))
+    case _: IO.die(Unit,1,"expected id 152 160 250")
 def main() -> IO(Unit):
   IO.bind(List<String>,Unit,IO.args(),args => arguments(args))
 `
 }
-try {
-  for (const id of selected) {
-    const suffix = String(id)
-    assert.equal(hash(readFileSync(owner)), sourceHash, "freeze actual predicate owner during qualification")
-    allowance(1)
-    const path = join(directory, `property-${suffix}.bend`)
-    writeFileSync(path, fixtureText(id))
-    const fixture = pathToFileURL(path)
-    const identity = captureNativeFixtureIdentity(fixture)
-    writeFileSync(
-      join(evidence, `property-${suffix}-identity.json`),
-      JSON.stringify(
-        {
-          identity,
-          ownerSourceHash: sourceHash,
-          selectedDefinitions: selectedDefinitions(id),
-          generatedRoot: fixtureText(id)
-        },
-        null,
-        2
-      ) + "\n"
+export function checkSourceResult(result) {
+  const diagnostics = result.stderr.replace(/\nbend [0-9]+\.[0-9]+\.[0-9]+ is available: run bend update\n?$/, "")
+  const names = diagnostics.trim().split("\n").slice(2)
+  const foreign =
+    result.status === 1 &&
+    /^SOME PROOFS FAIL\nError: 5 defs rely on unsafe or foreign code:\n/.test(diagnostics) &&
+    names.length === 5 &&
+    names.filter((line) => /^- .*DefenseNumericOutput\.write$/.test(line)).length === 1 &&
+    ["checked", "inputs", "arguments", "main"].every(
+      (name) => names.filter((line) => line === `- ${name}`).length === 1
     )
-    run("bend", [relative(root, path), "--check-only"], 5000, `property-${suffix}-source-check`, true)
-    if (deadline - Date.now() < 65000) throw new Error("Insufficient overall deadline for bounded native preparation")
-    const start = Date.now()
-    const preflight = createNativePreflight({ fixtures: [fixture] })
-    try {
-      const manifest = JSON.parse(readFileSync(preflight.manifestPath, "utf8"))
-      writeFileSync(join(evidence, `property-${suffix}-preflight.json`), JSON.stringify(manifest, null, 2) + "\n")
-      const { binaryPath } = validateNativeFixture({ ...preflight, fixture })
-      const native = JSON.parse(run(binaryPath, ["152", "160", "250"], 5000, `property-${suffix}-native`))
-      assert.deepEqual(native, [id, 1], labels[id])
-      const js = join(directory, `property-${suffix}.cjs`)
-      run(manifest.tools.bend.path, [relative(root, path), "-o", js], 30000, `property-${suffix}-js-emission`)
-      assertNativeFixtureIdentity(identity, fixture)
-      const jsHash = hash(readFileSync(js))
-      const emitted = JSON.parse(run(process.execPath, [js, "152", "160", "250"], 5000, `property-${suffix}-emitted`))
-      assert.deepEqual(emitted, [id, 1], labels[id])
-      assert.deepEqual(emitted, native, "complete original predicate output agreement")
-      assert.equal(hash(readFileSync(js)), jsHash, "emitted artifact frozen during execution")
-      validateNativeFixture({ ...preflight, fixture })
-      assertNativeFixtureIdentity(identity, fixture)
-      assert.equal(hash(readFileSync(owner)), sourceHash, "predicate owner frozen through execution")
-      assert.equal(
-        hash(readFileSync(fileURLToPath(import.meta.url))),
-        runnerHash,
-        "runner frozen through qualification"
-      )
-      records.push({ id, label: labels[id], native, emitted, identity, jsHash, elapsedMs: Date.now() - start })
-      writeFileSync(join(evidence, "result.json"), JSON.stringify(summary("running"), null, 2) + "\n")
-      console.log(`PASS ${suffix}: ${labels[id]}`)
-    } finally {
-      cleanupNativePreflight(preflight)
-    }
-  }
-  writeFileSync(join(evidence, "result.json"), JSON.stringify(summary("passed"), null, 2) + "\n")
-  console.log(
-    JSON.stringify({
-      outcome: "passed",
-      propertiesPerLane: new Set(records.map((record) => record.id)).size,
-      assertionsPerLane: records.length,
-      evidence
-    })
-  )
-} catch (error) {
-  writeFileSync(
-    join(evidence, "result.json"),
-    JSON.stringify({ ...summary("failed"), error: String(error) }, null, 2) + "\n"
-  )
-  console.error(`Retained Lab native assertion evidence: ${evidence}`)
-  throw error
-} finally {
-  rmSync(directory, { recursive: true, force: true })
+  if (result.error || (result.status !== 0 && !foreign))
+    throw new Error(`batch-source-check failed: ${result.error?.code ?? diagnostics}`)
 }
+export function verifyRows(native, emitted, selected) {
+  assert.equal(native.length, selected.length, "complete native predicate coverage")
+  assert.equal(emitted.length, selected.length, "complete emitted predicate coverage")
+  return selected.map((id, index) => {
+    assert.deepEqual(native[index], [id, 1], labels[id])
+    assert.deepEqual(emitted[index], [id, 1], labels[id])
+    assert.deepEqual(native[index], emitted[index], "complete original predicate output agreement")
+    return { id, label: labels[id], native: native[index], emitted: emitted[index] }
+  })
+}
+export function verifyExecutionIdentity(identity, selected) {
+  assert.ok(identity && identity.sources.length && identity.tools.length, "full source/tool provenance")
+  for (const name of ["cHash", "binaryHash", "jsHash"]) assert.match(identity.origin[name], /^[a-f0-9]{64}$/)
+  assert.deepEqual(
+    identity.origin.executionArgumentGroups,
+    selected.map((id) => [String(id).padStart(3, "0"), "152", "160", "250"])
+  )
+  return identity
+}
+export function assertFrozen(files) {
+  for (const [file, expected] of files)
+    assert.equal(hash(readFileSync(file)), expected, `qualification input changed: ${file}`)
+}
+async function worker(selected) {
+  const owner = join(root, "prototypes/canonical-defense/DefenseLabTests.bend")
+  const transport = join(root, "prototypes/canonical-defense/DefenseNumericOutput.bend")
+  const runner = fileURLToPath(import.meta.url),
+    ownerText = readFileSync(owner, "utf8")
+  const frozen = [owner, runner].map((file) => [file, hash(readFileSync(file))])
+  mkdirSync(join(root, ".tools/canonical-defense"), { recursive: true })
+  mkdirSync(join(root, ".test-runs"), { recursive: true })
+  const directory = mkdtempSync(join(root, ".tools/canonical-defense/lab-assertions-"))
+  const evidence = mkdtempSync(join(root, ".test-runs/lab-native-assertions-"))
+  const path = join(directory, "predicates.bend"),
+    text = fixtureText(ownerText, owner, transport, selected)
+  const deadline = Number(process.env.HAPSLAND_GAME_OUTER_DEADLINE_MS)
+  const summary = {
+    format: 1,
+    selected,
+    unselected: labels.map((_, id) => id).filter((id) => !selected.includes(id)),
+    owner,
+    sourceHash: frozen[0][1],
+    runnerHash: frozen[1][1],
+    deadline,
+    scope:
+      "shared compilation; independently expected predicates; separate native/emitted execution5s each; no platform claim"
+  }
+  let streams
+  try {
+    writeFileSync(path, text)
+    writeFileSync(join(evidence, "fixture.bend"), text)
+    const checked = spawnSync("bend", [relative(root, path), "--check-only"], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: Math.min(5000, deadline - Date.now()),
+      maxBuffer: 4 * 1024 * 1024
+    })
+    writeFileSync(
+      join(evidence, "source-check.json"),
+      JSON.stringify({
+        status: checked.status,
+        error: checked.error?.code,
+        stdout: checked.stdout,
+        stderr: checked.stderr
+      })
+    )
+    checkSourceResult(checked)
+    assertFrozen(frozen)
+    streams = await createGameStreams(
+      pathToFileURL(path),
+      frozen.map(([file, sha256]) => ({ path: file, sha256 })),
+      {
+        registerBank: true,
+        emissionTimeoutMs: 0,
+        clangTimeoutMs: 120000,
+        jsEmissionTimeoutMs: 0,
+        executionTimeoutMs: 5000,
+        overallDeadlineMs: deadline,
+        executionArgumentGroups: selected.map((id) => [String(id).padStart(3, "0"), "152", "160", "250"])
+      }
+    )
+    assertFrozen(frozen)
+    const rows = (paths) => paths.map((path) => JSON.parse(readFileSync(path, "utf8")))
+    const records = verifyRows(rows(streams.native), rows(streams.emitted), selected)
+    const executionIdentity = verifyExecutionIdentity(streams.executionIdentity, selected)
+    writeFileSync(
+      join(evidence, "result.json"),
+      JSON.stringify({ ...summary, outcome: "passed", executionIdentity, records }, null, 2) + "\n"
+    )
+    console.log(JSON.stringify({ outcome: "passed", propertiesPerLane: records.length, evidence }))
+  } catch (error) {
+    writeFileSync(
+      join(evidence, "result.json"),
+      JSON.stringify({ ...summary, outcome: "failed", error: String(error) }, null, 2) + "\n"
+    )
+    console.error(`Retained Lab native assertion evidence: ${evidence}`)
+    throw error
+  } finally {
+    streams?.cleanup()
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+async function main() {
+  const args = process.argv.slice(2),
+    child = args[0] === "--worker",
+    selected = selection(child ? args.slice(1) : args)
+  if (child) {
+    await worker(selected)
+    return
+  }
+  const { createRun } = await import("./test-harness/run-checks.mjs")
+  const run = await createRun({
+    root,
+    mode: "test",
+    timeoutMs: 380000,
+    inherited: process.env.HAPSLAND_CHECK_CONTEXT,
+    scope: "game-lab-predicates"
+  })
+  const supervisorContext = JSON.stringify(run.context),
+    deadline = Math.min(run.context.deadline, Date.now() + 380000)
+  run.context.deadline = deadline
+  try {
+    await run.runStage({
+      name: "game-lab-predicates",
+      command: process.execPath,
+      args: [fileURLToPath(import.meta.url), "--worker", ...selected.map(String)],
+      env: { HAPSLAND_GAME_SUPERVISOR_CONTEXT: supervisorContext, HAPSLAND_GAME_OUTER_DEADLINE_MS: String(deadline) }
+    })
+  } finally {
+    process.exitCode = await run.finish()
+  }
+}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main()

@@ -1,0 +1,182 @@
+{
+  "purpose": "Bounded active-tower implementation and current owner-review evidence",
+  "authority": "Implementation and validation evidence; not an accepted roster, balance target or universal proof",
+  "date": "2026-10-14",
+  "workStartedUtc": "2026-10-14T06:13:00Z",
+  "sourceHashesRecordedAfterExecution": {
+    "bun.lock": "8bfed7c94efb158e935eed9c714c5ca899e462027f48a9fc13d63a97d2276545",
+    "docs/testing-matrix.md": "c9af68030e5bec74526f3eaa8be50ec9a1b93fa2dc7880f5c9035b7c96ce4fd6",
+    "packages/monkey-business-bend/NativeRunControls.bend": "ef46594a3ff277286c1c4bc11b866cd985223e7d92369e9a97738c8d474651c9",
+    "packages/monkey-business-bend/NativeRunControlsLiterals.bend": "d28ab6e952c9d32f740a0a509a2b94555d697ac1a97994c76af2ec1ec5365c21",
+    "packages/monkey-business-bend/run.generated.json": "662078e9a8ad780832d3cde5ccd215b5f21a3b9172d437c29c2e92d74f6cdd8d",
+    "packages/monkey-business-bend/run.mjs": "ecf460e1722954ca00631633b7112110070c7233ac6c3234cb31a6a518cff597",
+    "packages/monkey-business/src/output-attempt.test.ts": "1568b73bfd086bbda2a83f397225602236426dead72f43119ef000ffd6eb01a2",
+    "prototypes/canonical-defense/DefenseConsumerCodec.bend": "1ce73fe8fe9e79d0300a9b220bfcdfeb1c2f97277976002d8006ef76ee5b8905",
+    "prototypes/canonical-defense/DefenseCues.bend": "f47b44ac0fa8812da6cc1156dae4c5effd5b2502efaa8ccde7538241324113ac",
+    "prototypes/canonical-defense/DefenseHost.bend": "962bac5626d6de0c9d8f2790f7d8c8d99634043851fab352316e00712c8239c2",
+    "prototypes/canonical-defense/DefenseLab.bend": "4a95f4b6aa7c60caccfbf9cc0dcbb67305864e72ff7a7636256a0045f69c8fd2",
+    "prototypes/canonical-defense/DefenseLabConformance.bend": "7ae4237005d32d26dfe7f4dbe69e11bce8310231211008c72b175e06a9c81914",
+    "prototypes/canonical-defense/DefenseLabTests.bend": "9152ba2594e2a9ec21ff8743b886185c45c3ef33e0dd39360ba5152f28983c93",
+    "prototypes/canonical-defense/DefenseLabTraceCodec.bend": "5a14d91af0d0a878add87317e2e9420a682f0ccc6e77e564e6ce54cdd11f7b53",
+    "prototypes/canonical-defense/DefenseMain.bend": "7e6bdb8db8b77e9b2ef1d53183f8439b86618961ec5caced1d10438a14ee1368",
+    "prototypes/canonical-defense/DefenseMechanics.bend": "25e7c56a909c6023a71b0785d975fab3b7dc2b8814b1698751a604fdb7d646cd",
+    "prototypes/canonical-defense/DefenseModel.bend": "4771e7b99393449acd70d4bb2781e1aaca5d2fa217d9256ef82d3aa90b555582",
+    "prototypes/canonical-defense/DefenseNumericOutput.c": "df71f37c1692bc2a72f99f4d7c5b000a8c54bd994d0233f11ef0e44283e0f27a",
+    "prototypes/canonical-defense/DefensePreview.bend": "fb811866c2fcd8ff197be6b77a51a689f8ca3b8f4d3a947becf6f5253b004691",
+    "prototypes/canonical-defense/DefenseRender.bend": "2e1417eed4d0f58788a3c1445335b17855718bbeec5f798d228179673e31fca1",
+    "prototypes/canonical-defense/README.md": "5c420e7de7265b3dd7e307f33fffc23f700fdf17f9b33dd8cc701e995f4d8843",
+    "prototypes/canonical-defense/compare-native-runtime.mjs": "bc92b9f5b05c14adc495824f2dcfc3667889ed9e3590c76c5b06aa5fc0dc3c2a",
+    "prototypes/canonical-defense/compare-native-runtime.test.mjs": "cda3663ad180983b9c8a19b05d0eca61b44d5e20d54e52f85d3c804de2ba8b11",
+    "prototypes/canonical-defense/defense-consumer-metadata.ts": "7d852887172099b70e3f15c3c3457f2bb87e671d5bc3b082b4fc6d00a8332dcb",
+    "prototypes/canonical-defense/game-stream-runner.mjs": "ba55c38dc1c1ab15b2560359983101b5a4450034a2f995a22aed2779c6b08394",
+    "prototypes/canonical-defense/lab-trace-metadata.ts": "adda9818041b4cdeeea66a8d9d30d6d9e65f6cf95057fa621267e660425105cd",
+    "prototypes/canonical-defense/lab/README.md": "2f0885ff2999b6d795064fddc63a489b78ecee38bb6cc65f7fc75cde2e41be19",
+    "prototypes/canonical-defense/lab/business-replay.ts": "eae400b911bac2b6283e97a60286e7f3f989b8bd9b0ce168ef711b699290c639",
+    "prototypes/canonical-defense/lab/game.generated.d.mts": "b2c45d1d68e11a529d5b9c91ece0b570ee4825742b32b230c9df6b5d53276ab9",
+    "prototypes/canonical-defense/lab/game.generated.json": "08618d55a7a6adb0e92aafa29abc5b175ceadf21ffc9a88ec1fa25147f3440f4",
+    "prototypes/canonical-defense/lab/game.generated.mjs": "48092f90b604c77f8d77af9f2cd25c543e5ab88dd001c7cac4380c39a49a52c8",
+    "prototypes/canonical-defense/lab/game.ts": "0157afe6f5f327ab35da227392f97372b7c7b6d7c40a21f0f0e5db1758025c36",
+    "prototypes/canonical-defense/package.json": "e8886774d3246b0d4fc0775e3ee3c861fe051235c1cd33dd46db3df828b105a2",
+    "scripts/compare-game-lab-native.mjs": "417968e0b3600ea1a33868f6d129720877085406e3cf35e55e957193445fe26d",
+    "scripts/game-balance-lab.test.mts": "4a140dabeeb797e5802ddac1064f2777cc4df826467aae4d19c867274685f798",
+    "scripts/game-consumer-deadline.test.mjs": "17d5b98d8c85796affd72c3775a6f108d623f411a824e9f49deed1219d69aa48",
+    "scripts/package.json": "b8d3cd53c00d948a9d3369f3c29d43033229dcce110f2f90534e0fe912c225af",
+    "scripts/test-harness/inventory.test.mts": "435f6ef10f8a3122c024e5ebd6d04855f42d4250733b089b72a4123bcec15f38",
+    "scripts/test-harness/policy.mjs": "3a72d0889005bea42be656277e5e6161365f34b0c286333a372833d2497e965a",
+    "scripts/verify-game-lab-native-tests.mjs": "5ded7600542de781af3ab3103264a101e85fda6cfab2c44b3200a841345c6951",
+    "scripts/verify-game-lab-native-tests.test.mjs": "bbf7e95a2559baa6b629b8edb4fcaba9b30e0f6d4111a1aec2995e7507e548eb",
+    "packages/monkey-business-bend/NativeRunCallbackControls.bend": "8fa27b47c052a2bce9ccfba5873ac2f89fd76cab04680fba1e8fa6e0a04306bb",
+    "prototypes/canonical-defense/DefenseTowerFire.bend": "7c13ca6d394f5596a86216e8d77bbd5e259fbf580711e08745c948c283b86320",
+    "prototypes/canonical-defense/lab/tower-study.ts": "e274debe16c8e8c2580caf2d514c3d518a084be0fa7b7080631f20988366b177",
+    "prototypes/canonical-defense/lab/tower-worlds.html": "f8c97d5cd0dfd425cad335e336c20d0a62ae7f6cc22a58c7b857d6a97c11a47f",
+    "prototypes/canonical-defense/lab/tower-worlds.data.js": "602038e0f3ca45e911e7b5724b8476effec839384b318ff3f0f52111abbdab22",
+    "prototypes/canonical-defense/lab/build-tower-worlds.mjs": "feba97f468581801f20dfa91300bf69f96d6615253791706907df6b05168dcb4"
+  },
+  "checks": {
+    "lab": {
+      "id": "20261014081107318-2517615-919b70",
+      "state": "passed",
+      "elapsedMs": 54555,
+      "resultSha256": "50219cac643935ac17c283d0f93e69bed385bf861f510380ca43f7b9968595e3"
+    },
+    "nativeLab": {
+      "id": "20261014080452553-2231088-bd329a",
+      "state": "passed",
+      "elapsedMs": 107958,
+      "resultSha256": "12935301dfc0dedfc89e3ad9316d76c416fb84b2adb6ecbe601e9ed671b1c73b"
+    },
+    "consumer": {
+      "id": "20261014080730115-2335596-2271a7",
+      "state": "passed",
+      "elapsedMs": 165112,
+      "resultSha256": "43c0f27271fda18f3eadca248de24cfea26946b2800d154267ae87265141f799"
+    },
+    "window": {
+      "id": "20261014080801829-2358248-057b70",
+      "state": "passed",
+      "elapsedMs": 4569,
+      "resultSha256": "a1f760a2f1f3edda6030a0bd7170855c70721705f224ffd475f263ba65562c7a"
+    },
+    "windowCompilation": {
+      "id": "20261014080702262-2312627-fc6ef7",
+      "state": "passed",
+      "elapsedMs": 17448,
+      "resultSha256": "d2ac26d3dce954a3a65d5f23861fb8b5874447eb838d91894675bf941a9b8772"
+    },
+    "outputAttempt": {
+      "id": "20261014073529509-923688-7d768b",
+      "state": "passed",
+      "elapsedMs": 77400,
+      "resultSha256": "3a9cbb09aded15648bfe4efccd2cb5b1db62d95e86bd810645d06b4cf5fe42ca"
+    },
+    "focusedLabCases": 47,
+    "nativeLabRows": 440,
+    "nativeLabContexts": 11,
+    "ticksPerContext": 40,
+    "checkFast": "passed:109 unit cases, source types, package/development boundaries and changed lint",
+    "comparatorMutationCases": 8,
+    "deadlineAndNativePredicateToolCases": 12,
+    "workspaceBoundaryCases": 31,
+    "generatedLabAndSharedRun": "freshness passed",
+    "generatedOwnerCodecs": "both optional profiles checked",
+    "browser": "shared fractional seek, causal pre-shot prefix, rewind, play/pause, comparison groups, retained findings, Clear distinction, Finish reward and mobile layout passed"
+  },
+  "observations": {
+    "slowCheckLastDeliverySteps": {
+      "baseline": 64,
+      "oneRepeated50": 22,
+      "upgraded90": 12,
+      "two100": 4
+    },
+    "slowOutputLastDeliverySteps": {
+      "baseline": 65,
+      "courier40": 26,
+      "combo90": 26
+    },
+    "preparationLastDeliverySteps": {
+      "baseline": 45,
+      "preparationShot50": 35
+    },
+    "pressure": {
+      "baseline": {
+        "health": 99,
+        "byteTicks": 19080
+      },
+      "accelerator50": {
+        "health": 100,
+        "byteTicks": 8920,
+        "shots": 8
+      },
+      "courier40": {
+        "health": 99,
+        "byteTicks": 19080,
+        "shots": 0
+      }
+    },
+    "samePurchaseFinishReward": {
+      "baselineAckTick": 101,
+      "firedAckTick": 42,
+      "goldAt42": [
+        60,
+        65
+      ],
+      "goldAt102": [
+        65,
+        65
+      ],
+      "healthAt102": [
+        99,
+        98
+      ]
+    }
+  },
+  "nativeWindow": {
+    "sha": "073e9c2014f496d49cae69ef85920ac243192279670e292158bd27d931f5edd4",
+    "titles": [
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=0 STATUS=1 LAYOUT=0 PAUSED=NO TICK=0 GOLD=160 HP=100 OFFERED=0 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=0 LEDGER_ITEMS=0 LEDGER_BYTES=0 TOWERS=0 SELECTED=0 LEVEL=0 PREVIEW=2 BEFORE=3200 DELTA=0 TARGET=0 SITE=255 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 ROADID=0 SERVICEID=0 FANOUTID=0",
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=0 STATUS=1 LAYOUT=0 PAUSED=NO TICK=0 GOLD=110 HP=100 OFFERED=0 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=0 LEDGER_ITEMS=0 LEDGER_BYTES=0 TOWERS=1 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=0 DELTA=0 TARGET=0 SITE=255 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 ROADID=0 SERVICEID=0 FANOUTID=0",
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=1 STATUS=1 LAYOUT=0 PAUSED=NO TICK=44 GOLD=110 HP=100 OFFERED=1 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=2 LEDGER_ITEMS=2 LEDGER_BYTES=30 TOWERS=1 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=3200 DELTA=3200 TARGET=3 SITE=4 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 ROADID=1/1/1/1 ROADX=208 ROADY=174 ROADOBSERVED=1 ROADOUTCOME=6 SERVICEID=0 FANOUTID=0",
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=1 STATUS=1 LAYOUT=0 PAUSED=YES TICK=46 GOLD=110 HP=100 OFFERED=1 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=2 LEDGER_ITEMS=2 LEDGER_BYTES=30 TOWERS=1 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=3200 DELTA=3200 TARGET=4 SITE=4 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 ROADID=1/1/1/1 ROADX=216 ROADY=174 ROADOBSERVED=1 ROADOUTCOME=6 SERVICEID=0 FANOUTID=0",
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=1 STATUS=1 LAYOUT=0 PAUSED=YES TICK=59 GOLD=110 HP=100 OFFERED=1 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=1 ATJEV=1 LEDGER_ITEMS=2 LEDGER_BYTES=30 TOWERS=1 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=3200 DELTA=3200 TARGET=4 SITE=4 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=1 DAMAGE_FLASH=0 COMMITTED=0 ROADID=1/1/1/1 ROADX=268 ROADY=174 ROADOBSERVED=1 ROADOUTCOME=6 SERVICEID=0 FANOUTID=0",
+      "Hapsland canonical defense | RECORDING | JEV_LANES=3 JEV_CHECKING=0 RULES=4 FINDING_PERCENT=100 PACE=30000 BURST=1 SOURCE AVAILABLE / CREDENTIAL AVAILABLE CANDIDATES=0 CANDIDATE_BYTES=0 ROUND=1 STATUS=1 LAYOUT=0 PAUSED=YES TICK=59 GOLD=70 HP=100 OFFERED=1 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=1 ATJEV=1 LEDGER_ITEMS=2 LEDGER_BYTES=30 TOWERS=2 SELECTED=0 LEVEL=0 PREVIEW=2 BEFORE=0 DELTA=0 TARGET=0 SITE=255 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=1 DAMAGE_FLASH=0 COMMITTED=0 ROADID=1/1/1/1 ROADX=268 ROADY=174 ROADOBSERVED=1 ROADOUTCOME=6 SERVICEID=0 FANOUTID=0"
+    ],
+    "scope": "Fresh current Main C emission; existing220-word CPU register-bank lowering; clang O0; virtual X11; select/build4, V and exactly one sibling completed; buy5 charges40",
+    "images": [
+      "native-accelerator.png",
+      "native-courier.png"
+    ]
+  },
+  "review": {
+    "astra": "Structural review completed; preparation timing and Clear visualization corrected; complete Stop action/cutoff/metadata checks strengthened after final review",
+    "resourceFinding": "Replaced internal generated Host access with declared Lab.tick_rewarded; study creates independent local worlds from explicit inputs. No remaining undeclared mutable-resource access identified."
+  },
+  "limitations": [
+    "Authored finite contexts and declared timing policies, not a player population or optimal strategy search",
+    "Rewarded Host witness is separate from fixed-investment public replay; dense fixed-budget Finish also passes ordinary replay",
+    "Final comparator strengthening passed full47-case Lab suite and mutation checks after the full native consumer; native business sources unchanged",
+    "Standalone native predicate20 passed; predicate21 exceeded unchanged30-second C emission;20–25 passed emitted execution. No all26-native-predicate claim",
+    "Optimized cache build exceeded245-second guard; diagnostic O0 native compilation/window passed. No optimized or Darwin support claim",
+    "Human learning, engagement and global balance are unmeasured"
+  ],
+  "lifecycle": "Review on changes to named source owners. Regenerate executable study; replace current qualification and update guide links when a new candidate supersedes this evidence."
+}

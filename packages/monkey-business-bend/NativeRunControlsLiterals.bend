@@ -1,6 +1,7 @@
 # Executable control-boundary witnesses; these are examples, not universal laws.
 import Base
 import ./NativeRunControls.bend as Controls
+import ./NativeRunCallbackControls.bend as CallbackControls
 import ./NativeRun.bend as Run
 import ./NativeRunTypes.bend as T
 import ./NativeRunLiterals.bend as Literals
@@ -93,7 +94,7 @@ def historical_duplicate() -> Bool:
       T.CallbackControl{
         target(),
         Callbacks.Duplicate{},
-        first_source(Controls.callback_sources(original))
+        first_source(CallbackControls.callback_sources(original))
       }
     )
   )

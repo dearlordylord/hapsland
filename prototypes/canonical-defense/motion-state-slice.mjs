@@ -7,30 +7,81 @@ import { join, resolve } from "node:path"
 
 const root = import.meta.dirname
 const read = name => readFileSync(resolve(root, name), "utf8")
-export function stateSlice(directory, { law, mutate } = {}) {
+// Match Bend tokens while retaining the original byte ranges. Formatting and
+// comments may vary; changed tokens and ambiguous mutation sites still fail.
+function tokens(source) {
+  return [...source.matchAll(/#[^\n]*|"(?:\\.|[^"\\])*"|[A-Za-z_][\w.]*|[0-9]+n?|->|<>|==|<=|>=|&&|\|\||[^\s]/g)]
+    .filter(match => !match[0].startsWith("#"))
+}
+export function tokenSpan(source, fragment) {
+  const actual = tokens(source), wanted = tokens(fragment)
+  assert.ok(wanted.length, "Empty token fragment")
+  const matches = []
+  for (let i = 0; i <= actual.length - wanted.length; i++) {
+    if (wanted.every((token, j) => token[0] === actual[i + j][0]))
+      matches.push([actual[i].index, actual[i + wanted.length - 1].index + actual[i + wanted.length - 1][0].length])
+  }
+  assert.equal(matches.length, 1, `Expected one token location: ${fragment}`)
+  return matches[0]
+}
+export function replaceTokens(source, before, after) {
+  const [start, end] = tokenSpan(source, before)
+  const existing = tokens(source.slice(start, end)), replacement = tokens(after)
+  let prefix = 0, suffix = 0
+  while (prefix < existing.length && prefix < replacement.length &&
+    existing[prefix][0] === replacement[prefix][0]) prefix++
+  while (suffix < existing.length - prefix && suffix < replacement.length - prefix &&
+    existing[existing.length - suffix - 1][0] === replacement[replacement.length - suffix - 1][0]) suffix++
+  if (prefix === existing.length && prefix === replacement.length) return source
+  const editStart = prefix < existing.length ? start + existing[prefix].index : end
+  const lastChanged = existing[existing.length - suffix - 1]
+  const editEnd = existing.length - suffix > prefix ? start + lastChanged.index + lastChanged[0].length : editStart
+  const replacementStart = prefix < replacement.length ? replacement[prefix].index : after.length
+  const lastReplacement = replacement[replacement.length - suffix - 1]
+  const replacementEnd = replacement.length - suffix > prefix ? lastReplacement.index + lastReplacement[0].length : replacementStart
+  const inserted = after.slice(replacementStart, replacementEnd)
+  const expected = tokens(source.slice(0, start) + after + source.slice(end)).map(token => token[0])
+  let result = source.slice(0, editStart) + inserted + source.slice(editEnd)
+  if (JSON.stringify(tokens(result).map(token => token[0])) !== JSON.stringify(expected))
+    result = source.slice(0, editStart) + " " + inserted + " " + source.slice(editEnd)
+  assert.deepEqual(tokens(result).map(token => token[0]), expected,
+    "Whitespace-preserving mutation changed token boundaries")
+  return result
+}
+export function stateSlice(directory, { law, mutate, ownerSource = read("DefenseMotion.bend") } = {}) {
   const allLaws = read("MotionStateLAWS.bend")
   const allProofs = read("MotionStatePROOF.bend")
   let laws = law ? allLaws.split(/^law /m)[0] + "law " + allLaws.split(/^law /m).find(part => part.startsWith(`${law}:`)) : allLaws
   let proofs = law ? allProofs.split(/^def Laws\./m)[0] + "def Laws." + allProofs.split(/^def Laws\./m).find(part => part.startsWith(`${law}(`)) : allProofs
-  let owner = read("DefenseMotion.bend")
+  let owner = ownerSource
   if (mutate) {
     const [before, after] = mutate
-    assert.equal(owner.split(before).length, 2, "Mutation must have one owner location")
-    owner = owner.replace(before, after)
+    owner = replaceTokens(owner, before, after)
   }
   const abstractSuffix = law?.startsWith("observation_") === true
   if (abstractSuffix) {
     // Stronger parametric lemma: any well-typed appended path preserves pose.
     // Abstract ONLY this constructor field's route-building expression. All
     // actor fields and their source expressions remain the exact owner code.
-    const start = owner.indexOf("List.append(&2,V.Waypoint,steps,", owner.indexOf("def changed("))
-    assert.ok(start >= 0, "Missing owner path append")
-    let end = start + "List.append".length
-    let depth = 0
-    do { if (owner[end] === "(") depth++; if (owner[end] === ")") depth--; end++ } while (depth > 0 && end < owner.length)
-    assert.equal(depth, 0, "Unbalanced owner path append")
-    owner = owner.slice(0, start) + "List.append(&2,V.Waypoint,steps,suffix)" + owner.slice(end)
-    owner = owner.replace("def changed(+actor:", "def changed(suffix: List<&2,V.Waypoint>, +actor:")
+    const [changedStart] = tokenSpan(owner, "def changed(")
+    const nextDefinition = owner.indexOf("\ndef ", changedStart + 1)
+    const changedEnd = nextDefinition < 0 ? owner.length : nextDefinition
+    const changed = owner.slice(changedStart, changedEnd)
+    const [appendStart, argumentStart] = tokenSpan(changed, "List.append(&2,V.Waypoint,steps,")
+    // Scan the call structurally, then replace only its fourth argument.
+    const callTokens = tokens(changed.slice(appendStart))
+    let depth = 0, end
+    for (const token of callTokens.slice(1)) {
+      if (token[0] === "(") depth++
+      if (token[0] === ")" && --depth === 0) { end = appendStart + token.index; break }
+    }
+    assert.ok(end !== undefined, "Unbalanced owner path append")
+    const argument = changed.slice(argumentStart, end)
+    const leading = argument.match(/^\s*/)[0], trailing = argument.match(/\s*$/)[0]
+    const abstracted = changed.slice(0, argumentStart) + leading + "suffix" + trailing + changed.slice(end)
+    owner = owner.slice(0, changedStart) + abstracted + owner.slice(changedEnd)
+    const [, parameterStart] = tokenSpan(owner, "def changed(")
+    owner = owner.slice(0, parameterStart) + "suffix: List<&2,V.Waypoint>, " + owner.slice(parameterStart)
     laws = laws.replace(`law ${law}:`, `law ${law}:\n  for suffix: List<&2,V.Waypoint>`).replace("Motion.changed(actor,", "Motion.changed(suffix,actor,")
     proofs = proofs.replace(`def Laws.${law}(actor,`, `def Laws.${law}(suffix,actor,`)
   }

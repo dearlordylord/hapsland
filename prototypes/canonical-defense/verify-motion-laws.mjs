@@ -7,7 +7,7 @@ import { createHash } from "node:crypto"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { stateSlice } from "./motion-state-slice.mjs"
+import { stateSlice, replaceTokens } from "./motion-state-slice.mjs"
 import { combinedArithmeticProof, arithmeticProofs, readArithmeticSources } from "./motion-arithmetic.mjs"
 
 const bend = bendCompilerPath()
@@ -40,10 +40,6 @@ function run(tool, args, expected = 0, options = {}) {
   assert.ifError(result.error)
   assert.equal(result.status, expected, result.stdout + result.stderr)
   return result.stdout + result.stderr
-}
-function replace(source, before, after) {
-  assert.equal(source.split(before).length, 2, `Mutation must have one target: ${before}`)
-  return source.replace(before, after)
 }
 const temp = mkdtempSync(join(tmpdir(), "hapsland-motion-laws-"))
 try {
@@ -112,7 +108,7 @@ try {
     ["travel_reaches_close_horizontal_target", "motion", "Map.travel_coordinate(Map.px(start),Map.px(target),4)", "Map.travel_coordinate(Map.px(start),Map.px(target),0)"]
   ]
   for (const [law, file, before, after] of arithmeticMutants) {
-    arithmetic({ ...sources, [file]: replace(sources[file], before, after) }, law, 1)
+    arithmetic({ ...sources, [file]: replaceTokens(sources[file], before, after) }, law, 1)
     receipt.mutants.push({ law, boundary: "arithmetic", result: "rejected" })
     console.log(`PASS mutant ${law}`)
   }

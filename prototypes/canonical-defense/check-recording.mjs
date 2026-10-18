@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { qualifyRecordingSource } from "./recording-source.mjs"
+import { lowerHostRegisterBank } from "./register-bank.mjs"
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
@@ -22,7 +24,12 @@ function run(label, program, args, cap, environment = process.env) {
   stages.push({ label, program, args, elapsedMs: Date.now() - started, exit: result.status,
     error: result.error?.message ?? null, signal: result.signal })
   writeFileSync(join(directory, "receipt.json"), JSON.stringify({ stages }, null, 2) + "\n")
-  assert.equal(result.status, 0, `${label}: ${result.error?.message ?? result.stderr}; logs: ${directory}`)
+  if (label === "source") {
+    stages.at(-1).sourceQualification = qualifyRecordingSource(result)
+    writeFileSync(join(directory, "receipt.json"), JSON.stringify({ stages }, null, 2) + "\n")
+  } else {
+    assert.equal(result.status, 0, `${label}: ${result.error?.message ?? result.stderr}; logs: ${directory}`)
+  }
   return result.stdout
 }
 const header = magic + "a".repeat(64)
@@ -32,7 +39,16 @@ const compilerVersion = spawnSync(process.env.CC ?? "clang", ["--version"], { en
 const nativeEnv = process.platform === "darwin" && process.arch === "arm64" && /Apple clang version 21\./.test(compilerVersion)
   ? { ...process.env, BEND_CANONICAL_DEFENSE_CC: process.env.CC ?? "clang", CC: join(owner, "clang-no-stack-check.sh") }
   : process.env
-run("native-build", "bend", [fixture, "-o", join(directory, "native")], 300000, nativeEnv)
+if (process.env.HAPSLAND_GAME_CPU_BANK === "1") {
+  assert.equal(process.platform, "linux", "Explicit CPU bank recording qualification requires Linux")
+  const nativeDeadline = Math.min(deadline, Date.now() + 300000)
+  const source = join(directory, "fixture.c"), lowered = join(directory, "fixture-bank.c")
+  run("native-emit", "bend", [fixture, "-o", source], nativeDeadline - Date.now(), nativeEnv)
+  writeFileSync(lowered, lowerHostRegisterBank(readFileSync(source, "utf8")).source)
+  run("native-bank-build", process.env.CC ?? "clang", ["-std=c11", "-O0", "-Wno-unused-value", lowered, "-o", join(directory, "native"), "-lm", "-pthread", "-lX11"], Math.min(120000, nativeDeadline - Date.now()), nativeEnv)
+} else {
+  run("native-build", "bend", [fixture, "-o", join(directory, "native")], 300000, nativeEnv)
+}
 run("javascript-build", "bend", [fixture, "-o", join(directory, "fixture.js")], 30000)
 const results = []
 for (const lane of ["native", "javascript"]) {
@@ -48,6 +64,6 @@ for (const lane of ["native", "javascript"]) {
   assert.equal(saved.readUInt32LE(88), 0)
 }
 assert.equal(results[0], results[1], "native and JavaScript behavioral predicates agree")
-assert.equal(results[0].split("\n").filter(line => line.startsWith("PASS ")).length, 7)
+assert.equal(results[0].split("\n").filter(line => line.startsWith("PASS ")).length, 8)
 console.log(results[0].trim())
 console.log(`Recording qualification passed; retained logs: ${directory}`)

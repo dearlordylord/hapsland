@@ -4,8 +4,11 @@ import {
   createRun, restoreReplay, type Replay, type RunConfig, type RunStructuralFrame
 } from "../../../packages/monkey-business/src/index.ts"
 import { compareNativeFrames, compareNativeRuntime } from "../compare-native-runtime.mjs"
+import { decodeCallbackTarget, type CallbackTarget } from "../../../packages/monkey-business/src/callback-controls.ts"
+import { decodeStopFound } from "../../../packages/monkey-business/src/stop-codec.ts"
 
 export type BusinessReplaySettings = {
+  readonly finishAtMs?: number
   readonly jevDelayMs?: number
   readonly outputDelayMs?: number
   readonly sourceDelayMs?: number
@@ -35,7 +38,7 @@ export function gameBusinessConfig(settings: BusinessReplaySettings, seed: numbe
       currentWork: true, credentialReady: settings.credentialReady ?? true,
       credentialGeneration: 1, sourceReadable: settings.sourceReadable ?? true
     },
-    outputProfile: { outcome: "certain", delayMs: settings.outputDelayMs ?? 800, leaseMs: 5000 },
+    outputProfile: { outcome: "certain", delayMs: settings.outputDelayMs ?? 800, leaseMs: 12000 },
     outcomeWeights: { neverSent: 0, finding: 1, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0 },
     fileTrees: {
       minFiles: 1, maxFiles: 3, maxImports: 2, maxDepth: 2, deniedPercent: 0,
@@ -53,39 +56,20 @@ function runtime(observation: unknown) {
   return readRecord(value.runtime)
 }
 
-function boolean(value: unknown): boolean {
-  assert.equal(typeof value, "boolean", "native environment boolean required")
-  return value as boolean
-}
-
-function environment(observation: unknown) {
-  const value = readRecord(runtime(observation).environment)
-  return {
-    currentWork: boolean(value.current_work), credentialReady: boolean(value.credential_ready),
-    credentialGeneration: readNat(value.credential_generation), sourceReadable: boolean(value.source_readable)
-  }
-}
-
-function outputOutcome(value: unknown): "certain" | "uncertain" | "failed" {
-  switch (readRecord(value).$) {
-    case "OutputScenario.Certain": return "certain"
-    case "OutputScenario.Uncertain": return "uncertain"
-    case "OutputScenario.Failed": return "failed"
-    default: throw new Error("unsupported native output outcome")
-  }
-}
-
 export type BusinessActionBoundary = {
   readonly before: unknown
   readonly after: unknown
   readonly applied: boolean
   readonly label: string
+  readonly shotTarget?: CallbackTarget
+  readonly deliveryAt?: number
 }
 export type BusinessTickBoundary = {
   readonly before: unknown
   readonly after: unknown
   readonly frames: unknown
   readonly physical: unknown
+  readonly transport: unknown
   readonly untilTime: number
   readonly maxEvents: number
   readonly label: string
@@ -103,6 +87,7 @@ export function createGameBusinessReplay(settings: BusinessReplaySettings = {}, 
   if (settings.outcome === "clear" || settings.outcome === "finding")
     run.applyControl({ kind: "jevProfile", delayMs: settings.jevDelayMs ?? 3200, outcome: settings.outcome })
   run.applyControl({ kind: "burst", agent: "agent-1", count: settings.burst ?? 1 })
+  if (settings.finishAtMs !== undefined) run.schedule({kind:"finish",at:settings.finishAtMs,agent:"agent-1"})
 
   function compare(observation: unknown, label: string): void {
     compareNativeRuntime(runtime(observation), run.runtimeSnapshot(), label)
@@ -111,62 +96,89 @@ export function createGameBusinessReplay(settings: BusinessReplaySettings = {}, 
     assert.equal(readNat(native.event_count), run.eventCount, `${label} observation count`)
   }
 
-  function recordAction({ before, after, applied, label }: BusinessActionBoundary): void {
+  function acceleratedDeadline(target: CallbackTarget, now: number): number {
+    const queued = run.runtimeSnapshot().queue.find(item => item.callbackReceipt?.target.originalOrder === target.originalOrder)
+    assert.ok(queued, "shot needs an actually queued callback")
+    assert.deepEqual(queued.callbackReceipt?.target, target, "shot retains exact callback identity")
+    const remaining = queued.at - now
+    assert.ok(remaining > 100, "a shot must have a visible positive saving")
+    return now + Math.max(100, Math.floor(remaining / 2))
+  }
+
+  function recordAction({ before, after, applied, label, shotTarget, deliveryAt }: BusinessActionBoundary): void {
     compare(before, `${label} before`)
-    if (applied) {
-      const afterEnvironment = readRecord(runtime(after).environment)
-      // Host applies both profiles on every successful build/upgrade, including
-      // a zero-strength or disconnected purchase. Read the actual effect; do not
-      // duplicate the game's strength/placement policy in the public adapter.
-      run.applyControl({ kind: "jevProfile", delayMs: readNat(afterEnvironment.jev_delay) })
-      run.applyControl({ kind: "outputProfile",
-        outcome: outputOutcome(readRecord(afterEnvironment.output_profile).outcome),
-        delayMs: readNat(afterEnvironment.output_delay), leaseMs: readNat(afterEnvironment.output_lease) })
-      const previous = environment(before), next = environment(after)
-      if (previous.currentWork !== next.currentWork || previous.credentialReady !== next.credentialReady ||
-          previous.credentialGeneration !== next.credentialGeneration || previous.sourceReadable !== next.sourceReadable)
-        run.applyControl({ kind: "environment", ...next })
+    if (applied && shotTarget) {
+      assert.notEqual(deliveryAt, undefined, "game shot must declare its time")
+      run.applyControl({ kind: "callback", action: "transport", target: shotTarget, deliveryAt: acceleratedDeadline(shotTarget, deliveryAt!) })
+      assert.equal(run.observe().callbackReports.at(-1)?.result, "applied", `${label} targeted shot`)
     }
     compare(after, `${label} after`)
   }
 
-  function advanceAndCompare({ before, after, frames, physical, untilTime, maxEvents, label }: BusinessTickBoundary): void {
+  function advanceAndCompare({ before, after, frames, physical, transport, untilTime, maxEvents, label }: BusinessTickBoundary): void {
     compare(before, `${label} before`)
     const publicFrames: RunStructuralFrame[] = []
     const unsubscribe = run.subscribeStructural(frame => publicFrames.push(frame))
     try {
       const initialCount = run.eventCount
-      run.advance({ untilTime, maxEvents })
-      // Independently declared game profile: four checks, all Finding. Forced
-      // Clear stays authoritative. Multiplicity updates the existing result.
-      const settlements = publicFrames.filter(frame => frame.kind === "canonical" &&
-        frame.observation.event.kind === "jevRequestSettled" &&
-        frame.observation.event.outcome === "finding" && frame.observation.event.currentWork)
-      let counts = 0
-      for (const frame of settlements) {
-        if (frame.kind !== "canonical" || frame.observation.event.kind !== "jevRequestSettled") continue
-        const event = frame.observation.event
-        const work = run.observe().projection.work.find(item => item.partition === event.partition &&
-          item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation)
-        if (work?.kind !== "pendingFinding") continue
-        run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
-          partition: event.partition, lifetime: event.lifetime, round: event.round,
-          operation: event.operation, count: 4 } })
-        counts++
+      const changes = readBendList(transport, readRecord, 4096)
+      let changeIndex = 0
+      const applyTransport = () => {
+        while (changeIndex < changes.length && readNat(changes[changeIndex]!.eventCount) === run.eventCount) {
+          const change = changes[changeIndex++]!
+          const target = decodeCallbackTarget(change.target)
+          const queued = run.runtimeSnapshot().queue.find(item => item.callbackReceipt?.target.originalOrder === target.originalOrder)
+          assert.ok(queued, `${label} transport requires a queued original callback`)
+          assert.deepEqual(queued.callbackReceipt?.target, target, `${label} transport exact identity`)
+          const deliveryAt = readNat(change.at)
+          assert.ok(deliveryAt > queued.at, `${label} transport only defers unfinished travel`)
+          run.applyControl({kind:"callback", action:"transport", target, deliveryAt})
+          assert.equal(run.observe().callbackReports.at(-1)?.result, "applied", `${label} transport accepted`)
+        }
       }
-      if (counts) run.advance({ untilTime: run.now, maxEvents: Math.min(32, maxEvents - (run.eventCount - initialCount)) })
+      applyTransport()
+      while (run.eventCount - initialCount < maxEvents) {
+        const count = run.eventCount
+        const firstFrame = publicFrames.length
+        run.advance({ untilTime, maxEvents: 1 })
+        // Each settlement installs the game's four-check multiplicity before
+        // another event, matching the Host's public scheduling boundary.
+        for (const frame of publicFrames.slice(firstFrame)) {
+          if (frame.kind !== "canonical" || frame.observation.event.kind !== "jevRequestSettled") continue
+          const event = frame.observation.event
+          if (event.outcome !== "finding" || !event.currentWork) continue
+          const work = run.observe().projection.work.find(item => item.partition === event.partition &&
+            item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation)
+          if (work?.kind !== "pendingFinding") continue
+          run.schedule({at:run.now, kind:"canonical", event:{kind:"findingCountUpdated",
+            partition:event.partition,lifetime:event.lifetime,round:event.round,operation:event.operation,count:4}})
+        }
+        applyTransport()
+        if (run.eventCount === count) break
+      }
+      assert.equal(changeIndex, changes.length, `${label} all transport inputs consumed at their event boundary`)
+
     } finally { unsubscribe() }
     // Frames alone omit silent physical callbacks; compare the complete delivery
     // stream as well, exactly as the maintained consumer verifier does.
     const deliveries = readBendList(physical, readRecord, 2048)
-    const publicPhysical = publicFrames.filter(frame => frame.kind === "callbackDelivery")
-    assert.equal(deliveries.length, publicPhysical.length, `${label} all physical deliveries`)
+    const publicPhysical = publicFrames.filter(frame => frame.kind === "callbackDelivery" || frame.kind === "finishRegistration")
+    assert.equal(deliveries.length, publicPhysical.length, `${label} all physical deliveries and Finish registrations`)
     for (const [index, delivery] of deliveries.entries()) {
       const actual = publicPhysical[index]!
       assert.equal(delivery.$, "NativeRunTypes.PhysicalDelivery")
       compareNativeRuntime(delivery.before, actual.before, `${label} delivery ${index} before`)
       compareNativeRuntime(delivery.after, actual.after, `${label} delivery ${index} after`)
-      assert.deepEqual(delivery.action, actual.delivery, `${label} delivery ${index} full action`)
+      assert.deepEqual(delivery.action, actual.kind === "callbackDelivery" ? actual.delivery : { $:"None" },
+        `${label} delivery ${index} full action`)
+      if (actual.kind === "finishRegistration") {
+        assert.deepEqual(delivery.fact,{$:"None"},`${label} Finish registration has no callback fact`)
+        const registration=readRecord(readRecord(delivery.registration).value)
+        assert.equal(registration.$,"NativeRunTypes.FinishRegistered")
+        assert.equal(registration.created,actual.registration.created)
+        assert.deepEqual(decodeStopFound({ $:"Some",value:registration.finish }),actual.registration.finish,
+          `${label} full Finish registration`)
+      } else assert.deepEqual(delivery.registration,{$:"None"},`${label} callback has no Finish registration`)
     }
     compareNativeFrames(frames, publicFrames, label)
     compare(after, `${label} endpoint`)
@@ -182,5 +194,13 @@ export function createGameBusinessReplay(settings: BusinessReplaySettings = {}, 
     return replay
   }
 
-  return { compare, recordAction, advanceAndCompare, exportAndRestore }
+  function recordAutomatic(before: unknown, after: unknown, targets: readonly CallbackTarget[], deliveryAt: number): void {
+    compare(before, "automatic pass before")
+    for (const target of targets) {
+      run.applyControl({kind:"callback",action:"transport",target,deliveryAt: acceleratedDeadline(target,deliveryAt)})
+      assert.equal(run.observe().callbackReports.at(-1)?.result,"applied","automatic shot")
+    }
+    compare(after,"automatic pass after")
+  }
+  return { compare, recordAction, recordAutomatic, advanceAndCompare, exportAndRestore }
 }

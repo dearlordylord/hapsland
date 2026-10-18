@@ -116,7 +116,8 @@ const actionSchema = Schema.Union([
   Schema.Struct({ $: Schema.Literal("Callbacks.Release") }),
   Schema.Struct({ $: Schema.Literal("Callbacks.Drop") }),
   Schema.Struct({ $: Schema.Literal("Callbacks.Duplicate") }),
-  Schema.Struct({ $: Schema.Literal("Callbacks.Reorder") })
+  Schema.Struct({ $: Schema.Literal("Callbacks.Reorder") }),
+  Schema.Struct({ $: Schema.Literal("Callbacks.Reschedule"), delivery_at: Nat })
 ])
 const readAction = decoder(actionSchema)
 const readResult = decoder(
@@ -124,7 +125,8 @@ const readResult = decoder(
     Schema.Struct({ $: Schema.Literal("Callbacks.Applied") }),
     Schema.Struct({ $: Schema.Literal("Callbacks.Missing") }),
     Schema.Struct({ $: Schema.Literal("Callbacks.NotQueued") }),
-    Schema.Struct({ $: Schema.Literal("Callbacks.NotHeld") })
+    Schema.Struct({ $: Schema.Literal("Callbacks.NotHeld") }),
+    Schema.Struct({ $: Schema.Literal("Callbacks.InvalidTime") })
   ])
 )
 const actions = {
@@ -138,7 +140,8 @@ const results = {
   "Callbacks.Applied": "applied",
   "Callbacks.Missing": "missing",
   "Callbacks.NotQueued": "notQueued",
-  "Callbacks.NotHeld": "notHeld"
+  "Callbacks.NotHeld": "notHeld",
+  "Callbacks.InvalidTime": "invalidTime"
 } as const
 
 /** Round-trip through the existing representation owner rejects excess nested
@@ -282,8 +285,12 @@ export function decodeCallbackNativeBoundary(value: unknown) {
           after = projectTrustedCanonical(frame.after)
         if (frame.kind === "callback") {
           const target = decodeCallbackTarget(frame.target),
-            action = actions[readAction(frame.action).$]
-          const control = validateCallbackControl({ kind: "callback", target, action })
+            rawAction = readAction(frame.action)
+          const control = validateCallbackControl(
+            rawAction.$ === "Callbacks.Reschedule"
+              ? { kind: "callback", target, action: "reschedule", deliveryAt: rawAction.delivery_at }
+              : { kind: "callback", target, action: actions[rawAction.$] }
+          )
           controls.push({
             time: frame.time,
             sequence: controlSequence++,

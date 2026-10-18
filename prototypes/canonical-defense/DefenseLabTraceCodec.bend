@@ -17,9 +17,11 @@ import ../../packages/agent-flow-bend/Configuration.bend as Configuration
 import ../../packages/monkey-business-bend/CredentialFacts.bend as CredentialFacts
 import ./DefenseAuto.bend as DefenseAuto
 import ./DefenseLabTraceTypes.bend as DefenseLabTraceTypes
+import ./DefenseLiveMotionTypes.bend as DefenseLiveMotionTypes
 import ./DefenseModel.bend as DefenseModel
 import ./DefenseMotionTypes.bend as DefenseMotionTypes
 import ./DefenseRuleTypes.bend as DefenseRuleTypes
+import ./DefenseTransport.bend as DefenseTransport
 import ../../packages/agent-flow-bend/Delivery.bend as Delivery
 import ../../packages/agent-flow-bend/DeliveryState.bend as DeliveryState
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
@@ -1238,44 +1240,46 @@ def canonical_policydecision(
     case Canonical.DeliveryBatchRelease{} <> Nil{}: 87n <> suffix
     case Canonical.DeliveryCredentialInvalid{} <> Nil{}: 88n <> suffix
     case Canonical.DeliveryCredentialValid{} <> Nil{}: 89n <> suffix
-    case Canonical.IgnoreCandidate{} <> Nil{}: 90n <> suffix
-    case Canonical.ReleaseCandidate{} <> Nil{}: 91n <> suffix
-    case Canonical.RetireCandidate{} <> Nil{}: 92n <> suffix
-    case Canonical.ContinueCandidate{} <> Nil{}: 93n <> suffix
-    case Canonical.RetainCandidate{} <> Nil{}: 94n <> suffix
-    case Canonical.RoundStopBegun{} <> Nil{}: 95n <> suffix
-    case Canonical.RoundStopRefused{} <> Nil{}: 96n <> suffix
-    case Canonical.RoundActive{} <> Nil{}: 97n <> suffix
-    case Canonical.RoundInactive{} <> Nil{}: 98n <> suffix
-    case Canonical.RoundBarrierRaised{} <> Nil{}: 99n <> suffix
-    case Canonical.RoundBarrierClear{} <> Nil{}: 100n <> suffix
-    case Canonical.RoundStopOwned{} <> Nil{}: 101n <> suffix
-    case Canonical.RoundStopNotOwned{} <> Nil{}: 102n <> suffix
-    case Canonical.RoundStopTerminal{v0, v1} <> Nil{}: 103n <> boolean(v0, boolean(v1, suffix))
-    case Canonical.RoundExpireCloses{} <> Nil{}: 104n <> suffix
-    case Canonical.RoundExpireKeeps{} <> Nil{}: 105n <> suffix
-    case Canonical.RoundContinuationAvailable{} <> Nil{}: 106n <> suffix
-    case Canonical.RoundContinuationExhausted{} <> Nil{}: 107n <> suffix
-    case Canonical.DeliverySubmissionAllowed{} <> Nil{}: 108n <> suffix
-    case Canonical.DeliverySubmissionDenied{} <> Nil{}: 109n <> suffix
-    case Canonical.DeliveryExistingTokenAllowed{} <> Nil{}: 110n <> suffix
-    case Canonical.DeliveryExistingTokenDenied{} <> Nil{}: 111n <> suffix
-    case Canonical.DeliveryUnreservedStopAllowed{} <> Nil{}: 112n <> suffix
-    case Canonical.DeliveryUnreservedStopDenied{} <> Nil{}: 113n <> suffix
-    case Canonical.ReuseRefused{} <> Nil{}: 114n <> suffix
-    case Canonical.CacheAlready{} <> Nil{}: 115n <> suffix
-    case Canonical.CacheRejected{} <> Nil{}: 116n <> suffix
-    case Canonical.NoticeRejectedFull{} <> Nil{}: 117n <> suffix
-    case Canonical.NoticeRefused{} <> Nil{}: 118n <> suffix
-    case Canonical.NoticeSelected{v0} <> Nil{}: 119n <> list_nat([v0], suffix)
-    case Canonical.IncludeChoice{v0} <> Nil{}: 120n <> configuration_includechoice([v0], suffix)
-    case Canonical.FileSelection{v0} <> Nil{}: 121n <> configuration_selection([v0], suffix)
-    case Canonical.FileProtection{v0} <> Nil{}: 122n <> configuration_protection([v0], suffix)
-    case Canonical.CandidateFile{v0} <> Nil{}: 123n <> configuration_candidate([v0], suffix)
-    case Canonical.ReviewAdmission{v0} <> Nil{}: 124n <> configuration_admission([v0], suffix)
-    case Canonical.RuleGate{v0} <> Nil{}: 125n <> rulepolicy_gate([v0], suffix)
-    case Canonical.RuleOrder{v0} <> Nil{}: 126n <> rulepolicy_order([v0], suffix)
-    case Canonical.WaitForOutput{} <> Nil{}: 127n <> suffix
+    case Canonical.SourceCacheDrop{} <> Nil{}: 90n <> suffix
+    case Canonical.SourceCacheRetain{} <> Nil{}: 91n <> suffix
+    case Canonical.IgnoreCandidate{} <> Nil{}: 92n <> suffix
+    case Canonical.ReleaseCandidate{} <> Nil{}: 93n <> suffix
+    case Canonical.RetireCandidate{} <> Nil{}: 94n <> suffix
+    case Canonical.ContinueCandidate{} <> Nil{}: 95n <> suffix
+    case Canonical.RetainCandidate{} <> Nil{}: 96n <> suffix
+    case Canonical.RoundStopBegun{} <> Nil{}: 97n <> suffix
+    case Canonical.RoundStopRefused{} <> Nil{}: 98n <> suffix
+    case Canonical.RoundActive{} <> Nil{}: 99n <> suffix
+    case Canonical.RoundInactive{} <> Nil{}: 100n <> suffix
+    case Canonical.RoundBarrierRaised{} <> Nil{}: 101n <> suffix
+    case Canonical.RoundBarrierClear{} <> Nil{}: 102n <> suffix
+    case Canonical.RoundStopOwned{} <> Nil{}: 103n <> suffix
+    case Canonical.RoundStopNotOwned{} <> Nil{}: 104n <> suffix
+    case Canonical.RoundStopTerminal{v0, v1} <> Nil{}: 105n <> boolean(v0, boolean(v1, suffix))
+    case Canonical.RoundExpireCloses{} <> Nil{}: 106n <> suffix
+    case Canonical.RoundExpireKeeps{} <> Nil{}: 107n <> suffix
+    case Canonical.RoundContinuationAvailable{} <> Nil{}: 108n <> suffix
+    case Canonical.RoundContinuationExhausted{} <> Nil{}: 109n <> suffix
+    case Canonical.DeliverySubmissionAllowed{} <> Nil{}: 110n <> suffix
+    case Canonical.DeliverySubmissionDenied{} <> Nil{}: 111n <> suffix
+    case Canonical.DeliveryExistingTokenAllowed{} <> Nil{}: 112n <> suffix
+    case Canonical.DeliveryExistingTokenDenied{} <> Nil{}: 113n <> suffix
+    case Canonical.DeliveryUnreservedStopAllowed{} <> Nil{}: 114n <> suffix
+    case Canonical.DeliveryUnreservedStopDenied{} <> Nil{}: 115n <> suffix
+    case Canonical.ReuseRefused{} <> Nil{}: 116n <> suffix
+    case Canonical.CacheAlready{} <> Nil{}: 117n <> suffix
+    case Canonical.CacheRejected{} <> Nil{}: 118n <> suffix
+    case Canonical.NoticeRejectedFull{} <> Nil{}: 119n <> suffix
+    case Canonical.NoticeRefused{} <> Nil{}: 120n <> suffix
+    case Canonical.NoticeSelected{v0} <> Nil{}: 121n <> list_nat([v0], suffix)
+    case Canonical.IncludeChoice{v0} <> Nil{}: 122n <> configuration_includechoice([v0], suffix)
+    case Canonical.FileSelection{v0} <> Nil{}: 123n <> configuration_selection([v0], suffix)
+    case Canonical.FileProtection{v0} <> Nil{}: 124n <> configuration_protection([v0], suffix)
+    case Canonical.CandidateFile{v0} <> Nil{}: 125n <> configuration_candidate([v0], suffix)
+    case Canonical.ReviewAdmission{v0} <> Nil{}: 126n <> configuration_admission([v0], suffix)
+    case Canonical.RuleGate{v0} <> Nil{}: 127n <> rulepolicy_gate([v0], suffix)
+    case Canonical.RuleOrder{v0} <> Nil{}: 128n <> rulepolicy_order([v0], suffix)
+    case Canonical.WaitForOutput{} <> Nil{}: 129n <> suffix
     case _: 999999n <> suffix
 
 def canonical_output(values: List<&2, Canonical.Output>, suffix: List<&2, Nat>) -> List<&2, Nat>:
@@ -1688,69 +1692,70 @@ def canonical_canonicalevent(
       v0,
       boolean(v1, suffix)
     )
-    case Canonical.ValidationRouteCheck{v0, v1} <> Nil{}: 92n <> boolean(
+    case Canonical.SourceCacheCheck{v0, v1} <> Nil{}: 92n <> v0 <> boolean(v1, suffix)
+    case Canonical.ValidationRouteCheck{v0, v1} <> Nil{}: 93n <> boolean(
       v0,
       handoff_validationstatus([v1], suffix)
     )
-    case Canonical.PostValidationCheck{v0, v1, v2} <> Nil{}: 93n <> boolean(
+    case Canonical.PostValidationCheck{v0, v1, v2} <> Nil{}: 94n <> boolean(
       v0,
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.FinalCandidateCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 94n <> boolean(
+    case Canonical.FinalCandidateCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 95n <> boolean(
       v0,
       boolean(v1, boolean(v2, boolean(v3, boolean(v4, boolean(v5, suffix)))))
     )
-    case Canonical.RoundBeginStopCheck{v0, v1, v2} <> Nil{}: 95n <> boolean(
+    case Canonical.RoundBeginStopCheck{v0, v1, v2} <> Nil{}: 96n <> boolean(
       v0,
       boolean(v1, v2 <> suffix)
     )
-    case Canonical.RoundActivityCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 96n <> boolean(
+    case Canonical.RoundActivityCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 97n <> boolean(
       v0,
       boolean(v1, v2 <> boolean(v3, v4 <> v5 <> suffix))
     )
-    case Canonical.RoundBarrierCheck{v0, v1, v2} <> Nil{}: 97n <> boolean(v0, v1 <> v2 <> suffix)
-    case Canonical.RoundOwnsStopCheck{v0, v1, v2} <> Nil{}: 98n <> boolean(
+    case Canonical.RoundBarrierCheck{v0, v1, v2} <> Nil{}: 98n <> boolean(v0, v1 <> v2 <> suffix)
+    case Canonical.RoundOwnsStopCheck{v0, v1, v2} <> Nil{}: 99n <> boolean(
       v0,
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.RoundStopTerminalCheck{v0, v1, v2} <> Nil{}: 99n <> boolean(
+    case Canonical.RoundStopTerminalCheck{v0, v1, v2} <> Nil{}: 100n <> boolean(
       v0,
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.RoundExpireCloseCheck{v0, v1} <> Nil{}: 100n <> boolean(v0, boolean(v1, suffix))
-    case Canonical.RoundContinuationBudgetCheck{v0, v1} <> Nil{}: 101n <> boolean(v0, v1 <> suffix)
-    case Canonical.DeliverySubmissionAllowedCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 102n <> boolean(
+    case Canonical.RoundExpireCloseCheck{v0, v1} <> Nil{}: 101n <> boolean(v0, boolean(v1, suffix))
+    case Canonical.RoundContinuationBudgetCheck{v0, v1} <> Nil{}: 102n <> boolean(v0, v1 <> suffix)
+    case Canonical.DeliverySubmissionAllowedCheck{v0, v1, v2, v3, v4, v5} <> Nil{}: 103n <> boolean(
       v0,
       boolean(v1, boolean(v2, delivery_surface([v3], boolean(v4, boolean(v5, suffix)))))
     )
-    case Canonical.DeliveryExistingTokenCheck{v0, v1, v2} <> Nil{}: 103n <> delivery_surface(
+    case Canonical.DeliveryExistingTokenCheck{v0, v1, v2} <> Nil{}: 104n <> delivery_surface(
       [v0],
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.DeliveryUnreservedStopCheck{v0, v1} <> Nil{}: 104n <> boolean(
+    case Canonical.DeliveryUnreservedStopCheck{v0, v1} <> Nil{}: 105n <> boolean(
       v0,
       boolean(v1, suffix)
     )
-    case Canonical.IncludeLayerCheck{v0, v1, v2} <> Nil{}: 105n <> boolean(v0, v1 <> v2 <> suffix)
-    case Canonical.FileSelectionCheck{v0, v1, v2, v3} <> Nil{}: 106n <> boolean(
+    case Canonical.IncludeLayerCheck{v0, v1, v2} <> Nil{}: 106n <> boolean(v0, v1 <> v2 <> suffix)
+    case Canonical.FileSelectionCheck{v0, v1, v2, v3} <> Nil{}: 107n <> boolean(
       v0,
       boolean(v1, boolean(v2, boolean(v3, suffix)))
     )
-    case Canonical.FileProtectionInvalid{} <> Nil{}: 107n <> suffix
-    case Canonical.FileProtectionCheck{v0, v1, v2} <> Nil{}: 108n <> boolean(
+    case Canonical.FileProtectionInvalid{} <> Nil{}: 108n <> suffix
+    case Canonical.FileProtectionCheck{v0, v1, v2} <> Nil{}: 109n <> boolean(
       v0,
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.CandidateFileCheck{v0, v1, v2} <> Nil{}: 109n <> boolean(
+    case Canonical.CandidateFileCheck{v0, v1, v2} <> Nil{}: 110n <> boolean(
       v0,
       boolean(v1, boolean(v2, suffix))
     )
-    case Canonical.ReviewAdmissionCheck{v0, v1, v2, v3} <> Nil{}: 110n <> boolean(
+    case Canonical.ReviewAdmissionCheck{v0, v1, v2, v3} <> Nil{}: 111n <> boolean(
       v0,
       boolean(v1, boolean(v2, boolean(v3, suffix)))
     )
-    case Canonical.RuleEnableCheck{v0, v1} <> Nil{}: 111n <> boolean(v0, boolean(v1, suffix))
-    case Canonical.RuleApplicabilityCheck{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12} <> Nil{}: 112n <> boolean(
+    case Canonical.RuleEnableCheck{v0, v1} <> Nil{}: 112n <> boolean(v0, boolean(v1, suffix))
+    case Canonical.RuleApplicabilityCheck{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12} <> Nil{}: 113n <> boolean(
       v0,
       boolean(
         v1,
@@ -1772,50 +1777,50 @@ def canonical_canonicalevent(
         )
       )
     )
-    case Canonical.RuleFindingCheck{v0, v1} <> Nil{}: 113n <> rulepolicy_probabilitywords(
+    case Canonical.RuleFindingCheck{v0, v1} <> Nil{}: 114n <> rulepolicy_probabilitywords(
       [v0],
       rulepolicy_probabilitywords([v1], suffix)
     )
-    case Canonical.RuleRankOrderCheck{v0, v1, v2, v3} <> Nil{}: 114n <> rulepolicy_probabilitywords(
+    case Canonical.RuleRankOrderCheck{v0, v1, v2, v3} <> Nil{}: 115n <> rulepolicy_probabilitywords(
       [v0],
       rulepolicy_probabilitywords([v1], v2 <> v3 <> suffix)
     )
-    case Canonical.AdviceOrderCheck{v0, v1, v2, v3} <> Nil{}: 115n <> rulepolicy_probabilitywords(
+    case Canonical.AdviceOrderCheck{v0, v1, v2, v3} <> Nil{}: 116n <> rulepolicy_probabilitywords(
       [v0],
       rulepolicy_probabilitywords([v1], rulepolicy_order([v2], rulepolicy_order([v3], suffix)))
     )
-    case Canonical.RuleBudgetCheck{v0, v1} <> Nil{}: 116n <> v0 <> v1 <> suffix
-    case Canonical.ReuseRoute{v0, v1} <> Nil{}: 117n <> v0 <> boolean(v1, suffix)
-    case Canonical.ReuseClaim{v0} <> Nil{}: 118n <> v0 <> suffix
-    case Canonical.ReuseAttach{v0} <> Nil{}: 119n <> v0 <> suffix
-    case Canonical.ReuseRelease{v0} <> Nil{}: 120n <> v0 <> suffix
-    case Canonical.ReuseTouch{v0} <> Nil{}: 121n <> v0 <> suffix
-    case Canonical.CachePrepare{v0, v1, v2, v3} <> Nil{}: 122n <> v0 <> v1 <> v2 <> v3 <> suffix
-    case Canonical.CacheCommit{v0, v1, v2, v3, v4, v5} <> Nil{}: 123n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> suffix
-    case Canonical.CacheDiscardPartition{v0} <> Nil{}: 124n <> v0 <> suffix
-    case Canonical.CacheClear{} <> Nil{}: 125n <> suffix
-    case Canonical.NoticeAdvance{v0, v1, v2, v3, v4, v5} <> Nil{}: 126n <> v0 <> maybe_nat(
+    case Canonical.RuleBudgetCheck{v0, v1} <> Nil{}: 117n <> v0 <> v1 <> suffix
+    case Canonical.ReuseRoute{v0, v1} <> Nil{}: 118n <> v0 <> boolean(v1, suffix)
+    case Canonical.ReuseClaim{v0} <> Nil{}: 119n <> v0 <> suffix
+    case Canonical.ReuseAttach{v0} <> Nil{}: 120n <> v0 <> suffix
+    case Canonical.ReuseRelease{v0} <> Nil{}: 121n <> v0 <> suffix
+    case Canonical.ReuseTouch{v0} <> Nil{}: 122n <> v0 <> suffix
+    case Canonical.CachePrepare{v0, v1, v2, v3} <> Nil{}: 123n <> v0 <> v1 <> v2 <> v3 <> suffix
+    case Canonical.CacheCommit{v0, v1, v2, v3, v4, v5} <> Nil{}: 124n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> suffix
+    case Canonical.CacheDiscardPartition{v0} <> Nil{}: 125n <> v0 <> suffix
+    case Canonical.CacheClear{} <> Nil{}: 126n <> suffix
+    case Canonical.NoticeAdvance{v0, v1, v2, v3, v4, v5} <> Nil{}: 127n <> v0 <> maybe_nat(
       [v1],
       v2 <> v3 <> v4 <> v5 <> suffix
     )
-    case Canonical.NoticeCommit{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 127n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> suffix
-    case Canonical.NoticePrune{v0, v1, v2, v3, v4} <> Nil{}: 128n <> v0 <> boolean(
+    case Canonical.NoticeCommit{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 128n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> suffix
+    case Canonical.NoticePrune{v0, v1, v2, v3, v4} <> Nil{}: 129n <> v0 <> boolean(
       v1,
       boolean(v2, boolean(v3, boolean(v4, suffix)))
     )
-    case Canonical.NoticeDrop{v0} <> Nil{}: 129n <> v0 <> suffix
-    case Canonical.NoticeLease{v0, v1} <> Nil{}: 130n <> v0 <> boolean(v1, suffix)
-    case Canonical.NoticeClearPending{v0} <> Nil{}: 131n <> v0 <> suffix
-    case Canonical.NoticeSelect{v0, v1, v2, v3, v4} <> Nil{}: 132n <> v0 <> v1 <> boolean(
+    case Canonical.NoticeDrop{v0} <> Nil{}: 130n <> v0 <> suffix
+    case Canonical.NoticeLease{v0, v1} <> Nil{}: 131n <> v0 <> boolean(v1, suffix)
+    case Canonical.NoticeClearPending{v0} <> Nil{}: 132n <> v0 <> suffix
+    case Canonical.NoticeSelect{v0, v1, v2, v3, v4} <> Nil{}: 133n <> v0 <> v1 <> boolean(
       v2,
       boolean(v3, list_nat([v4], suffix))
     )
-    case Canonical.OutputStarted{v0, v1, v2} <> Nil{}: 133n <> v0 <> v1 <> v2 <> suffix
-    case Canonical.OutputTerminal{v0, v1, v2, v3, v4} <> Nil{}: 134n <> v0 <> v1 <> v2 <> v3 <> canonical_writeoutcome(
+    case Canonical.OutputStarted{v0, v1, v2} <> Nil{}: 134n <> v0 <> v1 <> v2 <> suffix
+    case Canonical.OutputTerminal{v0, v1, v2, v3, v4} <> Nil{}: 135n <> v0 <> v1 <> v2 <> v3 <> canonical_writeoutcome(
       [v4],
       suffix
     )
-    case Canonical.RetirePartition{v0, v1, v2} <> Nil{}: 135n <> v0 <> v1 <> v2 <> suffix
+    case Canonical.RetirePartition{v0, v1, v2} <> Nil{}: 136n <> v0 <> v1 <> v2 <> suffix
     case _: 999999n <> suffix
 
 def importgraph_edge(values: List<&2, ImportGraph.Edge>, suffix: List<&2, Nat>) -> List<&2, Nat>:
@@ -2002,6 +2007,7 @@ def callbacks_applicability(
     case Callbacks.Missing{} <> Nil{}: 1n <> suffix
     case Callbacks.NotQueued{} <> Nil{}: 2n <> suffix
     case Callbacks.NotHeld{} <> Nil{}: 3n <> suffix
+    case Callbacks.InvalidTime{} <> Nil{}: 4n <> suffix
     case _: 999999n <> suffix
 
 def callbacks_control(values: List<&2, Callbacks.Control>, suffix: List<&2, Nat>) -> List<&2, Nat>:
@@ -2011,6 +2017,8 @@ def callbacks_control(values: List<&2, Callbacks.Control>, suffix: List<&2, Nat>
     case Callbacks.Drop{} <> Nil{}: 2n <> suffix
     case Callbacks.Duplicate{} <> Nil{}: 3n <> suffix
     case Callbacks.Reorder{} <> Nil{}: 4n <> suffix
+    case Callbacks.Reschedule{v0} <> Nil{}: 5n <> v0 <> suffix
+    case Callbacks.Transport{v0} <> Nil{}: 6n <> v0 <> suffix
     case _: 999999n <> suffix
 
 def adviceelifecycle_status(
@@ -4933,7 +4941,9 @@ def defensemodel_tower(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case DefenseModel.Tower{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(v1) <> U32.to_nat(
+    case DefenseModel.Tower{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(
+      v1
+    ) <> U32.to_nat(
       v2
     ) <> U32.to_nat(
       v3
@@ -4941,6 +4951,8 @@ def defensemodel_tower(
       v4
     ) <> U32.to_nat(
       v5
+    ) <> U32.to_nat(
+      v6
     ) <> suffix
     case _: 999999n <> suffix
 
@@ -5234,7 +5246,7 @@ def defenseruletypes_group(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case DefenseRuleTypes.Group{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> defensemotiontypes_workidentity(
+    case DefenseRuleTypes.Group{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11} <> Nil{}: 0n <> defensemotiontypes_workidentity(
       [v0],
       v1 <> defenseruletypes_profile(
         [v2],
@@ -5244,7 +5256,12 @@ def defenseruletypes_group(
             v4,
             list_defenseruletypes_fragment(
               [v5],
-              boolean(v6, U32.to_nat(v7) <> U32.to_nat(v8) <> U32.to_nat(v9) <> suffix)
+              boolean(
+                v6,
+                U32.to_nat(
+                  v7
+                ) <> U32.to_nat(v8) <> U32.to_nat(v9) <> boolean(v10, boolean(v11, suffix))
+              )
             )
           )
         )
@@ -5309,12 +5326,100 @@ def list_defenseruletypes_state(
     )
     case _: 999999n <> suffix
 
+def defenselivemotiontypes_beam(
+  values: List<&2, DefenseLiveMotionTypes.Beam>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case DefenseLiveMotionTypes.Beam{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> U32.to_nat(v0) <> U32.to_nat(
+      v1
+    ) <> U32.to_nat(
+      v2
+    ) <> U32.to_nat(
+      v3
+    ) <> v4 <> v5 <> U32.to_nat(
+      v6
+    ) <> suffix
+    case _: 999999n <> suffix
+
+def list_defenselivemotiontypes_beam_items(
+  values: List<&2, List<&2, DefenseLiveMotionTypes.Beam>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: defenselivemotiontypes_beam(
+      [head],
+      list_defenselivemotiontypes_beam_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_defenselivemotiontypes_beam(
+  values: List<&2, List<&2, DefenseLiveMotionTypes.Beam>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, DefenseLiveMotionTypes.Beam, value) <> list_defenselivemotiontypes_beam_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
+def defenselivemotiontypes_mob(
+  values: List<&2, DefenseLiveMotionTypes.Mob>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case DefenseLiveMotionTypes.Mob{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14} <> Nil{}: 0n <> callbacks_target(
+      [v0],
+      U32.to_nat(
+        v1
+      ) <> U32.to_nat(
+        v2
+      ) <> list_defensemotiontypes_waypoint(
+        [v3],
+        v4 <> U32.to_nat(
+          v5
+        ) <> U32.to_nat(
+          v6
+        ) <> U32.to_nat(
+          v7
+        ) <> v8 <> v9 <> v10 <> U32.to_nat(
+          v11
+        ) <> U32.to_nat(v12) <> list_defenselivemotiontypes_beam([v13], v14 <> suffix)
+      )
+    )
+    case _: 999999n <> suffix
+
+def list_defenselivemotiontypes_mob_items(
+  values: List<&2, List<&2, DefenseLiveMotionTypes.Mob>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: defenselivemotiontypes_mob(
+      [head],
+      list_defenselivemotiontypes_mob_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_defenselivemotiontypes_mob(
+  values: List<&2, List<&2, DefenseLiveMotionTypes.Mob>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, DefenseLiveMotionTypes.Mob, value) <> list_defenselivemotiontypes_mob_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def defensemodel_control(
   values: List<&2, DefenseModel.Control>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case DefenseModel.Control{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> list_defenseauto_state(
+    case DefenseModel.Control{v0, v1, v2, v3, v4, v5, v6, v7} <> Nil{}: 0n <> list_defenseauto_state(
       [v0],
       U32.to_nat(
         v1
@@ -5322,7 +5427,13 @@ def defensemodel_control(
         [v2],
         list_defensemotiontypes_actor(
           [v3],
-          list_defensemodel_settings([v4], list_defenseruletypes_state([v5], suffix))
+          list_defensemodel_settings(
+            [v4],
+            list_defenseruletypes_state(
+              [v5],
+              U32.to_nat(v6) <> list_defenselivemotiontypes_mob([v7], suffix)
+            )
+          )
         )
       )
     )
@@ -5416,18 +5527,55 @@ def defensemodel_world(
     )
     case _: 999999n <> suffix
 
+def defensetransport_change(
+  values: List<&2, DefenseTransport.Change>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case DefenseTransport.Change{v0, v1, v2} <> Nil{}: 0n <> v0 <> callbacks_target(
+      [v1],
+      v2 <> suffix
+    )
+    case _: 999999n <> suffix
+
+def list_defensetransport_change_items(
+  values: List<&2, List<&2, DefenseTransport.Change>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case Nil{} <> Nil{}: suffix
+    case Con{head, tail} <> Nil{}: defensetransport_change(
+      [head],
+      list_defensetransport_change_items([tail], suffix)
+    )
+    case _: 999999n <> suffix
+
+def list_defensetransport_change(
+  values: List<&2, List<&2, DefenseTransport.Change>>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case +value <> Nil{}: List.length(&2, DefenseTransport.Change, value) <> list_defensetransport_change_items(
+      [value],
+      suffix
+    )
+    case _: 999999n <> suffix
+
 def defenselabtracetypes_envelope(
   values: List<&2, DefenseLabTraceTypes.Envelope>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case DefenseLabTraceTypes.Envelope{v0, v1, v2, v3, v4} <> Nil{}: 0n <> defensemodel_world(
+    case DefenseLabTraceTypes.Envelope{v0, v1, v2, v3, v4, v5} <> Nil{}: 0n <> defensemodel_world(
       [v0],
       defensemodel_world(
         [v1],
         defensemodel_world(
           [v2],
-          list_nativeruntypes_frame([v3], list_nativeruntypes_physicaldelivery([v4], suffix))
+          list_nativeruntypes_frame(
+            [v3],
+            list_nativeruntypes_physicaldelivery([v4], list_defensetransport_change([v5], suffix))
+          )
         )
       )
     )

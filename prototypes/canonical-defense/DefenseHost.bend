@@ -1,7 +1,10 @@
 # Native continuous consumer. All business transitions are owned by shared NativeRun.
 import Base
+import ./DefenseTransport.bend as Transport
+import ./DefenseLiveMotion.bend as Live
 import ./DefenseMotionTypes.bend as V
 import ./DefenseMechanics.bend as Mechanics
+import ./DefenseTowerFire.bend as Fire
 import ./DefenseMotion.bend as Motion
 import ./DefenseRules.bend as Rules
 import ./DefenseRulePolicy.bend as RulePolicy
@@ -13,17 +16,19 @@ import ./DefenseEffects.bend as E
 import ./DefenseMap.bend as Map
 import ./DefenseOutput.bend as O
 import ./DefenseConsumer.bend as Consumer
+import ../../packages/monkey-business-bend/Engine.bend as Engine
 import ../../packages/monkey-business-bend/NativeRun.bend as Run
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
 import ../../packages/monkey-business-bend/Workload.bend as Workload
 import ../../packages/monkey-business-bend/Numeric.bend as Numeric
+import ../../packages/monkey-business-bend/Callbacks.bend as CB
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/Ledger.bend as Ledger
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
 import ../../packages/agent-flow-bend/CollectionState.bend as Collection
 
 def initial_config(+config: T.Config, seed: Nat) -> M.World:
-  M.World{[Run.create(config, seed)], 0, False{}, 0, 0, 160, 100, [], False{}, 0, 0, 0, 0,
+  M.World{[Run.create(config, seed)], 0, False{}, 0, 3, 160, 100, [], False{}, 0, 0, 0, 0,
     [M.with_settings(M.initial_control(), M.config_settings(config))], 0, 0, 0, 0, 0}
 def initial() -> M.World: initial_config(Consumer.config(), Consumer.seed())
 def tower_cost(kind: U32) -> U32:
@@ -36,13 +41,11 @@ def tower_range(kind: U32, level: U32) -> U32:
   Mechanics.range(kind, level)
 def built_range(tower: M.Tower) -> U32:
   Mechanics.tower_range(tower)
-def upgrade_cost(level: U32) -> U32:
-  (20 + level * 20 : U32)
+def upgrade_cost(kind: U32, level: U32) -> U32:
+  ((Mechanics.cost(kind) * (level + 1) * 2) / 5 : U32)
 def damage_flash(world: M.World) -> Bool:
   (M.damage_flash(world) > 0 : U32)
 
-def support_site(+world: M.World, +tower: M.Tower) -> U32:
-  Bool.pick(U32, Mechanics.connected(world, tower), Mechanics.site(M.tkind(tower)), 255)
 # Health measures actual occupied ledger pressure, independently of geometry and playback.
 def pressure_buffer() -> U32: 80
 def pressure_hot(raw: U32) -> Bool: (raw > pressure_buffer() : U32)
@@ -149,7 +152,7 @@ def adjust_burst(+world: M.World, increase: Bool) -> M.World:
   +size = M.burst_size(M.settings(world))
   M.with_control(world, M.with_settings(M.control(world), M.with_burst(M.settings(world),
     Bool.pick(U32, increase, U32.min(1024, (size + 1 : U32)), U32.max(1, M.sub(size, 1))))))
-# An explicit pre-start outage scenario makes one-shot restoration observable.
+# An explicit pre-start outage scenario exposes unavailable access; towers do not repair it.
 def outage_environment(world: M.World, env: T.Environment) -> M.World:
   match env:
     case T.Environment{_, _, _, _, _, _, _, _, current, _, generation, _, _, _}:
@@ -165,6 +168,8 @@ def frame_counts(outputs: List<&2, C.Output>, +kind: U32) -> U32:
     case C.EventEstablished{C.FinishRecorded{C.Acknowledged{}}} <> rest: (Bool.to_u32(
       U32.is_eq(kind, 0)
     ) + frame_counts(rest, kind) : U32)
+    case C.EventEstablished{C.JevRequestOutcomeRecorded{C.RequestClear{}}} <> rest:
+      (Bool.to_u32(U32.is_eq(kind, 2)) + frame_counts(rest, kind) : U32)
     case C.PolicyDecided{C.CapacityRefused{_, _}} <> rest: (Bool.to_u32(U32.is_eq(kind, 3)) + frame_counts(
       rest,
       kind
@@ -181,7 +186,6 @@ def frame_counts(outputs: List<&2, C.Output>, +kind: U32) -> U32:
 def observed_event(event: C.CanonicalEvent, kind: U32) -> U32:
   match event:
     case C.AdmitObservation{_, _, _}: Bool.to_u32(U32.is_eq(kind, 1))
-    case C.JevRequestSettled{_, _, _, _, _, C.RequestClear{}, _}: Bool.to_u32(U32.is_eq(kind, 2))
     case _: 0
 def observed_count(frame: T.Frame, +kind: U32) -> U32:
   match frame:
@@ -194,6 +198,24 @@ def count_frames(frames: List<&2, T.Frame>, +kind: U32) -> U32:
   match frames:
     case Nil{}: 0
     case frame <> rest: (observed_count(frame, kind) + count_frames(rest, kind) : U32)
+def recorded_submission(outputs: List<&2, C.Output>) -> Bool:
+  match outputs:
+    case Nil{}: False{}
+    case C.EventEstablished{C.SubmissionRecorded{}} <> _: True{}
+    case _ <> tail: recorded_submission(tail)
+def individual_deliveries(frames: List<&2, T.Frame>) -> U32:
+  match frames:
+    case Nil{}: 0
+    case T.ProductFrame{_, _, C.SubmissionTerminal{_, _, True{}}, _, _, outputs, None{}, _} <> tail:
+      (Bool.to_u32(recorded_submission(outputs)) + individual_deliveries(tail) : U32)
+    case _ <> tail: individual_deliveries(tail)
+# A frame budget can stop inside a tick. Do not publish a future visual horizon.
+def horizon_complete(status: T.AdvanceStatus) -> Bool:
+  match status:
+    case T.ContinueAdvance{}: False{}
+    case _: True{}
+def step_complete(state: T.State, until: Nat) -> Bool:
+  horizon_complete(Run.advance_status(state, 1n, until))
 def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
   match world advanced:
     case M.World{_, +t, p, l, c, +g, h, ts, a, +o, +r, +cl, +d, auto, x, y, selected, work, flash} T.Advanced{
@@ -202,15 +224,15 @@ def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
       _
     }:
       +delivered = count_frames(frames, 0)
-      Cues.tick(
+      M.with_submissions(Cues.tick(
         world,
         M.World{
           [state],
-          (t + 1 : U32),
+          (t + Bool.to_u32(step_complete(state, (U32.to_nat(t) * 20n + 20n : Nat))) : U32),
           p,
           l,
           c,
-          (g + delivered * 5 : U32),
+          g,
           h,
           ts,
           a,
@@ -226,50 +248,170 @@ def consumed(+world: M.World, advanced: T.Advanced) -> M.World:
           flash
         },
         frames
-      )
+      ), (M.submissions(world) + individual_deliveries(frames) : U32))
 type TickObserved is Data:
-  TickObserved{world: M.World, frames: List<&2, T.Frame>, physical: List<&2, T.PhysicalDelivery>}
-def presented(+before: M.World, after: M.World, frames: List<&2, T.Frame>) -> M.World:
-  +ingested = M.with_actors(after, Motion.ingest(frames, M.actors(before), M.layout(before)))
-  +ruled = Rules.tick(ingested)
-  Rules.step_actors(ruled)
-def tick_applied(+world: M.World, advanced: T.Advanced) -> TickObserved:
-  match advanced:
-    case T.Advanced{state, +frames, +physical}:
-      TickObserved{
-        damage(presented(world, consumed(world, T.Advanced{state, frames, physical}), frames)),
-        frames,
-        physical
-      }
-def rules_advanced(+world: M.World, +advanced: T.Advanced) -> TickObserved:
-  match advanced:
-    case T.Advanced{_, frames, _}:
-      +captured = Rules.ingest(frames, M.rules(world))
-      tick_applied(M.with_rules(world, captured), Rules.apply_counts(advanced, captured))
-def ticking_observed(+world: M.World) -> TickObserved:
-  rules_advanced(
-    world,
-    Run.advance(M.engine(world), 256n, (U32.to_nat(M.time(world)) * 20n + 20n : Nat))
+  TickObserved{
+    world: M.World,
+    frames: List<&2, T.Frame>,
+    physical: List<&2, T.PhysicalDelivery>,
+    transport: List<&2, Transport.Change>
+  }
+def with_endings(+before: M.World, +after: M.World, +frames: List<&2, T.Frame>) -> M.World:
+  M.with_cues(
+    after,
+    List.append(
+      &2,
+      M.Cue,
+      Live.endings(M.mobs(before), before, after, frames),
+      List.append(&2, M.Cue, Live.instant_frames(frames, before, after), M.cues(after))
+    )
   )
+def damage_when(advanced: Bool, world: M.World) -> M.World:
+  match advanced:
+    case True{}: damage(world)
+    case False{}: world
+def completed_tick(+before: M.World, +after: M.World) -> M.World:
+  damage_when((M.time(after) > M.time(before) : U32), after)
+# One original event at a time: newly issued callbacks acquire physical transport
+# before a zero-time completion can be consumed. The journal is replay input.
+def micro(+world: M.World, +advanced: T.Advanced) -> Transport.Transported:
+  match advanced:
+    case T.Advanced{state, +frames, _}:
+      +rules = Rules.ingest(frames, M.rules(world))
+      +next = M.with_rules(
+        M.with_actors(
+          M.with_engine(world, Rules.enqueue_counts(Rules.count_frames(frames, rules), state)),
+          Motion.ingest(frames, M.actors(world), M.layout(world))
+        ),
+        rules
+      )
+      Transport.synchronize(
+        M.with_mobs(next, Live.reconcile(Fire.physical_targets(next), world, next, frames))
+      )
+def event_result(
+  result: Transport.Transported,
+  frames: List<&2, T.Frame>,
+  physical: List<&2, T.PhysicalDelivery>,
+  changes: List<&2, Transport.Change>
+) -> TickObserved:
+  match result:
+    case Transport.Transported{world, more}: TickObserved{
+      world,
+      frames,
+      physical,
+      List.append(&2, Transport.Change, changes, more)
+    }
+def micro_result(
+  +world: M.World,
+  +advanced: T.Advanced,
+  frames: List<&2, T.Frame>,
+  physical: List<&2, T.PhysicalDelivery>,
+  changes: List<&2, Transport.Change>
+) -> TickObserved:
+  match advanced:
+    case T.Advanced{_, more, deliveries}:
+      event_result(
+        micro(world, advanced),
+        List.append(&2, T.Frame, frames, more),
+        List.append(&2, T.PhysicalDelivery, physical, deliveries),
+        changes
+      )
+def advance_event(
+  active: Bool,
+  +world: M.World,
+  frames: List<&2, T.Frame>,
+  physical: List<&2, T.PhysicalDelivery>,
+  changes: List<&2, Transport.Change>,
+  +until: Nat,
+  continue: TickObserved -> TickObserved
+) -> TickObserved:
+  match active:
+    case False{}: TickObserved{world, frames, physical, changes}
+    case True{}: continue(
+      micro_result(world, Run.advance(M.engine(world), 1n, until), frames, physical, changes)
+    )
+def event_loop(fuel: Nat, value: TickObserved, +until: Nat) -> TickObserved:
+  match fuel value:
+    case 0n result: result
+    case 1n+n TickObserved{+world, frames, physical, changes}:
+      continue: TickObserved -> TickObserved = value => event_loop(n, value, until)
+      advance_event(
+        Bool.not(step_complete(M.engine(world), until)),
+        world,
+        frames,
+        physical,
+        changes,
+        until,
+        continue
+      )
+def physics_step(active: Bool, world: M.World) -> M.World:
+  match active:
+    case True{}: Rules.step_actors(Rules.tick(world))
+    case False{}: world
+def finish_transport(+before: M.World, value: TickObserved) -> TickObserved:
+  match value:
+    case TickObserved{+world, +frames, +physical, changes}:
+      +counted = consumed(before, T.Advanced{M.engine(world), frames, physical})
+      +combined = M.with_mobs(
+        M.with_rules(M.with_actors(counted, M.actors(world)), M.rules(world)),
+        M.mobs(world)
+      )
+      +moved = physics_step((M.time(combined) > M.time(before) : U32), combined)
+      +live = M.with_mobs(moved, Live.reconcile(Fire.physical_targets(moved), world, moved, []))
+      TickObserved{
+        completed_tick(before, with_endings(before, live, frames)),
+        frames,
+        physical,
+        changes
+      }
+def begin_transport(
+  result: Transport.Transported,
+  before: M.World,
+  budget: Nat,
+  until: Nat
+) -> TickObserved:
+  match result:
+    case Transport.Transported{world, changes}: finish_transport(
+      before,
+      event_loop(budget, TickObserved{world, [], [], changes}, until)
+    )
+def bounded_observed(+world: M.World, budget: Nat) -> TickObserved:
+  begin_transport(
+    Transport.synchronize(world),
+    world,
+    budget,
+    (U32.to_nat(M.time(world)) * 20n + 20n : Nat)
+  )
+def ticking_observed(world: M.World) -> TickObserved: bounded_observed(world, 256n)
 def playback_when(active: Bool, +world: M.World) -> M.World:
   match active:
     case True{}:
       +ruled = Rules.tick(world)
       Rules.step_actors(ruled)
     case False{}: world
-def tick_when(active: Bool, +world: M.World) -> TickObserved:
+def tick_when_manual(active: Bool, +world: M.World) -> TickObserved:
   match active:
     case True{}: ticking_observed(world)
     case False{}: TickObserved{
       playback_when(M.active(world) && Bool.not(M.paused(world)), world),
       Nil{},
-      Nil{}
+      Nil{}, []
     }
+def tick_when(+active: Bool, +world: M.World) -> TickObserved:
+  tick_when_manual(
+    active,
+    Fire.automatic_world(
+      Fire.automatic_when(
+        active && step_complete(M.engine(world), (U32.to_nat(M.time(world)) * 20n : Nat)),
+        world
+      )
+    )
+  )
 def tick_observed(+world: M.World) -> TickObserved:
   tick_when(clock_active(world), world)
 def tick_world(observed: TickObserved) -> M.World:
   match observed:
-    case TickObserved{world, _, _}: world
+    case TickObserved{world, _, _, _}: world
 def ticking(world: M.World) -> M.World:
   tick_world(ticking_observed(world))
 def tick(world: M.World) -> M.World:
@@ -294,11 +436,31 @@ def selected_tower(items: List<&2, M.Tower>, index: U32) -> Maybe<&2, M.Tower>:
     case Nil{} _: None{}
     case tower <> _ 1: Some{tower}
     case _ <> rest _: selected_tower(rest, M.sub(index, 1))
+def shot_target_found(
+  found: Maybe<&2, M.Tower>,
+  world: M.World,
+  wanted: Nat
+) -> Maybe<&2, CB.Target>:
+  match found:
+    case Some{tower}: Fire.target(world, tower, wanted)
+    case None{}: None{}
+def shot_target(+world: M.World, index: U32, wanted: Nat) -> Maybe<&2, CB.Target>:
+  shot_target_found(selected_tower(M.towers(world), index), world, wanted)
+def fire_found(found: Maybe<&2, M.Tower>, world: M.World, index: U32, wanted: Nat) -> Fire.Shot:
+  match found:
+    case Some{tower}: Fire.fire(world, index, tower, wanted)
+    case None{}: Fire.Shot{world, 4}
+def fire(+world: M.World, +index: U32, wanted: Nat) -> Fire.Shot:
+  fire_found(selected_tower(M.towers(world), index), world, index, wanted)
+def fired_world(shot: Fire.Shot) -> M.World:
+  match shot:
+    case Fire.Shot{world, _}: world
+def fire_world(world: M.World, index: U32, wanted: Nat) -> M.World:
+  fired_world(fire(world, index, wanted))
 def upgrade_items(items: List<&2, M.Tower>, index: U32) -> List<&2, M.Tower>:
   match items index:
     case Nil{} _: Nil{}
-    case M.Tower{x, y, k, l, power, radius} <> rest 1:
-      M.Tower{x, y, k, (l + 1 : U32), power, radius} <> rest
+    case tower <> rest 1: Mechanics.upgraded(tower) <> rest
     case tower <> rest _: tower <> upgrade_items(rest, M.sub(index, 1))
 def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
   match world found:
@@ -308,16 +470,16 @@ def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
       pick_world(
         Bool.and(
           (M.level(tower) < Mechanics.max_level(M.tkind(tower)) : U32),
-          (g >= upgrade_cost(M.level(tower)) : U32)
+          (g >= upgrade_cost(M.tkind(tower), M.level(tower)) : U32)
         ),
-        Mechanics.profiles(
+        (
           M.World{
             core,
             t,
             p,
             l,
             c,
-            M.sub(g, upgrade_cost(M.level(tower))),
+            M.sub(g, upgrade_cost(M.tkind(tower), M.level(tower))),
             h,
             upgrade_items(ts, selected),
             a,
@@ -336,8 +498,12 @@ def upgrade_found(+world: M.World, found: Maybe<&2, M.Tower>) -> M.World:
         world
       )
     case _ _: world
+def upgrade_when(alive: Bool, +world: M.World) -> M.World:
+  match alive:
+    case True{}: upgrade_found(world, selected_tower(M.towers(world), M.selected(world)))
+    case False{}: world
 def upgrade(+world: M.World) -> M.World:
-  upgrade_found(world, selected_tower(M.towers(world), M.selected(world)))
+  upgrade_when((M.hp(world) > 0 : U32), world)
 def reset_found(world: M.World, layout: U32) -> M.World:
   match world:
     case M.World{core, t, p, _, c, g, h, ts, a, o, r, cl, d, auto, x, y, selected, work, flash}:
@@ -361,7 +527,7 @@ def pacing(+world: M.World, faster: Bool) -> M.World:
   )
 # Future issuance captures the selected profile; started requests keep theirs.
 def configure_rules(world: M.World, checks: U32, percent: U32) -> M.World:
-  Mechanics.profiles(Rules.configured(world, RulePolicy.profile(checks, percent)))
+  Rules.configured(world, RulePolicy.profile(checks, percent))
 def change_rule_count(+world: M.World, increase: Bool) -> M.World:
   +value = Rules.profile(M.rules(world))
   configure_rules(
@@ -386,7 +552,31 @@ def change_rule_chance(+world: M.World, increase: Bool) -> M.World:
       M.sub(RulePolicy.percent(value), 10)
     )
   )
-def key_result(world: M.World, code: U32) -> M.World:
+# Caller input only. NativeRun resolves the captured activity and owns Stop.
+def finish_activity(+world: M.World, at: Nat, activity: Maybe<&2, Nat>) -> M.World:
+  match activity:
+    case Some{value}: M.with_engine(
+      world,
+      Run.enqueue(M.engine(world), at, T.StartFinish{1n, value, False{}})
+    )
+    case None{}: world
+def schedule_finish(+world: M.World, at: Nat) -> M.World:
+  finish_activity(
+    world,
+    Nat.max(at, Run.clock(M.engine(world))),
+    Engine.activity_scope(Run.core(M.engine(world)), 1n)
+  )
+def request_finish_when(allowed: Bool, +world: M.World) -> M.World:
+  match allowed:
+    case True{}: schedule_finish(world, Fire.delivery_at(world))
+    case False{}: world
+def request_finish(+world: M.World) -> M.World:
+  request_finish_when(
+    clock_active(world) && Bool.not(Run.active_finish(M.engine(world), 1n)),
+    world
+  )
+
+def key_result(+world: M.World, code: U32) -> M.World:
   match code:
     case 114: reset_layout(M.layout(world))
     case 117: upgrade(world)
@@ -401,6 +591,7 @@ def key_result(world: M.World, code: U32) -> M.World:
     case 46: change_rule_count(world, True{})
     case 91: pacing(world, False{})
     case 93: pacing(world, True{})
+    case 115: request_finish(world)
     case 110: start(world)
     case 13: start(world)
     case _: world
@@ -415,13 +606,13 @@ def key_map(+world: M.World, code: U32) -> U32:
 def key_fields(world: M.World, +code: U32, layout: U32, schedule: A.State) -> M.World:
   match world:
     case M.World{core, t, +p, _, +c, g, h, ts, a, o, r, cl, d, auto, x, y, +selected, work, flash}:
-      +choose = (code >= 49 : U32) && (code <= 51 : U32)
+      +choose = (code >= 49 : U32) && (code <= 50 : U32)
       M.World{
         core,
         t,
         Bool.pick(Bool, (U32.is_eq(code, 32) || U32.is_eq(code, 112)), Bool.not(p), p),
         layout,
-        Bool.pick(U32, choose, (code - 49 : U32), c),
+        Bool.pick(U32, choose, (code - 46 : U32), c),
         g,
         h,
         ts,
@@ -490,18 +681,13 @@ def build_tuned(
     case M.World{core, t, p, l, c, +g, +h, ts, a, o, r, cl, d, auto, mx, my, _, work, flash}:
       pick_world(
         Bool.and(
-          (power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32) && (Bool.not(
-            U32.is_eq(kind, 2)
-          ) || U32.is_eq(
-            power,
-            1
-          )),
+          (power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32),
           Bool.and(
             placement_valid(world, x, y),
-            Bool.and((g >= tower_cost(kind) : U32), Bool.and((kind < 3 : U32), (h > 0 : U32)))
+            Bool.and((g >= tower_cost(kind) : U32), Bool.and(Mechanics.valid(kind), (h > 0 : U32)))
           )
         ),
-        Mechanics.purchased(
+        (
           M.World{
             core,
             t,
@@ -510,7 +696,7 @@ def build_tuned(
             c,
             M.sub(g, tower_cost(kind)),
             h,
-            M.Tower{snap(x), snap(y), kind, 1, power, radius} <> ts,
+            M.Tower{snap(x), snap(y), kind, 1, power, radius, 0} <> ts,
             a,
             o,
             r,
@@ -522,13 +708,12 @@ def build_tuned(
             0,
             work,
             flash
-          },
-          kind
+          }
         ),
         world
       )
-def build(world: M.World, x: U32, y: U32, kind: U32) -> M.World:
-  build_tuned(world, x, y, kind, 1, 100)
+def build(world: M.World, x: U32, y: U32, +kind: U32) -> M.World:
+  build_tuned(world, x, y, kind, 1, Mechanics.base_radius(kind))
 def click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
   pick_world(
@@ -536,41 +721,15 @@ def click(+world: M.World, +x: U32, +y: U32) -> M.World:
     select(move(world, x, y), index),
     build(move(world, x, y), x, y, M.choice(world))
   )
-def preview_site(+world: M.World, x: U32, y: U32, kind: U32) -> U32:
-  support_site(world, M.Tower{snap(x), snap(y), kind, 1, 1, 100})
-def preview_target(world: M.World, x: U32, y: U32, kind: U32) -> Nat: 0n
-def profile_delay(+world: M.World, +kind: U32) -> U32:
-  Bool.pick(
-    U32,
-    U32.is_eq(kind, 2),
-    Mechanics.missing_access(Mechanics.current_environment(M.engine(world))),
-    M.number(Mechanics.current_delay(Mechanics.current_environment(M.engine(world)), kind))
-  )
-def preview_before(+world: M.World, x: U32, y: U32, +kind: U32) -> U32:
-  profile_delay(world, kind)
-def hypothetical(+world: M.World, x: U32, y: U32, kind: U32) -> M.World:
-  M.with_towers(world, M.Tower{snap(x), snap(y), kind, 1, 1, 100} <> M.towers(world))
-def preview_gain(+world: M.World, +x: U32, +y: U32, +kind: U32) -> U32:
-  +next = hypothetical(world, x, y, kind)
-  +base = Bool.pick(
-    Nat,
-    U32.is_eq(kind, 0),
-    M.base_jev(M.settings(world)),
-    M.base_output(M.settings(world))
-  )
-  Bool.pick(
-    U32,
-    U32.is_eq(preview_site(world, x, y, kind), 255),
-    0,
-    Bool.pick(
-      U32,
-      U32.is_eq(kind, 2),
-      profile_delay(world, kind),
-      M.sub(
-        profile_delay(world, kind),
-        M.number(Mechanics.delay(base, Mechanics.strength(next, kind)))
-      )
-    )
-  )
-def preview_secondary_before(world: M.World, x: U32, y: U32, kind: U32) -> U32: 0
-def preview_secondary_delta(world: M.World, x: U32, y: U32, kind: U32) -> U32: 0
+def preview_tower(x: U32, y: U32, +kind: U32) -> M.Tower:
+  M.Tower{snap(x), snap(y), kind, 1, 1, Mechanics.base_radius(kind), 0}
+def preview_site(world: M.World, x: U32, y: U32, kind: U32) -> U32:
+  Fire.target_phase(Fire.target(world, preview_tower(x, y, kind), 0n))
+def preview_target(world: M.World, x: U32, y: U32, kind: U32) -> Nat:
+  Fire.target_operation(Fire.target(world, preview_tower(x, y, kind), 0n))
+def preview_point(+world: M.World, x: U32, y: U32, kind: U32) -> Map.Point:
+  Fire.found_point(Fire.target(world, preview_tower(x, y, kind), 0n), world)
+def preview_before(world: M.World, x: U32, y: U32, kind: U32) -> U32:
+  Fire.remaining(world, preview_tower(x, y, kind))
+def preview_gain(world: M.World, x: U32, y: U32, kind: U32) -> U32:
+  M.number(Fire.saving(U32.to_nat(preview_before(world, x, y, kind))))

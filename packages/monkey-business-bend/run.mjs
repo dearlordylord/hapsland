@@ -22339,6 +22339,26 @@ function $Callbacks$058initial$() {
   return {$: "Callbacks.State", "originals": {$: "Nil"}};
 }
 
+function $Callbacks$058reschedule_one$(_valid_0, _original_0, _delivery_at_0, _fresh_order_0) {
+  if (_valid_0) {
+    const _t_0 = _original_0["fact"];
+    const _target_0 = _t_0["target"];
+    const _original_at_0 = _t_0["at"];
+    const _action_0 = _t_0["action"];
+    const _completion_0 = _t_0["completion"];
+    const _t_1 = _original_0["status"];
+    if (_t_1.$ === "Callbacks.Queued") {
+      const _order_0 = _original_0["scheduled_order"];
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _delivery_at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else {
+      const _order_1 = _original_0["scheduled_order"];
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": _original_0, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.InvalidTime"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+  }
+}
+
 function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_0) {
   const _t_0 = _original_0["fact"];
   const _target_0 = _t_0["target"];
@@ -22356,6 +22376,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Reorder") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_0 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_0, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _delivery_at_0, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_1 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_1, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _delivery_at_1, _fresh_order_0);
     } else {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
@@ -22365,6 +22391,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Duplicate") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_2 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_2, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, _delivery_at_2, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_3 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_3, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, _delivery_at_3, _fresh_order_0);
     } else {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
@@ -22372,6 +22404,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
     const _order_2 = _original_0["scheduled_order"];
     if (_control_0.$ === "Callbacks.Duplicate") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_4 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_4, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, _delivery_at_4, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_5 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_5, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, _delivery_at_5, _fresh_order_0);
     } else if (_control_0.$ === "Callbacks.Release") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     } else {
@@ -36927,58 +36965,86 @@ function $NativeRun$058bind_generated$(_state_0, _key_0, _identity_0) {
   return $NativeRun$058bound_generated$(_state_0, ($NativeGenerated$058bind$(($NativeRun$058generated_state$(_state_0)), _key_0, _identity_0)));
 }
 
-function $NativeRunControls$058ordinary$(_changed_0) {
-  const _state_0 = _changed_0["state"];
-  const _applied_0 = _changed_0["applied"];
-  return {$: "NativeRunControls.Applied", "state": _state_0, "applied": _applied_0, "report": {$: "NativeRunControls.Ordinary"}};
-}
-
-function $NativeRunControls$058callback_sources$(_state_0) {
+function $NativeRunCallbackControls$058callback_sources$(_state_0) {
   const _t_0 = _state_0["host"];
-  const _callbacks_0 = _t_0["retained_callbacks"];
-  return _callbacks_0;
+  const _items_0 = _t_0["retained_callbacks"];
+  return _items_0;
 }
 
-function $NativeRunControls$058retained_match$(_equal_0, _item_0, _rest_0) {
+function $NativeRunCallbackControls$058matches_target$(_items_0, _target_0) {
+  if (_items_0.$ === "Con") {
+    const _t_0 = _items_0["head"];
+    const _t_1 = _t_0["fact"];
+    const _recorded_0 = _t_1["target"];
+    return $Callbacks$058target_equal$(_recorded_0, _target_0);
+  } else {
+    return false;
+  }
+}
+
+function $NativeRunCallbackControls$058selected$(_equal_0, _items_0, _rest_0) {
   if (_equal_0) {
-    return {$: "Some", "value": _item_0};
+    return _items_0;
   } else {
     return _rest_0;
   }
 }
 
-function $NativeRunControls$058retained_target$(_item_0) {
-  const _t_0 = _item_0["fact"];
-  const _target_0 = _t_0["target"];
-  return _target_0;
-}
-
-function $NativeRunControls$058callback_source$(_items_0, _target_0) {
+function $NativeRunCallbackControls$058callback_source$(_items_0, _target_0) {
   if (_items_0.$ === "Nil") {
-    return {$: "None"};
+    return {$: "Con", "head": {$: "None"}, "tail": {$: "Nil"}};
   } else {
     const _head_0 = _items_0["head"];
     const _tail_0 = _items_0["tail"];
-    return $NativeRunControls$058retained_match$(($Callbacks$058target_equal$(($NativeRunControls$058retained_target$(_head_0)), _target_0)), _head_0, ($NativeRunControls$058callback_source$(_tail_0, _target_0)));
+    return $NativeRunCallbackControls$058selected$(($NativeRunCallbackControls$058matches_target$({$: "Con", "head": _head_0, "tail": {$: "Nil"}}, _target_0)), {$: "Con", "head": {$: "Some", "value": _head_0}, "tail": {$: "Nil"}}, ($NativeRunCallbackControls$058callback_source$(_tail_0, _target_0)));
   }
 }
 
-function $NativeRunControls$058callback_fact$(_source_0) {
-  if (_source_0.$ === "Some") {
-    const _t_0 = _source_0["value"];
-    const _fact_0 = _t_0["fact"];
-    return {$: "Some", "value": _fact_0};
+function $NativeRunCallbackControls$058source_value$(_items_0) {
+  if (_items_0.$ === "Con") {
+    const _head_0 = _items_0["head"];
+    return _head_0;
   } else {
     return {$: "None"};
   }
 }
 
-function $NativeRunControls$058remaining_items$(_located_0) {
+function $NativeRunCallbackControls$058live_or_history$(_live_0, _historical_0) {
+  if (_live_0.$ === "Con") {
+    const _t_0 = _live_0["head"];
+    if (_t_0.$ === "Some") {
+      const __0 = _t_0["value"];
+      const __1 = _live_0["tail"];
+      return {$: "Con", "head": {$: "Some", "value": __0}, "tail": __1};
+    } else {
+      return _historical_0;
+    }
+  } else {
+    return _historical_0;
+  }
+}
+
+function $NativeRunCallbackControls$058callback_fact$(_source_0) {
+  if (_source_0.$ === "Con") {
+    const _t_0 = _source_0["head"];
+    if (_t_0.$ === "Some") {
+      const _t_1 = _t_0["value"];
+      const _fact_0 = _t_1["fact"];
+      return {$: "Some", "value": _fact_0};
+    } else {
+      return {$: "None"};
+    }
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $NativeRunCallbackControls$058remaining_items$(_located_0) {
   const _remaining_0 = _located_0["remaining"];
   return _remaining_0;
 }
 
-function $NativeRunControls$058cancel_orders$($0, $1) {
+function $NativeRunCallbackControls$058cancel_orders$($0, $1) {
   for (;;) {
     {
       const _orders_0 = $0;
@@ -36989,24 +37055,29 @@ function $NativeRunControls$058cancel_orders$($0, $1) {
         const _order_0 = _orders_0["head"];
         const _tail_0 = _orders_0["tail"];
         $0 = _tail_0;
-        $1 = ($NativeRun$058replaced_items$(($NativeRun$058replace_core$(_state_0, ($Engine$058cancel$(($NativeRun$058core$(_state_0)), _order_0)))), ($NativeRunControls$058remaining_items$(($NativeRun$058locate$(($NativeRun$058runtime_items$(_state_0)), _order_0))))));
+        $1 = ($NativeRun$058replaced_items$(($NativeRun$058replace_core$(_state_0, ($Engine$058cancel$(($NativeRun$058core$(_state_0)), _order_0)))), ($NativeRunCallbackControls$058remaining_items$(($NativeRun$058locate$(($NativeRun$058runtime_items$(_state_0)), _order_0))))));
         continue;
       }
     }
   }
 }
 
-function $NativeRunControls$058scheduled_payload$(_source_0) {
-  if (_source_0.$ === "Some") {
-    const _t_0 = _source_0["value"];
-    const _payload_0 = _t_0["payload"];
-    return {$: "Some", "value": _payload_0};
+function $NativeRunCallbackControls$058scheduled_payload$(_source_0) {
+  if (_source_0.$ === "Con") {
+    const _t_0 = _source_0["head"];
+    if (_t_0.$ === "Some") {
+      const _t_1 = _t_0["value"];
+      const _payload_0 = _t_1["payload"];
+      return {$: "Some", "value": _payload_0};
+    } else {
+      return {$: "None"};
+    }
   } else {
     return {$: "None"};
   }
 }
 
-function $NativeRunControls$058queue_exact$(_state_0, _time_0, _order_0, _payload_0, _receipt_0) {
+function $NativeRunCallbackControls$058queue_exact$(_state_0, _time_0, _order_0, _payload_0, _receipt_0) {
   const _core_0 = _state_0["core"];
   const _items_0 = _state_0["items"];
   const _next_0 = _state_0["next"];
@@ -37018,20 +37089,30 @@ function $NativeRunControls$058queue_exact$(_state_0, _time_0, _order_0, _payloa
   const _prepared_0 = _state_0["prepared"];
   const _jobs_0 = _state_0["jobs"];
   const _host_0 = _state_0["host"];
-  const _x_0 = nat_chk(_order_0 + 1);
-  return {$: "NativeRunTypes.State", "core": {$: "Con", "head": ($Engine$058enqueue$(($NativeRun$058core_value$(_core_0)), _time_0, _order_0)), "tail": {$: "Nil"}}, "items": ($List$append$(_items_0, {$: "Con", "head": {$: "NativeRunTypes.Item", "order": _order_0, "input": _payload_0, "receipt": {$: "Con", "head": _receipt_0, "tail": {$: "Nil"}}}, "tail": {$: "Nil"}})), "next": (_next_0 > _x_0 ? _next_0 : _x_0), "count": _count_0, "seed": _seed_0, "environment": _env_0, "latest": _latest_0, "valid": _valid_0, "prepared": _prepared_0, "jobs": _jobs_0, "host": _host_0};
+  if (_payload_0.$ === "Con") {
+    const _head_0 = _payload_0["head"];
+    const _x_0 = nat_chk(_order_0 + 1);
+    return {$: "NativeRunTypes.State", "core": {$: "Con", "head": ($Engine$058enqueue$(($NativeRun$058core_value$(_core_0)), _time_0, _order_0)), "tail": {$: "Nil"}}, "items": ($List$append$(_items_0, {$: "Con", "head": {$: "NativeRunTypes.Item", "order": _order_0, "input": _head_0, "receipt": _receipt_0}, "tail": {$: "Nil"}})), "next": (_next_0 > _x_0 ? _next_0 : _x_0), "count": _count_0, "seed": _seed_0, "environment": _env_0, "latest": _latest_0, "valid": _valid_0, "prepared": _prepared_0, "jobs": _jobs_0, "host": _host_0};
+  } else {
+    return $NativeRun$058invalid$({$: "NativeRunTypes.State", "core": _core_0, "items": _items_0, "next": _next_0, "count": _count_0, "seed": _seed_0, "environment": _env_0, "latest": _latest_0, "valid": _valid_0, "prepared": _prepared_0, "jobs": _jobs_0, "host": _host_0});
+  }
 }
 
-function $NativeRunControls$058schedule_payload$(_payload_0, _state_0, _time_0, _order_0, _receipt_0) {
-  if (_payload_0.$ === "Some") {
-    const _payload_1 = _payload_0["value"];
-    return $NativeRunControls$058queue_exact$(_state_0, _time_0, _order_0, _payload_1, _receipt_0);
+function $NativeRunCallbackControls$058schedule_payload$(_payload_0, _state_0, _time_0, _order_0, _receipt_0) {
+  if (_payload_0.$ === "Con") {
+    const _t_0 = _payload_0["head"];
+    if (_t_0.$ === "Some") {
+      const _payload_1 = _t_0["value"];
+      return $NativeRunCallbackControls$058queue_exact$(_state_0, _time_0, _order_0, {$: "Con", "head": _payload_1, "tail": {$: "Nil"}}, _receipt_0);
+    } else {
+      return $NativeRun$058invalid$(_state_0);
+    }
   } else {
     return $NativeRun$058invalid$(_state_0);
   }
 }
 
-function $NativeRunControls$058callback_schedule$($0, $1, $2, $3) {
+function $NativeRunCallbackControls$058callback_schedule$($0, $1, $2, $3) {
   for (;;) {
     {
       const _items_0 = $0;
@@ -37046,7 +37127,7 @@ function $NativeRunControls$058callback_schedule$($0, $1, $2, $3) {
         const _order_0 = _t_0["order"];
         const _tail_0 = _items_0["tail"];
         $0 = _tail_0;
-        $1 = ($NativeRunControls$058schedule_payload$(_payload_0, _state_0, _time_0, _order_0, _receipt_0));
+        $1 = ($NativeRunCallbackControls$058schedule_payload$(_payload_0, _state_0, _time_0, _order_0, _receipt_0));
         $2 = _payload_0;
         $3 = _receipt_0;
         continue;
@@ -37055,16 +37136,202 @@ function $NativeRunControls$058callback_schedule$($0, $1, $2, $3) {
   }
 }
 
-function $NativeRunControls$058callback_changed$(_state_0, _source_0, _changed_0) {
-  const _core_0 = _changed_0["state"];
-  const _result_0 = _changed_0["result"];
-  const _cancel_0 = _changed_0["cancel"];
-  const _schedule_0 = _changed_0["schedule"];
-  return {$: "NativeRunControls.Applied", "state": ($NativeRunControls$058callback_schedule$(_schedule_0, ($NativeRunControls$058cancel_orders$(_cancel_0, ($NativeRun$058replace_core$(_state_0, _core_0)))), ($NativeRunControls$058scheduled_payload$(_source_0)), ($NativeRunControls$058callback_fact$(_source_0)))), "applied": true, "report": {$: "NativeRunControls.CallbackReport", "result": _result_0}};
+function $NativeRunCallbackControls$058callback_changed$(_state_0, _source_0, _changed_0) {
+  if (_changed_0.$ === "Con") {
+    const _t_0 = _changed_0["head"];
+    const _core_0 = _t_0["state"];
+    const _result_0 = _t_0["result"];
+    const _cancel_0 = _t_0["cancel"];
+    const _schedule_0 = _t_0["schedule"];
+    return {$: "NativeRunCallbackControls.Applied", "state": ($NativeRunCallbackControls$058callback_schedule$(_schedule_0, ($NativeRunCallbackControls$058cancel_orders$(_cancel_0, ($NativeRun$058replace_core$(_state_0, _core_0)))), {$: "Con", "head": ($NativeRunCallbackControls$058scheduled_payload$(_source_0)), "tail": {$: "Nil"}}, {$: "Con", "head": ($NativeRunCallbackControls$058callback_fact$(_source_0)), "tail": {$: "Nil"}})), "result": _result_0};
+  } else {
+    return {$: "NativeRunCallbackControls.Applied", "state": ($NativeRun$058invalid$(_state_0)), "result": {$: "Callbacks.Missing"}};
+  }
 }
 
-function $NativeRunControls$058callback$(_state_0, _target_0, _action_0, _source_0) {
-  return $NativeRunControls$058callback_changed$(_state_0, _source_0, ($Engine$058callback_action$(($NativeRun$058core$(_state_0)), _target_0, _action_0, ($NativeRunControls$058callback_fact$(_source_0)), ($NativeRun$058clock$(_state_0)), ($NativeRun$058next_order$(_state_0)))));
+function $NativeRunCallbackControls$058cleanup_equal$(_expected_0, _actual_0) {
+  if (_expected_0.$ === "Canonical.CollectionLeaseCheck") {
+    const _a_0 = _expected_0["advice"];
+    const _t_0 = _expected_0["token"];
+    const _e_0 = _expected_0["expired"];
+    const _b_0 = _expected_0["stop_collector"];
+    const _c_0 = _expected_0["same_group"];
+    const _d_0 = _expected_0["reofferable"];
+    if (_actual_0.$ === "Canonical.CollectionLeaseCheck") {
+      const _x_0 = _actual_0["advice"];
+      const _y_0 = _actual_0["token"];
+      const _f_0 = _actual_0["expired"];
+      const _g_0 = _actual_0["stop_collector"];
+      const _h_0 = _actual_0["same_group"];
+      const _i_0 = _actual_0["reofferable"];
+      const _x_1 = ($Bool$to_u32$(_e_0));
+      const _x_2 = ($Bool$to_u32$(_f_0));
+      const _x_3 = ($Bool$to_u32$(_b_0));
+      const _x_4 = ($Bool$to_u32$(_g_0));
+      const _x_5 = ($Bool$to_u32$(_c_0));
+      const _x_6 = ($Bool$to_u32$(_h_0));
+      const _x_7 = ($Bool$to_u32$(_d_0));
+      const _x_8 = ($Bool$to_u32$(_i_0));
+      return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_a_0, _x_0)), ($Nat$is_eq$(_t_0, _y_0)))), (_x_1 === _x_2))), (_x_3 === _x_4))), (_x_5 === _x_6))), (_x_7 === _x_8));
+    } else {
+      return false;
+    }
+  } else if (_expected_0.$ === "Canonical.CollectionReleaseLease") {
+    const _a_1 = _expected_0["advice"];
+    const _t_1 = _expected_0["token"];
+    if (_actual_0.$ === "Canonical.CollectionReleaseLease") {
+      const _x_9 = _actual_0["advice"];
+      const _y_1 = _actual_0["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_1, _x_9)), ($Nat$is_eq$(_t_1, _y_1)));
+    } else {
+      return false;
+    }
+  } else if (_expected_0.$ === "Canonical.SubmissionRelease") {
+    const _a_2 = _expected_0["advice"];
+    const _t_2 = _expected_0["token"];
+    if (_actual_0.$ === "Canonical.SubmissionRelease") {
+      const _x_10 = _actual_0["advice"];
+      const _y_2 = _actual_0["token"];
+      return $Bool$and$(($Nat$is_eq$(_a_2, _x_10)), ($Nat$is_eq$(_t_2, _y_2)));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $NativeRunCallbackControls$058input_matches$(_input_0, _event_0) {
+  if (_input_0.$ === "NativeRunTypes.Event") {
+    const _t_0 = _input_0["action"];
+    const _actual_0 = _t_0["event"];
+    return $NativeRunCallbackControls$058cleanup_equal$(_event_0, _actual_0);
+  } else if (_input_0.$ === "NativeRunTypes.FinishInput") {
+    const _t_1 = _input_0["action"];
+    const _actual_1 = _t_1["event"];
+    return $NativeRunCallbackControls$058cleanup_equal$(_event_0, _actual_1);
+  } else {
+    return false;
+  }
+}
+
+function $NativeRunCallbackControls$058cleanup_item$(_items_0, _order_0, _event_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _id_0 = _t_0["order"];
+    const _input_0 = _t_0["input"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_id_0, _order_0)), ($NativeRunCallbackControls$058input_matches$(_input_0, _event_0))));
+    const _x_1 = ($NativeRunCallbackControls$058cleanup_item$(_tail_0, _order_0, _event_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $NativeRunCallbackControls$058queued$(_items_0, _order_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _id_0 = _t_0["order"];
+    const _tail_0 = _items_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_id_0, _order_0));
+    const _x_1 = ($NativeRunCallbackControls$058queued$(_tail_0, _order_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $NativeRunCallbackControls$058move_cleanup$(_on_0, _state_0, _order_0, _at_0) {
+  if (!_on_0) {
+    return _state_0;
+  } else {
+    return $NativeRun$058replace_core$(_state_0, ($Engine$058enqueue$(($Engine$058cancel$(($NativeRun$058core$(_state_0)), _order_0)), _at_0, _order_0)));
+  }
+}
+
+function $NativeRunCallbackControls$058cleanup_steps$($0, $1, $2, $3) {
+  for (;;) {
+    {
+      const _items_0 = $0;
+      const _state_0 = $1;
+      const _order_0 = $2;
+      const _at_0 = $3;
+      if (_items_0.$ === "Nil") {
+        return _state_0;
+      } else {
+        const _t_0 = _items_0["head"];
+        const _event_0 = _t_0["event"];
+        const _tail_0 = _items_0["tail"];
+        $0 = _tail_0;
+        $1 = ($NativeRunCallbackControls$058move_cleanup$(($Bool$and$(($NativeRunCallbackControls$058queued$(($Engine$058queued$(($NativeRun$058core$(_state_0)))), _order_0)), ($NativeRunCallbackControls$058cleanup_item$(($NativeRun$058runtime_items$(_state_0)), _order_0, _event_0)))), _state_0, _order_0, _at_0));
+        $2 = nat_chk(_order_0 + 1);
+        $3 = _at_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $NativeRunCallbackControls$058after_terminal$(_items_0) {
+  if (_items_0.$ === "Con") {
+    const _tail_0 = _items_0["tail"];
+    return _tail_0;
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $NativeRunCallbackControls$058completion_cleanup$(_found_0, _state_0, _at_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _target_0 = _t_0["target"];
+    const _t_1 = _t_0["completion"];
+    if (_t_1.$ === "Some") {
+      const _t_2 = _t_1["value"];
+      const _attempt_0 = _t_2["attempt"];
+      const _outcome_0 = _t_2["outcome"];
+      const _delay_0 = _t_2["delay"];
+      const _lease_0 = _t_2["lease"];
+      const _x_0 = ($Callbacks$058order_of$(_target_0));
+      return $NativeRunCallbackControls$058cleanup_steps$(($NativeRunCallbackControls$058after_terminal$(($OutputScenario$058terminal$(_attempt_0, _outcome_0, ($OutputScenario$058expired$(_outcome_0, _delay_0, _lease_0)), ($OutputScenario$058due$(_outcome_0, _delay_0, _lease_0)), _lease_0)))), _state_0, nat_chk(_x_0 + 1), _at_0);
+    } else {
+      return _state_0;
+    }
+  } else {
+    return _state_0;
+  }
+}
+
+function $NativeRunCallbackControls$058transported$(_result_0, _action_0, _source_0) {
+  const _state_0 = _result_0["state"];
+  const _t_0 = _result_0["result"];
+  if (_t_0.$ === "Callbacks.Applied") {
+    if (_action_0.$ === "Callbacks.Transport") {
+      const _at_0 = _action_0["delivery_at"];
+      return {$: "NativeRunCallbackControls.Applied", "state": ($NativeRunCallbackControls$058completion_cleanup$(($NativeRunCallbackControls$058callback_fact$(_source_0)), _state_0, _at_0)), "result": {$: "Callbacks.Applied"}};
+    } else {
+      return {$: "NativeRunCallbackControls.Applied", "state": _state_0, "result": {$: "Callbacks.Applied"}};
+    }
+  } else {
+    return {$: "NativeRunCallbackControls.Applied", "state": _state_0, "result": _t_0};
+  }
+}
+
+function $NativeRunCallbackControls$058apply$(_state_0, _target_0, _action_0, _source_0) {
+  return $NativeRunCallbackControls$058transported$(($NativeRunCallbackControls$058callback_changed$(_state_0, _source_0, {$: "Con", "head": ($Engine$058callback_action$(($NativeRun$058core$(_state_0)), _target_0, _action_0, ($NativeRunCallbackControls$058callback_fact$(_source_0)), ($NativeRun$058clock$(_state_0)), ($NativeRun$058next_order$(_state_0)))), "tail": {$: "Nil"}})), _action_0, _source_0);
+}
+
+function $NativeRunControls$058ordinary$(_changed_0) {
+  const _state_0 = _changed_0["state"];
+  const _applied_0 = _changed_0["applied"];
+  return {$: "NativeRunControls.Applied", "state": _state_0, "applied": _applied_0, "report": {$: "NativeRunControls.Ordinary"}};
+}
+
+function $NativeRunControls$058callback_result$(_changed_0) {
+  const _state_0 = _changed_0["state"];
+  const _result_0 = _changed_0["result"];
+  return {$: "NativeRunControls.Applied", "state": _state_0, "applied": true, "report": {$: "NativeRunControls.CallbackReport", "result": _result_0}};
 }
 
 function $NativeRunControls$058output_payload$(_payload_0, _action_0) {
@@ -37109,7 +37376,7 @@ function $NativeRunControls$058output_schedule$($0, $1, $2) {
         const _action_0 = _t_0["action"];
         const _tail_0 = _items_0["tail"];
         $0 = _tail_0;
-        $1 = ($NativeRunControls$058schedule_payload$(($NativeRunControls$058changed_output_payload$(_payload_0, _action_0)), _state_0, _time_0, _order_0, {$: "None"}));
+        $1 = ($NativeRunCallbackControls$058schedule_payload$({$: "Con", "head": ($NativeRunControls$058changed_output_payload$(_payload_0, _action_0)), "tail": {$: "Nil"}}, _state_0, _time_0, _order_0, {$: "Con", "head": {$: "None"}, "tail": {$: "Nil"}}));
         $2 = _payload_0;
         continue;
       }
@@ -37139,7 +37406,7 @@ function $NativeRunControls$058replace_callback_sources$(_values_0, _fact_0, _ta
   } else {
     const _head_0 = _values_0["head"];
     const _tail_0 = _values_0["tail"];
-    return {$: "Con", "head": ($NativeRunControls$058replaced_callback_source$(($Callbacks$058target_equal$(($NativeRunControls$058retained_target$(_head_0)), _target_0)), _head_0, _fact_0)), "tail": ($NativeRunControls$058replace_callback_sources$(_tail_0, _fact_0, _target_0))};
+    return {$: "Con", "head": ($NativeRunControls$058replaced_callback_source$(($NativeRunCallbackControls$058matches_target$({$: "Con", "head": _head_0, "tail": {$: "Nil"}}, _target_0)), _head_0, _fact_0)), "tail": ($NativeRunControls$058replace_callback_sources$(_tail_0, _fact_0, _target_0))};
   }
 }
 
@@ -37179,11 +37446,11 @@ function $NativeRunControls$058output_changed$(_state_0, _source_0, _changed_0) 
   const _cancel_0 = _changed_0["cancel"];
   const _schedule_0 = _changed_0["schedule"];
   const _receipt_0 = _changed_0["receipt"];
-  return {$: "NativeRunControls.Applied", "state": ($NativeRunControls$058output_schedule$(_schedule_0, ($NativeRunControls$058cancel_orders$(_cancel_0, ($NativeRunControls$058output_receipt_state$(($NativeRun$058replace_core$(_state_0, _core_0)), _receipt_0)))), ($NativeRunControls$058scheduled_payload$(_source_0)))), "applied": true, "report": {$: "NativeRunControls.OutputReport", "result": _result_0}};
+  return {$: "NativeRunControls.Applied", "state": ($NativeRunControls$058output_schedule$(_schedule_0, ($NativeRunCallbackControls$058cancel_orders$(_cancel_0, ($NativeRunControls$058output_receipt_state$(($NativeRun$058replace_core$(_state_0, _core_0)), _receipt_0)))), ($NativeRunCallbackControls$058scheduled_payload$({$: "Con", "head": _source_0, "tail": {$: "Nil"}})))), "applied": true, "report": {$: "NativeRunControls.OutputReport", "result": _result_0}};
 }
 
 function $NativeRunControls$058output$(_state_0, _target_0, _outcome_0, _source_0) {
-  return $NativeRunControls$058output_changed$(_state_0, _source_0, ($Engine$058output_intervene$(($NativeRun$058core$(_state_0)), _target_0, _outcome_0, ($NativeRunControls$058callback_fact$(_source_0)))));
+  return $NativeRunControls$058output_changed$(_state_0, _source_0, ($Engine$058output_intervene$(($NativeRun$058core$(_state_0)), _target_0, _outcome_0, ($NativeRunCallbackControls$058callback_fact$({$: "Con", "head": _source_0, "tail": {$: "Nil"}})))));
 }
 
 function $NativeRunControls$058configured_environment$(_credentials_0, _state_0) {
@@ -37646,7 +37913,7 @@ function $NativeRunControls$058request_facts$($0, $1) {
 function $NativeRunControls$058request_changed$(_state_0, _orders_0, _changed_0) {
   if (_changed_0.$ === "JevEffects.Applied") {
     const _facts_0 = _changed_0["facts"];
-    return {$: "NativeRunControls.Applied", "state": ($NativeRunControls$058request_facts$(_facts_0, ($NativeRunControls$058cancel_orders$(_orders_0, ($NativeRun$058replace_core$(_state_0, ($Engine$058callback_replaced$(($NativeRun$058core$(_state_0)), _orders_0)))))))), "applied": true, "report": {$: "NativeRunControls.JevReport", "result": {$: "JevEffects.Applied", "facts": {$: "Nil"}}}};
+    return {$: "NativeRunControls.Applied", "state": ($NativeRunControls$058request_facts$(_facts_0, ($NativeRunCallbackControls$058cancel_orders$(_orders_0, ($NativeRun$058replace_core$(_state_0, ($Engine$058callback_replaced$(($NativeRun$058core$(_state_0)), _orders_0)))))))), "applied": true, "report": {$: "NativeRunControls.JevReport", "result": {$: "JevEffects.Applied", "facts": {$: "Nil"}}}};
   } else {
     return {$: "NativeRunControls.Applied", "state": _state_0, "applied": true, "report": {$: "NativeRunControls.JevReport", "result": _changed_0}};
   }
@@ -37716,15 +37983,6 @@ function $NativeRunControls$058notice_collect$(_state_0, _scope_0, _composed_0, 
   const __3 = _scope_0["cooldown"];
   const __4 = _scope_0["maximum_count"];
   return {$: "NativeRunControls.Applied", "state": ($NativeRun$058schedule_action$(($NativeRunControls$058notice_actions$(($Engine$058notice_collection_prune$(($NativeRun$058core$(_state_0)), _p_0, _g_0, ($NativeRun$058clock$(_state_0)))), _state_0, {$: "NoticeScenario.Scope", "partition": _p_0, "group": _g_0, "key": __0, "maximum_keys": __1, "reservation_bytes": __2, "cooldown": __3, "maximum_count": __4}, {$: "None"})), ($Driver$058immediate$({$: "Canonical.NoticeSelect", "partition": _p_0, "group": _g_0, "composed": _composed_0, "authority_bound": _bound_0, "allowed": _allowed_0}, false)), {$: "None"})), "applied": true, "report": {$: "NativeRunControls.Ordinary"}};
-}
-
-function $NativeRunControls$058live_or_history$(_live_0, _historical_0) {
-  if (_live_0.$ === "Some") {
-    const _live_1 = _live_0["value"];
-    return {$: "Some", "value": _live_1};
-  } else {
-    return _historical_0;
-  }
 }
 
 function $NativeRunControls$058notice_runtime_scope$(_scope_0, _runtime_0) {
@@ -37809,12 +38067,12 @@ function $NativeRunControls$058apply$(_state_0, _control_0) {
     const _target_6 = _control_0["target"];
     const _action_0 = _control_0["action"];
     const _historical_0 = _control_0["historical_source"];
-    return $NativeRunControls$058callback$(_state_0, _target_6, _action_0, ($NativeRunControls$058live_or_history$(($NativeRunControls$058callback_source$(($NativeRunControls$058callback_sources$(_state_0)), _target_6)), _historical_0)));
+    return $NativeRunControls$058callback_result$(($NativeRunCallbackControls$058apply$(_state_0, _target_6, _action_0, ($NativeRunCallbackControls$058live_or_history$(($NativeRunCallbackControls$058callback_source$(($NativeRunCallbackControls$058callback_sources$(_state_0)), _target_6)), {$: "Con", "head": _historical_0, "tail": {$: "Nil"}})))));
   } else if (_control_0.$ === "NativeRunTypes.OutputAttemptControl") {
     const _target_7 = _control_0["target"];
     const _outcome_2 = _control_0["outcome"];
     const _historical_1 = _control_0["historical_source"];
-    return $NativeRunControls$058output$(_state_0, _target_7, _outcome_2, ($NativeRunControls$058live_or_history$(($NativeRunControls$058callback_source$(($NativeRunControls$058callback_sources$(_state_0)), _target_7)), _historical_1)));
+    return $NativeRunControls$058output$(_state_0, _target_7, _outcome_2, ($NativeRunCallbackControls$058source_value$(($NativeRunCallbackControls$058live_or_history$(($NativeRunCallbackControls$058callback_source$(($NativeRunCallbackControls$058callback_sources$(_state_0)), _target_7)), {$: "Con", "head": _historical_1, "tail": {$: "Nil"}})))));
   } else if (_control_0.$ === "NativeRunTypes.CredentialControl") {
     const _ready_0 = _control_0["available"];
     const _rotate_0 = _control_0["rotate"];
@@ -38077,6 +38335,14 @@ function $List$reverse$(_xs_0) {
   return $List$reverse$go$(_xs_0, {$: "Nil"});
 }
 
+function $Bool$to_u32$(_b_0) {
+  if (!_b_0) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 function $Cmp$is_eq$(_c_0) {
   if (_c_0.$ === "EQ") {
     return true;
@@ -38138,7 +38404,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:fbb33c9e9227b048b9183cea3f1346ce041d97663f714de6dd125046440653c7";
+export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:ed3c070559f3f389606be344fe659895e5b59d6d748c14475091531159e8980b";
 const facts = value => {
   if (typeof value === "bigint") { if (value < 0n || value >= 281474976710656n) throw new RangeError("invalid immediate Nat"); return Number(value); }
   if (typeof value === "number") { if (!Number.isSafeInteger(value) || value < 0 || value >= 281474976710656) throw new RangeError("invalid immediate Nat"); return value; }

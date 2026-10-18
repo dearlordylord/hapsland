@@ -44,7 +44,7 @@ const config = {
   graphLimits: { version: 1, sourceBytes: 262144, treeBytes: 20480, files: 8,
     readBytes: 1572864, outgoingEdges: 16, depth: 4, work: 128 },
   preparationDelay: 800, jevDelay: 3200, adviceLifetime: 20000,
-  outputProfile: { outcome: "certain", delayMs: 800, leaseMs: 5000 },
+  outputProfile: { outcome: "certain", delayMs: 800, leaseMs: 12000 },
   outcomeWeights: { neverSent: 0, finding: 1, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0 },
   fileTrees: { minFiles: 1, maxFiles: 3, maxImports: 2, maxDepth: 2, deniedPercent: 0,
     missingPercent: 0, unreadablePercent: 0, repeatedEdgePercent: 10, cyclicEdgePercent: 0,
@@ -142,27 +142,47 @@ for (const seed of [0,3,17,41]) {
           if (paused) {
             assert.deepEqual(after, before, "paused Host tick preserves the entire private engine and queue");
             assert.equal(list(physical.frames).length, 0);
+            assert.equal(list(physical.transport).length, 0, "pause cannot reschedule callbacks");
           } else {
             ticks++;
-            // Presentation reads every accepted frame and never gates business work.
-            run.advance({ untilTime: ticks * 20, maxEvents: 256 });
-            // Independent game scenario: each default request has eight rules.
-            // Add multiplicity through the same public canonical input boundary.
-            const settlements = publicFrames.filter(frame => frame.kind === "canonical" &&
-              frame.observation.event.kind === "jevRequestSettled" &&
-              frame.observation.event.outcome === "finding" && frame.observation.event.currentWork);
-            let counts = 0;
-            for (const frame of settlements) {
-              const event = frame.observation.event;
-              const work = run.observe().projection.work.find(item => item.partition === event.partition &&
-                item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation);
-              if (work?.kind !== "pendingFinding") continue;
-              run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
-                partition: event.partition, lifetime: event.lifetime, round: event.round,
-                operation: event.operation, count: 4 } });
-              counts++;
+            const initialCount = run.eventCount;
+            const changes = list(physical.transport).map(readRecord);
+            let changeIndex = 0;
+            const applyTransport = () => {
+              while (changeIndex < changes.length && readNat(changes[changeIndex].eventCount) === run.eventCount) {
+                const change = changes[changeIndex++];
+                assert.equal(change.$, "DefenseTransport.Change");
+                const target = decodeCallbackTarget(change.target);
+                const queued = run.runtimeSnapshot().queue.find(item => item.callbackReceipt?.target.originalOrder === target.originalOrder);
+                assert.ok(queued, "transport must address a queued callback");
+                assert.deepEqual(queued.callbackReceipt?.target, target, "exact transport callback identity");
+                const deliveryAt = readNat(change.at);
+                assert.ok(deliveryAt > queued.at, "physical transport only postpones unfinished travel");
+                run.applyControl({ kind: "callback", action: "transport", target, deliveryAt });
+                assert.equal(run.observe().callbackReports.at(-1)?.result, "applied", "public transport accepted");
+              }
+            };
+            applyTransport();
+            while (run.eventCount - initialCount < 256) {
+              const count = run.eventCount, firstFrame = publicFrames.length;
+              run.advance({ untilTime: ticks * 20, maxEvents: 1 });
+              // Install the default rule multiplicity immediately after its
+              // settlement, before the next event, as Host.micro does.
+              for (const frame of publicFrames.slice(firstFrame)) {
+                if (frame.kind !== "canonical") continue;
+                const event = frame.observation.event;
+                if (event.kind !== "jevRequestSettled" || event.outcome !== "finding" || !event.currentWork) continue;
+                const work = run.observe().projection.work.find(item => item.partition === event.partition &&
+                  item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation);
+                if (work?.kind !== "pendingFinding") continue;
+                run.schedule({ at: run.now, kind: "canonical", event: { kind: "findingCountUpdated",
+                  partition: event.partition, lifetime: event.lifetime, round: event.round,
+                  operation: event.operation, count: 4 } });
+              }
+              applyTransport();
+              if (run.eventCount === count) break;
             }
-            if (counts) run.advance({ untilTime: run.now, maxEvents: 32 });
+            assert.equal(changeIndex, changes.length, "all transport actions consumed at exact event boundaries");
           }
         } finally { unsubscribe(); }
         const deliveries = list(physical.physical).map(readRecord);

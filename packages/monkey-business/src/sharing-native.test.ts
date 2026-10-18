@@ -64,6 +64,7 @@ const graphLimits = {
 function originalRun(mode: number) {
   if (mode === 6)
     return createRun({
+      graphLimits,
       retention: 3000,
       inputs: inputs(mode),
       preparationDelay: 2,

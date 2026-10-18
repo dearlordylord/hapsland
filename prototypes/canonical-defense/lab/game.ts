@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import Game from "./game.generated.mjs"
-import { readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
+import { readBendList, readNat, readRecord } from "@hapsland/canonical-policy/canonical/boundary-schema"
 import { projectTrustedCanonical } from "@hapsland/canonical-policy/canonical/canonical-boundary"
 import { configurationIdentity } from "./identity.ts"
 import { createGameBusinessReplay } from "./business-replay.ts"
 import { restoreReplay } from "../../../packages/monkey-business/src/index.ts"
+import { decodeCallbackTarget,type CallbackTarget } from "../../../packages/monkey-business/src/callback-controls.ts"
 
-const towerKinds = { jevService: 0, deliveryRelay: 1, accessRepair: 2 } as const
+const towerKinds = { workAccelerator: 3, resultCourier: 4 } as const
 export type TowerAbility = keyof typeof towerKinds
 export type TowerIdentity = string
 export const gameAbilityTeaching: Readonly<Record<TowerAbility, {
@@ -15,20 +16,15 @@ export const gameAbilityTeaching: Readonly<Record<TowerAbility, {
   readonly applicability: string
   readonly businessObservation: string
 }>> = {
-  jevService: {
-    target: "future Jev request latency",
-    applicability: "connected service strength changes future profiles; issued outcomes and deadlines stay captured",
-    businessObservation: "request issuance/settlement timing and shared permit occupancy"
+  workAccelerator: {
+    target: "one queued preparation or started Jev settlement in range",
+    applicability: "automatic shot advances its exact captured callback to elapsed game intervention time; per-tower cooldown limits shots",
+    businessObservation: "selected operation completion timing, unchanged outcome and other queued deadlines"
   },
-  deliveryRelay: {
-    target: "future finding output delivery latency",
-    applicability: "connected relay strength changes future profiles; authorized output timing and membership stay captured",
-    businessObservation: "individual submission and bundle output terminal timing, certainty and retained ownership"
-  },
-  accessRepair: {
-    target: "source readability and credential availability",
-    applicability: "one shot per connected purchase; healthy access can make the investment ineffective",
-    businessObservation: "future request admission and finding progress after restored access"
+  resultCourier: {
+    target: "one queued authorized output terminal in range",
+    applicability: "automatic shot advances the existing terminal; captured membership, outcome and ownership stay unchanged",
+    businessObservation: "selected submission terminal timing, retained findings and committed membership"
   }
 }
 export type GameMechanismDescriptor = {
@@ -40,15 +36,16 @@ export type GameMechanismDescriptor = {
   readonly lesson: string
 }
 export const gameMechanisms: Readonly<Record<string, GameMechanismDescriptor>> = {
-  jevService: { cost: 60, ability: "jevService", displayName: "JevService", lesson: "Future request latency within fixed permits" },
-  deliveryRelay: { cost: 55, ability: "deliveryRelay", displayName: "DeliveryRelay", lesson: "Future delivery preserves committed ownership" },
-  accessRepair: { cost: 45, ability: "accessRepair", displayName: "AccessRepair", lesson: "Restore readable source and available credentials" }
+  workAccelerator: { cost: 50, radius:60, ability: "workAccelerator", displayName: "Ускоритель работы", lesson: "Targeted completion within unchanged ownership and permits" },
+  resultCourier: { cost: 40, radius:60, ability: "resultCourier", displayName: "Курьер результата", lesson: "Authorized delivery and result retirement remain different facts" }
 }
 export type GameAction = { readonly atTick: number } & (
   | { readonly kind: "build"; readonly tower: TowerIdentity; readonly x: number; readonly y: number }
   | { readonly kind: "upgrade"; readonly index: number }
+  | { readonly kind: "fire"; readonly index: number; readonly operation: number }
 )
 export type GameScenarioSettings = {
+  readonly finishAtMs?: number
   readonly jevDelayMs?: number
   readonly outputDelayMs?: number
   readonly sourceDelayMs?: number
@@ -60,6 +57,9 @@ export type GameScenarioSettings = {
 }
 export type GameExperiment = {
   readonly context: string
+  /** Capture source-owned drawing facts only for visual studies. */
+  readonly captureSpatial?: boolean
+  readonly automaticTowers?: boolean
   /** Explicit continuous workload settings; defaults match the interactive game. */
   readonly scenario: "continuousGame"
   readonly settings?: GameScenarioSettings
@@ -118,7 +118,7 @@ function boundary(value: unknown): unknown {
       key === "$" && typeof item === "string" ? item.slice(item.lastIndexOf("/") + 1) : boundary(item)]))
   return value
 }
-function observe(world: unknown) {
+function observe(world: unknown,captureSpatial: boolean) {
   const game = readRecord(boundary(Game.observe(world)))
   const engine = readRecord(boundary(Game.engine_observation(world)))
   if (engine.valid !== true) throw new Error("invalid shared native game engine")
@@ -126,10 +126,13 @@ function observe(world: unknown) {
     game: { health: readNat(game.health), remainingBudget: readNat(game.remainingBudget),
       tick: readNat(game.tick), towerCount: readNat(game.towerCount) },
     business: { now: readNat(engine.time), events: readNat(engine.event_count),
-      projection: projectTrustedCanonical(engine.canonical) }
+      projection: projectTrustedCanonical(engine.canonical) },
+    spatial: captureSpatial ? readRecord(boundary(Game.visual_state(world))) : { towers: [],targets: [] }
   }
 }
 function validate(input: GameExperiment) {
+  if (input.automaticTowers !== undefined && typeof input.automaticTowers !== "boolean") throw new RangeError("invalid automatic tower setting")
+  if (input.captureSpatial !== undefined && typeof input.captureSpatial !== "boolean") throw new RangeError("invalid spatial capture setting")
   if (!input.context || input.scenario !== "continuousGame") throw new RangeError("invalid game context or scenario")
   for (const [name, number, maximum] of [
     ["seed", input.seed, 0xffffffff], ["budget", input.budget, 0xffffffff],
@@ -145,8 +148,6 @@ function validate(input: GameExperiment) {
     if (!Object.hasOwn(towerKinds, descriptor.ability)) throw new RangeError("invalid game mechanism ability")
     if (descriptor.strength !== undefined && (!Number.isSafeInteger(descriptor.strength) ||
       descriptor.strength < 1 || descriptor.strength > 16)) throw new RangeError("invalid game mechanism strength")
-    if (descriptor.ability === "accessRepair" && descriptor.strength !== undefined && descriptor.strength !== 1)
-      throw new RangeError("repair strength must be1")
     if (descriptor.radius !== undefined && (!Number.isSafeInteger(descriptor.radius) ||
       descriptor.radius < 20 || descriptor.radius > 240)) throw new RangeError("invalid game mechanism radius")
     for (const value of [descriptor.displayName, descriptor.lesson])
@@ -156,6 +157,7 @@ function validate(input: GameExperiment) {
     throw new RangeError("invalid enabled game towers")
   const settings = input.settings ?? {}
   for (const [name, value, minimum, maximum] of [
+    ["finishAtMs", settings.finishAtMs, 0, 1_000_000_000],
     ["jevDelayMs", settings.jevDelayMs, 0, 1_000_000_000],
     ["outputDelayMs", settings.outputDelayMs, 0, 1_000_000_000],
     ["sourceDelayMs", settings.sourceDelayMs, 0, 1_000_000_000],
@@ -174,7 +176,8 @@ function validate(input: GameExperiment) {
       throw new RangeError("game action configuration belongs to catalogue")
     if (!Number.isSafeInteger(action.atTick) || action.atTick < 0 || action.atTick > input.untilTicks)
       throw new RangeError("invalid game action tick")
-    const coordinates = action.kind === "build" ? [action.x, action.y] : action.kind === "upgrade" ? [action.index] : []
+    const coordinates = action.kind === "build" ? [action.x, action.y]
+      : action.kind === "upgrade" ? [action.index] : action.kind === "fire" ? [action.index, action.operation] : []
     if (coordinates.length === 0 || coordinates.some(value => !Number.isSafeInteger(value) || value < 0 || value > 0xffffffff))
       throw new RangeError("invalid game action")
     if (action.kind === "build" && !Object.hasOwn(catalogue, action.tower)) throw new RangeError("unknown game tower")
@@ -195,11 +198,12 @@ export function runGameExperiment(input: GameExperiment) {
     result: settings.outcome === "clear" ? 1 : settings.outcome === "finding" ? 2 : 0,
     burst: settings.burst ?? 1, interval: settings.arrivalIntervalMs ?? 30000
   }, BigInt(input.seed), input.budget, input.layout)
+  if (settings.finishAtMs !== undefined) world=Game.schedule_finish(world,BigInt(settings.finishAtMs))
   const mirror = createGameBusinessReplay(settings, input.seed)
   const nativeObservation = () => boundary(Game.engine_observation(world))
   mirror.compare(nativeObservation(), "game creation")
-  const observations = [observe(world)]
-  const actions: { action: GameAction; result: string; charged: number }[] = []
+  const observations = [observe(world,input.captureSpatial === true)]
+  const actions: { action: GameAction; result: string; charged: number;target?:CallbackTarget;automatic?:boolean }[] = []
   const trace: unknown[] = []
   const schedule = [...input.actions].sort((a, b) => a.atTick - b.atTick)
   let position = 0
@@ -210,6 +214,8 @@ export function runGameExperiment(input: GameExperiment) {
       const action = schedule[position++]!
       const before = nativeObservation()
       const label = `game action ${position}`
+      const rawTarget = action.kind === "fire" ? readRecord(Game.shot_target(world,action.index,BigInt(action.operation))) : undefined
+      const shotTarget = rawTarget?.$ === "Some" ? decodeCallbackTarget(boundary(rawTarget.value)) : undefined
       if (action.kind === "build" && !input.enabled.includes(action.tower)) {
         actions.push({ action, result: "disabled", charged: 0 })
         mirror.recordAction({ before, after: nativeObservation(), applied: false, label })
@@ -218,25 +224,45 @@ export function runGameExperiment(input: GameExperiment) {
       const receipt = readRecord(action.kind === "build"
         ? Game.build_tuned(world, action.x, action.y,
           towerKinds[input.catalogue![action.tower]!.ability], input.catalogue![action.tower]!.cost,
-          input.catalogue![action.tower]!.strength ?? 1, input.catalogue![action.tower]!.radius ?? 100)
-        : Game.apply(world, { $: "Upgrade", index: action.index }))
+          input.catalogue![action.tower]!.strength ?? 1,
+          input.catalogue![action.tower]!.radius ?? 60)
+        : Game.apply(world, action.kind === "fire"
+          ? { $: "Fire", index: action.index, operation: BigInt(action.operation) }
+          : { $: "Upgrade", index: action.index }))
       world = receipt.world
       const result = readRecord(receipt.result).$ as string
-      actions.push({ action, result, charged: readNat(boundary(receipt.charged)) })
-      mirror.recordAction({ before, after: nativeObservation(), applied: result === "Applied", label })
-      state = observe(world)
+      actions.push({ action, result, charged: readNat(boundary(receipt.charged)),
+        ...(result === "Applied" && shotTarget ? { target:shotTarget } : {}) })
+      mirror.recordAction({ before, after: nativeObservation(), applied: result === "Applied", label,
+        ...(shotTarget ? { shotTarget, deliveryAt: Math.max(state.business.now,state.game.tick*20) } : {}) })
+      state = observe(world,input.captureSpatial === true)
+      observations[observations.length - 1] = state
     }
     if (state.game.tick >= input.untilTicks || state.business.events >= input.maxEvents || state.game.health === 0) break
+    if (input.automaticTowers) {
+      const beforeAuto = nativeObservation()
+      const pass = readRecord(Game.automatic(world))
+      const shots = readBendList(boundary(pass.shots), readRecord, 1024)
+      world = pass.world
+      const targets = shots.map(shot => decodeCallbackTarget(shot.target))
+      mirror.recordAutomatic(beforeAuto, nativeObservation(), targets, Math.max(state.business.now,state.game.tick*20))
+      for (const [i, shot] of shots.entries()) actions.push({
+        action: {kind:"fire",atTick:state.game.tick,index:Number(shot.index),operation:0},
+        result:"Applied",charged:0,target:targets[i]!,automatic:true
+      })
+      state = observe(world,input.captureSpatial === true)
+      observations[observations.length - 1] = state
+    }
     const before = nativeObservation()
     const untilTime = (state.game.tick + 1) * 20
     const maxEvents = Math.min(256, input.maxEvents - state.business.events)
     const tick = readRecord(Game.tick_bounded(world, BigInt(maxEvents)))
-    const frames = boundary(tick.frames), physical = boundary(tick.physical)
+    const frames = boundary(tick.frames), physical = boundary(tick.physical), transport = boundary(tick.transport)
     trace.push({ frames, physical })
     world = tick.world
-    mirror.advanceAndCompare({ before, after: nativeObservation(), frames, physical, untilTime, maxEvents,
+    mirror.advanceAndCompare({ before, after: nativeObservation(), frames, physical, transport, untilTime, maxEvents,
       label: `game tick ${state.game.tick + 1}` })
-    state = observe(world)
+    state = observe(world,input.captureSpatial === true)
     observations.push(state)
   }
   for (const action of schedule.slice(position)) actions.push({ action, result: "notReached", charged: 0 })

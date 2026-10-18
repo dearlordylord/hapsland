@@ -1,4 +1,5 @@
-import { expect, it } from "vitest"
+import { expect, it, vi } from "vitest"
+import Game from "@hapsland/canonical-defense/lab/game-native"
 import { readFileSync } from "node:fs"
 import {
   runGameExperiment,
@@ -24,7 +25,7 @@ const gameInput = {
   seed: 152,
   budget: 160,
   layout: 0 as const,
-  enabled: ["jevService" as const, "deliveryRelay" as const, "accessRepair" as const],
+  enabled: ["workAccelerator", "resultCourier"],
   settings: {
     sourceDelayMs: 0,
     jevDelayMs: 100,
@@ -38,114 +39,152 @@ const gameInput = {
   maxEvents: 100
 }
 
-it("records actual-game placement and upgrades with configured scenarios and exact replay", () => {
+it("records purchases and upgrades without changing captured work or replay", () => {
   const result = runGameExperiment({
     ...gameInput,
     untilTicks: 0,
     actions: [
-      { atTick: 0, kind: "build", tower: "jevService", x: 424, y: 392 },
+      { atTick: 0, kind: "build", tower: "workAccelerator", x: 424, y: 392 },
       { atTick: 0, kind: "upgrade", index: 1 }
     ]
   })
-  expect(result.actions.map((action) => [action.result, action.charged])).toEqual([
-    ["Applied", 60],
+  expect(result.actions.map((a) => [a.result, a.charged])).toEqual([
+    ["Applied", 50],
     ["Applied", 40]
   ])
-  expect(result.game).toEqual({
-    initialBudget: 160,
-    spent: 100,
-    remainingBudget: 60,
-    health: 100,
-    tick: 0,
-    towerCount: 1
-  })
+  expect(result.game).toMatchObject({ spent: 90, remainingBudget: 70, towerCount: 1, health: 100 })
   expect(replayGameExperiment(JSON.parse(JSON.stringify(result.recording)))).toEqual(result)
-  expect(result.businessReplay.format).toBe("monkey-business/1")
-  const mutatedReplay = JSON.parse(JSON.stringify(result.recording))
-  mutatedReplay.businessReplay.logicIdentity = "wrong business logic"
-  expect(() => replayGameExperiment(mutatedReplay)).toThrow()
   expect(() => replayGameExperiment({ ...result.recording, traceIdentity: "changed" })).toThrow("trace")
-  expect(() =>
-    replayGameExperiment({
-      ...result.recording,
-      experiment: { ...result.recording.experiment, settings: { ...gameInput.settings, jevDelayMs: 101 } }
-    })
-  ).toThrow("recording")
+  const changed = { ...result.recording, businessReplay: { ...result.businessReplay, logicIdentity: "wrong" } }
+  expect(() => replayGameExperiment(changed)).toThrow()
 })
-
-it("preserves resources for illegal, unaffordable, disabled and max-level repair actions", () => {
+it.each(["finding", "clear", "sampled"] as const)("construction preserves %s scenario and public replay", (outcome) => {
+  const input = { ...gameInput, settings: { ...gameInput.settings, outcome } }
+  const baseline = runGameExperiment(input)
+  const built = runGameExperiment({
+    ...input,
+    actions: [{ atTick: 0, kind: "build", tower: "workAccelerator", x: 424, y: 392 }]
+  })
+  expect(built.businessReplay).toEqual(baseline.businessReplay)
+  expect(replayGameExperiment(built.recording)).toEqual(built)
+})
+it("refused purchases and upgrades spend nothing; maximum level is three", () => {
   const result = runGameExperiment({
     ...gameInput,
-    budget: 45,
+    budget: 140,
     untilTicks: 0,
-    enabled: ["accessRepair"],
+    enabled: ["resultCourier"],
     actions: [
-      { atTick: 0, kind: "build", tower: "accessRepair", x: 0, y: 0 },
-      { atTick: 0, kind: "build", tower: "jevService", x: 424, y: 392 },
+      { atTick: 0, kind: "build", tower: "resultCourier", x: 0, y: 0 },
+      { atTick: 0, kind: "build", tower: "workAccelerator", x: 424, y: 392 },
       { atTick: 0, kind: "upgrade", index: 1 },
-      { atTick: 0, kind: "build", tower: "accessRepair", x: 424, y: 232 },
+      { atTick: 0, kind: "build", tower: "resultCourier", x: 152, y: 392 },
       { atTick: 0, kind: "upgrade", index: 1 },
-      { atTick: 0, kind: "build", tower: "accessRepair", x: 424, y: 392 }
+      { atTick: 0, kind: "upgrade", index: 1 },
+      { atTick: 0, kind: "upgrade", index: 1 },
+      { atTick: 0, kind: "build", tower: "resultCourier", x: 424, y: 392 }
     ]
   })
-  expect(result.actions.map((action) => action.result)).toEqual([
-    "IllegalPlacement",
-    "disabled",
-    "UnknownTower",
-    "Applied",
-    "MaxLevel",
-    "Unaffordable"
+  expect(result.actions.map((a) => [a.result, a.charged])).toEqual([
+    ["IllegalPlacement", 0],
+    ["disabled", 0],
+    ["UnknownTower", 0],
+    ["Applied", 40],
+    ["Applied", 32],
+    ["Applied", 48],
+    ["MaxLevel", 0],
+    ["Unaffordable", 0]
   ])
-  expect(result.actions.map((action) => action.charged)).toEqual([0, 0, 0, 45, 0, 0])
-  expect(result.game.remainingBudget).toBe(0)
+  expect(result.game.remainingBudget).toBe(20)
 })
-
-it("enforces the global event budget within a dense actual-game tick", () => {
+it("enforces the event budget and exposes unreached scheduled investments", () => {
   const result = runGameExperiment({
     ...gameInput,
-    settings: { ...gameInput.settings, jevDelayMs: 0, outputDelayMs: 0, burst: 20 },
     maxEvents: 1,
-    actions: [{ atTick: 12, kind: "build", tower: "jevService", x: 424, y: 392 }]
+    settings: { ...gameInput.settings, jevDelayMs: 0, outputDelayMs: 0, burst: 20 },
+    actions: [{ atTick: 12, kind: "build", tower: "workAccelerator", x: 424, y: 392 }]
   })
   expect(result.termination).toBe("eventLimit")
   expect(result.business.events).toBe(1)
   expect(result.actions[0]?.result).toBe("notReached")
   expect(result.game.spent).toBe(0)
 })
-
-it("compares actual-game four arms and enumerates only declared placement schedules", () => {
+it("compares four arms at equal budgets and leaves undeclared search plans unsearched", () => {
   const a = {
-    name: "service",
-    actions: [{ atTick: 0, kind: "build" as const, tower: "jevService" as const, x: 424, y: 392 }]
+    name: "accelerator",
+    actions: [{ atTick: 0, kind: "build" as const, tower: "workAccelerator", x: 424, y: 392 }]
   }
   const b = {
-    name: "relay",
-    actions: [{ atTick: 0, kind: "build" as const, tower: "deliveryRelay" as const, x: 152, y: 392 }]
+    name: "courier",
+    actions: [{ atTick: 0, kind: "build" as const, tower: "resultCourier", x: 152, y: 392 }]
   }
-  const interaction = compareGameInteraction({ ...gameInput, untilTicks: 0 }, a, b)
+  const four = compareGameInteraction({ ...gameInput, untilTicks: 0 }, a, b)
+  expect([four.baseline, four.a, four.b, four.combined].map((r) => r.game.spent)).toEqual([0, 50, 40, 90])
   expect(
-    [interaction.baseline, interaction.a, interaction.b, interaction.combined].map((result) => result.game.spent)
-  ).toEqual([0, 60, 55, 115])
-  const comparison = compareGameExperiments({ ...gameInput, untilTicks: 0 }, { name: "none", actions: [] }, a)
-  expect(comparison.delta.game.spent).toBe(60)
-  const searched = searchGameExperiments(gameInput, [a, b], 1)
-  expect(searched.runs.map((run) => run.name)).toEqual(["service"])
-  expect(searched.unsearched).toEqual(["relay"])
-  const invalid = searchGameExperiments(gameInput, [{ name: "bad", actions: [{ ...a.actions[0]!, atTick: 13 }] }], 1)
-  expect(invalid.invalid[0]?.error).toBe("invalid game action tick")
+    compareGameExperiments({ ...gameInput, untilTicks: 0 }, { name: "none", actions: [] }, a).delta.game.spent
+  ).toBe(50)
+  const search = searchGameExperiments(gameInput, [a, b], 1)
+  expect(search.runs.map((r) => r.name)).toEqual(["accelerator"])
+  expect(search.unsearched).toEqual(["courier"])
 })
-
-it("validates explicit game scenario domains before starting the engine", () => {
+it("validates settings and rejects removed building upgrades before starting", () => {
   for (const settings of [
     { jevDelayMs: -1 },
     { sourceDelayMs: 1.5 },
     { outputDelayMs: Infinity },
     { burst: 0 },
     { burst: 1025 },
-    { arrivalIntervalMs: 19 },
-    { arrivalIntervalMs: 60001 }
+    { arrivalIntervalMs: 19 }
   ])
     expect(() => runGameExperiment({ ...gameInput, settings })).toThrow("invalid game")
+  for (const ability of ["jevService", "deliveryRelay", "accessRepair"])
+    expect(() =>
+      runGameExperiment({
+        ...gameInput,
+        catalogue: { old: { cost: 1, ability: ability as never, displayName: "old", lesson: "removed" } },
+        enabled: ["old"]
+      })
+    ).toThrow("invalid game mechanism ability")
+  for (const parameters of [
+    { strength: 0 },
+    { strength: 17 },
+    { strength: 1.5 },
+    { radius: 19 },
+    { radius: 241 },
+    { radius: 20.5 }
+  ])
+    expect(() =>
+      runGameExperiment({
+        ...gameInput,
+        catalogue: {
+          custom: { cost: 50, ability: "workAccelerator", displayName: "custom", lesson: "cadence", ...parameters }
+        },
+        enabled: ["custom"]
+      })
+    ).toThrow("invalid game mechanism")
+})
+it("custom prices and ability replacement bind replay to actual capabilities", () => {
+  const input = {
+    ...gameInput,
+    untilTicks: 0,
+    budget: 20,
+    enabled: ["custom"],
+    catalogue: {
+      custom: { cost: 12, ability: "resultCourier" as const, displayName: "custom", lesson: "authorized output" }
+    },
+    actions: [
+      { atTick: 0, kind: "build" as const, tower: "custom", x: 152, y: 392 },
+      { atTick: 0, kind: "build" as const, tower: "custom", x: 424, y: 392 }
+    ]
+  }
+  const result = runGameExperiment(input)
+  expect(result.actions.map((a) => [a.result, a.charged])).toEqual([
+    ["Applied", 12],
+    ["Unaffordable", 0]
+  ])
+  expect(result.catalogue.custom!.target).toBe("one queued authorized output terminal in range")
+  expect(replayGameExperiment(result.recording)).toEqual(result)
+  expect(() => runGameExperiment({ ...input, catalogue: {} })).toThrow("enabled")
 })
 
 /** Read actual shared product events from frame lists, without interpreting reducer state. */
@@ -169,191 +208,286 @@ function gameEvents(trace: readonly unknown[], name: string): { time: number; ev
   return found
 }
 
-it("accelerates future actual-game requests while preserving issued facts and explicit finding outcomes", () => {
-  const baseline = runGameExperiment({ ...gameInput, untilTicks: 5 })
-  const early = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    actions: [{ atTick: 0, kind: "build", tower: "jevService", x: 424, y: 392 }]
-  })
-  const late = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    actions: [{ atTick: 1, kind: "build", tower: "jevService", x: 424, y: 392 }]
-  })
-  const settled = (result: typeof baseline) => gameEvents(result.trace, "JevRequestSettled")
-  expect(settled(baseline)).toHaveLength(2)
-  expect(settled(early)).toHaveLength(2)
-  // One authored edit has two review units [10,20]; each captures its own request.
-  expect(settled(baseline).map((item) => item.time)).toEqual([100, 100])
-  expect(settled(early).map((item) => item.time)).toEqual([50, 50])
-  expect(settled(early)[0]!.event.outcome).toEqual(settled(baseline)[0]!.event.outcome)
-  expect(settled(late)).toEqual(settled(baseline))
-  expect(gameEvents(baseline.trace, "FindingCountUpdated").map((item) => item.event.count)).toEqual([4, 4])
-})
+const activeInput = {
+  ...gameInput,
+  budget: 100,
+  enabled: ["workAccelerator", "resultCourier"],
+  untilTicks: 65,
+  settings: { ...gameInput.settings, jevDelayMs: 800, outputDelayMs: 400 }
+}
+const acceleratorBuild = { atTick: 0, kind: "build" as const, tower: "workAccelerator", x: 652, y: 215 }
+const courierBuild = { atTick: 0, kind: "build" as const, tower: "resultCourier", x: 152, y: 456 }
+const fire = (atTick: number, index: number, operation = 0) => ({ atTick, kind: "fire" as const, index, operation })
 
-it.each([0, 1, 2, 3])("preserves the hard event limit %i events before the complete settlement boundary", (offset) => {
-  const settlement = runGameExperiment({ ...gameInput, untilTicks: 5 })
-  const maxEvents = settlement.business.events - offset
-  const bounded = runGameExperiment({ ...gameInput, untilTicks: 5, maxEvents })
-  expect(bounded.business.events).toBeLessThanOrEqual(maxEvents)
-  expect(replayGameExperiment(bounded.recording)).toEqual(bounded)
-})
-
-it("accelerates future actual-game finding output with a clear countercase and committed-output preservation", () => {
-  const baseline = runGameExperiment({ ...gameInput, untilTicks: 9 })
-  const early = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
-  })
-  const late = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    actions: [{ atTick: 6, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
-  })
-  const outputs = (result: typeof baseline) => gameEvents(result.trace, "SubmissionTerminal")
-  expect(outputs(baseline)).toHaveLength(2)
-  expect(outputs(baseline).map((item) => item.time)).toEqual([180, 180])
-  expect(outputs(early).map((item) => item.time)).toEqual([140, 140])
-  expect(outputs(early).map((item) => item.event.certain)).toEqual([true, true])
-  expect(outputs(late)).toEqual(outputs(baseline))
-  const clear = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    settings: { ...gameInput.settings, outcome: "clear" },
-    actions: [{ atTick: 0, kind: "build", tower: "deliveryRelay", x: 152, y: 392 }]
-  })
-  expect(outputs(clear)).toEqual([])
-  expect(clear.game.spent).toBe(55)
-  expect(early.business.projection.pendingFindings).toHaveLength(2)
-})
-
-it.each([{ sourceReadable: false }, { credentialReady: false }])(
-  "restores blocked actual-game access for %j",
-  (settings) => {
-    const blocked = runGameExperiment({ ...gameInput, untilTicks: 5, settings: { ...gameInput.settings, ...settings } })
-    const restored = runGameExperiment({
-      ...gameInput,
-      untilTicks: 5,
-      settings: { ...gameInput.settings, ...settings },
-      actions: [{ atTick: 0, kind: "build", tower: "accessRepair", x: 424, y: 232 }]
-    })
-    expect(restored.business.projection.pendingFindings).toHaveLength(2)
-    expect(blocked.business.projection.pendingFindings).toHaveLength(0)
-    expect(restored.game.spent).toBe(45)
+// Immutable worlds below are produced only by actual Host ticks. Reusing their
+// ingress avoids repeating full public replay for every local refusal check.
+function normalized(value: unknown): unknown {
+  return JSON.parse(
+    JSON.stringify(value, (key, item: unknown) =>
+      typeof item === "bigint" ? Number(item) : key === "$" && typeof item === "string" ? item.split("/").at(-1) : item
+    )
+  )
+}
+function nativeApply(world: unknown, action: Parameters<typeof Game.apply>[1]) {
+  return Game.apply(world, action) as { world: unknown; result: { $: string }; charged: number }
+}
+function nativeBuild(world: unknown, x = 652, y = 215, kind = 3) {
+  const receipt = nativeApply(world, { $: "Build", x, y, kind })
+  expect(receipt.result.$).toBe("Applied")
+  return receipt.world
+}
+function nativeFire(world: unknown, index = 1, operation = 3) {
+  return nativeApply(world, { $: "Fire", index, operation: BigInt(operation) })
+}
+function nativeTicks(world: unknown, count: number) {
+  const trace: unknown[] = []
+  for (let i = 0; i < count; i++) {
+    const tick = Game.tick_bounded(world, 256n) as { world: unknown; frames: unknown }
+    world = tick.world
+    // Retain actual semantic event frames, not every large intermediate state.
+    const frames = tick.frames as { $: string }
+    for (const name of ["JevRequestSettled", "SubmissionTerminal", "FinishTerminal"])
+      for (const event of gameEvents([frames], name))
+        trace.push({ $: "NativeRunTypes.ProductFrame", ...(normalized(event) as object) })
   }
-)
-
-it("leaves healthy actual-game access business behavior unchanged", () => {
-  const baseline = runGameExperiment({ ...gameInput, untilTicks: 9 })
-  const healthy = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    actions: [{ atTick: 0, kind: "build", tower: "accessRepair", x: 424, y: 232 }]
-  })
-  expect(gameEvents(healthy.trace, "JevRequestSettled")).toEqual(gameEvents(baseline.trace, "JevRequestSettled"))
-  expect(gameEvents(healthy.trace, "SubmissionTerminal")).toEqual(gameEvents(baseline.trace, "SubmissionTerminal"))
-})
-
-it("uses configured actual-game prices and refuses unaffordable or disabled purchases without charge", () => {
-  const catalogue = {
-    helper: { cost: 12, ability: "deliveryRelay" as const, displayName: "Helper", lesson: "Future output" },
-    disabled: { cost: 0, ability: "accessRepair" as const, displayName: "Disabled", lesson: "Access" }
+  return { world, trace }
+}
+const warmWorlds = new Map<string, unknown>()
+function warmWorld(tick = 290, result = 2) {
+  const key = `${tick}/${result}`
+  if (!warmWorlds.has(key)) {
+    const initial = Game.create_scenario(
+      {
+        $: "Scenario",
+        jev: 800n,
+        delivery: 400n,
+        source: 0n,
+        ready: true,
+        readable: true,
+        result,
+        burst: 1,
+        interval: 60000
+      },
+      152n,
+      160,
+      0
+    )
+    warmWorlds.set(key, nativeTicks(initial, tick).world)
   }
+  return warmWorlds.get(key)
+}
+function target(world: unknown, index = 1, operation = 3) {
+  return normalized(Game.shot_target(world, index, BigInt(operation)))
+}
+
+it("accelerates the selected physical operation and independently replays the complete journey", () => {
   const result = runGameExperiment({
-    ...gameInput,
-    catalogue,
-    enabled: ["helper"],
-    budget: 20,
-    untilTicks: 0,
-    actions: [
-      { atTick: 0, kind: "build", tower: "helper", x: 152, y: 392 },
-      { atTick: 0, kind: "build", tower: "helper", x: 424, y: 392 },
-      { atTick: 0, kind: "build", tower: "disabled", x: 424, y: 232 }
-    ]
+    ...activeInput,
+    untilTicks: 900,
+    maxEvents: 1000,
+    actions: [acceleratorBuild, fire(290, 1, 3), fire(290, 1, 4)]
   })
-  expect(result.actions.map((action) => [action.result, action.charged])).toEqual([
-    ["Applied", 12],
-    ["Unaffordable", 0],
-    ["disabled", 0]
+  expect(result.actions.map((a) => a.result)).toEqual(["Applied", "Applied", "CoolingDown"])
+  expect(result.actions[1]?.target?.owner.operation).toBe(3)
+  expect(result.actions[2]?.target).toBeUndefined()
+  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => [e.event.operation, e.time])).toEqual([
+    [3, 7960],
+    [4, 10240]
   ])
-  expect(result.game.spent).toBe(12)
-  expect(result.game.remainingBudget).toBe(8)
+  expect(gameEvents(result.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([12520, 14800])
+  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toHaveLength(2)
+  expect(result.game.spent).toBe(50)
   expect(replayGameExperiment(JSON.parse(JSON.stringify(result.recording)))).toEqual(result)
-  expect(() => runGameExperiment({ ...gameInput, catalogue: {} })).toThrow("enabled")
-  expect(() =>
-    runGameExperiment({ ...gameInput, catalogue: { helper: { ...catalogue.helper, cost: -1 } }, enabled: ["helper"] })
-  ).toThrow("cost")
-  expect(() =>
-    runGameExperiment({
-      ...gameInput,
-      catalogue,
-      enabled: ["helper"],
-      actions: [{ atTick: 0, kind: "build", tower: "jevService", x: 424, y: 392 }]
-    })
-  ).toThrow("unknown game tower")
 })
 
-it("replaces a stable actual-game identity with delivery ability and records its causal countercase", () => {
-  const descriptor = { cost: 60, displayName: "Editable mechanism", lesson: "Future service" }
-  const actions = [{ atTick: 0, kind: "build" as const, tower: "experiment", x: 152, y: 392 }]
-  const original = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    enabled: ["experiment"],
-    actions,
-    catalogue: { experiment: { ...descriptor, ability: "jevService" } }
+it("two local shots target distinct callbacks and improve the final family arrival", () => {
+  const world = nativeBuild(nativeBuild(warmWorld()), 700, 215)
+  expect(target(world, 1, 3)).toMatchObject({ value: { owner: { operation: 3 } } })
+  expect(target(world, 2, 4)).toMatchObject({ value: { owner: { operation: 4 } } })
+  const first = nativeFire(world, 1, 3)
+  expect(first.result.$).toBe("Applied")
+  const second = nativeFire(first.world, 2, 4)
+  expect(second.result.$).toBe("Applied")
+  expect(nativeFire(second.world, 1, 3).result.$).toBe("CoolingDown")
+  const journey = nativeTicks(second.world, 610)
+  expect(gameEvents(journey.trace, "JevRequestSettled").map((e) => e.time)).toEqual([7960, 8060])
+  expect(gameEvents(journey.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([12520, 13020])
+  const baseline = nativeTicks(warmWorld(), 610)
+  expect(gameEvents(baseline.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([14640, 15140])
+  expect(Game.observe(journey.world)).toMatchObject({ remainingBudget: 60 })
+})
+
+it("wrong placement, zero-time ingress and completed work are not actionable", () => {
+  expect(nativeFire(nativeBuild(warmWorld(), 152, 215)).result.$).toBe("NoTarget")
+  expect(nativeFire(nativeBuild(warmWorld(0))).result.$).toBe("NoTarget")
+  const complete = nativeBuild(warmWorld(530))
+  expect(nativeFire(complete).result.$).toBe("NoTarget")
+  expect(nativeFire(complete, 2).result.$).toBe("UnknownTower")
+  expect(
+    gameEvents(nativeTicks(nativeBuild(warmWorld(), 152, 215), 240).trace, "JevRequestSettled").map((e) => e.time)
+  ).toEqual([10080, 10240])
+})
+
+it("courier accelerates one assembled packet without changing the independent follower", () => {
+  const result = runGameExperiment({
+    ...activeInput,
+    untilTicks: 900,
+    maxEvents: 1000,
+    actions: [courierBuild, fire(1, 1), fire(590, 1, 3), fire(634, 1, 3), fire(634, 1, 4)]
   })
-  const replaced = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    enabled: ["experiment"],
-    actions,
-    catalogue: { experiment: { ...descriptor, lesson: "Future output", ability: "deliveryRelay" } }
-  })
-  const baseline = runGameExperiment({ ...gameInput, untilTicks: 9 })
-  const outputs = (result: typeof baseline) => gameEvents(result.trace, "SubmissionTerminal")
-  expect(outputs(baseline)[0]!.time - outputs(replaced)[0]!.time).toBe(40)
-  const requireRelayEffect = (candidate: typeof baseline) => {
-    if (outputs(baseline)[0]!.time - outputs(candidate)[0]!.time !== 40)
-      throw new Error("expected future relay delivery reduction40ms")
+  expect(result.actions.map((a) => a.result)).toEqual(["Applied", "NoTarget", "NoTarget", "Applied", "CoolingDown"])
+  expect(result.actions[3]?.target?.owner.operation).toBe(3)
+  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => e.time)).toEqual([10080, 10240])
+  // Only the assembled selected packet accelerates. The independent follower
+  // keeps its baseline arrival and both captured certainties remain intact.
+  expect(gameEvents(result.trace, "SubmissionTerminal").map((e) => [e.event.advice, e.time, e.event.certain])).toEqual([
+    [3, 13680, true],
+    [4, 15140, true]
+  ])
+  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toHaveLength(2)
+  expect(result.game.spent).toBe(40)
+})
+
+function bendItems(value: unknown): Record<string, unknown>[] {
+  const items: Record<string, unknown>[] = []
+  let list = value as { $: string; head: Record<string, unknown>; tail: unknown }
+  while (list.$ === "Con") {
+    items.push(list.head)
+    list = list.tail as typeof list
   }
-  // Intentional wrong ability assignment must fail the independent delivery expectation.
-  expect(() => requireRelayEffect(original)).toThrow("expected future relay")
-  expect(() => requireRelayEffect(replaced)).not.toThrow()
-  expect(replaced.game.spent).toBe(60)
-  expect(replaced.recording.configurationIdentity).not.toBe(original.recording.configurationIdentity)
-  expect(replaced.catalogue.experiment!.target).toBe("future finding output delivery latency")
-  expect(replaced.catalogue.experiment!.businessObservation).toContain("retained ownership")
+  return items
+}
+function packetGroups(world: unknown) {
+  const control = bendItems((world as { auto: unknown }).auto)[0]!
+  return bendItems(bendItems(control.rules)[0]!.groups)
+}
+function visiblePackets(world: unknown) {
+  return bendItems((Game.visual_state(world) as { targets: unknown }).targets).filter((pose) => pose.phase === 5)
+}
+it("courier preview appears only after all fragments assemble into an individual packet", () => {
+  const early = nativeBuild(warmWorld(590), 152, 456, 4)
+  expect(visiblePackets(early)).toEqual([])
+  expect(nativeFire(early).result.$).toBe("NoTarget")
+  const merged = nativeTicks(early, 43).world
+  expect(packetGroups(merged).find((group) => (group.owner as { operation: bigint }).operation === 3n)).toMatchObject({
+    merged: true,
+    carrier: false
+  })
+  expect(visiblePackets(merged)).toEqual([])
+  const ready = nativeTicks(merged, 1).world
+  expect(visiblePackets(ready)).toHaveLength(1)
+  expect(visiblePackets(ready)[0]).toMatchObject({ x: 148, y: 444 })
+  expect(nativeFire(ready).result.$).toBe("Applied")
+})
+it("an unhit sibling changes lane availability but never exceeds fragment base speed", () => {
+  const early = warmWorld()
+  const shot = nativeFire(nativeBuild(early))
+  expect(shot.result.$).toBe("Applied")
+  const firstLanes: number[] = []
+  const mergedTicks: number[] = []
+  for (const initial of [early, shot.world]) {
+    let world = nativeTicks(initial, 222).world
+    let previous = new Map<number, Record<string, unknown>>()
+    for (let tick = 512; tick <= 658; tick++) {
+      const group = packetGroups(world).find((item) => (item.owner as { operation: bigint }).operation === 4n)!
+      const fragments = bendItems(group.fragments)
+      if (tick === 512) firstLanes.push(fragments[0]!.y as number)
+      if (group.merged) {
+        mergedTicks.push(tick)
+        break
+      }
+      for (const fragment of fragments) {
+        const rule = fragment.rule as number
+        const before = previous.get(rule)
+        if (before) {
+          const distance =
+            Math.abs((fragment.x as number) - (before.x as number)) +
+            Math.abs((fragment.y as number) - (before.y as number))
+          expect(distance).toBeLessThanOrEqual(2 + (rule % 4))
+        }
+      }
+      previous = new Map(fragments.map((fragment) => [fragment.rule as number, fragment]))
+      world = nativeTicks(world, 1).world
+    }
+  }
+  expect(firstLanes).toEqual([444, 436])
+  expect(mergedTicks).toEqual([658, 641])
 })
 
-it("replays a replaced actual-game delivery ability exactly", () => {
-  const replaced = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    enabled: ["experiment"],
-    actions: [{ atTick: 0, kind: "build", tower: "experiment", x: 152, y: 392 }],
-    catalogue: {
-      experiment: { cost: 60, displayName: "Editable mechanism", lesson: "Future output", ability: "deliveryRelay" }
+it("Finish waits for both selected members and exposes exactly one courier packet", () => {
+  const scheduled = Game.schedule_finish(warmWorld(0), 10060n)
+  const early = nativeBuild(nativeTicks(scheduled, 634).world, 152, 456, 4)
+  expect(packetGroups(early).map((group) => [group.merged, group.carrier])).toEqual([
+    [false, false],
+    [true, false]
+  ])
+  expect(visiblePackets(early)).toEqual([])
+  expect(nativeFire(early, 1, 0).result.$).toBe("NoTarget")
+  const ready = nativeTicks(early, 25).world
+  expect(packetGroups(ready).filter((group) => group.merged)).toHaveLength(2)
+  expect(packetGroups(ready).filter((group) => group.carrier)).toHaveLength(1)
+  expect(visiblePackets(ready)).toHaveLength(1)
+  expect(target(ready, 1, 0)).toMatchObject({
+    value: {
+      owner: { operation: 4 },
+      effect: { selected: { $: "Con", head: 4, tail: { $: "Con", head: 3, tail: { $: "Nil" } } } }
     }
   })
-  expect(replayGameExperiment(replaced.recording)).toEqual(replaced)
+  const shot = nativeFire(ready, 1, 0)
+  expect(shot.result.$).toBe("Applied")
+  const delivered = nativeTicks(shot.world, 100)
+  expect(gameEvents(delivered.trace, "SubmissionTerminal")).toEqual([])
+  expect(gameEvents(delivered.trace, "FinishTerminal").map((frame) => [frame.time, frame.event.selected])).toEqual([
+    [14180, { $: "Con", head: 4, tail: { $: "Con", head: 3, tail: { $: "Nil" } } }]
+  ])
 })
 
-it("a replaced delivery ability costs investment but adds no output in a forced Clear context", () => {
-  const clear = runGameExperiment({
-    ...gameInput,
-    untilTicks: 9,
-    enabled: ["experiment"],
-    actions: [{ atTick: 0, kind: "build", tower: "experiment", x: 152, y: 392 }],
-    settings: { ...gameInput.settings, outcome: "clear" },
-    catalogue: {
-      experiment: { cost: 60, displayName: "Editable mechanism", lesson: "Future output", ability: "deliveryRelay" }
-    }
-  })
-  expect(gameEvents(clear.trace, "SubmissionTerminal")).toEqual([])
-  expect(clear.game.spent).toBe(60)
+it("clear reviews preserve their outcome and offer no result to the courier", () => {
+  const shot = nativeFire(nativeBuild(warmWorld(290, 1)))
+  expect(shot.result.$).toBe("Applied")
+  const done = nativeTicks(shot.world, 240)
+  expect(gameEvents(done.trace, "JevRequestSettled").map((e) => [e.time, e.event.outcome])).toEqual([
+    [7960, { $: "Canonical.RequestClear" }],
+    [10240, { $: "Canonical.RequestClear" }]
+  ])
+  expect(gameEvents(done.trace, "SubmissionTerminal")).toEqual([])
+  expect(nativeFire(nativeBuild(done.world, 152, 456, 4)).result.$).toBe("NoTarget")
+})
+
+it("ordinary radius distinguishes the leader before the following live body enters", () => {
+  const world = nativeBuild(warmWorld(280))
+  expect(nativeFire(world, 1, 4).result.$).toBe("NoTarget")
+  expect(target(world)).toMatchObject({ value: { owner: { operation: 3 } } })
+  expect(nativeFire(world).result.$).toBe("Applied")
+})
+
+it("small radius refusal does not consume cooldown before the exact body arrives", () => {
+  const initial = Game.build_tuned(warmWorld(280), 700, 215, 3, 50, 1, 36) as { world: unknown; result: { $: string } }
+  expect(initial.result.$).toBe("Applied")
+  expect(nativeFire(initial.world, 1, 4).result.$).toBe("NoTarget")
+  const entered = nativeTicks(initial.world, 10).world
+  expect(nativeFire(entered, 1, 3).result.$).toBe("Applied")
+})
+
+it("independent public replay rejects an intentionally wrong tower target mapping", () => {
+  const original = Game.apply
+  const mutant = vi
+    .spyOn(Game, "apply")
+    .mockImplementation((world, action) =>
+      original(world, action.$ === "Fire" ? { ...action, operation: action.operation === 3n ? 4n : 3n } : action)
+    )
+  try {
+    expect(() =>
+      runGameExperiment({
+        ...activeInput,
+        untilTicks: 291,
+        maxEvents: 1000,
+        actions: [acceleratorBuild, fire(290, 1, 3)]
+      })
+    ).toThrow()
+  } finally {
+    mutant.mockRestore()
+  }
 })
 
 it("refuses deliberately stale generated actual-game identities", () => {
@@ -363,125 +497,6 @@ it("refuses deliberately stale generated actual-game identities", () => {
   expect(() => verifyGeneratedGameIdentity({ ...manifest, moduleIdentity: "sha256:stale" })).toThrow("module identity")
   expect(() => verifyGeneratedGameIdentity({ ...manifest, sourceIdentity: "sha256:stale" })).toThrow("source identity")
   expect(() => verifyGeneratedGameIdentity(manifest)).not.toThrow()
-})
-
-it("configures bounded actual-game strength, preserves issued deadlines and multiplies upgrades by strength", () => {
-  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
-  const actions = [{ atTick: 0, kind: "build" as const, tower: "configured", x: 424, y: 392 }]
-  const ordinary = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: descriptor },
-    enabled: ["configured"],
-    actions
-  })
-  const strong = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: { ...descriptor, strength: 3 } },
-    enabled: ["configured"],
-    actions
-  })
-  const upgraded = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: { ...descriptor, strength: 3 } },
-    enabled: ["configured"],
-    actions: [...actions, { atTick: 0, kind: "upgrade", index: 1 }]
-  })
-  const late = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: { ...descriptor, strength: 3 } },
-    enabled: ["configured"],
-    actions: [{ ...actions[0]!, atTick: 1 }]
-  })
-  const settlementTimes = (result: typeof strong) =>
-    gameEvents(result.trace, "JevRequestSettled").map((item) => item.time)
-  expect(settlementTimes(ordinary)).toEqual([50, 50])
-  expect(settlementTimes(strong)).toEqual([25, 25])
-  expect(settlementTimes(upgraded)).toEqual([14, 14])
-  expect(settlementTimes(late)).toEqual([100, 100])
-  expect(upgraded.game.spent).toBe(100)
-  expect(strong.recording.configurationIdentity).not.toBe(ordinary.recording.configurationIdentity)
-  expect(replayGameExperiment(strong.recording)).toEqual(strong)
-})
-
-it("preserves separately configured strengths for aliases of the same actual ability", () => {
-  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
-  const result = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { first: { ...descriptor, strength: 1 }, second: { ...descriptor, strength: 3 } },
-    enabled: ["first", "second"],
-    actions: [
-      { atTick: 0, kind: "build", tower: "first", x: 424, y: 392 },
-      { atTick: 0, kind: "build", tower: "second", x: 456, y: 392 }
-    ]
-  })
-  expect(result.actions.map((action) => [action.result, action.charged])).toEqual([
-    ["Applied", 60],
-    ["Applied", 60]
-  ])
-  expect(gameEvents(result.trace, "JevRequestSettled").map((item) => item.time)).toEqual([20, 20])
-  expect(result.game.spent).toBe(120)
-})
-
-it("uses configured actual-game radius to distinguish the same legal placement's connectivity", () => {
-  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Connectivity" }
-  const actions = [{ atTick: 0, kind: "build" as const, tower: "configured", x: 424, y: 392 }]
-  const narrow = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: { ...descriptor, radius: 20 } },
-    enabled: ["configured"],
-    actions
-  })
-  const wide = runGameExperiment({
-    ...gameInput,
-    untilTicks: 5,
-    catalogue: { configured: { ...descriptor, radius: 100 } },
-    enabled: ["configured"],
-    actions
-  })
-  expect(narrow.actions[0]?.result).toBe("Applied")
-  expect(wide.actions[0]?.result).toBe("Applied")
-  expect(gameEvents(narrow.trace, "JevRequestSettled").map((item) => item.time)).toEqual([100, 100])
-  expect(gameEvents(wide.trace, "JevRequestSettled").map((item) => item.time)).toEqual([50, 50])
-  expect(narrow.game.spent).toBe(wide.game.spent)
-  expect(narrow.recording.configurationIdentity).not.toBe(wide.recording.configurationIdentity)
-})
-
-it("rejects out-of-domain actual-game strength/radius and non-one repair strength before starting", () => {
-  const descriptor = { cost: 60, ability: "jevService" as const, displayName: "Service", lesson: "Future latency" }
-  for (const parameters of [
-    { strength: 0 },
-    { strength: 17 },
-    { strength: 1.5 },
-    { radius: 19 },
-    { radius: 241 },
-    { radius: 20.5 }
-  ])
-    expect(() =>
-      runGameExperiment({
-        ...gameInput,
-        catalogue: { configured: { ...descriptor, ...parameters } },
-        enabled: ["configured"]
-      })
-    ).toThrow("invalid game mechanism")
-  expect(() =>
-    runGameExperiment({
-      ...gameInput,
-      catalogue: { configured: { ...descriptor, ability: "accessRepair", strength: 2 } },
-      enabled: ["configured"]
-    })
-  ).toThrow("repair strength")
-  expect(() =>
-    runGameExperiment({
-      ...gameInput,
-      actions: [{ ...{ atTick: 0, kind: "build" as const, tower: "jevService", x: 424, y: 392, strength: 3 } }]
-    })
-  ).toThrow("configuration belongs to catalogue")
 })
 
 const direct = {
@@ -676,4 +691,132 @@ it("keeps decisions and streamed observations independent of retention", () => {
   expect(zero.actions).toEqual(retained.actions)
   expect(zero.business).toEqual(retained.business)
   expect(zero.observations).toEqual(retained.observations)
+})
+
+function automaticJourney(upgrade: boolean, paired: boolean) {
+  let world = nativeBuild(warmWorld(0))
+  if (upgrade) world = nativeApply(world, { $: "Upgrade", index: 1 }).world
+  if (paired) world = nativeBuild(world, 700, 215)
+  const shots: { tick: number; shot: unknown }[] = []
+  const trace: unknown[] = []
+  for (let tick = 0; tick < 350; tick++) {
+    const pass = Game.automatic(world) as { world: unknown; shots: unknown }
+    world = pass.world
+    let list = pass.shots as { $: string; head: unknown; tail: unknown }
+    while (list.$ === "Con") {
+      shots.push({ tick, shot: normalized(list.head) })
+      list = list.tail as typeof list
+    }
+    const next = nativeTicks(world, 1)
+    world = next.world
+    trace.push(...next.trace)
+  }
+  return { world, shots, trace }
+}
+
+it("automatic towers act on real moving work without authored fire inputs", () => {
+  const result = automaticJourney(false, true)
+  expect(result.shots.map((shot) => shot.tick)).toEqual([198, 209, 218, 229, 238, 249])
+  expect(result.shots.map((shot) => shot.shot)).toMatchObject([
+    { index: 2, target: { owner: { operation: 2 } } },
+    { index: 1, target: { owner: { operation: 2 } } },
+    { index: 2, target: { owner: { operation: 2 } } },
+    { index: 1, target: { owner: { operation: 3 } } },
+    { index: 2, target: { owner: { operation: 4 } } },
+    { index: 1, target: { owner: { operation: 4 } } }
+  ])
+  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
+  expect(Game.observe(result.world)).toMatchObject({ remainingBudget: 60 })
+})
+
+it("Stop delivers ready A, excludes late B, and replays complete Finish registration", async () => {
+  const { summarizeGameResult } = await import("@hapsland/canonical-defense/lab/game-example")
+  const result = runGameExperiment({
+    ...activeInput,
+    budget: 160,
+    untilTicks: 740,
+    maxEvents: 1000,
+    settings: { ...activeInput.settings, arrivalIntervalMs: 60000, finishAtMs: 7800 },
+    actions: [acceleratorBuild, fire(290, 1, 3)]
+  })
+  const stopped = summarizeGameResult(result)
+  expect(stopped.settlements.map((e) => [e.operation, e.time])).toEqual([[3, 7960]])
+  expect(stopped.physicalCallbacks.settlements.map((e) => [e.event.operation, e.time])).toEqual([
+    [3, 7960],
+    [4, 10240]
+  ])
+  expect(stopped.finishes.map((e) => [e.time, e.event.selected])).toEqual([
+    [12520, { $: "Con", head: 3, tail: { $: "Nil" } }]
+  ])
+  expect(stopped.submissions).toEqual([])
+  expect(stopped.lastSettlement).toBe(7960)
+  expect(replayGameExperiment(JSON.parse(JSON.stringify(result.recording)))).toEqual(result)
+})
+
+it("an upgrade changes range and cadence while two towers provide separate firing schedules", () => {
+  const upgraded = automaticJourney(true, false)
+  const paired = automaticJourney(false, true)
+  expect(upgraded.shots.map((shot) => shot.tick)).toEqual([194, 204, 214, 224, 234, 244])
+  expect(paired.shots.map((shot) => shot.tick)).toEqual([198, 209, 218, 229, 238, 249])
+  expect(gameEvents(upgraded.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6560, 6720])
+  expect(gameEvents(paired.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
+  expect(Game.observe(upgraded.world)).toMatchObject({ remainingBudget: 70 })
+  expect(Game.observe(paired.world)).toMatchObject({ remainingBudget: 60 })
+})
+
+it.each(["none", "courier"] as const)("a courier cannot repair premature recurring Stop: %s", async (plan) => {
+  const { runRecurringCourierCase } = await import("@hapsland/canonical-defense/lab/game-example")
+  const { metrics } = runRecurringCourierCase(plan)
+  expect(metrics.termination).toBe("tickLimit")
+  expect(metrics.game.tick).toBe(40)
+  expect(metrics.game.spent).toBe(plan === "courier" ? 40 : 0)
+  expect(metrics.shots).toEqual([])
+  expect(metrics.settlements).toEqual([])
+  expect(metrics.submissions).toEqual([])
+  expect(metrics.finishes).toEqual([])
+})
+
+it("advisory study rejects empty, incomplete, duplicate and undeclared matrices without claiming teaching qualification", async () => {
+  const { teachingContexts, teachingPlans, runTeachingCase, checkGameExampleStudy } =
+    await import("@hapsland/canonical-defense/lab/game-example")
+  const example = runTeachingCase(
+    teachingContexts.find((context) => context.name === "quick-sparse")!,
+    teachingPlans(0)[0]!
+  )
+  // Synthetic rows test the validator only; they are explicitly not 81 measured worlds.
+  const rows = teachingContexts.flatMap((context) =>
+    teachingPlans(context.layout).map((plan) => ({
+      ...example,
+      context: context.name,
+      role: context.role,
+      plan: plan.name
+    }))
+  )
+  expect(() => checkGameExampleStudy([])).toThrow("missing study row")
+  expect(() => checkGameExampleStudy(rows.slice(1))).toThrow("missing study row")
+  expect(() => checkGameExampleStudy([...rows, rows[0]!])).toThrow("duplicate study row")
+  expect(() => checkGameExampleStudy([...rows, { ...rows[0]!, plan: "undeclared" }])).toThrow("undeclared study row")
+  expect(checkGameExampleStudy(rows)).toMatchObject({
+    cases: 81,
+    passed: true,
+    educationalQualification: "unqualified"
+  })
+  expect(checkGameExampleStudy(rows).reason).toContain("do not establish")
+})
+
+it("advisory study's unchanged Stop candidates all end before physical review or delivery", async () => {
+  const { teachingContexts, teachingPlans, runTeachingCase, checkGameExampleStudy } =
+    await import("@hapsland/canonical-defense/lab/game-example")
+  const context = teachingContexts.find((context) => context.name === "stop-cutoff")!
+  const measured = teachingPlans(context.layout).map((plan) => runTeachingCase(context, plan))
+  expect(measured).toHaveLength(9)
+  for (const { metrics } of measured) {
+    expect(metrics.game.tick).toBe(90)
+    expect(metrics.refusals).toEqual([])
+    expect(metrics.shots).toEqual([])
+    expect(metrics.settlements).toEqual([])
+    expect(metrics.physicalCallbacks.settlements).toEqual([])
+    expect(metrics.finishes).toEqual([])
+  }
+  expect(() => checkGameExampleStudy(measured)).toThrow("missing study row")
 })

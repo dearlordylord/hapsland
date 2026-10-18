@@ -161,7 +161,7 @@ export function retainGameOutputs(native,emitted,identity) {
   if(!failureFile)return undefined;
   const outputs=join(dirname(failureFile),"workload-outputs");mkdirSync(outputs,{recursive:true});
   const directory=mkdtempSync(join(outputs,`game-output-${process.pid}-`));
-  const rows=basename(identity.fixture)==="DefenseLabConformance.bend"?280:145;
+  const rows=basename(identity.fixture)==="DefenseLabConformance.bend"?640:145;
   const batches=files=>{
     if(files.length!==rows)throw new Error(`Retained game output requires all ${rows} batches`);
     return files.map((file,index)=>{
@@ -265,7 +265,7 @@ export function gameCompilerIdentity(fixture,ownerSources,{deadline=null,registe
 /** One fresh compiler artifact per backend; bounded individual lossless batches. */
 export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs=5000,emissionTimeoutMs=30000,clangTimeoutMs=30000,resumeCompilerReceipt,resumeOutputReceipt,overallDeadlineMs,executionArgumentGroups=[[]],registerBank=false,jsEmissionTimeoutMs=30000}={}) {
   if(typeof registerBank!=="boolean")throw new Error("Invalid game register-bank selection");
-  if(!Array.isArray(executionArgumentGroups)||!executionArgumentGroups.length||executionArgumentGroups.length>16||
+  if(!Array.isArray(executionArgumentGroups)||!executionArgumentGroups.length||executionArgumentGroups.length>26||
       executionArgumentGroups.some(args=>!Array.isArray(args)||args.length>16||args.some(arg=>typeof arg!=="string"||arg.length>256)))
     throw new Error("Invalid finite game execution argument groups");
   if(resumeOutputReceipt!==undefined&&(executionArgumentGroups.length!==1||executionArgumentGroups[0].length))
@@ -321,10 +321,11 @@ export async function createGameStreams(fixture,ownerSources,{executionTimeoutMs
       emitted.push(...await streamGameBatches(process.execPath,[js,...args],directory,`emitted-${index}`,phaseAllowance(executionTimeoutMs,deadline),deadline!==null));verify();
     }
     if(hash(js)!==jsHash)throw new Error("emitted artifact changed");
-    try{retainGameOutputs(native,emitted,{fixture:fixturePath,sources,tools,
-      origin:{registerAbi:registerBank?"host register bank":"Bend uniform arguments",native:resume?`explicit ${resume.lane} receipt`:"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash,executionArgumentGroups}});}
+    const executionIdentity={fixture:fixturePath,sources,tools,
+      origin:{registerAbi:registerBank?"host register bank":"Bend uniform arguments",native:resume?`explicit ${resume.lane} receipt`:"fresh compiler",emitted:"fresh JS emission",cHash,binaryHash,jsHash,executionArgumentGroups}};
+    try{retainGameOutputs(native,emitted,executionIdentity);}
     catch{console.error("Offline game outputs could not be retained");}
-    return{native,emitted,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
+    return{native,emitted,executionIdentity,cleanup:()=>rmSync(directory,{recursive:true,force:true})};
   }catch(error){
     try{retainCompilerFailure(directory,fixturePath,phase,completed,sources,tools,
       timeouts,error);}

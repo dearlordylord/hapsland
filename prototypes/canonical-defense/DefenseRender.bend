@@ -1,5 +1,8 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
+import ../../packages/monkey-business-bend/NativeRun.bend as Run
+import ../../packages/monkey-business-bend/StopScenario.bend as Stop
+import ../../packages/monkey-business-bend/Engine.bend as Engine
 import ./DefenseHistory.bend as History
 import ./DefenseRules.bend as Rules
 import ./DefenseRuleTypes.bend as RuleTypes
@@ -16,6 +19,9 @@ import ./DefenseHost.bend as H
 import ./DefenseTeaching.bend as T
 import ./DefenseMap.bend as D
 import ./DefensePreview.bend as Preview
+import ./DefenseTowerPreview.bend as TowerPreview
+import ./DefenseTowerFire.bend as Fire
+import ./DefensePreviewMarks.bend as PreviewMarks
 import ./DefenseOutput.bend as O
 import ./DefenseEffects.bend as E
 import ./DefenseCues.bend as Cues
@@ -47,21 +53,32 @@ def full(rs: List<&2, F.Rect>, x: U32, y: U32, size: U32) -> Bool:
 
 # A covering front rectangle hides all later rectangles in this tile.
 # Stop filtering immediately rather than allocating invisible candidates.
-def filter_cut(rs: List<&2,F.Rect>,+x: U32,+y: U32,+size: U32,covered: Bool) -> List<&2,F.Rect>:
+def filter_cut(
+  rs: List<&2, F.Rect>,
+  +x: U32,
+  +y: U32,
+  +size: U32,
+  covered: Bool
+) -> List<&2, F.Rect>:
   match rs covered:
     case Nil{} _: Nil{}
-    case Con{r,_} True{}: Con{r,Nil{}}
-    case Con{+r,+tail} False{}:
-      keep(overlap(r,x,y,size),r,filter_cut(tail,x,y,size,full(tail,x,y,size)))
-def filter(+rs: List<&2,F.Rect>,+x: U32,+y: U32,+size: U32) -> List<&2,F.Rect>:
-  filter_cut(rs,x,y,size,full(rs,x,y,size))
+    case Con{r, _} True{}: Con{r, Nil{}}
+    case Con{+r, +tail} False{}:
+      keep(overlap(r, x, y, size), r, filter_cut(tail, x, y, size, full(tail, x, y, size)))
+def filter(+rs: List<&2, F.Rect>, +x: U32, +y: U32, +size: U32) -> List<&2, F.Rect>:
+  filter_cut(rs, x, y, size, full(rs, x, y, size))
 
 # Collapse uniform children, including regions covered by several same-color runs.
-def pack(a: Image,b: Image,c: Image,d: Image) -> Image:
+def pack(a: Image, b: Image, c: Image, d: Image) -> Image:
   match a b c d:
     case Pix{+ca} Pix{+cb} Pix{+cc} Pix{+cd}:
-      Bool.pick(Image,U32.is_eq(ca,cb) && U32.is_eq(ca,cc) && U32.is_eq(ca,cd),Pix{ca},Qua{Pix{ca},Pix{cb},Pix{cc},Pix{cd}})
-    case a b c d: Qua{a,b,c,d}
+      Bool.pick(
+        Image,
+        U32.is_eq(ca, cb) && U32.is_eq(ca, cc) && U32.is_eq(ca, cd),
+        Pix{ca},
+        Qua{Pix{ca}, Pix{cb}, Pix{cc}, Pix{cd}}
+      )
+    case a b c d: Qua{a, b, c, d}
 
 def paint(k: Nat, +x: U32, +y: U32, +size: U32, rs: List<&2, F.Rect>, solid: Bool) -> Image:
   match k rs solid:
@@ -78,11 +95,48 @@ def paint(k: Nat, +x: U32, +y: U32, +size: U32, rs: List<&2, F.Rect>, solid: Boo
       +rb = filter(all, (x + half : U32), y, half)
       +rc = filter(all, x, (y + half : U32), half)
       +rd = filter(all, (x + half : U32), (y + half : U32), half)
-      a b c d = paint(q, x, y, half, ra, full(ra, x, y, half)) paint(q, (x + half : U32), y, half, rb, full(rb, (x + half : U32), y, half)) paint(q, x, (y + half : U32), half, rc, full(rc, x, (y + half : U32), half)) paint(q, (x + half : U32), (y + half : U32), half, rd, full(rd, (x + half : U32), (y + half : U32), half))
-      pack(a,b,c,d)
+      a b c d = paint(q, x, y, half, ra, full(ra, x, y, half)) paint(
+        q,
+        (x + half : U32),
+        y,
+        half,
+        rb,
+        full(rb, (x + half : U32), y, half)
+      ) paint(q, x, (y + half : U32), half, rc, full(rc, x, (y + half : U32), half)) paint(
+        q,
+        (x + half : U32),
+        (y + half : U32),
+        half,
+        rd,
+        full(rd, (x + half : U32), (y + half : U32), half)
+      )
+      pack(a, b, c, d)
 
-def box(title: String, detail: String, +x: U32, +y: U32, w: U32, h: U32, color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text(title,(x + 12 : U32),(y + 12 : U32),2,color,F.text(detail,(x + 12 : U32),(y + 32 : U32),1,12439239,List.append(&2,F.Rect,rest,[F.Box{x,y,w,h,1914923}])))
+def box(
+  title: String,
+  detail: String,
+  +x: U32,
+  +y: U32,
+  w: U32,
+  h: U32,
+  color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  F.text(
+    title,
+    (x + 12 : U32),
+    (y + 12 : U32),
+    2,
+    color,
+    F.text(
+      detail,
+      (x + 12 : U32),
+      (y + 32 : U32),
+      1,
+      12439239,
+      List.append(&2, F.Rect, rest, [F.Box{x, y, w, h, 1914923}])
+    )
+  )
 
 def layout_name(layout: U32) -> String:
   match layout:
@@ -96,8 +150,15 @@ def layout_caption(layout: U32) -> String:
     case 1: "EDIT SIBLINGS / DEPENDENCY READINESS / SHARED RESOURCES"
     case _: "INTAKE CORRIDOR / SHARED CHECKPOINT / DELIVERY BRIDGE"
 
-def frame(+layout: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text(layout_name(layout),24,18,3,16050112,F.text(layout_caption(layout),24,46,1,12439239,rest))
+def frame(+layout: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  F.text(
+    layout_name(layout),
+    24,
+    18,
+    3,
+    16050112,
+    F.text(layout_caption(layout), 24, 46, 1, 12439239, rest)
+  )
 
 # Numeric phase names follow the canonical Work constructors through Projection.
 def phase_name(phase: U32) -> String:
@@ -120,188 +181,620 @@ def kind_color(kind: U32) -> U32:
     case 5: 7449343
     case _: 15124059
 
-def palette_row(+kind: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +y = (118 + kind * 26 : U32)
-  F.text(U32.show((kind + 1 : U32)) ++ " " ++ H.tower_name(kind) ++ " " ++ U32.show(H.tower_cost(kind)),818,y,1,kind_color(kind),F.text(H.tower_detail(kind),818,(y + 12 : U32),1,12439239,F.put(806,U32.sub(y,4),3,23,Bool.pick(U32,U32.is_eq(M.choice(world),kind),16777215,1914923),rest)))
+def palette_row(+kind: U32, +world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  +y = (118 + M.sub(kind, 3) * 42 : U32)
+  F.text(
+    U32.show(
+      Mechanics.shortcut(kind)
+    ) ++ " " ++ H.tower_name(kind) ++ " " ++ U32.show(H.tower_cost(kind)),
+    818,
+    y,
+    1,
+    kind_color(kind),
+    F.text(
+      H.tower_detail(kind),
+      818,
+      (y + 12 : U32),
+      1,
+      12439239,
+      F.put(
+        806,
+        U32.sub(y, 4),
+        3,
+        23,
+        Bool.pick(U32, U32.is_eq(M.choice(world), kind), 16777215, 1914923),
+        rest
+      )
+    )
+  )
 
-def palette(fuel: Nat,+kind: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def palette(fuel: Nat, +kind: U32, +world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match fuel:
     case 0n: rest
-    case 1n+n: palette_row(kind,world,palette(n,(kind + 1 : U32),world,rest))
+    case 1n+n: palette_row(kind, world, palette(n, (kind + 1 : U32), world, rest))
 
-def sidebar(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("BUILD ON MAP","1-3 CHOOSE / CLICK GROUND / U UPGRADE",800,80,216,240,65483,palette(3n,0,world,
-    box("ACTIVE WORK","E FAMILY / U OPERATION / " ++ U32.show(U32.min(8,M.number(List.length(&2,P.Token,P.tokens(world))))) ++ "/" ++ U32.show(M.number(List.length(&2,P.Token,P.tokens(world)))),800,330,216,104,16768133,rest)))
+def sidebar(+world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  box(
+    "BUILD ON MAP",
+    "1-2 CHOOSE / CLICK / U UPGRADE / AUTO",
+    800,
+    80,
+    216,
+    240,
+    65483,
+    palette(
+      2n,
+      3,
+      world,
+      box(
+        "ACTIVE WORK",
+        "E FAMILY / U OPERATION / " ++ U32.show(
+          U32.min(8, M.number(List.length(&2, P.Token, P.tokens(world))))
+        ) ++ "/" ++ U32.show(M.number(List.length(&2, P.Token, P.tokens(world)))),
+        800,
+        330,
+        216,
+        104,
+        16768133,
+        rest
+      )
+    )
+  )
 
-def road_dots(fuel: Nat, +a: D.Point, +b: D.Point, +step: U32, +width: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def road_dots(
+  fuel: Nat,
+  +a: D.Point,
+  +b: D.Point,
+  +step: U32,
+  +width: U32,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match fuel:
     case 0n: rest
     case 1n+n:
-      +point = D.segment(a,b,step)
-      F.put(U32.sub(D.px(point),(width / 2 : U32)),U32.sub(D.py(point),(width / 2 : U32)),width,width,color,road_dots(n,a,b,(step + 2 : U32),width,color,rest))
+      +point = D.segment(a, b, step)
+      F.put(
+        U32.sub(D.px(point), (width / 2 : U32)),
+        U32.sub(D.py(point), (width / 2 : U32)),
+        width,
+        width,
+        color,
+        road_dots(n, a, b, (step + 2 : U32), width, color, rest)
+      )
 
 # Continuous authored segments need one rectangle; diagonal target links stay dotted.
-def axis_distance(+a: U32,+b: U32) -> U32:
-  M.sub(U32.max(a,b),U32.min(a,b))
-def road_segment_kind(+a: D.Point,+b: D.Point,width: U32) -> U32:
-  +length = (axis_distance(D.px(a),D.px(b)) + axis_distance(D.py(a),D.py(b)) : U32)
-  Bool.pick(U32,(length <= 50 * width : U32),Bool.pick(U32,U32.is_eq(D.py(a),D.py(b)),0,Bool.pick(U32,U32.is_eq(D.px(a),D.px(b)),1,2)),2)
-def road_segment(kind: U32,+a: D.Point,+b: D.Point,+width: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def axis_distance(+a: U32, +b: U32) -> U32:
+  M.sub(U32.max(a, b), U32.min(a, b))
+def road_segment_kind(+a: D.Point, +b: D.Point, width: U32) -> U32:
+  +length = (axis_distance(D.px(a), D.px(b)) + axis_distance(D.py(a), D.py(b)) : U32)
+  Bool.pick(
+    U32,
+    (length <= 50 * width : U32),
+    Bool.pick(
+      U32,
+      U32.is_eq(D.py(a), D.py(b)),
+      0,
+      Bool.pick(U32, U32.is_eq(D.px(a), D.px(b)), 1, 2)
+    ),
+    2
+  )
+def road_segment(
+  kind: U32,
+  +a: D.Point,
+  +b: D.Point,
+  +width: U32,
+  color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match kind:
-    case 0: F.put(M.sub(U32.min(D.px(a),D.px(b)),(width / 2 : U32)),M.sub(D.py(a),(width / 2 : U32)),(axis_distance(D.px(a),D.px(b)) + width : U32),width,color,rest)
-    case 1: F.put(M.sub(D.px(a),(width / 2 : U32)),M.sub(U32.min(D.py(a),D.py(b)),(width / 2 : U32)),width,(axis_distance(D.py(a),D.py(b)) + width : U32),color,rest)
-    case _: road_dots(51n,a,b,0,width,color,rest)
+    case 0: F.put(
+      M.sub(U32.min(D.px(a), D.px(b)), (width / 2 : U32)),
+      M.sub(D.py(a), (width / 2 : U32)),
+      (axis_distance(D.px(a), D.px(b)) + width : U32),
+      width,
+      color,
+      rest
+    )
+    case 1: F.put(
+      M.sub(D.px(a), (width / 2 : U32)),
+      M.sub(U32.min(D.py(a), D.py(b)), (width / 2 : U32)),
+      width,
+      (axis_distance(D.py(a), D.py(b)) + width : U32),
+      color,
+      rest
+    )
+    case _: road_dots(51n, a, b, 0, width, color, rest)
 
-def road(points: List<&2,D.Point>, +width: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def road(
+  points: List<&2, D.Point>,
+  +width: U32,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match points:
     case Nil{}: rest
-    case Con{_,Nil{}}: rest
-    case Con{+a,Con{+b,tail}}:
-      road_segment(road_segment_kind(a,b,width),a,b,width,color,road(Con{b,tail},width,color,rest))
+    case Con{_, Nil{}}: rest
+    case Con{+a, Con{+b, tail}}:
+      road_segment(
+        road_segment_kind(a, b, width),
+        a,
+        b,
+        width,
+        color,
+        road(Con{b, tail}, width, color, rest)
+      )
 
-def asphalt(+points: List<&2,D.Point>, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  road(points,14,3358535,road(points,22,5003871,rest))
+def asphalt(+points: List<&2, D.Point>, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  road(points, 14, 3358535, road(points, 22, 5003871, rest))
 
-def exits(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def exits(+world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   +layout = M.layout(world)
-  +clear = D.outer_point(D.port(D.center(layout,4,0),D.clear_side(layout)),D.clear_side(layout))
-  +delivery = D.outer_point(D.exit_port(layout,5),D.exit_side(layout,5))
-  F.text("CLEAR EXIT",(D.px(clear) + 8 : U32),U32.sub(D.py(clear),7),1,9170322,
-    F.text("DELIVERY " ++ U32.show(M.delivered(world)),(D.px(delivery) + 8 : U32),(D.py(delivery) + 2 : U32),1,65483,
-      road(D.clear_route(layout),8,9170322,road(D.delivery_route(layout),8,65483,rest))))
+  +clear = D.outer_point(D.port(D.center(layout, 4, 0), D.clear_side(layout)), D.clear_side(layout))
+  +delivery = D.outer_point(D.exit_port(layout, 5), D.exit_side(layout, 5))
+  F.text(
+    "CLEAR EXIT",
+    (D.px(clear) + 8 : U32),
+    U32.sub(D.py(clear), 7),
+    1,
+    9170322,
+    F.text(
+      "FINISH " ++ U32.show(M.delivered(world)),
+      (D.px(delivery) + 8 : U32),
+      (D.py(delivery) + 2 : U32),
+      1,
+      65483,
+      road(D.clear_route(layout), 8, 9170322, road(D.delivery_route(layout), 8, 65483, rest))
+    )
+  )
 
-def network(+layout: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),road(D.review_route(layout,0),28,History.phase_color(3),road(D.review_route(layout,1),28,History.phase_color(3),exits(world,rest))))))))
+def network(+layout: U32, +world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  asphalt(
+    D.source_route(layout),
+    asphalt(
+      D.preparation_route(layout),
+      asphalt(
+        D.review_route(layout, 0),
+        asphalt(
+          D.review_route(layout, 1),
+          asphalt(
+            D.retained_route(layout),
+            road(
+              D.review_route(layout, 0),
+              28,
+              History.phase_color(3),
+              road(D.review_route(layout, 1), 28, History.phase_color(3), exits(world, rest))
+            )
+          )
+        )
+      )
+    )
+  )
 
-def door_open(+layout: U32,+phase: U32,+edge: U32) -> Bool:
-  U32.is_eq(edge,D.entry_side(layout,phase,0)) || U32.is_eq(edge,D.entry_side(layout,phase,1)) ||
-    U32.is_eq(edge,D.exit_side(layout,phase)) || (U32.is_eq(phase,4) && U32.is_eq(edge,D.clear_side(layout)))
+def door_open(+layout: U32, +phase: U32, +edge: U32) -> Bool:
+  U32.is_eq(edge, D.entry_side(layout, phase, 0)) || U32.is_eq(edge, D.entry_side(layout, phase, 1)) ||
+    U32.is_eq(edge, D.exit_side(layout, phase)) || (U32.is_eq(phase, 4) && U32.is_eq(
+      edge,
+      D.clear_side(layout)
+    ))
 
-def wall(open: Bool,+edge: U32,+point: D.Point,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def wall(
+  open: Bool,
+  +edge: U32,
+  +point: D.Point,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match open edge:
-    case False{} 0: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),3,48,color,rest)
-    case False{} 1: F.put((D.px(point) + 29 : U32),U32.sub(D.py(point),24),3,48,color,rest)
-    case False{} 2: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),64,3,color,rest)
-    case False{} _: F.put(U32.sub(D.px(point),32),(D.py(point) + 21 : U32),64,3,color,rest)
-    case True{} 0: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),3,12,color,F.put(U32.sub(D.px(point),32),(D.py(point) + 12 : U32),3,12,color,rest))
-    case True{} 1: F.put((D.px(point) + 29 : U32),U32.sub(D.py(point),24),3,12,color,F.put((D.px(point) + 29 : U32),(D.py(point) + 12 : U32),3,12,color,rest))
-    case True{} 2: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),20,3,color,F.put((D.px(point) + 12 : U32),U32.sub(D.py(point),24),20,3,color,rest))
-    case True{} _: F.put(U32.sub(D.px(point),32),(D.py(point) + 21 : U32),20,3,color,F.put((D.px(point) + 12 : U32),(D.py(point) + 21 : U32),20,3,color,rest))
+    case False{} 0: F.put(U32.sub(D.px(point), 32), U32.sub(D.py(point), 24), 3, 48, color, rest)
+    case False{} 1: F.put((D.px(point) + 29 : U32), U32.sub(D.py(point), 24), 3, 48, color, rest)
+    case False{} 2: F.put(U32.sub(D.px(point), 32), U32.sub(D.py(point), 24), 64, 3, color, rest)
+    case False{} _: F.put(U32.sub(D.px(point), 32), (D.py(point) + 21 : U32), 64, 3, color, rest)
+    case True{} 0: F.put(
+      U32.sub(D.px(point), 32),
+      U32.sub(D.py(point), 24),
+      3,
+      12,
+      color,
+      F.put(U32.sub(D.px(point), 32), (D.py(point) + 12 : U32), 3, 12, color, rest)
+    )
+    case True{} 1: F.put(
+      (D.px(point) + 29 : U32),
+      U32.sub(D.py(point), 24),
+      3,
+      12,
+      color,
+      F.put((D.px(point) + 29 : U32), (D.py(point) + 12 : U32), 3, 12, color, rest)
+    )
+    case True{} 2: F.put(
+      U32.sub(D.px(point), 32),
+      U32.sub(D.py(point), 24),
+      20,
+      3,
+      color,
+      F.put((D.px(point) + 12 : U32), U32.sub(D.py(point), 24), 20, 3, color, rest)
+    )
+    case True{} _: F.put(
+      U32.sub(D.px(point), 32),
+      (D.py(point) + 21 : U32),
+      20,
+      3,
+      color,
+      F.put((D.px(point) + 12 : U32), (D.py(point) + 21 : U32), 20, 3, color, rest)
+    )
 
-def room_walls(+layout: U32,+phase: U32,+point: D.Point,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  wall(door_open(layout,phase,0),0,point,color,wall(door_open(layout,phase,1),1,point,color,
-    wall(door_open(layout,phase,2),2,point,color,wall(door_open(layout,phase,3),3,point,color,rest))))
+def room_walls(
+  +layout: U32,
+  +phase: U32,
+  +point: D.Point,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  wall(
+    door_open(layout, phase, 0),
+    0,
+    point,
+    color,
+    wall(
+      door_open(layout, phase, 1),
+      1,
+      point,
+      color,
+      wall(
+        door_open(layout, phase, 2),
+        2,
+        point,
+        color,
+        wall(door_open(layout, phase, 3), 3, point, color, rest)
+      )
+    )
+  )
 
-def room_paths(+phase: U32,+layout: U32,+point: D.Point,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def room_paths(
+  +phase: U32,
+  +layout: U32,
+  +point: D.Point,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match phase:
     case 4:
-      road([D.Point{M.sub(D.px(point),28),M.sub(D.py(point),8)},D.Point{(D.px(point) + 28 : U32),M.sub(D.py(point),8)}],2,7042681,
-        road([D.Point{M.sub(D.px(point),28),D.py(point)},D.Point{(D.px(point) + 28 : U32),D.py(point)}],2,7042681,
-          road([D.Point{M.sub(D.px(point),28),(D.py(point) + 8 : U32)},D.Point{(D.px(point) + 28 : U32),(D.py(point) + 8 : U32)}],2,7042681,rest)))
-    case _: road(D.room_route(layout,phase,0),3,7042681,rest)
-def site_shape(enclosed: Bool,+layout: U32,+phase: U32,+point: D.Point,+x: U32,+y: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+      road(
+        [
+          D.Point{M.sub(D.px(point), 28), M.sub(D.py(point), 8)},
+          D.Point{(D.px(point) + 28 : U32), M.sub(D.py(point), 8)}
+        ],
+        2,
+        7042681,
+        road(
+          [
+            D.Point{M.sub(D.px(point), 28), D.py(point)},
+            D.Point{(D.px(point) + 28 : U32), D.py(point)}
+          ],
+          2,
+          7042681,
+          road(
+            [
+              D.Point{M.sub(D.px(point), 28), (D.py(point) + 8 : U32)},
+              D.Point{(D.px(point) + 28 : U32), (D.py(point) + 8 : U32)}
+            ],
+            2,
+            7042681,
+            rest
+          )
+        )
+      )
+    case _: road(D.room_route(layout, phase, 0), 3, 7042681, rest)
+def site_shape(
+  enclosed: Bool,
+  +layout: U32,
+  +phase: U32,
+  +point: D.Point,
+  +x: U32,
+  +y: U32,
+  color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match enclosed:
     case True{}:
-      List.append(&2,F.Rect,room_walls(layout,phase,point,color,
-        room_paths(phase,layout,point,rest)),[F.Box{x,y,64,48,1914923}])
-    case False{}: F.put(x,(y + 45 : U32),64,3,color,rest)
+      List.append(&2, F.Rect, room_walls(layout, phase, point, color,
+        room_paths(phase, layout, point, rest)), [F.Box{x, y, 64, 48, 1914923}])
+    case False{}: F.put(x, (y + 45 : U32), 64, 3, color, rest)
 
-def site_pressure(tokens: List<&2,P.Token>,+world: M.World,+phase: U32) -> U32:
+def site_pressure(tokens: List<&2, P.Token>, +world: M.World, +phase: U32) -> U32:
   match tokens:
     case Nil{}: 0
-    case Con{+token,tail}: (Bool.pick(U32,U32.is_eq(P.phase(token),phase),P.bytes(token),0) + site_pressure(tail,world,phase) : U32)
+    case Con{+token, tail}: (Bool.pick(U32, U32.is_eq(P.phase(token), phase), P.bytes(token), 0) + site_pressure(
+      tail,
+      world,
+      phase
+    ) : U32)
 
-def preparation_pool(+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()),x,(y + 80 : U32),1,65483,
-    F.text("LEDGER SHARED / NO ROOM CAP",x,(y + 91 : U32),1,12439239,rest))
-def building_permits(phase: U32,+world: M.World,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def preparation_pool(+world: M.World, +x: U32, +y: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  F.text(
+    "PREP SHARED " ++ U32.show(T.preparation_used(world)) ++ "/" ++ U32.show(T.preparation_limit()),
+    x,
+    (y + 80 : U32),
+    1,
+    65483,
+    F.text("LEDGER SHARED / NO ROOM CAP", x, (y + 91 : U32), 1, 12439239, rest)
+  )
+def building_permits(
+  phase: U32,
+  +world: M.World,
+  +x: U32,
+  +y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match phase:
-    case 1: preparation_pool(world,x,y,rest)
-    case 2: preparation_pool(world,x,y,rest)
-    case 4: F.text("JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),x,(y + 80 : U32),1,65483,
-      F.text("LEDGER SHARED / RELEASE BY OUTCOME",x,(y + 91 : U32),1,12439239,rest))
-    case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)),x,(y + 80 : U32),1,65483,rest)
+    case 1: preparation_pool(world, x, y, rest)
+    case 2: preparation_pool(world, x, y, rest)
+    case 4: F.text(
+      "JEV SHARED " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),
+      x,
+      (y + 80 : U32),
+      1,
+      65483,
+      F.text("LEDGER SHARED / RELEASE BY OUTCOME", x, (y + 91 : U32), 1, 12439239, rest)
+    )
+    case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)), x, (y + 80 : U32), 1, 65483, rest)
 
-def health_bar(on: Bool,+world: M.World,+phase: U32,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def health_bar(
+  on: Bool,
+  +world: M.World,
+  +phase: U32,
+  +x: U32,
+  +y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
     case False{}: rest
     case True{}:
-      +hot = site_pressure(P.tokens(world),world,phase)
-      F.text("OWNED " ++ U32.show(hot),x,(y + 69 : U32),1,Bool.pick(U32,(hot > 0 : U32),15758447,12439239),
-        F.put(x,(y + 61 : U32),(64 * M.hp(world) / 100 : U32),3,Bool.pick(U32,(hot > 0 : U32) && (M.hp(world) < 100 : U32),15758447,9170322),F.put(x,(y + 61 : U32),64,3,5003871,building_permits(phase,world,x,y,rest))))
+      +hot = site_pressure(P.tokens(world), world, phase)
+      F.text(
+        "OWNED " ++ U32.show(hot),
+        x,
+        (y + 69 : U32),
+        1,
+        Bool.pick(U32, (hot > 0 : U32), 15758447, 12439239),
+        F.put(
+          x,
+          (y + 61 : U32),
+          (64 * M.hp(world) / 100 : U32),
+          3,
+          Bool.pick(U32, (hot > 0 : U32) && (M.hp(world) < 100 : U32), 15758447, 9170322),
+          F.put(x, (y + 61 : U32), 64, 3, 5003871, building_permits(phase, world, x, y, rest))
+        )
+      )
 
-def queue_caption(+layout: U32,side: U32) -> D.Point:
+def queue_caption(+layout: U32, side: U32) -> D.Point:
   match layout:
-    case 0: D.Point{600,552}
-    case 1: D.Point{Bool.pick(U32,U32.is_eq(side,0),80,564),478}
-    case _: D.Point{600,592}
-def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+    case 0: D.Point{600, 552}
+    case 1: D.Point{Bool.pick(U32, U32.is_eq(side, 0), 80, 564), 478}
+    case _: D.Point{600, 592}
+def queue_details(
+  phase: U32,
+  +world: M.World,
+  +side: U32,
+  x: U32,
+  y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match phase:
     case 3:
-      +caption = queue_caption(M.layout(world),side)
+      +caption = queue_caption(M.layout(world), side)
       +cx = D.px(caption)
       +cy = D.py(caption)
-      F.text("REVIEW QUEUE / SHARED LEDGER",cx,M.sub(cy,24),1,History.phase_color(3),
-        F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,History.phase_color(3),
-      F.text("REVIEW READY " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / WAIT START " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
-        F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
-          F.text("WORK BEFORE REQUEST / SHARED PERMITS",cx,(cy + 24 : U32),1,12439239,rest)))))
+      F.text(
+        "REVIEW QUEUE / SHARED LEDGER",
+        cx,
+        M.sub(cy, 24),
+        1,
+        History.phase_color(3),
+        F.text(
+          "OWNED " ++ U32.show(
+            (T.review_count(
+              M.work(M.core(world)),
+              world,
+              side,
+              False{}
+            ) + T.review_count(M.work(M.core(world)), world, side, True{}) : U32)
+          ),
+          cx,
+          M.sub(cy, 12),
+          1,
+          History.phase_color(3),
+          F.text(
+            "REVIEW READY " ++ U32.show(
+              T.review_count(M.work(M.core(world)), world, side, False{})
+            ) ++ " / WAIT START " ++ U32.show(
+              T.review_count(M.work(M.core(world)), world, side, True{})
+            ),
+            cx,
+            cy,
+            1,
+            65483,
+            F.text(
+              "JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(T.request_limit()),
+              cx,
+              (cy + 12 : U32),
+              1,
+              12439239,
+              F.text("WORK BEFORE REQUEST / SHARED PERMITS", cx, (cy + 24 : U32), 1, 12439239, rest)
+            )
+          )
+        )
+      )
     case _: rest
 
-def processing_building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +point = D.center(M.layout(world),phase,side)
-  +x = U32.sub(D.px(point),32)
-  +y = U32.sub(D.py(point),24)
-  +enclosed = Bool.not(U32.is_eq(phase,0))
-  +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SHARED LEDGER",phase_name(phase))
-  +count = P.count(world,phase)
-  F.text(title,x,U32.sub(y,13),1,History.phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,History.phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,History.phase_color(phase)),rest))))
+def processing_building(
+  +world: M.World,
+  +phase: U32,
+  +side: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  +point = D.center(M.layout(world), phase, side)
+  +x = U32.sub(D.px(point), 32)
+  +y = U32.sub(D.py(point), 24)
+  +enclosed = Bool.not(U32.is_eq(phase, 0))
+  +title = Bool.pick(String, U32.is_eq(phase, 0), "SOURCE QUEUE / SHARED LEDGER", phase_name(phase))
+  +count = P.count(world, phase)
+  F.text(
+    title,
+    x,
+    U32.sub(y, 13),
+    1,
+    History.phase_color(phase),
+    F.text(
+      "OWNED " ++ U32.show(count),
+      x,
+      (y + 53 : U32),
+      1,
+      History.phase_color(phase),
+      health_bar(
+        enclosed,
+        world,
+        phase,
+        x,
+        y,
+        site_shape(
+          enclosed,
+          M.layout(world),
+          phase,
+          point,
+          x,
+          y,
+          Bool.pick(
+            U32,
+            (M.damage_flash(
+              world
+            ) > 0 : U32) && (site_pressure(P.tokens(world), world, phase) > 0 : U32),
+            15758447,
+            History.phase_color(phase)
+          ),
+          rest
+        )
+      )
+    )
+  )
 
-def building(+world: M.World,+phase: U32,+side: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def building(+world: M.World, +phase: U32, +side: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match phase:
-    case 3: queue_details(phase,world,side,0,0,rest)
-    case _: processing_building(world,phase,side,rest)
+    case 3: queue_details(phase, world, side, 0, 0, rest)
+    case _: processing_building(world, phase, side, rest)
 
-def buildings(fuel: Nat, +phase: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def buildings(fuel: Nat, +phase: U32, +world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match fuel:
     case 0n: rest
-    case 1n+n: building(world,phase,0,buildings(n,(phase + 1 : U32),world,rest))
+    case 1n+n: building(world, phase, 0, buildings(n, (phase + 1 : U32), world, rest))
 
-def extra_building(on: Bool, world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def extra_building(on: Bool, world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match on:
-    case True{}: building(world,3,1,rest)
+    case True{}: building(world, 3, 1, rest)
     case False{}: rest
 
-def ring(fuel: Nat, +x: U32, +y: U32, +radius: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def ring(
+  fuel: Nat,
+  +x: U32,
+  +y: U32,
+  +radius: U32,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match fuel:
     case 0n: rest
     case 1n++n:
       +angle = (U32.to_f32(U32.from_nat(n)) * 6.283185 / 48.0 : F32)
-      px = F32.to_u32(F32.max(0.0,(U32.to_f32(x) + F32.cos(angle) * U32.to_f32(radius) : F32)))
-      py = F32.to_u32(F32.max(0.0,(U32.to_f32(y) + F32.sin(angle) * U32.to_f32(radius) : F32)))
-      F.put(px,py,2,2,color,ring(n,x,y,radius,color,rest))
+      px = F32.to_u32(F32.max(0.0, (U32.to_f32(x) + F32.cos(angle) * U32.to_f32(radius) : F32)))
+      py = F32.to_u32(F32.max(0.0, (U32.to_f32(y) + F32.sin(angle) * U32.to_f32(radius) : F32)))
+      F.put(px, py, 2, 2, color, ring(n, x, y, radius, color, rest))
 
-def roof(fuel: Nat,+x: U32,+y: U32,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def roof(fuel: Nat, +x: U32, +y: U32, +color: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match fuel:
     case 0n: rest
     case 1n++n:
       +row = (10 - U32.from_nat(n) : U32)
-      F.put(U32.sub(x,row),(y + row : U32),(row * 2 : U32),2,color,roof(n,x,y,color,rest))
+      F.put(U32.sub(x, row), (y + row : U32), (row * 2 : U32), 2, color, roof(n, x, y, color, rest))
 
-def processor_icon(+x: U32,+y: U32,kind: U32,level: U32,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  roof(10n,x,U32.sub(y,17),color,F.text(U32.show((kind + 1 : U32)) ++ " L" ++ U32.show(level),U32.sub(x,14),(y + 14 : U32),1,color,F.put(U32.sub(x,4),U32.sub(y,3),9,10,3028557,F.put(U32.sub(x,11),U32.sub(y,7),23,19,color,rest))))
+def processor_icon(
+  +x: U32,
+  +y: U32,
+  kind: U32,
+  level: U32,
+  +color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  roof(
+    10n,
+    x,
+    U32.sub(y, 17),
+    color,
+    F.text(
+      U32.show(Mechanics.shortcut(kind)) ++ " L" ++ U32.show(level),
+      U32.sub(x, 14),
+      (y + 14 : U32),
+      1,
+      color,
+      F.put(
+        U32.sub(x, 4),
+        U32.sub(y, 3),
+        9,
+        10,
+        3028557,
+        F.put(U32.sub(x, 11), U32.sub(y, 7), 23, 19, color, rest)
+      )
+    )
+  )
 
-def selected_ring(on: Bool,+tower: M.Tower,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+# Coverage is independent of whether the cursor is on buildable ground.
+def coverage_color(has_target: Bool) -> U32:
+  match has_target:
+    case True{}: 6741384
+    case False{}: 9148069
+def ghost_range_color(preview: Preview.Preview) -> U32:
+  coverage_color((Preview.before(preview) > 0 : U32))
+
+def tower_range_color(world: M.World, tower: M.Tower) -> U32:
+  coverage_color((Fire.remaining(world, tower) > 0 : U32))
+
+def selected_ring(
+  on: Bool,
+  world: M.World,
+  +tower: M.Tower,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
     case False{}: rest
-    case True{}: ring(48n,M.tx(tower),M.ty(tower),H.built_range(tower),kind_color(M.tkind(tower)),rest)
+    case True{}: ring(
+      48n,
+      M.tx(tower),
+      M.ty(tower),
+      H.built_range(tower),
+      tower_range_color(world, tower),
+      rest
+    )
 
-def processors(ts: List<&2,M.Tower>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def processors(
+  ts: List<&2, M.Tower>,
+  +world: M.World,
+  +index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match ts:
     case Nil{}: rest
-    case Con{+tower,tail}:
-      processor_icon(M.tx(tower),M.ty(tower),M.tkind(tower),M.level(tower),kind_color(M.tkind(tower)),
-        selected_ring(U32.is_eq(M.selected(world),index),tower,processors(tail,world,(index + 1 : U32),rest)))
+    case Con{+tower, tail}:
+      processor_icon(
+        M.tx(tower),
+        M.ty(tower),
+        M.tkind(tower),
+        M.level(tower),
+        kind_color(M.tkind(tower)),
+        selected_ring(
+          U32.is_eq(M.selected(world), index),
+          world,
+          tower,
+          processors(tail, world, (index + 1 : U32), rest)
+        )
+      )
 
 def cue_color(status: U32) -> U32:
   match status:
@@ -310,417 +803,1274 @@ def cue_color(status: U32) -> U32:
     case 5: 13265499
     case _: 15758447
 
-def stat_label(kind: U32) -> String:
-  match kind:
-    case 0: "FUTURE JEV DELAY MS"
-    case 1: "FUTURE OUTPUT DELAY MS"
-    case _: "UNAVAILABLE ACCESS CHANNELS"
-
 def text_width(value: String) -> U32:
   match value:
     case SNil{}: 0
-    case SCon{_,tail}: (8 + text_width(tail) : U32)
+    case SCon{_, tail}: (8 + text_width(tail) : U32)
 
-def stat_delta(+preview: Preview.Preview,+x: U32,+y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def stat_delta(
+  +preview: Preview.Preview,
+  +x: U32,
+  +y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   +current = U32.show(Preview.before(preview))
-  F.text(current,x,y,2,16777215,F.text(" TO " ++ U32.show(Preview.after(preview)),(x + text_width(current) : U32),y,2,cue_color(Preview.status(preview)),rest))
+  F.text(
+    current,
+    x,
+    y,
+    2,
+    16777215,
+    F.text(
+      " TO " ++ U32.show(Preview.after(preview)),
+      (x + text_width(current) : U32),
+      y,
+      2,
+      cue_color(Preview.status(preview)),
+      rest
+    )
+  )
 
-def actionable_stats(on: Bool,preview: Preview.Preview,x: U32,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def actionable_stats(
+  on: Bool,
+  preview: Preview.Preview,
+  x: U32,
+  y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
-    case True{}: stat_delta(preview,x,y,rest)
-    case False{}: F.text("NO TARGET IN RANGE",x,y,1,15758447,rest)
+    case True{}: stat_delta(preview, x, y, rest)
+    case False{}: F.text("NO TARGET IN RANGE", x, y, 1, 15758447, rest)
 
-def placement_point(world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
-  D.center(M.layout(world),Preview.site(preview),0)
-def placement_link(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match on:
-    case False{}: rest
-    case True{}:
-      +point = placement_point(world,preview,Preview.target(preview))
-      +color = cue_color(Preview.status(preview))
-      +label_y = Bool.pick(U32,(D.py(point) > 500 : U32),U32.sub(D.py(point),92),(D.py(point) + 76 : U32))
-      road_dots(51n,D.Point{Preview.x(preview),Preview.y(preview)},point,0,1,color,
-        ring(48n,D.px(point),D.py(point),Bool.pick(U32,Nat.is_eq(Preview.target(preview),0n),42,18),color,
-          F.text(stat_label(Preview.kind(preview)),U32.max(24,M.sub(D.px(point),64)),label_y,1,12439239,
-            stat_delta(preview,U32.max(24,M.sub(D.px(point),32)),(label_y + 12 : U32),rest))))
+def generic_panel(
+  +world: M.World,
+  +preview: Preview.Preview,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  box(
+    "BEFORE BUILDING",
+    Preview.reason(preview),
+    800,
+    538,
+    216,
+    184,
+    cue_color(Preview.status(preview)),
+    F.text(
+      PreviewMarks.scope(Preview.kind(preview)),
+      812,
+      584,
+      1,
+      16768133,
+      F.text(
+        "REMAINING TRAVEL MS",
+        812,
+        604,
+        1,
+        12439239,
+        actionable_stats(
+          Bool.not(U32.is_eq(Preview.site(preview), 255)),
+          preview,
+          812,
+          624,
+          F.text(
+            "BUDGET " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),
+            812,
+            666,
+            1,
+            15758447,
+            F.text(
+              "RANGE " ++ U32.show(Preview.range(preview)) ++ " / LIVE WORK",
+              812,
+              684,
+              1,
+              12439239,
+              F.text("GREEN RANGE: TARGET / RED ICON: NO BUILD", 812, 702, 1, 12439239, rest)
+            )
+          )
+        )
+      )
+    )
+  )
 
-def preview_scope(kind: U32) -> String:
-  match kind:
-    case 0: "AFFECTS ALL FUTURE JEV REQUESTS"
-    case 1: "AFFECTS FUTURE OUTPUT SUBMISSIONS"
-    case _: "AFFECTS SOURCE AND CREDENTIAL ACCESS"
-def generic_panel(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("BEFORE BUILDING",Preview.reason(preview),800,538,216,184,cue_color(Preview.status(preview)),
-    F.text(preview_scope(Preview.kind(preview)),812,584,1,16768133,
-      F.text(stat_label(Preview.kind(preview)),812,604,1,12439239,
-        actionable_stats(Bool.not(U32.is_eq(Preview.site(preview),255)),preview,812,624,
-          F.text("GOLD " ++ U32.show(M.gold(world)) ++ " - " ++ U32.show(Preview.cost(preview)),812,666,1,15758447,
-            F.text("RANGE " ++ U32.show(Preview.range(preview)) ++ Bool.pick(String,U32.is_eq(Preview.kind(preview),2)," / ONE-TIME REPAIR"," / FUTURE TIMING"),812,684,1,12439239,
-              F.text(Bool.pick(String,U32.is_eq(Preview.kind(preview),2),"RESTORES BOTH ACCESS CHANNELS","ISSUED DEADLINES STAY FIXED"),812,702,1,12439239,rest)))))))
-
-def preview_panel(kind: U32,legal: Bool,world: M.World,preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  generic_panel(world,preview,rest)
-def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def ghost_visible(
+  on: Bool,
+  +world: M.World,
+  +preview: Preview.Preview,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
     case False{}: rest
     case True{}:
       +color = cue_color(Preview.status(preview))
       +x = Preview.x(preview)
       +y = Preview.y(preview)
-      ring(48n,x,y,Preview.range(preview),color,processor_icon(x,y,Preview.kind(preview),1,color,
-        placement_link(Bool.not(U32.is_eq(Preview.site(preview),255)),world,preview,
-          preview_panel(Preview.kind(preview),Preview.legal(preview),world,preview,rest))))
+      ring(
+        48n,
+        x,
+        y,
+        Preview.range(preview),
+        ghost_range_color(preview),
+        processor_icon(x, y, Preview.kind(preview), 1, color, generic_panel(world, preview, rest))
+      )
 
-def selected_note(tower: M.Tower) -> String:
-  Mechanics.detail(M.tkind(tower))
-def actual_current(+world: M.World,tower: M.Tower) -> U32:
-  H.profile_delay(world,M.tkind(tower))
-
-def inspection_if(on: Bool,+world: M.World,+tower: M.Tower,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def upgrade_stats(+tower: M.Tower, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  F.text("RADIUS " ++ TowerPreview.upgrade_range(tower), 812, 686, 1, 12439239,
+    F.text("SHOT GAP " ++ TowerPreview.upgrade_cadence(tower) ++ " TICKS", 812, 698, 1, 12439239,
+      F.text("CURRENT COOLDOWN IS NOT RESET", 812, 712, 1, 15124059, rest)))
+def upgrade_stats_when(maximum: Bool, tower: M.Tower, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  match maximum:
+    case True{}: F.text("RADIUS " ++ U32.show(H.built_range(tower)), 812, 686, 1, 12439239,
+      F.text("SAME OUTCOME / OWNERSHIP", 812, 702, 1, 12439239, rest))
+    case False{}: upgrade_stats(tower, rest)
+def living_upgrade_card(+world: M.World, +tower: M.Tower) -> String:
+  Bool.pick(
+    String,
+    (M.level(tower) >= Mechanics.max_level(M.tkind(tower)) : U32),
+    "MAX LEVEL " ++ U32.show(M.level(tower)),
+    "U: L" ++ U32.show(
+      M.level(tower)
+    ) ++ " TO " ++ U32.show(
+      (M.level(tower) + 1 : U32)
+    ) ++ " COST " ++ U32.show(H.upgrade_cost(M.tkind(tower), M.level(tower)))
+  )
+def living_inspection_state(+world: M.World, +tower: M.Tower) -> String:
+  Bool.pick(String, M.paused(world), "PAUSED / COOLDOWN ",
+    Bool.pick(String, M.active(world), "AUTO / COOLDOWN ", "BUILD / COOLDOWN ")) ++ U32.show(
+      M.sub(M.ready_at(tower), M.time(world))
+    ) ++ " TICKS"
+def upgrade_card(+world: M.World, tower: M.Tower) -> String:
+  Bool.pick(String, U32.is_eq(M.hp(world), 0), "NO UPGRADE", living_upgrade_card(world, tower))
+def inspection_state(+world: M.World, tower: M.Tower) -> String:
+  Bool.pick(
+    String,
+    U32.is_eq(M.hp(world), 0),
+    "DEFEATED / INSPECTION ONLY",
+    living_inspection_state(world, tower)
+  )
+def inspection_if(
+  on: Bool,
+  +world: M.World,
+  +tower: M.Tower,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
     case False{}: rest
     case True{}:
-      box("SELECTED " ++ H.tower_name(M.tkind(tower)),Bool.pick(String,(M.level(tower) >= Mechanics.max_level(M.tkind(tower)) : U32),Bool.pick(String,U32.is_eq(M.tkind(tower),2),"ONE-SHOT REPAIR / NO UPGRADE","MAX LEVEL 3"),"LEVEL " ++ U32.show(M.level(tower)) ++ " / U COST " ++ U32.show(H.upgrade_cost(M.level(tower)))),800,538,216,184,kind_color(M.tkind(tower)),
-        F.text("RANGE " ++ U32.show(H.built_range(tower)),812,584,1,12439239,
-          F.text(Bool.pick(String,U32.is_eq(M.tkind(tower),2),"ONE-TIME ACCESS RESTORE NOW","SCOPE: ALL FUTURE OPERATIONS"),812,602,1,12439239,
-            F.text(stat_label(M.tkind(tower)),812,624,1,12439239,
-              F.text(U32.show(actual_current(world,tower)),812,640,2,16777215,
-                F.text(selected_note(tower),812,666,1,15124059,
-                  F.text(Bool.pick(String,U32.is_eq(M.tkind(tower),2),"NO CONTINUING PROTECTION","ISSUED DEADLINES STAY FIXED"),812,684,1,12439239,rest)))))))
+      +choice = TowerPreview.context(world, M.selected(world))
+      +target = Fire.target(choice, tower, 0n)
+      box(
+        "SELECTED " ++ H.tower_name(M.tkind(tower)),
+        "LEVEL " ++ U32.show(M.level(tower)) ++ " / " ++ TowerPreview.upgrade_note(world, tower),
+        800,
+        538,
+        216,
+        184,
+        kind_color(M.tkind(tower)),
+        F.text(
+          TowerPreview.target_note(target),
+          812,
+          582,
+          2,
+          12439239,
+          F.text(
+            TowerPreview.effect_text(target, choice),
+            812,
+            600,
+            2,
+            16768133,
+            F.text(
+              inspection_state(choice, tower),
+              812,
+              620,
+              1,
+              12439239,
+              F.text(
+                Bool.pick(
+                  String,
+                  TowerPreview.ready(choice, tower),
+                  "NOW / LONGEST WAIT FIRST",
+                  "IF READY NOW / TARGET MAY CHANGE"
+                ),
+                812,
+                632,
+                1,
+                15124059,
+                F.text(
+                  "ONE TARGET",
+                  812,
+                  644,
+                  2,
+                  15124059,
+                  F.text(
+                    "NOT WHOLE FAMILY / FINISH IS A PACKET",
+                    812,
+                    658,
+                    1,
+                    15124059,
+                    F.text(
+                      upgrade_card(world, tower),
+                      812,
+                      670,
+                      2,
+                      65483,
+                      upgrade_stats_when(
+                        (M.level(tower) >= Mechanics.max_level(M.tkind(tower)) : U32),
+                        tower,
+                        rest
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
 
-def inspection(ts: List<&2,M.Tower>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def inspection(
+  ts: List<&2, M.Tower>,
+  +world: M.World,
+  +index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match ts:
     case Nil{}: rest
-    case Con{+tower,tail}: inspection_if(U32.is_eq(index,M.selected(world)),world,tower,inspection(tail,world,(index + 1 : U32),rest))
+    case Con{+tower, tail}: inspection_if(
+      U32.is_eq(index, M.selected(world)),
+      world,
+      tower,
+      inspection(tail, world, (index + 1 : U32), rest)
+    )
 
-def ghost(+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  ghost_visible(Bool.not(U32.is_eq(Preview.status(preview),0)) && (Preview.x(preview) < 792 : U32) && (Preview.y(preview) > 100 : U32) && (Preview.y(preview) < 656 : U32),world,preview,inspection(M.towers(world),world,1,rest))
+def ghost(+world: M.World, +preview: Preview.Preview, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  ghost_visible(
+    Bool.not(
+      U32.is_eq(Preview.status(preview), 0)
+    ) && (Preview.x(
+      preview
+    ) < 792 : U32) && (Preview.y(preview) > 100 : U32) && (Preview.y(preview) < 656 : U32),
+    world,
+    preview,
+    inspection(M.towers(world), world, 1, rest)
+  )
 
 # Family identity survives operation retirement/fan-out and small room sprites.
-def status_found(+world: M.World,found: Maybe<&2,C.Work>) -> String:
+def status_found(+world: M.World, found: Maybe<&2, C.Work>) -> String:
   match found:
     case None{}: ""
     case Some{+work}:
-      Bool.pick(String,Cues.refused_id(M.cues(world),E.id(work)),"PREP REFUSED",
-        Bool.pick(String,U32.is_eq(E.kind(work),3),"WAIT START",
-          Bool.pick(String,U32.is_eq(E.kind(work),4),
-            Bool.pick(String,E.started(E.id(work),E.requests(M.dispatch(M.core(world)))),
-              "REQUEST ACTIVE","WAIT START"),"")))
-def actor_status_text(+world: M.World,+token: P.Token) -> String:
-  status_found(world,E.find_work(U32.to_nat(P.id(token)),M.work(M.core(world))))
-def unit_work_row(+token: P.Token,remaining: U32,+status: String,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("E" ++ U32.show(P.family(token)) ++ " U" ++ U32.show(P.id(token)) ++ " " ++ Bool.pick(String,String.eq(status,""),phase_name(P.phase(token)),status),812,y,1,History.phase_color(P.phase(token)),rest)
-def work_row_if(on: Bool,+token: P.Token,+world: M.World,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+      Bool.pick(String, Cues.refused_id(M.cues(world), E.id(work)), "PREP REFUSED",
+        Bool.pick(String, U32.is_eq(E.kind(work), 3), "WAIT START",
+          Bool.pick(String, U32.is_eq(E.kind(work), 4),
+            Bool.pick(String, E.started(E.id(work), E.requests(M.dispatch(M.core(world)))),
+              "REQUEST ACTIVE", "WAIT START"), "")))
+def actor_status_text(+world: M.World, +token: P.Token) -> String:
+  status_found(world, E.find_work(U32.to_nat(P.id(token)), M.work(M.core(world))))
+def unit_work_row(
+  +token: P.Token,
+  remaining: U32,
+  +status: String,
+  y: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  F.text(
+    "E" ++ U32.show(
+      P.family(token)
+    ) ++ " U" ++ U32.show(
+      P.id(token)
+    ) ++ " " ++ Bool.pick(String, String.eq(status, ""), phase_name(P.phase(token)), status),
+    812,
+    y,
+    1,
+    History.phase_color(P.phase(token)),
+    rest
+  )
+def work_row_if(
+  on: Bool,
+  +token: P.Token,
+  +world: M.World,
+  index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
     case False{}: rest
-    case True{}: unit_work_row(token,0,actor_status_text(world,token),(370 + index * 8 : U32),rest)
-def work_rows(tokens: List<&2,P.Token>,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+    case True{}: unit_work_row(
+      token,
+      0,
+      actor_status_text(world, token),
+      (370 + index * 8 : U32),
+      rest
+    )
+def work_rows(
+  tokens: List<&2, P.Token>,
+  +world: M.World,
+  +index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match tokens:
     case Nil{}: rest
-    case +token <> tail: work_row_if((index < 8 : U32),token,world,index,work_rows(tail,world,(index + 1 : U32),rest))
+    case +token <> tail: work_row_if(
+      (index < 8 : U32),
+      token,
+      world,
+      index,
+      work_rows(tail, world, (index + 1 : U32), rest)
+    )
 
-def waiting_end(+world: M.World,+token: P.Token) -> Bool:
-  U32.is_eq(P.phase(token),5)
+def waiting_end(+world: M.World, +token: P.Token) -> Bool:
+  U32.is_eq(P.phase(token), 5)
 # Classify each actor once per frame. Ranking must not recompute everybody's path.
-def waiting_keep(on: Bool,id: U32,rest: List<&2,U32>) -> List<&2,U32>:
+def waiting_keep(on: Bool, id: U32, rest: List<&2, U32>) -> List<&2, U32>:
   match on:
     case True{}: id <> rest
     case False{}: rest
-def waiting_ids(tokens: List<&2,P.Token>,+world: M.World) -> List<&2,U32>:
+def waiting_ids(tokens: List<&2, P.Token>, +world: M.World) -> List<&2, U32>:
   match tokens:
     case Nil{}: Nil{}
     case +token <> rest:
-      waiting_keep(waiting_end(world,token),P.id(token),waiting_ids(rest,world))
-def wait_rank(ids: List<&2,U32>,+id: U32) -> U32:
+      waiting_keep(waiting_end(world, token), P.id(token), waiting_ids(rest, world))
+def wait_rank(ids: List<&2, U32>, +id: U32) -> U32:
   match ids:
     case Nil{}: 0
-    case head <> tail: (Bool.to_u32((head < id : U32)) + wait_rank(tail,id) : U32)
-def is_waiting(ids: List<&2,U32>,+id: U32) -> Bool:
+    case head <> tail: (Bool.to_u32((head < id : U32)) + wait_rank(tail, id) : U32)
+def is_waiting(ids: List<&2, U32>, +id: U32) -> Bool:
   match ids:
     case Nil{}: False{}
-    case head <> tail: Bool.or(U32.is_eq(head,id),is_waiting(tail,id))
+    case head <> tail: Bool.or(U32.is_eq(head, id), is_waiting(tail, id))
 
-# Authored monster silhouettes. Road9x12 cells scaled2; interior7x8.
-# A contiguous run equals the original cell union, including expanded outlines.
-def sprite_run(run: U32,+column: U32,+x: U32,+y: U32,+size: U32,+height: U32,+color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match run:
-    case 0: rest
-    case +length:
-      +left = (x + M.sub(column,length) * size : U32)
-      F.put(Bool.pick(U32,outline,M.sub(left,1),left),Bool.pick(U32,outline,M.sub(y,1),y),
-        ((length * size) + Bool.pick(U32,outline,2,0) : U32),(height + Bool.pick(U32,outline,2,0) : U32),color,rest)
-def sprite_scan(fuel: Nat,+mask: U32,+column: U32,+run: U32,+x: U32,+y: U32,+size: U32,+height: U32,+color: U32,+outline: Bool,on: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match fuel on:
-    case 0n _: sprite_run(run,column,x,y,size,height,color,outline,rest)
-    case 1n+n True{}:
-      sprite_scan(n,mask,(column + 1 : U32),(run + 1 : U32),x,y,size,height,color,outline,
-        Bool.not(U32.is_eq(((mask >> U32.to_nat((column + 1 : U32))) .&. 1 : U32),0)),rest)
-    case 1n+n False{}:
-      sprite_scan(n,mask,(column + 1 : U32),0,x,y,size,height,color,outline,
-        Bool.not(U32.is_eq(((mask >> U32.to_nat((column + 1 : U32))) .&. 1 : U32),0)),sprite_run(run,column,x,y,size,height,color,outline,rest))
-def sprite_row(fuel: Nat,+mask: U32,+column: U32,x: U32,y: U32,+size: U32,color: U32,outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  sprite_scan(fuel,mask,column,0,x,y,size,size,color,outline,Bool.not(U32.is_eq(((mask >> U32.to_nat(column)) .&. 1 : U32),0)),rest)
-
-type MaskRun is Data:
-  MaskRun{mask: U32, rows: U32}
-def add_mask_run(+mask: U32,runs: List<&2,MaskRun>) -> List<&2,MaskRun>:
-  match runs:
-    case Nil{}: [MaskRun{mask,1}]
-    case MaskRun{+head,+count} <> +tail:
-      Bool.pick(List<&2,MaskRun>,U32.is_eq(mask,head),MaskRun{mask,(count + 1 : U32)} <> tail,MaskRun{mask,1} <> MaskRun{head,count} <> tail)
-def mask_runs(rows: List<&2,U32>) -> List<&2,MaskRun>:
-  match rows:
-    case Nil{}: []
-    case row <> tail: add_mask_run(row,mask_runs(tail))
-def sprite_blocks(runs: List<&2,MaskRun>,+width: Nat,+x: U32,+y: U32,+size: U32,+color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match runs:
-    case Nil{}: rest
-    case MaskRun{+mask,+count} <> tail:
-      sprite_scan(width,mask,0,0,x,y,size,(count * size : U32),color,outline,Bool.not(U32.is_eq((mask .&. 1 : U32),0)),
-        sprite_blocks(tail,width,x,(y + count * size : U32),size,color,outline,rest))
-def sprite_rows(rows: List<&2,U32>,width: Nat,x: U32,y: U32,size: U32,color: U32,outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  sprite_blocks(mask_runs(rows),width,x,y,size,color,outline,rest)
-
-def silhouette(+rows: List<&2,U32>,+width: Nat,+x: U32,+y: U32,+size: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  sprite_rows(rows,width,x,y,size,color,False{},sprite_rows(rows,width,x,y,size,1058076,True{},rest))
-
-def monster_at(+x: U32,+y: U32,small: Bool,+color: U32,+step: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match small:
-    case True{}:
-      F.put(U32.sub(x,2),U32.sub(y,1),1,1,16777215,F.put((x + 2 : U32),U32.sub(y,1),1,1,16777215,
-        F.put(x,(y + 1 : U32),1,1,1058076,silhouette([34,62,127,127,127,62,54,99],7n,U32.sub(x,3),U32.sub(y,4),1,color,rest))))
-    case False{}:
-      F.put(U32.sub(x,5),U32.sub(y,4),4,4,16777215,F.put((x + 3 : U32),U32.sub(y,4),4,4,16777215,
-        F.put(U32.sub(x,3),U32.sub(y,3),2,2,1058076,F.put((x + 3 : U32),U32.sub(y,3),2,2,1058076,
-          F.put(U32.sub(x,2),(y + 3 : U32),6,2,1058076,
-            silhouette([68,198,124,254,254,254,254,511,254,124,108,Bool.pick(U32,U32.is_eq((step % 2 : U32),0),238,220)],9n,U32.sub(x,9),U32.sub(y,12),2,color,rest))))))
-
-def monster(+point: D.Point,small: Bool,color: U32,step: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  monster_at(D.px(point),D.py(point),small,color,step,rest)
-
-# Only eight bodies per queue lane; excess owners remain counted and targetable.
-def wait_count(tokens: List<&2,P.Token>,world: M.World) -> U32:
-  M.number(List.length(&2,U32,waiting_ids(tokens,world)))
-def wait_label(+world: M.World,+ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +point = D.center(M.layout(world),5,0)
-  F.text("RETAINED " ++ U32.show(M.number(List.length(&2,U32,ids))) ++ Bool.pick(String,(M.number(List.length(&2,U32,ids)) > 6 : U32)," / +" ++ U32.show(M.sub(M.number(List.length(&2,U32,ids)),6)),""),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
-
-def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  F.text("SHARED ENGINE OUTPUT / READY " ++ U32.show(P.ready(world)) ++ " / WRITES " ++ U32.show(P.writes(world)),24,674,1,7449343,
-    F.text("LEASED " ++ U32.show(P.leases(world)) ++ " / UNCERTAIN " ++ U32.show(P.uncertain(world)),24,690,1,12439239,
-      F.text("SHARED LEDGER " ++ U32.show(P.ledger_items(world)) ++ "/" ++ U32.show(P.ledger_item_limit(world)) ++ " ITEMS " ++ U32.show(P.ledger_bytes(world)) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ " B",24,706,1,16768133,rest)))
-
+def end_label(kind: U32) -> String:
+  match kind:
+    case 10: "CLEAR"
+    case 11: "FINDING"
+    case 12: "DELIVERED"
+    case 13: "NO LONGER ACTIVE"
+    case 14: "SPLIT INTO REVIEWS"
+    case 15: "DELIVERY UNCERTAIN"
+    case _: "SHOT"
 def cue_label(+cue: M.Cue) -> String:
-  Bool.pick(String,U32.is_eq(M.cue_kind(cue),2),"E" ++ Nat.show(M.cue_family(cue)) ++ " PREP REFUSED",
-    Bool.pick(String,U32.is_eq(M.cue_kind(cue),0),"BURST QUEUED","ADMITTED"))
-def cue_draw(+cue: M.Cue,row: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +color = Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),16733525,9392692),65483)
-  F.text(cue_label(cue),(M.cue_x(cue) + 12 : U32),(U32.sub(M.cue_y(cue),28) + row * 12 : U32),1,color,
-    ring(24n,M.cue_x(cue),M.cue_y(cue),Bool.pick(U32,(M.cue_ttl(cue) > 30 : U32),12,8),color,rest))
-def cue_visible(on: Bool,cue: M.Cue,row: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  Bool.pick(
+    String,
+    (M.cue_kind(cue) >= 3 : U32),
+    end_label(M.cue_kind(cue)) ++ " U" ++ Nat.show(M.cue_operation(cue)),
+    Bool.pick(
+      String,
+      U32.is_eq(M.cue_kind(cue), 2),
+      "E" ++ Nat.show(M.cue_family(cue)) ++ " PREP REFUSED",
+      Bool.pick(String, U32.is_eq(M.cue_kind(cue), 0), "BURST QUEUED", "ADMITTED")
+    )
+  )
+def cue_draw(+cue: M.Cue, row: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  +color = Bool.pick(
+    U32,
+    U32.is_eq(M.cue_kind(cue), 2),
+    Bool.pick(U32, (M.cue_ttl(cue) > 30 : U32), 16733525, 9392692),
+    65483
+  )
+  F.text(
+    cue_label(cue),
+    (M.cue_x(cue) + 12 : U32),
+    (U32.sub(M.cue_y(cue), 28) + row * 12 : U32),
+    1,
+    color,
+    ring(
+      24n,
+      M.cue_x(cue),
+      M.cue_y(cue),
+      Bool.pick(U32, (M.cue_ttl(cue) > 30 : U32), 12, 8),
+      color,
+      rest
+    )
+  )
+def cue_visible(on: Bool, cue: M.Cue, row: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match on:
-    case True{}: cue_draw(cue,row,rest)
+    case True{}: cue_draw(cue, row, rest)
     case False{}: rest
-def cue_trails(items: List<&2,M.Cue>,+world: M.World,+row: U32,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def published(+world: M.World) -> Bool:
+  (Run.clock(M.engine(world)) <= U32.to_nat(M.time(world)) * 20n : Nat)
+def cue_trails(
+  items: List<&2, M.Cue>,
+  +world: M.World,
+  +row: U32,
+  +rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
     case +cue <> +tail:
-      +draw = U32.is_eq(M.cue_kind(cue),2) && Nat.is_eq(E.id_found(M.cue_operation(cue),M.work(M.core(world))),0n)
-      cue_visible(draw,cue,row,cue_trails(tail,world,(row + Bool.to_u32(draw) : U32),rest))
-def cue_hud(items: List<&2,M.Cue>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+      +draw = published(world) && ((M.cue_kind(cue) >= 10 : U32) || (U32.is_eq(M.cue_kind(cue), 2) && Nat.is_eq(
+        E.id_found(M.cue_operation(cue), M.work(M.core(world))),
+        0n
+      )))
+      cue_visible(draw, cue, row, cue_trails(tail, world, (row + Bool.to_u32(draw) : U32), rest))
+def cue_hud(items: List<&2, M.Cue>, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
-    case +cue <> _: F.text(cue_label(cue),24,130,1,Bool.pick(U32,U32.is_eq(M.cue_kind(cue),2),16733525,65483),rest)
+    case +cue <> _: F.text(
+      cue_label(cue),
+      24,
+      130,
+      1,
+      Bool.pick(U32, U32.is_eq(M.cue_kind(cue), 2), 16733525, 65483),
+      rest
+    )
+
+def published_hud(+world: M.World, +rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  Bool.pick(
+    List<&2, F.Rect>,
+    published(world),
+    cue_hud(Cues.select(M.cues(world), False{}), rest),
+    rest
+  )
 
 # Checks share the request transform inside Jev. After the fork they own paths.
 
-def check_bodies(items: List<&2,Bool>,+actor: V.Actor,+group: RuleTypes.Group,+world: M.World,+index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def wait_count(tokens: List<&2, P.Token>, world: M.World) -> U32:
+  M.number(List.length(&2, U32, waiting_ids(tokens, world)))
+
+def output_hud(+world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  F.text(
+    "SHARED ENGINE OUTPUT / READY " ++ U32.show(
+      P.ready(world)
+    ) ++ " / WRITES " ++ U32.show(P.writes(world)),
+    24,
+    674,
+    1,
+    7449343,
+    F.text(
+      "LEASED " ++ U32.show(P.leases(world)) ++ " / UNCERTAIN " ++ U32.show(P.uncertain(world)),
+      24,
+      690,
+      1,
+      12439239,
+      F.text(
+        "SHARED LEDGER " ++ U32.show(
+          P.ledger_items(world)
+        ) ++ "/" ++ U32.show(
+          P.ledger_item_limit(world)
+        ) ++ " ITEMS " ++ U32.show(
+          P.ledger_bytes(world)
+        ) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ " B",
+        24,
+        706,
+        1,
+        16768133,
+        rest
+      )
+    )
+  )
+
+
+# Authored monster silhouettes. Road9x12 cells scaled2; interior7x8.
+# A contiguous run equals the original cell union, including expanded outlines.
+def sprite_run(
+  run: U32,
+  +column: U32,
+  +x: U32,
+  +y: U32,
+  +size: U32,
+  +height: U32,
+  +color: U32,
+  +outline: Bool,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  match run:
+    case 0: rest
+    case +length:
+      +left = (x + M.sub(column, length) * size : U32)
+      F.put(
+        Bool.pick(U32, outline, M.sub(left, 1), left),
+        Bool.pick(U32, outline, M.sub(y, 1), y),
+        ((length * size) + Bool.pick(U32, outline, 2, 0) : U32),
+        (height + Bool.pick(U32, outline, 2, 0) : U32),
+        color,
+        rest
+      )
+def sprite_scan(
+  fuel: Nat,
+  +mask: U32,
+  +column: U32,
+  +run: U32,
+  +x: U32,
+  +y: U32,
+  +size: U32,
+  +height: U32,
+  +color: U32,
+  +outline: Bool,
+  on: Bool,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  match fuel on:
+    case 0n _: sprite_run(run, column, x, y, size, height, color, outline, rest)
+    case 1n+n True{}:
+      sprite_scan(n, mask, (column + 1 : U32), (run + 1 : U32), x, y, size, height, color, outline,
+        Bool.not(U32.is_eq(((mask >> U32.to_nat((column + 1 : U32))) .&. 1 : U32), 0)), rest)
+    case 1n+n False{}:
+      sprite_scan(
+        n,
+        mask,
+        (column + 1 : U32),
+        0,
+        x,
+        y,
+        size,
+        height,
+        color,
+        outline,
+        Bool.not(U32.is_eq(((mask >> U32.to_nat((column + 1 : U32))) .&. 1 : U32), 0)),
+        sprite_run(run, column, x, y, size, height, color, outline, rest)
+      )
+def sprite_row(
+  fuel: Nat,
+  +mask: U32,
+  +column: U32,
+  x: U32,
+  y: U32,
+  +size: U32,
+  color: U32,
+  outline: Bool,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  sprite_scan(
+    fuel,
+    mask,
+    column,
+    0,
+    x,
+    y,
+    size,
+    size,
+    color,
+    outline,
+    Bool.not(U32.is_eq(((mask >> U32.to_nat(column)) .&. 1 : U32), 0)),
+    rest
+  )
+
+type MaskRun is Data:
+  MaskRun{mask: U32, rows: U32}
+def add_mask_run(+mask: U32, runs: List<&2, MaskRun>) -> List<&2, MaskRun>:
+  match runs:
+    case Nil{}: [MaskRun{mask, 1}]
+    case MaskRun{+head, +count} <> +tail:
+      Bool.pick(
+        List<&2, MaskRun>,
+        U32.is_eq(mask, head),
+        MaskRun{mask, (count + 1 : U32)} <> tail,
+        MaskRun{mask, 1} <> MaskRun{head, count} <> tail
+      )
+def mask_runs(rows: List<&2, U32>) -> List<&2, MaskRun>:
+  match rows:
+    case Nil{}: []
+    case row <> tail: add_mask_run(row, mask_runs(tail))
+def sprite_blocks(
+  runs: List<&2, MaskRun>,
+  +width: Nat,
+  +x: U32,
+  +y: U32,
+  +size: U32,
+  +color: U32,
+  +outline: Bool,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  match runs:
+    case Nil{}: rest
+    case MaskRun{+mask, +count} <> tail:
+      sprite_scan(
+        width,
+        mask,
+        0,
+        0,
+        x,
+        y,
+        size,
+        (count * size : U32),
+        color,
+        outline,
+        Bool.not(U32.is_eq((mask .&. 1 : U32), 0)),
+        sprite_blocks(tail, width, x, (y + count * size : U32), size, color, outline, rest)
+      )
+def sprite_rows(
+  rows: List<&2, U32>,
+  width: Nat,
+  x: U32,
+  y: U32,
+  size: U32,
+  color: U32,
+  outline: Bool,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  sprite_blocks(mask_runs(rows), width, x, y, size, color, outline, rest)
+
+def silhouette(
+  +rows: List<&2, U32>,
+  +width: Nat,
+  +x: U32,
+  +y: U32,
+  +size: U32,
+  color: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  sprite_rows(
+    rows,
+    width,
+    x,
+    y,
+    size,
+    color,
+    False{},
+    sprite_rows(rows, width, x, y, size, 1058076, True{}, rest)
+  )
+
+def monster_at(
+  +x: U32,
+  +y: U32,
+  small: Bool,
+  +color: U32,
+  +step: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  match small:
+    case True{}:
+      F.put(
+        U32.sub(x, 2),
+        U32.sub(y, 1),
+        1,
+        1,
+        16777215,
+        F.put(
+          (x + 2 : U32),
+          U32.sub(y, 1),
+          1,
+          1,
+          16777215,
+          F.put(
+            x,
+            (y + 1 : U32),
+            1,
+            1,
+            1058076,
+            silhouette(
+              [34, 62, 127, 127, 127, 62, 54, 99],
+              7n,
+              U32.sub(x, 3),
+              U32.sub(y, 4),
+              1,
+              color,
+              rest
+            )
+          )
+        )
+      )
+    case False{}:
+      foot = Bool.pick(U32, U32.is_eq((step % 2 : U32), 0), 238, 220)
+      F.put(
+        U32.sub(x, 5),
+        U32.sub(y, 4),
+        4,
+        4,
+        16777215,
+        F.put(
+          (x + 3 : U32),
+          U32.sub(y, 4),
+          4,
+          4,
+          16777215,
+          F.put(
+            U32.sub(x, 3),
+            U32.sub(y, 3),
+            2,
+            2,
+            1058076,
+            F.put(
+              (x + 3 : U32),
+              U32.sub(y, 3),
+              2,
+              2,
+              1058076,
+              F.put(
+                U32.sub(x, 2),
+                (y + 3 : U32),
+                6,
+                2,
+                1058076,
+                silhouette(
+                  [68, 198, 124, 254, 254, 254, 254, 511, 254, 124, 108, foot],
+                  9n,
+                  U32.sub(x, 9),
+                  U32.sub(y, 12),
+                  2,
+                  color,
+                  rest
+                )
+              )
+            )
+          )
+        )
+      )
+
+def monster(
+  +point: D.Point,
+  small: Bool,
+  color: U32,
+  step: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  monster_at(D.px(point), D.py(point), small, color, step, rest)
+
+# Check slots are status glyphs of one review actor, not independent monsters.
+# Only the accepted outcome below forks them into separate moving bodies.
+def check_bodies(
+  items: List<&2, Bool>,
+  +actor: V.Actor,
+  +group: RuleTypes.Group,
+  +world: M.World,
+  +index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
     case _ <> tail:
-      monster(Rules.check_point(actor,group,M.layout(world),index),True{},History.phase_color(4),0,
-        check_bodies(tail,actor,group,world,(index + 1 : U32),rest))
-def fragment_bodies(items: List<&2,RuleTypes.Fragment>,+group: RuleTypes.Group,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+      +point = Rules.check_point(actor, group, M.layout(world), index)
+      F.text(U32.show((index + 1 : U32)), D.px(point), D.py(point), 1, 15124059,
+        check_bodies(tail, actor, group, world, (index + 1 : U32), rest))
+def fragment_bodies(
+  items: List<&2, RuleTypes.Fragment>,
+  +group: RuleTypes.Group,
+  +world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
     case +item <> tail:
       +point = Rules.fragment_point(item)
       +hit = Rules.fragment_hit(item)
-      +color = Bool.pick(U32,hit,History.phase_color(5),9170322)
+      +color = Bool.pick(U32, hit, History.phase_color(5), 9170322)
       # Identity and delivery evidence are shown on hover; eight parallel labels
       # obscure the bodies when a review forks inside the compact Jev room.
-      monster(point,True{},color,0,fragment_bodies(tail,group,world,rest))
+      monster(point, True{}, color, 0, fragment_bodies(tail, group, world, rest))
 
-def group_bodies(+group: RuleTypes.Group,found: Maybe<&2,V.Actor>,+world: M.World,+rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def assembly_label(
+  +group: RuleTypes.Group,
+  +world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  +entry = D.entry_port(M.layout(world), 5, 0)
+  +total = Rules.finding_total(Rules.results(group))
+  +arrived = U32.sub(total, Rules.finding_remaining(Rules.fragments(group)))
+  +row = U32.from_nat((Motion.operation(Rules.owner(group)) % 3n : Nat))
+  F.text(
+    "STORE U" ++ Nat.show(
+      Motion.operation(Rules.owner(group))
+    ) ++ " " ++ U32.show(arrived) ++ "/" ++ U32.show(total),
+    U32.sub(D.px(entry), 24),
+    (D.py(entry) + 20 + row * 8 : U32),
+    1,
+    15124059,
+    rest
+  )
+def group_bodies(
+  +group: RuleTypes.Group,
+  found: Maybe<&2, V.Actor>,
+  +world: M.World,
+  +rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match found:
     case Some{+actor}:
-      Bool.pick(List<&2,F.Rect>,Rules.split(group),fragment_bodies(Rules.fragments(group),group,world,rest),
-        Bool.pick(List<&2,F.Rect>,U32.is_eq(Motion.visible_phase(actor),4),check_bodies(Rules.results(group),actor,group,world,0,rest),rest))
-    case None{}: fragment_bodies(Rules.fragments(group),group,world,rest)
-def rule_groups(items: List<&2,RuleTypes.Group>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+      Bool.pick(
+        List<&2, F.Rect>,
+        Rules.split(group),
+        Bool.pick(
+          List<&2, F.Rect>,
+          Rules.carrier(group),
+          Bool.pick(
+            List<&2, F.Rect>,
+            U32.is_eq(Motion.outcome(actor), 0),
+            F.text(
+              "PACKET",
+              U32.sub(D.px(Motion.point(actor)), 12),
+              U32.sub(D.py(Motion.point(actor)), 30),
+              1,
+              65483,
+              fragment_bodies(Rules.fragments(group), group, world, rest)
+            ),
+            fragment_bodies(Rules.fragments(group), group, world, rest)
+          ),
+          Bool.pick(
+            List<&2, F.Rect>,
+            (Rules.finding_total(Rules.results(group)) > 0 : U32),
+            assembly_label(
+              group,
+              world,
+              fragment_bodies(Rules.fragments(group), group, world, rest)
+            ),
+            fragment_bodies(Rules.fragments(group), group, world, rest)
+          )
+        ),
+        Bool.pick(
+          List<&2, F.Rect>,
+          U32.is_eq(Motion.visible_phase(actor), 4),
+          check_bodies(Rules.results(group), actor, group, world, 0, rest),
+          rest
+        )
+      )
+    case None{}: fragment_bodies(Rules.fragments(group), group, world, rest)
+def rule_groups(
+  items: List<&2, RuleTypes.Group>,
+  +world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
     case +group <> tail:
-      group_bodies(group,Rules.find_actor(Rules.owner(group),M.actors(world)),world,rule_groups(tail,world,rest))
-def parent_body(found: Maybe<&2,RuleTypes.Group>,+actor: V.Actor) -> Bool:
+      group_bodies(
+        group,
+        Rules.find_actor(Rules.owner(group), M.actors(world)),
+        world,
+        rule_groups(tail, world, rest)
+      )
+def parent_body(found: Maybe<&2, RuleTypes.Group>, +actor: V.Actor) -> Bool:
   match found:
     case None{}: True{}
-    case Some{group}: Bool.not(Rules.split(group) || U32.is_eq(Motion.visible_phase(actor),4))
-def rule_parent_visible(+actor: V.Actor,+world: M.World) -> Bool:
-  Motion.drawable(actor,M.actors(world)) && parent_body(Rules.find(Motion.actor_key(actor),Rules.groups(M.rules(world))),actor)
-def history_actor(+actor: V.Actor,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +point = Motion.point(actor)
+    case Some{+group}: Bool.not(Rules.split(group)) || Rules.carrier(group)
+def rule_parent_visible(+actor: V.Actor, +world: M.World) -> Bool:
+  Motion.drawable(actor, M.actors(world)) && parent_body(
+    Rules.find(Motion.actor_key(actor), Rules.groups(M.rules(world))),
+    actor
+  )
+def actor_at(
+  +point: D.Point,
+  +actor: V.Actor,
+  +world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   +p = Motion.visible_phase(actor)
   +done = Display.terminal_display(actor)
   +color = History.body_color(actor)
-  +status = Bool.pick(String,Bool.not(Rules.can_move_actor(actor,world)),"Q",Bool.pick(String,done,History.terminal_short(Motion.outcome(actor)),Bool.pick(String,U32.is_eq(Motion.wait_kind(actor,M.actors(world)),0),Bool.pick(String,U32.is_eq(p,Motion.observed_phase(actor)),"","PB"),History.body_wait(Motion.wait_kind(actor,M.actors(world))))))
-  +x = U32.sub(D.px(point),8)
-  F.text("U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))),x,U32.sub(D.py(point),22),1,color,
-    F.text("E" ++ Nat.show(Motion.actor_family(actor)),x,U32.sub(D.py(point),14),1,color,
-      F.text(status,(D.px(point) + 9 : U32),D.py(point),1,color,
-        monster(point,(p > 0 : U32),color,(M.time(world) / 8 : U32),rest))))
-# Hover inspection reads released presentation bodies, including retired history.
-# It has no simulator action and never changes placement or owned work.
-def hover_actor(items: List<&2,V.Actor>,+world: M.World) -> Maybe<&2,V.Actor>:
-  match items:
-    case Nil{}: None{}
-    case +actor <> rest:
-      Bool.pick(Maybe<&2,V.Actor>,rule_parent_visible(actor,world) && Motion.released(actor) && D.in_range(Motion.point(actor),D.Point{M.mouse_x(world),M.mouse_y(world)},12),Some{actor},hover_actor(rest,world))
-def hover_family(found: Maybe<&2,V.Actor>) -> Nat:
-  match found:
-    case None{}: 0n
-    case Some{actor}: Motion.actor_family(actor)
-def hover_panel(found: Maybe<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match found:
-    case None{}: rest
-    case Some{+actor}:
-      box("MOB HISTORY","P / LIFETIME / ROUND / OPERATION",800,330,216,104,16768133,
-        F.text(History.identity_text(Motion.actor_key(actor)) ++ " / EDIT E" ++ Nat.show(Motion.actor_family(actor)),812,374,1,16777215,
-          F.text("SHOWING " ++ phase_name(Motion.visible_phase(actor)),812,382,1,12439239,
-            F.text("LAST " ++ phase_name(Motion.observed_phase(actor)),812,390,1,12439239,
-              F.text(History.result_text(actor),812,398,1,15124059,
-                F.text("PREDECESSOR " ++ History.predecessor_text(Display.parent(actor)),812,406,1,12439239,
-                  F.text(Bool.pick(String,Rules.can_move_actor(actor,world),History.wait_text(Motion.wait_kind(actor,M.actors(world)),actor,M.actors(world)),"VISUAL QUEUE / THREE JEV LANES"),812,414,1,15124059,
-                    F.text(History.fork_text_for(actor,M.actors(world)),812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))))
-def history_visible(on: Bool,actor: V.Actor,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +status = Bool.pick(
+    String,
+    Bool.not(Rules.can_move_actor(actor, world)),
+    "Q",
+    Bool.pick(
+      String,
+      done,
+      History.terminal_short(Motion.outcome(actor)),
+      Bool.pick(
+        String,
+        U32.is_eq(Motion.wait_kind(actor, M.actors(world)), 0),
+        Bool.pick(String, U32.is_eq(p, Motion.observed_phase(actor)), "", ""),
+        History.body_wait(Motion.wait_kind(actor, M.actors(world)))
+      )
+    )
+  )
+  +x = U32.sub(D.px(point), 8)
+  F.text(
+    "U" ++ Nat.show(Motion.operation(Motion.actor_key(actor))),
+    x,
+    U32.sub(D.py(point), 22),
+    1,
+    color,
+    F.text(
+      "E" ++ Nat.show(Motion.actor_family(actor)),
+      x,
+      U32.sub(D.py(point), 14),
+      1,
+      color,
+      F.text(
+        status,
+        (D.px(point) + 9 : U32),
+        D.py(point),
+        1,
+        color,
+        monster(point, (p > 0 : U32), color, (M.time(world) / 8 : U32), rest)
+      )
+    )
+  )
+def history_actor(+actor: V.Actor, world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  actor_at(Motion.point(actor), actor, world, rest)
+def history_visible(
+  on: Bool,
+  actor: V.Actor,
+  world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match on:
-    case True{}: history_actor(actor,world,rest)
+    case True{}: history_actor(actor, world, rest)
     case False{}: rest
-def history_actors(items: List<&2,V.Actor>,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def history_actors(
+  items: List<&2, V.Actor>,
+  +world: M.World,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match items:
     case Nil{}: rest
-    case +actor <> tail: history_visible(rule_parent_visible(actor,world),actor,world,history_actors(tail,world,rest))
-type RuleHover is Data:
-  RuleHover{group: RuleTypes.Group, rule: U32, finding: Bool, branched: Bool}
-def hover_check(items: List<&2,Bool>,+group: RuleTypes.Group,+actor: V.Actor,+world: M.World,+index: U32) -> Maybe<&2,RuleHover>:
-  match items:
-    case Nil{}: None{}
-    case hit <> tail:
-      Bool.pick(Maybe<&2,RuleHover>,D.in_range(Rules.check_point(actor,group,M.layout(world),index),D.Point{M.mouse_x(world),M.mouse_y(world)},4),
-        Some{RuleHover{group,index,hit,False{}}},hover_check(tail,group,actor,world,(index + 1 : U32)))
-def hover_fragment(items: List<&2,RuleTypes.Fragment>,+group: RuleTypes.Group,+world: M.World) -> Maybe<&2,RuleHover>:
-  match items:
-    case Nil{}: None{}
-    case +item <> tail:
-      Bool.pick(Maybe<&2,RuleHover>,D.in_range(Rules.fragment_point(item),D.Point{M.mouse_x(world),M.mouse_y(world)},6),
-        Some{RuleHover{group,Rules.fragment_rule(item),Rules.fragment_hit(item),True{}}},hover_fragment(tail,group,world))
-def hover_group(+group: RuleTypes.Group,found: Maybe<&2,V.Actor>,+world: M.World) -> Maybe<&2,RuleHover>:
-  match found:
-    case Some{+actor}:
-      Bool.pick(Maybe<&2,RuleHover>,Rules.split(group),hover_fragment(Rules.fragments(group),group,world),
-        Bool.pick(Maybe<&2,RuleHover>,U32.is_eq(Motion.visible_phase(actor),4),hover_check(Rules.results(group),group,actor,world,0),None{}))
-    case None{}: hover_fragment(Rules.fragments(group),group,world)
-def first_hover(found: Maybe<&2,RuleHover>,fallback: Maybe<&2,RuleHover>) -> Maybe<&2,RuleHover>:
-  match found:
-    case Some{value}: Some{value}
-    case None{}: fallback
-def hover_rules(items: List<&2,RuleTypes.Group>,+world: M.World) -> Maybe<&2,RuleHover>:
-  match items:
-    case Nil{}: None{}
-    case +group <> tail:
-      first_hover(hover_group(group,Rules.find_actor(Rules.owner(group),M.actors(world)),world),hover_rules(tail,world))
-def rule_hover_panel(found: Maybe<&2,RuleHover>,world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  match found:
-    case None{}: rest
-    case Some{RuleHover{+group,+rule,+hit,+branched}}:
-      +value = Rules.group_profile(group)
-      box("RULE " ++ U32.show((rule + 1 : U32)),"ONE CHECK / SAME PARENT REQUEST",800,330,216,104,16768133,
-        F.text("PARENT " ++ History.identity_text(Rules.owner(group)),812,374,1,16777215,
-          F.text("CAPTURED " ++ U32.show(RulePolicy.checks(value)) ++ " RULES / " ++ U32.show(RulePolicy.percent(value)) ++ "%",812,382,1,12439239,
-            F.text(Bool.pick(String,branched,Bool.pick(String,hit,"FINDING / RETAINED RESULT","CLEAR / NO ADVICE"),"CHECKING / PARALLEL RULES"),812,390,1,15124059,
-              F.text(Bool.pick(String,branched,"RESULT ","SCHEDULED ") ++ Nat.show(RulePolicy.count(Rules.results(group))) ++ " FINDINGS",812,398,1,12439239,
-                F.text(Bool.pick(String,branched,"SPEED " ++ U32.show(Rules.fragment_speed(rule)),"SPEED SHARED WITH REQUEST"),812,406,1,12439239,
-                  F.text(Bool.pick(String,hit && branched,History.submission_text(Rules.sent(group)),""),812,414,1,15124059,
-                    F.text("J K CHANCE / , . RULE COUNT",812,422,1,12439239,F.put(800,330,216,104,1914923,rest)))))))))
-def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +ids = waiting_ids(tokens,world)
-  +queued = Motion.queued(M.actors(world),M.actors(world))
-  +base = F.text("VISUAL RELEASE WAIT " ++ U32.show(queued) ++ " / COUNTERS = ENGINE NOW",24,146,1,15758447,rest)
-  wait_label(world,ids,rule_groups(Rules.groups(M.rules(world)),world,history_actors(M.actors(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,base)))))))
+    case +actor <> tail: history_visible(
+      rule_parent_visible(actor, world),
+      actor,
+      world,
+      history_actors(tail, world, rest)
+    )
+def layout_scene(
+  +layout: U32,
+  +world: M.World,
+  tokens: List<&2, P.Token>,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  rule_groups(
+    Rules.groups(M.rules(world)),
+    world,
+    history_actors(
+      M.actors(world),
+      world,
+      extra_building(
+        U32.is_eq(layout, 1),
+        world,
+        buildings(6n, 0, world, network(layout, world, output_hud(world, rest)))
+      )
+    )
+  )
 
 def on_word(on: Bool) -> String:
   match on:
     case True{}: "ON"
     case False{}: "OFF"
 
+def stop_found(found: Maybe<&2, Stop.Finish>, now: Nat) -> String:
+  match found:
+    case Some{Stop.Finish{_, _, _, _, _, deadline, _, selected, waiting, _, _, _, _}}:
+      Bool.pick(String, waiting, "STOP WAIT " ++ Nat.show(Nat.sub(deadline, now)) ++ " MS",
+        "STOP SELECTED " ++ Nat.show(List.length(&2, Nat, selected)) ++ " / AWAIT DELIVERY")
+    case None{}: "S REQUEST STOP / NO ACTIVE STOP"
+def stop_line(+world: M.World) -> String:
+  Bool.pick(
+    String,
+    M.paused(world),
+    "S STOP UNAVAILABLE WHILE PAUSED",
+    Bool.pick(
+      String,
+      M.active(world),
+      stop_found(Engine.stop_find(Run.core(M.engine(world)), 1n), Fire.delivery_at(world)),
+      "S STOP AFTER START"
+    )
+  )
+
 def activity_line(+world: M.World) -> String:
-  Bool.pick(String,M.active(world),Bool.pick(String,M.auto(world),"CONTINUOUS ARRIVALS","ARRIVALS SUSPENDED"),"BUILD FIRST - N/ENTER START")
+  Bool.pick(
+    String,
+    M.active(world),
+    Bool.pick(String, M.auto(world), "CONTINUOUS ARRIVALS", "ARRIVALS SUSPENDED"),
+    "BUILD FIRST - N/ENTER START"
+  )
 
 def access_line(env: NativeTypes.Environment) -> String:
   match env:
-    case NativeTypes.Environment{_,_,_,_,_,_,_,_,_,ready,_,readable,_,_}:
-      "SOURCE " ++ Bool.pick(String,readable,"AVAILABLE","UNAVAILABLE") ++ " / CREDENTIAL " ++ Bool.pick(String,ready,"AVAILABLE","UNAVAILABLE")
+    case NativeTypes.Environment{_, _, _, _, _, _, _, _, _, ready, _, readable, _, _}:
+      "SOURCE " ++ Bool.pick(String, readable, "AVAILABLE", "UNAVAILABLE") ++ " / CREDENTIAL " ++ Bool.pick(
+        String,
+        ready,
+        "AVAILABLE",
+        "UNAVAILABLE"
+      )
 
-def family_row(+world: M.World,+family: Nat,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def family_row(
+  +world: M.World,
+  +family: Nat,
+  index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   +tokens = P.tokens(world)
   +y = (480 + index * 25 : U32)
-  +unresolved = T.count_family(tokens,family,0)
-  +findings = T.count_family(tokens,family,1)
-  +locked = T.family_committed(world,family)
-  F.text("E" ++ Nat.show(family) ++ " WORK " ++ U32.show(unresolved) ++ " FIND " ++ U32.show(findings) ++ " BYTES " ++ Nat.show(T.family_bytes(M.work(M.core(world)),world,family,[])),812,y,1,16777215,
-    F.text(Bool.pick(String,(locked > 0 : U32),"COMMITTED " ++ U32.show(locked) ++ " / AWAITING ACK",
-      Bool.pick(String,(unresolved > 0 : U32),"WAIT U" ++ T.ids_short(T.family_members(tokens,family,0),4n),
-        "ELIGIBLE " ++ U32.show(T.family_ready(world,family)) ++ " / NOT YET ACK")),812,(y + 10 : U32),1,Bool.pick(U32,(unresolved > 0 : U32),15758447,65483),rest))
-def family_rows(ids: List<&2,Nat>,+world: M.World,index: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +unresolved = T.count_family(tokens, family, 0)
+  +findings = T.count_family(tokens, family, 1)
+  +locked = T.family_committed(world, family)
+  F.text(
+    "E" ++ Nat.show(
+      family
+    ) ++ " WORK " ++ U32.show(
+      unresolved
+    ) ++ " FIND " ++ U32.show(
+      findings
+    ) ++ " BYTES " ++ Nat.show(T.family_bytes(M.work(M.core(world)), world, family, [])),
+    812,
+    y,
+    1,
+    16777215,
+    F.text(
+      Bool.pick(
+        String,
+        (locked > 0 : U32),
+        "COMMITTED " ++ U32.show(locked) ++ " / AWAITING ACK",
+        Bool.pick(
+          String,
+          (unresolved > 0 : U32),
+          "WAIT U" ++ T.ids_short(T.family_members(tokens, family, 0), 4n),
+          "ELIGIBLE " ++ U32.show(T.family_ready(world, family)) ++ " / NOT YET ACK"
+        )
+      ),
+      812,
+      (y + 10 : U32),
+      1,
+      Bool.pick(U32, (unresolved > 0 : U32), 15758447, 65483),
+      rest
+    )
+  )
+def family_rows(
+  ids: List<&2, Nat>,
+  +world: M.World,
+  index: U32,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
   match ids index:
     case Nil{} _: rest
     case _ 2: rest
-    case id <> tail +n: family_row(world,id,n,family_rows(tail,world,(n + 1 : U32),rest))
-def family_panel(+world: M.World,target: Nat,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  box("EDIT FAMILIES","EDIT ORIGIN / ACTUAL OWNERSHIP",800,440,216,94,15758447,
-    family_rows(T.families_focused(world,target),world,0,rest))
-def scene(+world: M.World) -> List<&2,F.Rect>:
+    case id <> tail +n: family_row(world, id, n, family_rows(tail, world, (n + 1 : U32), rest))
+def family_panel(+world: M.World, target: Nat, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  box("EDIT FAMILIES", "EDIT ORIGIN / ACTUAL OWNERSHIP", 800, 440, 216, 94, 15758447,
+    family_rows(T.families_focused(world, target), world, 0, rest))
+def focused_operation(found: Maybe<&2, M.Tower>, +world: M.World, fallback: Nat) -> Nat:
+  match found:
+    case None{}: fallback
+    case Some{tower}: Fire.target_operation(
+      Fire.target(TowerPreview.context(world, M.selected(world)), tower, 0n)
+    )
+def base_scene(+world: M.World) -> List<&2, F.Rect>:
   +preview = Preview.calculate(world)
   +tokens = P.tokens(world)
-  +hovered = hover_actor(M.actors(world),world)
-  +target: Nat = hover_family(hovered)
-  +base = rule_hover_panel(hover_rules(Rules.groups(M.rules(world)),world),world,hover_panel(hovered,world,ghost(world,preview,family_panel(world,target,work_rows(T.tokens_focused(tokens,target),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))))
-  +legend = F.text("U OPERATION / E EDIT ORIGIN / PB PLAYBACK / Q VISUAL QUEUE / STORED RETAINED ADVICE / HOVER FOR REASON",24,722,1,12439239,base)
-  +header = frame(M.layout(world),F.text("1-3 BUILD / U UPGRADE / SPACE P PAUSE / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",24,742,1,16768133,cue_hud(Cues.select(M.cues(world),False{}),cue_trails(M.cues(world),world,0,legend))))
-  F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR REQUESTS " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),480,78,1,16768133,
-  F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(activity_line(world) ++ " / BURST " ++ U32.show(M.burst_size(M.settings(world))) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",24,98,1,15124059,F.text("JEV 3 REQUEST LANES / " ++ U32.show(RulePolicy.checks(Rules.profile(M.rules(world)))) ++ " RULES / FINDING " ++ U32.show(RulePolicy.percent(Rules.profile(M.rules(world)))) ++ "% EACH / J K CHANCE / , . RULES",24,111,1,12439239,F.text(access_line(Mechanics.current_environment(M.engine(world))),24,124,1,12439239,header)))))
+  +target: Nat = focused_operation(H.selected_tower(M.towers(world), M.selected(world)), world, 0n)
+  +base = ghost(
+    world,
+    preview,
+    family_panel(
+      world,
+      target,
+      work_rows(
+        T.tokens_focused(tokens, target),
+        world,
+        0,
+        sidebar(
+          world,
+          processors(M.towers(world), world, 1, layout_scene(M.layout(world), world, tokens, []))
+        )
+      )
+    )
+  )
+  +legend = F.text(
+    "MOVING MOBS ARE TARGETS / GREEN: IN RANGE / YELLOW BEAM: ACCELERATED",
+    24,
+    722,
+    1,
+    12439239,
+    base
+  )
+  +goal = F.text("GOALS: EARLIER FEEDBACK / LOWER LEDGER PRESSURE", 24, 64, 1, 15124059, legend)
+  +header = frame(
+    M.layout(world),
+    F.text(
+      "1-2 BUILD / AUTO FIRE / U UPGRADE / SPACE P PAUSE / S STOP / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",
+      24,
+      742,
+      1,
+      16768133,
+      published_hud(world, cue_trails(M.cues(world), world, 0, goal))
+    )
+  )
+  F.text(
+    "BUDGET " ++ U32.show(
+      M.gold(world)
+    ) ++ " HEALTH " ++ U32.show(
+      M.hp(world)
+    ) ++ " CLEAR REQUESTS " ++ U32.show(
+      M.clear(world)
+    ) ++ " INDIVIDUAL " ++ U32.show(
+      M.submissions(world)
+    ) ++ " FINISH " ++ U32.show(M.delivered(world)) ++ " REFUSED " ++ U32.show(M.rejected(world)),
+    480,
+    78,
+    1,
+    16768133,
+    F.text(
+      "REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show(
+        (P.count(
+          world,
+          0
+        ) + P.count(
+          world,
+          1
+        ) + P.count(world, 2) + P.count(world, 3) + P.count(world, 4) + P.count(world, 5) : U32)
+      ),
+      24,
+      78,
+      1,
+      65483,
+      F.text(
+        activity_line(
+          world
+        ) ++ " / BURST " ++ U32.show(
+          M.burst_size(M.settings(world))
+        ) ++ " / ARRIVAL " ++ U32.show(M.arrival_interval(world)) ++ " MS",
+        24,
+        98,
+        1,
+        15124059,
+        F.text(
+          "MONSTERS SHARE ONE GAME CLOCK / " ++ U32.show(
+            RulePolicy.checks(Rules.profile(M.rules(world)))
+          ) ++ " RULES / FINDING " ++ U32.show(
+            RulePolicy.percent(Rules.profile(M.rules(world)))
+          ) ++ "% EACH / J K CHANCE / , . RULES",
+          24,
+          111,
+          1,
+          12439239,
+          F.text(
+            access_line(
+              Mechanics.current_environment(M.engine(world))
+            ) ++ " / " ++ stop_line(world),
+            24,
+            124,
+            1,
+            12439239,
+            header
+          )
+        )
+      )
+    )
+  )
+
+def preview_layer(
+  +world: M.World,
+  preview: Preview.Preview,
+  rest: List<&2, F.Rect>
+) -> List<&2, F.Rect>:
+  TowerPreview.overlay(world, preview, TowerPreview.live_layer(world, rest))
+def scene(~base: @+state:M.World -> List<&2, F.Rect>, +world: M.World) -> List<&2, F.Rect>:
+  preview_layer(world, Preview.calculate(world), base(world))
 
 def view(world: M.World) -> Image:
-  paint(10n,0,0,1024,scene(world),False{})
+  paint(10n, 0, 0, 1024, scene(~base_scene, world), False{})
 
-def selected_level(items: List<&2,M.Tower>,index: U32) -> U32:
+def selected_level(items: List<&2, M.Tower>, index: U32) -> U32:
   match items index:
     case Nil{} _: 0
     case tower <> _ 1: M.level(tower)
-    case _ <> rest _: selected_level(rest,M.sub(index,1))
+    case _ <> rest _: selected_level(rest, M.sub(index, 1))
 
-def trace_if(on: Bool,+actor: V.Actor,+world: M.World,+prefix: String,rest: String) -> String:
+def trace_if(on: Bool, +actor: V.Actor, +world: M.World, +prefix: String, rest: String) -> String:
   match on:
     case False{}: rest
     case True{}:
       +point = Motion.point(actor)
-      prefix ++ "ID=" ++ History.identity_text(Motion.actor_key(actor)) ++ " " ++ prefix ++ "X=" ++ U32.show(D.px(point)) ++ " " ++ prefix ++ "Y=" ++ U32.show(D.py(point)) ++ " " ++ prefix ++ "OBSERVED=" ++ U32.show(Motion.observed_phase(actor)) ++ " " ++ prefix ++ "OUTCOME=" ++ U32.show(Motion.outcome(actor))
-def first_trace(items: List<&2,V.Actor>,+world: M.World,+phase: U32,+prefix: String) -> String:
+      prefix ++ "ID=" ++ History.identity_text(Motion.actor_key(actor)) ++ " " ++ prefix ++ "X=" ++ U32.show(
+        D.px(point)
+      ) ++ " " ++ prefix ++ "Y=" ++ U32.show(
+        D.py(point)
+      ) ++ " " ++ prefix ++ "OBSERVED=" ++ U32.show(
+        Motion.observed_phase(actor)
+      ) ++ " " ++ prefix ++ "OUTCOME=" ++ U32.show(
+        Motion.outcome(actor)
+      )
+def first_trace(items: List<&2, V.Actor>, +world: M.World, +phase: U32, +prefix: String) -> String:
   match items:
     case Nil{}: prefix ++ "ID=0"
-    case +actor <> tail: trace_if(U32.is_eq(Motion.visible_phase(actor),phase) && Motion.drawable(actor,M.actors(world)),actor,world,prefix,first_trace(tail,world,phase,prefix))
+    case +actor <> tail: trace_if(
+      U32.is_eq(Motion.visible_phase(actor), phase) && Motion.drawable(actor, M.actors(world)),
+      actor,
+      world,
+      prefix,
+      first_trace(tail, world, phase, prefix)
+    )
 
 def diagnostics(+world: M.World) -> String:
   +preview = Preview.calculate(world)
-  "JEV_LANES=3 JEV_CHECKING=" ++ U32.show(Rules.checking_count(Rules.groups(M.rules(world)),M.actors(world))) ++ " RULES=" ++ U32.show(RulePolicy.checks(Rules.profile(M.rules(world)))) ++ " FINDING_PERCENT=" ++ U32.show(RulePolicy.percent(Rules.profile(M.rules(world)))) ++ " PACE=" ++ U32.show(M.arrival_interval(world)) ++ " BURST=" ++ U32.show(M.burst_size(M.settings(world))) ++ " " ++ access_line(Mechanics.current_environment(M.engine(world))) ++ " CANDIDATES=" ++ U32.show(T.candidate_count(world)) ++ " CANDIDATE_BYTES=" ++ U32.show(T.candidate_bytes(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.run_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " " ++ first_trace(M.actors(world),world,0,"ROAD") ++ " " ++ first_trace(M.actors(world),world,1,"SERVICE") ++ " " ++ first_trace(M.actors(world),world,3,"FANOUT")
+  "JEV_LANES=3 PLAYBACK_CHECKING=" ++ U32.show(
+    Rules.checking_count(Rules.groups(M.rules(world)), M.actors(world))
+  ) ++ " RULES=" ++ U32.show(RulePolicy.checks(Rules.profile(M.rules(world)))) ++ " FINDING_PERCENT=" ++ U32.show(
+    RulePolicy.percent(Rules.profile(M.rules(world)))
+  ) ++ " PACE=" ++ U32.show(
+    M.arrival_interval(world)
+  ) ++ " BURST=" ++ U32.show(
+    M.burst_size(M.settings(world))
+  ) ++ " " ++ access_line(
+    Mechanics.current_environment(M.engine(world))
+  ) ++ " CANDIDATES=" ++ U32.show(
+    T.candidate_count(world)
+  ) ++ " CANDIDATE_BYTES=" ++ U32.show(
+    T.candidate_bytes(world)
+  ) ++ " ROUND=" ++ Nat.show(
+    M.round(world)
+  ) ++ " STATUS=" ++ U32.show(
+    H.run_status(world)
+  ) ++ " LAYOUT=" ++ U32.show(
+    M.layout(world)
+  ) ++ " PAUSED=" ++ Bool.pick(
+    String,
+    M.paused(world),
+    "YES",
+    "NO"
+  ) ++ " TICK=" ++ U32.show(
+    M.time(world)
+  ) ++ " GOLD=" ++ U32.show(
+    M.gold(world)
+  ) ++ " HP=" ++ U32.show(
+    M.hp(world)
+  ) ++ " OFFERED=" ++ U32.show(
+    M.offered(world)
+  ) ++ " CLEAR=" ++ U32.show(
+    M.clear(world)
+  ) ++ " INDIVIDUAL=" ++ U32.show(
+    M.submissions(world)
+  ) ++ " FINISH_PACKETS=" ++ U32.show(
+    M.delivered(world)
+  ) ++ " WRITESLOTS=" ++ U32.show(
+    P.writes(world)
+  ) ++ " LEASES=" ++ U32.show(
+    P.leases(world)
+  ) ++ " READY=" ++ U32.show(
+    P.ready(world)
+  ) ++ " WAIT=" ++ U32.show(
+    P.waiting(world)
+  ) ++ " DECIDE=" ++ U32.show(
+    P.deciding(world)
+  ) ++ " PENDING_UNITS=" ++ U32.show(
+    P.count(world, 5)
+  ) ++ " ATJEV=" ++ U32.show(
+    P.requests(world)
+  ) ++ " LEDGER_ITEMS=" ++ U32.show(
+    P.ledger_items(world)
+  ) ++ " LEDGER_BYTES=" ++ U32.show(
+    P.ledger_bytes(world)
+  ) ++ " TOWERS=" ++ U32.show(
+    M.number(List.length(&2, M.Tower, M.towers(world)))
+  ) ++ " SELECTED=" ++ U32.show(
+    M.selected(world)
+  ) ++ " LEVEL=" ++ U32.show(
+    selected_level(M.towers(world), M.selected(world))
+  ) ++ " PREVIEW=" ++ U32.show(
+    Preview.status(preview)
+  ) ++ " BEFORE=" ++ U32.show(
+    Preview.before(preview)
+  ) ++ " DELTA=" ++ U32.show(
+    Preview.delta(preview)
+  ) ++ " TARGET=" ++ Nat.show(
+    Preview.target(preview)
+  ) ++ " SITE=" ++ U32.show(
+    Preview.site(preview)
+  ) ++ " WAIT_SLOTS=" ++ U32.show(
+    wait_count(P.tokens(world), world)
+  ) ++ " DAMAGE_FLASH=" ++ U32.show(
+    M.damage_flash(world)
+  ) ++ " COMMITTED=" ++ U32.show(
+    M.number(List.length(&2, Nat, O.selection_members(world)))
+  ) ++ " " ++ first_trace(
+    M.actors(world),
+    world,
+    0,
+    "ROAD"
+  ) ++ " " ++ first_trace(
+    M.actors(world),
+    world,
+    1,
+    "SERVICE"
+  ) ++ " " ++ first_trace(
+    M.actors(world),
+    world,
+    3,
+    "FANOUT"
+  )

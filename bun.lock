@@ -365,6 +365,7 @@
         "@hapsland/canonical-policy": "workspace:*",
         "@hapsland/delivery-output": "workspace:*",
         "@hapsland/inspection-records": "workspace:*",
+        "@hapsland/monkey-business": "workspace:*",
         "@hapsland/monkey-business-bend": "workspace:*",
         "@hapsland/native-observation": "workspace:*",
         "@hapsland/pi-extension": "workspace:*",

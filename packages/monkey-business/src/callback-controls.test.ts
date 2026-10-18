@@ -81,3 +81,16 @@ it("checks every raw Finish member across number and bigint wire values", () => 
   }
   expect(() => decodeCallbackTarget(withMembers(9, 9n))).toThrow(TypeError)
 })
+
+it("requires an exact timestamp only for explicit rescheduling", () => {
+  expect(validateCallbackControl({ kind: "callback", action: "reschedule", target, deliveryAt: 420 })).toMatchObject({
+    deliveryAt: 420
+  })
+  for (const deliveryAt of [-1, 1.5, Infinity, 2 ** 48, undefined])
+    expect(() =>
+      validateCallbackControl({ kind: "callback", action: "reschedule", target, deliveryAt } as never)
+    ).toThrow()
+  expect(() =>
+    validateCallbackControl({ kind: "callback", action: "hold", target, deliveryAt: 420 } as never)
+  ).toThrow()
+})

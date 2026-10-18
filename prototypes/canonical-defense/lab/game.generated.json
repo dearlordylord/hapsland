@@ -1,8 +1,8 @@
 {
   "format": 1,
   "compiler": "Bend 2.0.36: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:676c4d9cc5c8706c69fbbe6e7450098da617ae64725d8656920b75d056c20c20",
-  "moduleIdentity": "sha256:67188d8271d2496369a7291f2808e6b166e66dfae07e2f41b78bfdd4207eb838",
+  "sourceIdentity": "sha256:78cb899d5f28f129664729d6c89cb6a993b57dd226426e8dd203f825562b0c58",
+  "moduleIdentity": "sha256:a0688a03910485590865eab42a7e17396417745b665b30420d3765960e539252",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",
@@ -51,7 +51,9 @@
     "packages/monkey-business-bend/FreshnessScenario.bend",
     "packages/monkey-business-bend/JevEffects.bend",
     "packages/monkey-business-bend/NativeFinish.bend",
+    "packages/monkey-business-bend/NativeGenerated.bend",
     "packages/monkey-business-bend/NativeRun.bend",
+    "packages/monkey-business-bend/NativeRunCallbackControls.bend",
     "packages/monkey-business-bend/NativeRunTypes.bend",
     "packages/monkey-business-bend/NoticeScenario.bend",
     "packages/monkey-business-bend/Numeric.bend",
@@ -82,6 +84,8 @@
     "prototypes/canonical-defense/DefenseEffects.bend",
     "prototypes/canonical-defense/DefenseHost.bend",
     "prototypes/canonical-defense/DefenseLab.bend",
+    "prototypes/canonical-defense/DefenseLiveMotion.bend",
+    "prototypes/canonical-defense/DefenseLiveMotionTypes.bend",
     "prototypes/canonical-defense/DefenseMap.bend",
     "prototypes/canonical-defense/DefenseMechanics.bend",
     "prototypes/canonical-defense/DefenseModel.bend",
@@ -93,6 +97,8 @@
     "prototypes/canonical-defense/DefenseRulePolicy.bend",
     "prototypes/canonical-defense/DefenseRuleTypes.bend",
     "prototypes/canonical-defense/DefenseRules.bend",
+    "prototypes/canonical-defense/DefenseTowerFire.bend",
+    "prototypes/canonical-defense/DefenseTransport.bend",
     "prototypes/canonical-defense/lab/game.generated.d.mts",
     "scripts/build-game-lab.mjs"
   ]

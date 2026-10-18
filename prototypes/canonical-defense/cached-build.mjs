@@ -1,3 +1,4 @@
+import { lowerHostRegisterBank } from "./register-bank.mjs"
 import { assertBendCompilerVersion } from "../../packages/monkey-business-bend/compiler.mjs"
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
@@ -8,7 +9,7 @@ import { fileURLToPath } from "node:url"
 
 const digest = value => createHash("sha256").update(value).digest("hex")
 const fileDigest = path => digest(readFileSync(path))
-const buildEnvironment = ["SDKROOT", "MACOSX_DEPLOYMENT_TARGET", "DEVELOPER_DIR", "CPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "OBJC_INCLUDE_PATH", "LIBRARY_PATH", "CUDA_HOME", "BEND_DIR"]
+const buildEnvironment = ["SDKROOT", "MACOSX_DEPLOYMENT_TARGET", "DEVELOPER_DIR", "CPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "OBJC_INCLUDE_PATH", "LIBRARY_PATH", "CUDA_HOME", "BEND_DIR", "HAPSLAND_GAME_OPTIMIZATION"]
 
 function executable(command, environment) {
   const candidates = isAbsolute(command) || command.includes("/")
@@ -83,7 +84,7 @@ function sourceIdentity(prototypeDir, bendDirectory) {
     }
   }
   visit(join(prototypeDir, "DefenseMain.bend"))
-  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) visit(join(prototypeDir, name))
+  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs", "register-bank.mjs"]) visit(join(prototypeDir, name))
   visit(resolve(prototypeDir, "../../packages/monkey-business-bend/compiler.mjs"))
   visit(resolve(prototypeDir, "../../packages/agent-flow-bend/package.json"))
   runtime(bendDirectory)
@@ -91,6 +92,9 @@ function sourceIdentity(prototypeDir, bendDirectory) {
 }
 
 export function cachedBinary({ prototypeDir, cacheDir, environment = process.env, bendDirectory, host = { platform: platform(), arch: arch(), release: release() }, notice = message => console.error(message) }) {
+  const bankMode = environment.HAPSLAND_GAME_CPU_BANK === "1"
+  if (bankMode && host.platform !== "linux") throw new Error("CPU register-bank game mode requires Linux")
+  const compileFlags = ["-std=c11", "-O0", "-Wno-unused-value", "-lm", "-pthread", "-lX11"]
   const buildEnv = { ...environment, BEND_NO_TELEMETRY: "1" }
   function identity() {
     const bend = tool("bend", ["version"], buildEnv)
@@ -98,6 +102,8 @@ export function cachedBinary({ prototypeDir, cacheDir, environment = process.env
     const clang = compiler(buildEnv)
     return {
       host, bend, clang,
+      mode: bankMode ? "linux-cpu-register-bank-O0" : "bend-native-optimized",
+      compileFlags: bankMode ? compileFlags : null,
       wrapper: environment.BEND_CANONICAL_DEFENSE_CC ? realpathSync(environment.CC) : null,
       environment: Object.fromEntries(buildEnvironment.map(name => [name, environment[name] ?? null])),
       sources: sourceIdentity(prototypeDir, bendDirectory ?? join(dirname(dirname(bend.path)), "bend2"))
@@ -122,9 +128,31 @@ export function cachedBinary({ prototypeDir, cacheDir, environment = process.env
     const env = inputs.wrapper
       ? { ...buildEnv, CC: inputs.wrapper, BEND_CANONICAL_DEFENSE_CC: inputs.clang.path }
       : { ...buildEnv, CC: inputs.clang.path }
-    notice("Canonical defense: building (no matching cached binary).")
-    const result = spawnSync(inputs.bend.path, ["DefenseMain.bend", "-o", output], { cwd: prototypeDir, env, stdio: ["inherit", 2, 2] })
-    if (result.error || result.status !== 0) throw new Error(`Bend build failed: ${result.error?.message ?? result.signal ?? result.status}`)
+    notice(`Canonical defense: building ${inputs.mode} (no matching cached binary).`)
+    const deadline = Date.now() + 245000
+    function compile(command, args, label) {
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) throw new Error(`${label} build deadline exceeded`)
+      const grouped = process.platform !== "win32"
+      const result = spawnSync(command, args, { cwd: prototypeDir, env, detached: grouped, stdio: ["inherit", 2, 2], timeout: remaining, killSignal: "SIGKILL" })
+      // Bend invokes clang: killing only Bend can leave a linker writing into
+      // staging after finally removes it. Stop the owned group before cleanup.
+      if (grouped && result.pid > 1) {
+        try { process.kill(-result.pid, "SIGKILL") }
+        catch (error) { if (error.code !== "ESRCH") throw error }
+      }
+      if (result.error?.code === "ETIMEDOUT") throw new Error(`${label} build exceeded the 245-second total deadline; compiler processes stopped`)
+      if (result.error || result.status !== 0) throw new Error(`${label} build failed: ${result.error?.message ?? result.signal ?? result.status}`)
+    }
+    if (bankMode) {
+      const emitted = join(temporary, "game.c")
+      const lowered = join(temporary, "game-bank.c")
+      compile(inputs.bend.path, ["DefenseMain.bend", "-o", emitted], "Bend")
+      writeFileSync(lowered, lowerHostRegisterBank(readFileSync(emitted, "utf8")).source)
+      compile(inputs.clang.path, [...compileFlags.slice(0, 3), lowered, "-o", output, ...compileFlags.slice(3)], "Clang CPU bank")
+    } else {
+      compile(inputs.bend.path, ["DefenseMain.bend", "-o", output], "Bend")
+    }
     accessSync(output, constants.X_OK)
     if (digest(JSON.stringify(identity())) !== key) throw new Error("Build inputs changed during compilation; rerun to build the current sources")
     writeFileSync(join(temporary, "receipt.json"), JSON.stringify({ key, sha256: fileDigest(output), inputs }) + "\n")

@@ -125,6 +125,16 @@ function frozenInput(mode: number) {
 function publicCase(mode: number) {
   const failure = failures[mode]
   const run = createRun({
+    graphLimits: {
+      version: 1 as const,
+      sourceBytes: 262144,
+      treeBytes: 20480,
+      files: 8,
+      readBytes: 1572864,
+      outgoingEdges: 16,
+      depth: 4,
+      work: 128
+    },
     retention: 1000,
     preparationDelay: 2,
     jevDelay: 5,

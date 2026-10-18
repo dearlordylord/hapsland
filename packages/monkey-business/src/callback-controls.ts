@@ -28,11 +28,19 @@ const Effect = Schema.Union([
   })
 ])
 export const CallbackTargetSchema = Schema.Struct({ owner: Owner, effect: Effect, originalOrder: Nat })
-export const CallbackControlSchema = Schema.Struct({
-  kind: Schema.Literal("callback"),
-  action: Schema.Literals(["hold", "release", "drop", "duplicate", "reorder"]),
-  target: CallbackTargetSchema
-})
+export const CallbackControlSchema = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal("callback"),
+    action: Schema.Literals(["hold", "release", "drop", "duplicate", "reorder"]),
+    target: CallbackTargetSchema
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("callback"),
+    action: Schema.Literals(["reschedule", "transport"]),
+    target: CallbackTargetSchema,
+    deliveryAt: Nat
+  })
+])
 const readControl = decoder(CallbackControlSchema)
 export type CallbackTarget = typeof CallbackTargetSchema.Type
 export type CallbackControl = typeof CallbackControlSchema.Type
@@ -40,7 +48,7 @@ export type CallbackReport = {
   readonly at: number
   readonly controlSequence: number
   readonly control: CallbackControl
-  readonly result: "applied" | "missing" | "notQueued" | "notHeld"
+  readonly result: "applied" | "missing" | "notQueued" | "notHeld" | "invalidTime"
 }
 
 /** Syntax and immutable copying only; the shared owner applies the intervention. */
@@ -91,7 +99,11 @@ export function encodeCallbackTarget(target: CallbackTarget) {
     original_order: checked.originalOrder
   }
 }
-export function encodeCallbackAction(action: CallbackControl["action"]) {
+export function encodeCallbackAction(action: CallbackControl["action"], deliveryAt?: number) {
+  if (action === "reschedule" || action === "transport") {
+    if (deliveryAt === undefined) throw new TypeError("reschedule requires deliveryAt")
+    return { $: action === "transport" ? "Callbacks.Transport" : "Callbacks.Reschedule", delivery_at: deliveryAt }
+  }
   return { $: `Callbacks.${action[0]!.toUpperCase()}${action.slice(1)}` }
 }
 const RawNat = Schema.Union([Nat, Schema.BigInt.check(Schema.makeFilter((value) => value >= 0n && value < 2n ** 48n))])

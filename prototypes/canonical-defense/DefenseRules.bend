@@ -1,5 +1,7 @@
 # Game host interprets actual request receipts; shared NativeRun stays authoritative.
 import Base
+import ./DefenseLiveMotionTypes.bend as LiveTypes
+import ../../packages/monkey-business-bend/Callbacks.bend as CB
 import ./DefenseRuleTypes.bend as R
 import ./DefenseRulePolicy.bend as Policy
 import ./DefenseMotionTypes.bend as V
@@ -12,6 +14,67 @@ import ../../packages/monkey-business-bend/Driver.bend as Driver
 import ../../packages/monkey-business-bend/Session.bend as Session
 import ../../packages/agent-flow-bend/Canonical.bend as C
 
+# Callback ownership includes every selected member of a Finish packet.
+def target_owns(target: CB.Target, key: V.WorkIdentity) -> Bool:
+  match target:
+    case CB.Target{_, CB.FinishTerminal{group, round, _, _, selected}, _}:
+      Motion.finish_matches(key, group, round, selected)
+    case CB.Target{CB.Owner{p, l, r, o}, _, _}: Motion.same(key, V.WorkIdentity{p, l, r, o})
+def owner_boost(items: List<&2, LiveTypes.Mob>, +wanted: V.WorkIdentity) -> Nat:
+  match items:
+    case Nil{}: 1n
+    case LiveTypes.Mob{t, _, _, _, _, _, _, _, _, _, _, _, _, _, speed} <> tail:
+      Nat.max(Bool.pick(Nat, target_owns(t, wanted), speed, 1n), owner_boost(tail, wanted))
+
+def merged(group: R.Group) -> Bool:
+  match group:
+    case R.Group{_, _, _, _, _, _, _, _, _, _, value, _}: value
+def carrier(group: R.Group) -> Bool:
+  match group:
+    case R.Group{_, _, _, _, _, _, _, _, _, _, _, value}: value
+def with_assembly(group: R.Group, merged: Bool, carrier: Bool) -> R.Group:
+  match group:
+    case R.Group{k, r, p, items, on, fs, dead, sent, seat, shape, _, _}: R.Group{
+      k,
+      r,
+      p,
+      items,
+      on,
+      fs,
+      dead,
+      sent,
+      seat,
+      shape,
+      merged,
+      carrier
+    }
+def finding_total(items: List<&2, Bool>) -> U32:
+  match items:
+    case Nil{}: 0
+    case head <> tail: (Bool.to_u32(head) + finding_total(tail) : U32)
+
+def assembled_found(found: Maybe<&2, R.Group>) -> Bool:
+  match found:
+    case Some{group}: merged(group)
+    case None{}: False{}
+def carrier_found(found: Maybe<&2, R.Group>) -> Bool:
+  match found:
+    case Some{group}: carrier(group)
+    case None{}: False{}
+# Findings retain every visible road waypoint, then physically enter storage.
+# Their remaining room traversal belongs to the assembled delivery packet.
+def through_entry(items: List<&2, V.Waypoint>, +entry: Map.Point) -> List<&2, V.Waypoint>:
+  match items:
+    case Nil{}: []
+    case +head <> tail:
+      match head:
+        case V.Waypoint{x, y, _, _}: head <> Bool.pick(
+          List<&2, V.Waypoint>,
+          Map.same(Map.Point{x, y}, entry),
+          [],
+          through_entry(tail, entry)
+        )
+
 def profile(state: R.State) -> R.Profile:
   match state:
     case R.State{value, _}: value
@@ -20,25 +83,25 @@ def groups(state: R.State) -> List<&2, R.Group>:
     case R.State{_, items}: items
 def owner(group: R.Group) -> V.WorkIdentity:
   match group:
-    case R.Group{k, _, _, _, _, _, _, _, _, _}: k
+    case R.Group{k, _, _, _, _, _, _, _, _, _, _, _}: k
 def results(group: R.Group) -> List<&2, Bool>:
   match group:
-    case R.Group{_, _, _, items, _, _, _, _, _, _}: items
+    case R.Group{_, _, _, items, _, _, _, _, _, _, _, _}: items
 def group_profile(group: R.Group) -> R.Profile:
   match group:
-    case R.Group{_, _, value, _, _, _, _, _, _, _}: value
+    case R.Group{_, _, value, _, _, _, _, _, _, _, _, _}: value
 def split(group: R.Group) -> Bool:
   match group:
-    case R.Group{_, _, _, _, value, _, _, _, _, _}: value
+    case R.Group{_, _, _, _, value, _, _, _, _, _, _, _}: value
 def fragments(group: R.Group) -> List<&2, R.Fragment>:
   match group:
-    case R.Group{_, _, _, _, _, items, _, _, _, _}: items
+    case R.Group{_, _, _, _, _, items, _, _, _, _, _, _}: items
 def retired(group: R.Group) -> Bool:
   match group:
-    case R.Group{_, _, _, _, _, _, value, _, _, _}: value
+    case R.Group{_, _, _, _, _, _, value, _, _, _, _, _}: value
 def sent(group: R.Group) -> U32:
   match group:
-    case R.Group{_, _, _, _, _, _, _, value, _, _}: value
+    case R.Group{_, _, _, _, _, _, _, value, _, _, _, _}: value
 def find(+key: V.WorkIdentity, items: List<&2, R.Group>) -> Maybe<&2, R.Group>:
   match items:
     case Nil{}: None{}
@@ -84,7 +147,7 @@ def captured(
           0,
           255,
           Policy.shape(rolls)
-        },
+        , False{}, False{}},
         items
       )
     case Some{Driver.OutcomeReceipt{+p, +l, +r, +o, +request, C.RequestClear{}, _, _, _, _}}:
@@ -102,7 +165,7 @@ def captured(
           0,
           255,
           Policy.shape(rolls)
-        },
+        , False{}, False{}},
         items
       )
     case _: items
@@ -227,7 +290,7 @@ def fork_ready(+actor: V.Actor) -> Bool:
     (U32.is_eq(next_phase(Motion.path(actor)), 5) || U32.is_eq(Motion.outcome(actor), 2))
 def seat(group: R.Group) -> U32:
   match group:
-    case R.Group{_, _, _, _, _, _, _, _, value, _}: value
+    case R.Group{_, _, _, _, _, _, _, _, value, _, _, _}: value
 def seat_y(+center: Map.Point, value: U32) -> U32:
   (Map.py(center) - 8 + U32.min(2, value) * 8 : U32)
 def anchor(+actor: V.Actor, group: R.Group, +layout: U32) -> Map.Point:
@@ -241,7 +304,7 @@ def anchor(+actor: V.Actor, group: R.Group, +layout: U32) -> Map.Point:
   }
 def shape(group: R.Group) -> U32:
   match group:
-    case R.Group{_, _, _, _, _, _, _, _, _, items}: items
+    case R.Group{_, _, _, _, _, _, _, _, _, items, _, _}: items
 def check_point(+actor: V.Actor, +group: R.Group, +layout: U32, index: U32) -> Map.Point:
   formation(
     anchor(actor, group, layout),
@@ -282,7 +345,7 @@ def fragment_path(hit: Bool, +actor: V.Actor, +layout: U32, value: U32) -> List<
           5,
           Motion.shown_time(actor)
         ),
-        outside_steps(Motion.path(actor), center)
+        through_entry(outside_steps(Motion.path(actor), center), Map.entry_port(layout, 5, 0))
       )
     case False{}:
       +center = Map.center(layout, 4, 0)
@@ -337,6 +400,30 @@ def fragment_point(item: R.Fragment) -> Map.Point:
 def fragment_steps(item: R.Fragment) -> List<&2, V.Waypoint>:
   match item:
     case R.Fragment{_, _, _, _, steps}: steps
+def finding_remaining(items: List<&2, R.Fragment>) -> U32:
+  match items:
+    case Nil{}: 0
+    case head <> tail: (Bool.to_u32(fragment_hit(head)) + finding_remaining(tail) : U32)
+
+def mark_assembly(+group: R.Group, found: Maybe<&2, V.Actor>, layout: U32) -> R.Group:
+  match found:
+    case Some{actor}: with_assembly(
+      group,
+      merged(
+        group
+      ) || (split(
+        group
+      ) && (finding_total(
+        results(group)
+      ) > 0 : U32) && U32.is_eq(
+        finding_remaining(fragments(group)),
+        0
+      ) && Map.same(Motion.point(actor), Map.entry_port(layout, 5, 0))),
+      carrier(group)
+    )
+    case None{}: group
+
+
 def fragment_speed(+rule: U32) -> U32: (2 + rule % 4 : U32)
 def fragment_move(item: R.Fragment) -> R.Fragment:
   match item:
@@ -356,8 +443,9 @@ def fragment_move(item: R.Fragment) -> R.Fragment:
         )
       }
     case value: value
-def keep_fragment(+item: R.Fragment, retired: Bool) -> Bool:
-  Bool.not(Motion.empty(fragment_steps(item))) || (fragment_hit(item) && Bool.not(retired))
+def keep_fragment(item: R.Fragment) -> Bool:
+  Bool.not(Motion.empty(fragment_steps(item)))
+
 def fragment_when(keep: Bool, item: R.Fragment, tail: List<&2, R.Fragment>) -> List<&2, R.Fragment>:
   match keep:
     case True{}: item <> tail
@@ -412,7 +500,6 @@ def move_fragment(allowed: Bool, item: R.Fragment) -> R.Fragment:
     case False{}: item
 def tick_fragments(
   items: List<&2, R.Fragment>,
-  +retired: Bool,
   +key: V.WorkIdentity,
   +all: List<&2, R.Group>
 ) -> List<&2, R.Fragment>:
@@ -420,7 +507,7 @@ def tick_fragments(
     case Nil{}: []
     case +head <> tail:
       +next = move_fragment(Bool.not(blocked(head, key, all)), head)
-      fragment_when(keep_fragment(next, retired), next, tick_fragments(tail, retired, key, all))
+      fragment_when(keep_fragment(next), next, tick_fragments(tail, key, all))
 def actor_sent(+actor: V.Actor, previous: U32) -> U32:
   Bool.pick(
     U32,
@@ -435,7 +522,20 @@ def update_group(
   +all: List<&2, R.Group>
 ) -> R.Group:
   match group found:
-    case R.Group{+k, +request, +value, +items, False{}, _, +dead, +status, +slot, +ordering} Some{
+    case R.Group{
+      +k,
+      +request,
+      +value,
+      +items,
+      False{},
+      _,
+      +dead,
+      +status,
+      +slot,
+      +ordering,
+      +merged,
+      +carrier
+    } Some{
       +actor
     }:
       R.Group{
@@ -451,7 +551,20 @@ def update_group(
             items,
             actor,
             layout,
-            R.Group{k, request, value, items, False{}, [], dead, status, slot, ordering},
+            R.Group{
+              k,
+              request,
+              value,
+              items,
+              False{},
+              [],
+              dead,
+              status,
+              slot,
+              ordering,
+              merged,
+              carrier
+            },
             0
           ),
           []
@@ -459,9 +572,24 @@ def update_group(
         dead,
         actor_sent(actor, status),
         slot,
-        ordering
+        ordering,
+        merged,
+        carrier
       }
-    case R.Group{+k, request, value, items, True{}, fragments, +dead, status, slot, ordering} Some{
+    case R.Group{
+      +k,
+      request,
+      value,
+      items,
+      True{},
+      fragments,
+      +dead,
+      status,
+      slot,
+      ordering,
+      +merged,
+      +carrier
+    } Some{
       +actor
     }:
       R.Group{
@@ -470,27 +598,48 @@ def update_group(
         value,
         items,
         True{},
-        tick_fragments(fragments, dead, k, all),
+        tick_fragments(fragments, k, all),
         dead,
         actor_sent(actor, status),
         slot,
         ordering
-      }
-    case R.Group{+k, request, value, items, on, fragments, _, status, slot, ordering} None{}:
+      , merged, carrier}
+    case R.Group{
+      +k,
+      request,
+      value,
+      items,
+      on,
+      fragments,
+      _,
+      status,
+      slot,
+      ordering,
+      +merged,
+      +carrier
+    } None{}:
       R.Group{
         k,
         request,
         value,
         items,
         on,
-        tick_fragments(fragments, True{}, k, all),
+        tick_fragments(fragments, k, all),
         True{},
         status,
         slot,
         ordering
-      }
-def keep_group(+group: R.Group) -> Bool:
-  Bool.not(retired(group)) || Nat.is_gt(List.length(&2, R.Fragment, fragments(group)), 0n)
+      , merged, carrier}
+
+def actor_present(found: Maybe<&2, V.Actor>) -> Bool:
+  match found:
+    case Some{_}: True{}
+    case None{}: False{}
+
+def keep_group(+group: R.Group, found: Maybe<&2, V.Actor>) -> Bool:
+  Bool.not(retired(group)) || Nat.is_gt(List.length(&2, R.Fragment, fragments(group)), 0n) ||
+    Bool.pick(Bool, merged(group), actor_present(found), False{})
+
 def group_when(keep: Bool, group: R.Group, tail: List<&2, R.Group>) -> List<&2, R.Group>:
   match keep:
     case True{}: group <> tail
@@ -504,8 +653,9 @@ def tick_groups(
   match items:
     case Nil{}: []
     case +group <> tail:
-      +next = update_group(group, find_actor(owner(group), actors), layout, all)
-      group_when(keep_group(next), next, tick_groups(tail, actors, layout, all))
+      +found = find_actor(owner(group), actors)
+      +next = mark_assembly(update_group(group, found, layout, all), found, layout)
+      group_when(keep_group(next, found), next, tick_groups(tail, actors, layout, all))
 def fragments_inside(items: List<&2, R.Fragment>, +center: Map.Point) -> Bool:
   match items:
     case Nil{}: False{}
@@ -550,7 +700,7 @@ def waiting_for_seat(found: Maybe<&2, V.Actor>) -> Bool:
     case None{}: False{}
 def with_seat(group: R.Group, value: U32) -> R.Group:
   match group:
-    case R.Group{k, r, p, items, on, fs, dead, sent, _, ordering}: R.Group{
+    case R.Group{k, r, p, items, on, fs, dead, sent, _, ordering, +merged, +carrier}: R.Group{
       k,
       r,
       p,
@@ -561,18 +711,29 @@ def with_seat(group: R.Group, value: U32) -> R.Group:
       sent,
       value,
       ordering
-    }
+    , merged, carrier}
+def claim_when(
+  on: Bool,
+  +group: R.Group,
+  actors: List<&2, V.Actor>,
+  layout: U32,
+  all: List<&2, R.Group>
+) -> R.Group:
+  match on:
+    case False{}: group
+    case True{}: with_seat(group, available(all, actors, layout))
 def claim(
   +group: R.Group,
   +actors: List<&2, V.Actor>,
   layout: U32,
   all: List<&2, R.Group>
 ) -> R.Group:
-  Bool.pick(
-    R.Group,
+  claim_when(
     U32.is_eq(seat(group), 255) && waiting_for_seat(find_actor(owner(group), actors)),
-    with_seat(group, available(all, actors, layout)),
-    group
+    group,
+    actors,
+    layout,
+    all
   )
 def claim_seats(
   items: List<&2, R.Group>,
@@ -612,22 +773,58 @@ def checking_count(items: List<&2, R.Group>, +actors: List<&2, V.Actor>) -> U32:
         tail,
         actors
       ) : U32)
-def can_move_actor(+actor: V.Actor, +world: M.World) -> Bool:
-  Bool.not(entering(actor)) || has_seat(find(Motion.actor_key(actor), groups(M.rules(world))))
+
 def assigned(found: Maybe<&2, R.Group>) -> Bool:
   match found:
     case Some{group}: (seat(group) < 3 : U32)
     case None{}: False{}
-def can_play(+actor: V.Actor, +world: M.World, +all: List<&2, V.Actor>) -> Bool:
-  Bool.pick(
-    Bool,
-    U32.is_eq(
-      Motion.visible_phase(actor),
-      4
-    ) && assigned(find(Motion.actor_key(actor), groups(M.rules(world)))),
-    Motion.ready(Motion.waiting(actor), all),
-    Motion.can_play(actor, all)
+def split_owner(found: Maybe<&2, R.Group>) -> Bool:
+  match found:
+    case Some{group}: split(group)
+    case None{}: False{}
+def can_move_actor(+actor: V.Actor, +world: M.World) -> Bool:
+  +group = find(Motion.actor_key(actor), groups(M.rules(world)))
+  (Bool.not(entering(actor)) || has_seat(group)) &&
+  (Bool.not(
+    split_owner(group) && Map.same(Motion.point(actor), Map.entry_port(M.layout(world), 5, 0))
+  ) || carrier_found(group) || Motion.empty(Motion.path(actor)))
+
+
+def play_when(assigned: Bool, +actor: V.Actor, +all: List<&2, V.Actor>) -> Bool:
+  match assigned:
+    case True{}: Motion.ready(Motion.waiting(actor), all)
+    case False{}: Motion.can_play(actor, all)
+def can_play(+actor: V.Actor, +world: M.World, all: List<&2, V.Actor>) -> Bool:
+  +group = find(Motion.actor_key(actor), groups(M.rules(world)))
+  play_when(
+    (U32.is_eq(Motion.visible_phase(actor), 4) && assigned(group)) || split_owner(group),
+    actor,
+    all
   )
+
+# Additional movement never advances an already completed actor's terminal TTL.
+# The ordinary tick below owns ageing, exactly once per game tick.
+def more_actor_steps(on: Bool, actor: V.Actor, continue: V.Actor -> V.Actor) -> V.Actor:
+  match on:
+    case True{}: continue(actor)
+    case False{}: actor
+def boosted_actor(fuel: Nat, +actor: V.Actor, +world: M.World, +all: List<&2, V.Actor>) -> V.Actor:
+  match fuel:
+    case 0n: actor
+    case 1n+n:
+      continue: V.Actor -> V.Actor = +a => boosted_actor(
+        n,
+        Motion.move_when(can_play(a, world, all) && can_move_actor(a, world), a),
+        world,
+        all
+      )
+      more_actor_steps(
+        Bool.not(
+          Motion.empty(Motion.path(actor))
+        ) && can_play(actor, world, all) && can_move_actor(actor, world),
+        actor,
+        continue
+      )
 
 def actor_steps(
   items: List<&2, V.Actor>,
@@ -637,7 +834,16 @@ def actor_steps(
   match items:
     case Nil{}: []
     case +actor <> tail:
-      +next = Motion.move_when(can_play(actor, world, all) && can_move_actor(actor, world), actor)
+      +ordinary = Motion.move_when(
+        can_play(actor, world, all) && can_move_actor(actor, world),
+        actor
+      )
+      +next = boosted_actor(
+        Nat.sub(owner_boost(M.mobs(world), Motion.actor_key(actor)), 1n),
+        ordinary,
+        world,
+        all
+      )
       Motion.alive_keep(Motion.alive(next), next, actor_steps(tail, world, all))
 def step_actors(+world: M.World) -> M.World:
   M.with_actors(world, actor_steps(M.actors(world), world, M.actors(world)))

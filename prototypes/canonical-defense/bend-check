@@ -1,0 +1,14 @@
+#!/bin/sh
+# Every proof check has a five-second limit; reshape slow claims instead.
+TO=timeout
+command -v timeout >/dev/null || TO=gtimeout
+if ! command -v "$TO" >/dev/null; then
+  echo 'bend-check: install timeout or gtimeout' >&2
+  exit 127
+fi
+"$TO" 5 bend "$@"
+rc=$?
+if [ "$rc" = 124 ]; then
+  echo "bend-check: exceeded 5 seconds: $*" >&2
+fi
+exit "$rc"

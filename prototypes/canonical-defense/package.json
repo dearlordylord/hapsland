@@ -24,6 +24,14 @@
     "./lab/index": {
       "types": "./lab/index.ts",
       "default": "./lab/index.ts"
+    },
+    "./lab/game-native": {
+      "types": "./lab/game.generated.mjs",
+      "default": "./lab/game.generated.mjs"
+    },
+    "./lab/game-example": {
+      "types": "./lab/game-example.ts",
+      "default": "./lab/game-example.ts"
     }
   },
   "hapsland": {

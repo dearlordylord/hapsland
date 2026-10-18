@@ -132,10 +132,12 @@ function compareFinishRegistration(frame, source, field) {
     const matches = polls.filter(item => item.at === at);
     assert.equal(matches.length,1,`${field} original registration poll time ${at}`);
     const item = matches[0];
-    assert.deepEqual(item.stopFact,{ at:item.at, event:item.input.event },`${field} original registration Stop fact ${at}`);
-    assert.deepEqual(item.stopCapture,{ partition:finish.partition, lifetime:finish.lifetime, round:finish.round,
-      attempt:finish.attempt, token:finish.token, started:finish.started, cutoff:finish.deadline },
-      `${field} original registration Stop capture ${at}`);
+    if (item.stopFact !== undefined) {
+      assert.deepEqual(item.stopFact,{ at:item.at, event:item.input.event },`${field} original registration Stop fact ${at}`);
+      assert.deepEqual(item.stopCapture,{ partition:finish.partition, lifetime:finish.lifetime, round:finish.round,
+        attempt:finish.attempt, token:finish.token, started:finish.started, cutoff:finish.deadline },
+        `${field} original registration Stop capture ${at}`);
+    }
     if (at === source.time) assert.deepEqual(frame.event,encodeCanonicalEvent(item.input.event),
       `${field} native registration first poll event`);
   }
@@ -168,6 +170,31 @@ export function compareNativeQueuedPayload(value, publicItem, field, order, core
     const supported = new Set(["input","at","order","driverAction","driverContext","driverOutcomeReceipt","driverSourceJob","stopFact","stopCapture","callbackReceipt","job","finishAttempt","expiryAdvice","generated","partition","candidate","activityScope","workloadSource","cacheFact"]);
     for (const key of Object.keys(publicItem)) assert.ok(supported.has(key),`${field} unimplemented original payload metadata ${key}`);
     if (input.$ === "NativeRunTypes.Event" || input.$ === "NativeRunTypes.FinishInput") {
+      if (input.$ === "NativeRunTypes.FinishInput" && publicItem.stopFact === undefined &&
+          publicItem.input.kind === "canonical" && publicItem.input.event.kind === "stopPolled") {
+        // NativeRunHost exposes the original absolute Stop event and active
+        // job, rather than a separate stopFact/stopCapture queue capsule.
+        const action = decodeDriver({handled:true,actions:{$:"Con",head:input.action,tail:{$:"Nil"}}}).actions[0];
+        assert.deepEqual(action,{event:publicItem.input.event,delay:action.delay,job:false},`${field} complete Stop action ${order}`);
+        const finish=nativeStopFinish(core,publicItem.partition);
+        assert.ok(finish,`${field} Stop registry ${order}`);
+        assert.ok(action.delay === 0 || action.delay === finish.deadline-finish.started,`${field} Stop source delay ${order}`);
+        if(action.delay === 0) assert.ok(publicItem.at >= finish.started,`${field} Stop wake time ${order}`);
+        else assert.equal(publicItem.at,finish.deadline,`${field} Stop cutoff time ${order}`);
+        for(const name of ["stopCapture","candidate","expiryAdvice","callbackReceipt","activityScope","driverAction","driverSourceJob","workloadSource","cacheFact"])
+          assert.equal(publicItem[name],undefined,`${field} unexpected Stop metadata ${name} ${order}`);
+        assert.deepEqual(action.event,publicItem.input.event,`${field} absolute Stop event ${order}`);
+        assert.equal(publicItem.input.at,publicItem.at,`${field} absolute Stop time ${order}`);
+        assert.equal(input.attempt,publicItem.finishAttempt,`${field} Stop attempt ${order}`);
+        assert.equal(publicItem.generated,true,`${field} Stop producer ${order}`);
+        assert.equal(action.job,false,`${field} Stop action job flag ${order}`);
+        compareJob(input.job,publicItem.job,`${field} Stop active job ${order}`);
+        assert.deepEqual([input.job.partition,input.job.lifetime,input.job.round],
+          [publicItem.input.event.partition,publicItem.input.event.lifetime,publicItem.input.event.round],`${field} Stop full active input owner ${order}`);
+        assert.equal(input.job.partition,publicItem.partition,`${field} Stop partition ${order}`);
+        compareNativeInputContext(input.context,publicItem,`${field} Stop item ${order}`);
+        return;
+      }
       if (publicItem.stopFact) {
         compareStopPayload(value,publicItem,core,field,order);
         return;
@@ -229,6 +256,13 @@ export function compareNativeQueuedPayload(value, publicItem, field, order, core
       const generated = decodeNativeRunGraphSource(input);
       assert.deepEqual(generated.generatedTree,event.generatedTree,`${field} complete generated graph presentation ${order}`);
       option(one(input.tree));
+    } else if (input.$ === "NativeRunTypes.StartFinish") {
+      assert.deepEqual(publicItem.input,{kind:"finish",at:publicItem.at},`${field} original Stop input ${order}`);
+      assert.equal(input.partition,publicItem.partition,`${field} original Stop partition ${order}`);
+      assert.equal(input.activity,publicItem.activityScope,`${field} original Stop activity ${order}`);
+      assert.equal(input.recurring,false,`${field} original Stop is non-recurring ${order}`);
+      for (const name of Object.keys(publicItem))
+        assert.ok(["input","at","order","partition","activityScope"].includes(name),`${field} unexpected original Stop metadata ${name}`);
     } else if (input.$ === "NativeRunTypes.CapturedEdit") {
       assert.equal(publicItem.input.kind,"edit",`${field} captured edit kind ${order}`);
       assert.equal(publicItem.input.at,publicItem.at,`${field} captured edit time ${order}`);
@@ -334,7 +368,13 @@ export function compareNativeRuntime(value, original, field) {
       ...(completion === undefined ? {} : { outputCapture:decodeOutputCapture(completion) }) },
       originalCallback.receipt,`${field} original retained receipt ${callback.order}`);
     assert.equal(originalCallback.payload.order,callback.order);
-    assert.equal(originalCallback.payload.at,callback.due_at);
+    // Retained provenance keeps the original due time. Its decoded payload time
+    // is a lookup of the original order in the CURRENT scheduler; reorder can
+    // remove that order. NativeRun's public decoder uses business now when absent.
+    const scheduler = readRecord(readRecord(core).scheduler);
+    const scheduled = list(scheduler.queue)
+      .map(readRecord).find(entry => entry.order === callback.order);
+    assert.equal(originalCallback.payload.at,scheduled?.at ?? scheduler.now,`${field} retained original order scheduling`);
     assert.deepEqual(originalCallback.payload.callbackReceipt,originalCallback.receipt);
     compareNativeQueuedPayload(callback.payload,originalCallback.payload,`${field} retained payload ${callback.order}`,callback.order,core);
   }
@@ -354,6 +394,33 @@ export function resolvedGameOutputScopes(values, event, outputs) {
   });
 }
 
+export function compareGameOutputScopes(values,event,outputs,publicScopes,field) {
+  assert.deepEqual(resolvedGameOutputScopes(values,event,outputs),publicScopes.map(scope => scope ?? null),`${field} actual command scopes`);
+}
+
+// Current business scope can disappear while an original emitted action remains
+// queued. Public scheduled.partition describes that immutable emitter, whereas
+// observation.partition describes the now-absent business scope. Resolve only
+// from an exact native consumed action and its complete captured public context.
+export function resolvedGameProvidedOwner(details,event,observation,field,scheduled) {
+  const supplied=option(details.provided);
+  if(supplied!==undefined) return supplied;
+  const original=option(details.consumed);
+  if(original===undefined) return undefined;
+  const consumed=readRecord(original);
+  assert.equal(consumed.$,"NativeRunTypes.ConsumedInput",`${field} original emitted input`);
+  const input=readRecord(consumed.input);
+  if(input.$!=="NativeRunTypes.Event") return undefined;
+  const captured=option(one(input.context));
+  if(captured===undefined) return undefined;
+  assert.equal(observation.partition,undefined,`${field} observation has no business owner`);
+  assert.deepEqual(readRecord(input.action).event,event,`${field} exact original emitted event`);
+  const capsule=readRecord(captured);
+  assert.equal(capsule.$,"NativeRunTypes.EmissionContext",`${field} captured emitter`);
+  assert.deepEqual(capsule.context,scheduled?.driverContext,`${field} entire original emitter context`);
+  return readNat(readRecord(capsule.context).partition);
+}
+
 export function compareNativeFrames(values, publicFrames, field) {
   const frames = list(values).map(readRecord);
   const observed = publicFrames.filter(frame => frame.kind !== "callbackDelivery");
@@ -367,7 +434,7 @@ export function compareNativeFrames(values, publicFrames, field) {
     assert.equal(frame.time,actual.time,`${field} frame ${index} exact clock`);
     assert.equal(frame.sequence,actual.observation.sequence,`${field} frame ${index} sequence`);
     compareCanonicalOwner(one(details.transition_after),transition.state,`${field} frame ${index} raw transition public-contract`);
-    assert.equal(option(details.provided),actual.scheduled.partition,`${field} frame ${index} original provided owner`);
+    assert.equal(resolvedGameProvidedOwner(details,frame.event,actual.observation,field,actual.scheduled),actual.scheduled.partition,`${field} frame ${index} original provided owner`);
     compareContext(details.source,actual.scheduled,`${field} frame ${index} original emitted context`);
     for (const prepared of list(details.prepared)) {
       const capsule = readRecord(prepared);
@@ -395,7 +462,7 @@ export function compareNativeFrames(values, publicFrames, field) {
       assert.deepEqual(frame.event,actual.scheduled.input.kind === "canonical" ? encodeCanonicalEvent(actual.observation.event) : undefined,`${field} actual source event`);
       assert.deepEqual(list(frame.outputs),result.$ === "Canonical.Advanced" ? list(result.outputs) : [],`${field} entire original outputs`);
       assert.deepEqual(option(frame.rejection),result.$ === "Canonical.Rejected" ? result.reason : undefined,`${field} exact rejection`);
-      assert.deepEqual(resolvedGameOutputScopes(details.output_scopes,frame.event,frame.outputs),actual.observation.outputScopes,`${field} actual command scopes`);
+      compareGameOutputScopes(details.output_scopes,frame.event,frame.outputs,actual.observation.outputScopes,field);
     } else if (frame.$ === "NativeRunTypes.GraphFrame") {
       assert.equal(actual.kind,"preparation",`${field} original graph observation family`);
       const event = actual.observation.event, key = readRecord(frame.key), result = readRecord(transition.result);

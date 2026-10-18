@@ -13,6 +13,18 @@ const settings = (outcome: "certain" | "uncertain" | "failed", delayMs = 5, leas
   retention: 1000,
   preparationDelay: 2,
   jevDelay: 5,
+  // Pin the authored native fixture's limits; changing product defaults must
+  // not silently change one lane of this exact input comparison.
+  graphLimits: {
+    version: 1,
+    sourceBytes: 262144,
+    treeBytes: 20480,
+    files: 8,
+    readBytes: 1572864,
+    outgoingEdges: 16,
+    depth: 4,
+    work: 128
+  },
   session: { editIntervalMs: 1000000, variationMs: 0, editsPerTask: 1000 },
   fileTrees: {
     ...DEFAULT_FILE_TREE_PROFILE,

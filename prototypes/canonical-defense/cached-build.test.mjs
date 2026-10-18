@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, utimesSync, writeFileSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -17,7 +17,7 @@ function fixture(t) {
   for (const directory of ["packages/monkey-business-bend", "packages/agent-flow-bend"]) mkdirSync(join(root, directory), { recursive: true })
   for (const file of ["packages/monkey-business-bend/compiler.mjs", "packages/agent-flow-bend/package.json"]) copyFileSync(join(owner, "../..", file), join(root, file))
   for (const directory of [prototypeDir, bendDirectory, bin]) mkdirSync(directory, { recursive: true })
-  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs"]) copyFileSync(join(owner, name), join(prototypeDir, name))
+  for (const name of ["run.sh", "cached-build.mjs", "clang-no-stack-check.sh", "recording-launch.mjs", "register-bank.mjs"]) copyFileSync(join(owner, name), join(prototypeDir, name))
   writeFileSync(join(prototypeDir, "DefenseMain.bend"), 'import Base\nimport ./Dependency.bend\n')
   writeFileSync(join(prototypeDir, "Dependency.bend"), 'import "./effect.c"\n')
   writeFileSync(join(prototypeDir, "effect.c"), '#include "./header.h"\n')
@@ -37,6 +37,7 @@ if [ "$CACHE_TEST_FAIL" = 1 ]; then exit 1; fi
   writeFileSync(join(bin, "clang"), '#!/bin/sh\nprintf "Apple clang version 21.0.0\\n"\n', { mode: 0o755 })
   writeFileSync(join(bin, "uname"), '#!/bin/sh\nif [ "$1" = -s ]; then echo Darwin; else echo arm64; fi\n', { mode: 0o755 })
   const environment = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOME: root, CACHE_TEST_COUNT: join(root, "count") }
+  delete environment.HAPSLAND_GAME_CPU_BANK
   delete environment.CC
   delete environment.BEND_CANONICAL_DEFENSE_CC
   const options = { prototypeDir, bendDirectory, cacheDir: join(root, "cache"), environment, notice: () => {} }
@@ -107,4 +108,101 @@ test("run.sh builds once, reuses the cache and selects recording mode", t => {
     assert.match(result.stderr, /building|using cached build/)
   }
   assert.equal(f.count(), 1)
+})
+
+function bankFixture(t) {
+  const f = fixture(t)
+  f.environment.HAPSLAND_GAME_CPU_BANK = "1"
+  writeFileSync(join(f.bin, "bend"), `#!/bin/sh
+if [ "$1" = version ]; then echo 'bend 2.0.36'; exit; fi
+printf 'build\\n' >> "$CACHE_TEST_COUNT"
+cat > "$3" <<'C'
+#define WL_BANK Term r0, r1;
+#define WL_SIG Env e, DEV Term* sp, u32 seq, u32 rn, Term r0, Term r1
+#define WL_ALL e, sp, seq, rn, r0, r1
+#define WL_OPEN    { WL_BANK u32 rn;
+#if !DEVICE
+#undef  WL_SPIN
+  return WL_FID_ENTER(WL_ALL);
+C
+if [ "$CACHE_TEST_BAD_LAYOUT" = 1 ]; then echo '#define WL_BANK bad;' >> "$3"; fi
+`, { mode: 0o755 })
+  writeFileSync(join(f.bin, "clang"), `#!/bin/sh
+if [ "$1" = --version ]; then echo 'clang version 21.0.0'; exit; fi
+printf '%s\\n' "$@" > "$CACHE_TEST_FLAGS"
+if [ "$CACHE_TEST_FAIL_CLANG" = 1 ]; then exit 1; fi
+while [ "$1" != -o ]; do shift; done
+shift
+printf '#!/bin/sh\\nexit 0\\n' > "$1"
+chmod +x "$1"
+`, { mode: 0o755 })
+  f.environment.CACHE_TEST_FLAGS = join(f.root, "flags")
+  return f
+}
+
+test("explicit Linux bank mode has a separate identity, flags and validated lowering", t => {
+  const f = bankFixture(t)
+  const first = f.run()
+  const saved = JSON.parse(readFileSync(`${first.binary}.json`, "utf8"))
+  assert.equal(saved.inputs.mode, "linux-cpu-register-bank-O0")
+  assert.deepEqual(saved.inputs.compileFlags, ["-std=c11", "-O0", "-Wno-unused-value", "-lm", "-pthread", "-lX11"])
+  assert.match(readFileSync(f.environment.CACHE_TEST_FLAGS, "utf8"), /-O0\n/)
+  assert.equal(f.run().reused, true)
+  writeFileSync(join(f.prototypeDir, "register-bank.mjs"), readFileSync(join(f.prototypeDir, "register-bank.mjs"), "utf8") + "\n// revision\n")
+  assert.notEqual(f.run().key, first.key)
+  assert.throws(() => cachedBinary({ ...f, host: {platform:"darwin",arch:"arm64",release:"test"} }), /requires Linux/)
+})
+
+test("unknown emitted layouts and compiler failures cannot publish bank binaries", t => {
+  const f = bankFixture(t)
+  f.environment.CACHE_TEST_BAD_LAYOUT = "1"
+  assert.throws(f.run, /Unsupported Bend register macro/)
+  assert.deepEqual(readdirSync(f.cacheDir), [])
+  delete f.environment.CACHE_TEST_BAD_LAYOUT
+  f.environment.CACHE_TEST_FAIL_CLANG = "1"
+  assert.throws(f.run, /Clang CPU bank build failed/)
+  assert.deepEqual(readdirSync(f.cacheDir), [])
+  delete f.environment.CACHE_TEST_FAIL_CLANG
+  assert.equal(f.run().reused, false)
+})
+
+
+test("failed compiler stops its linker descendants before removing staging", async t => {
+  const f = fixture(t)
+  const marker = join(f.root, "orphan-linker-finished")
+  const linker = join(f.root, "delayed-linker.cjs")
+  writeFileSync(linker, `setTimeout(() => require("node:fs").writeFileSync(process.argv[2], "linked"), 600)`)
+  writeFileSync(join(f.bin, "bend"), `#!/bin/sh
+if [ "$1" = version ]; then echo 'bend 2.0.36'; exit; fi
+"$CACHE_TEST_NODE" "$CACHE_TEST_LINKER" "$CACHE_TEST_MARKER" </dev/null >/dev/null 2>&1 &
+exit 1
+`, { mode: 0o755 })
+  Object.assign(f.environment, { CACHE_TEST_NODE: process.execPath, CACHE_TEST_LINKER: linker, CACHE_TEST_MARKER: marker })
+  assert.throws(f.run, /Bend build failed/)
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  assert.equal(existsSync(marker), false, "a failed build must not leave a linker running after staging cleanup")
+  assert.deepEqual(readdirSync(f.cacheDir), [])
+})
+
+
+test("local O0 launch selects wrapper and keeps a distinct cache identity", t => {
+  const f = fixture(t)
+  const ordinary = f.run()
+  f.environment.HAPSLAND_GAME_OPTIMIZATION = "0"
+  const local = f.run()
+  assert.notEqual(local.key, ordinary.key)
+  assert.equal(f.run().reused, true)
+  const launch = spawnSync("bash", [join(f.prototypeDir, "run.sh"), "--new"], { env: f.environment, encoding: "utf8", timeout: 10000 })
+  assert.equal(launch.status, 0, launch.stderr)
+  assert.equal(launch.stdout, "--threads\n4\n")
+  const flags = join(f.root, "local-flags")
+  writeFileSync(join(f.bin, "clang"), `#!/bin/sh
+printf '%s\\n' "$@" > "$CACHE_TEST_FLAGS"
+`, { mode: 0o755 })
+  const result = spawnSync("bash", [join(f.prototypeDir, "clang-no-stack-check.sh"), "-O3", "source.c"], {
+    env: { ...f.environment, BEND_CANONICAL_DEFENSE_CC: join(f.bin, "clang"), CACHE_TEST_FLAGS: flags },
+    encoding: "utf8", timeout: 5000
+  })
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(readFileSync(flags, "utf8"), /-O3\nsource.c\n-fno-stack-check\n-O0\n$/)
 })

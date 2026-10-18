@@ -14,12 +14,23 @@ const profile = (changes: Partial<FileTreeProfile> = {}): FileTreeProfile => ({
   ...DEFAULT_FILE_TREE_PROFILE,
   ...changes
 })
+const fixtureLimits = {
+  version: 1 as const,
+  sourceBytes: 262144,
+  treeBytes: 20480,
+  files: 8,
+  readBytes: 1572864,
+  outgoingEdges: 16,
+  depth: 4,
+  work: 128
+}
 const frames = (seed: number, settings: FileTreeProfile) => {
-  const tree = generateFileTree(seed, 3, 0, settings)
+  const tree = generateFileTree(seed, 3, 0, settings, fixtureLimits)
   const replay = new PreparationReplay()
   return tree.facts.map((fact, step) =>
     replay.step({
       kind: "preparationGraph",
+      graphLimits: fixtureLimits,
       example: "generated",
       partition: 1,
       lifetime: 1,

@@ -26,6 +26,16 @@ function runCase(
   kind: "wrongStage" | "reverseOrder" | "canceled" | "dropped" | "latePreparation" | "latePreparationRetainedOne"
 ) {
   const run = createRun({
+    graphLimits: {
+      version: 1 as const,
+      sourceBytes: 262144,
+      treeBytes: 20480,
+      files: 8,
+      readBytes: 1572864,
+      outgoingEdges: 16,
+      depth: 4,
+      work: 128
+    },
     inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5], outcome: "finding" }],
     ...(kind === "latePreparation" || kind === "latePreparationRetainedOne"
       ? {

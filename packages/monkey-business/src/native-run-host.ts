@@ -1464,7 +1464,10 @@ export class NativeRunHost {
       case "callback":
         encoded = tag("CallbackControl", {
           target: encodeCallbackTarget(control.target),
-          action: encodeCallbackAction(control.action),
+          action: encodeCallbackAction(
+            control.action,
+            control.action === "reschedule" || control.action === "transport" ? control.deliveryAt : undefined
+          ),
           historical_source: encodeNativeRunOptional(this.historicalCallbacks.get(control.target.originalOrder))
         })
         break
@@ -1641,7 +1644,9 @@ export class NativeRunHost {
             ? "notQueued"
             : tag === "Callbacks.NotHeld"
               ? "notHeld"
-              : "missing"
+              : tag === "Callbacks.InvalidTime"
+                ? "invalidTime"
+                : "missing"
       this.reportHistory.callbackReports.push({ at: this.now, controlSequence: sequence, control, result })
     } else if (control.kind === "outputAttempt") {
       const tag = readRecord(report.result).$

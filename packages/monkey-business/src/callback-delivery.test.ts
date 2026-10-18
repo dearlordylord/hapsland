@@ -9,8 +9,11 @@ const callbacks = (run: Run) =>
     readonly callbackTargets: readonly CallbackTarget[]
     readonly callbackReports: readonly CallbackReport[]
   }
-const apply = (run: Run, target: CallbackTarget, action: CallbackControl["action"]) =>
-  run.applyControl({ kind: "callback", target, action })
+const apply = (
+  run: Run,
+  target: CallbackTarget,
+  action: Exclude<CallbackControl["action"], "reschedule" | "transport">
+) => run.applyControl({ kind: "callback", target, action })
 const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome: "clear" as const }
 const reach = (run: Run, condition: () => boolean) => {
   for (let fuel = 0; fuel < 100 && !condition(); fuel++) run.step()
@@ -216,3 +219,126 @@ it.each([false, true])(
     replay(run)
   }
 )
+
+it("reschedules exact work at explicit elapsed time without inventing an earlier settlement", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 1000 })
+  const target = issued(run)
+  const issuedAt = run.now
+  expect(issuedAt).toBeLessThan(420)
+  run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: 420 })
+  expect(run.now).toBe(issuedAt)
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
+  run.advance({ untilTime: 419 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  run.advance({ untilTime: 420 })
+  const settled = run.observations.filter((f) => f.event.kind === "jevRequestSettled")
+  expect(settled).toHaveLength(1)
+  expect(settled[0]!.time).toBe(420)
+  run.advance({ untilTime: 1100 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(1)
+  replay(run)
+})
+
+it("refuses an explicit callback timestamp in the past without replacing its queued work", () => {
+  const run = createRun({ inputs: [edit, { ...edit, at: 20 }], jevDelay: 1000 })
+  const target = issued(run)
+  run.advance({ untilTime: 20 })
+  expect(run.now).toBe(20)
+  const before = run.projection,
+    snapshot = run.runtimeSnapshot()
+  run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: 19 })
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("invalidTime")
+  expect(run.projection).toEqual(before)
+  expect(run.runtimeSnapshot()).toEqual(snapshot)
+  run.advance({ untilTime: 999 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  run.advance({ untilTime: 2000 })
+  expect(run.observations.some((f) => f.event.kind === "jevRequestSettled")).toBe(true)
+  replay(run)
+})
+
+it("repeated rescheduling replaces the replacement order and never duplicates delivery", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 1000 })
+  const target = issued(run)
+  for (const deliveryAt of [420, 700, 500]) {
+    run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt })
+    expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
+  }
+  run.advance({ untilTime: 499 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  run.advance({ untilTime: 1200 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled").map((f) => f.time)).toEqual([500])
+  replay(run)
+})
+
+it.each(["hold", "drop"] as const)("explicit rescheduling does not revive %s work", (action) => {
+  const run = createRun({ inputs: [edit], jevDelay: 1000 })
+  const target = issued(run)
+  apply(run, target, action)
+  const snapshot = run.runtimeSnapshot()
+  run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: 420 })
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("notQueued")
+  expect(run.runtimeSnapshot()).toEqual(snapshot)
+  run.advance({ untilTime: 1200 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  replay(run)
+})
+
+it("rescheduling accepts the current instant and refuses delivered or missing originals", () => {
+  const run = createRun({ inputs: [edit], jevDelay: 1000 })
+  const target = issued(run),
+    now = run.now
+  run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: now })
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
+  run.advance({ untilTime: now })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled").map((f) => f.time)).toEqual([now])
+  run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: now + 100 })
+  // Completed authority has already retired this original from the registry.
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("missing")
+  run.applyControl({
+    kind: "callback",
+    action: "reschedule",
+    target: { ...target, originalOrder: target.originalOrder + 10000 },
+    deliveryAt: now + 100
+  })
+  expect(callbacks(run).callbackReports.at(-1)?.result).toBe("missing")
+  run.advance({ untilTime: 1200 })
+  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(1)
+  replay(run)
+})
+
+it("transports a captured output and its cleanup together without moving an independent lease release", () => {
+  for (const [cancelled, rescheduled] of [
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true]
+  ]) {
+    const run = createRun({
+      inputs: [{ ...edit, outcome: "finding" }],
+      preparationDelay: 2,
+      jevDelay: 5,
+      outputProfile: { outcome: "certain", delayMs: 5, leaseMs: 1000 }
+    })
+    reach(run, () => callbacks(run).callbackTargets.some((t) => t.effect.kind === "outputTerminal"))
+    const target = callbacks(run).callbackTargets.find((t) => t.effect.kind === "outputTerminal")!
+    if (target.effect.kind !== "outputTerminal") throw new Error("output target required")
+    const at = run.now + 100
+    if (rescheduled) run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: run.now + 50 })
+    if (cancelled)
+      run.schedule({
+        kind: "canonical",
+        at: run.now + 10,
+        event: { kind: "collectionReleaseLease", advice: target.effect.advice, token: target.effect.token }
+      })
+    run.applyControl({ kind: "callback", action: "transport", target, deliveryAt: at })
+    expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
+    run.advance({ untilTime: at - 1 })
+    expect(run.projection.collection.leases).toHaveLength(cancelled ? 0 : 1)
+    expect(run.observations.filter((f) => f.event.kind === "submissionTerminal")).toHaveLength(0)
+    run.advance({ untilTime: at })
+    expect(run.projection.delivery.submissions.batches[0]?.phase).toBe("submitted")
+    expect(run.projection.collection.leases).toHaveLength(0)
+    replay(run)
+  }
+})

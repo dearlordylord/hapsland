@@ -301,9 +301,13 @@ def witnessed_all(
         witnessed_submission(event, outputs, actor, states),
         actor
       ) <> witnessed_all(event, outputs, rest, before, states)
+def has_delivery_path(items: List<&2, V.Waypoint>) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case V.Waypoint{_, _, phase, _} <> tail: U32.is_eq(phase, 6) || has_delivery_path(tail)
 def retire(actor: V.Actor, layout: U32, at: Nat) -> V.Actor:
   match actor:
-    case V.Actor{k, f, l, x, y, p, seen, steps, +t, parent, shown, +cause, released}:
+    case V.Actor{k, f, l, x, y, +p, seen, +steps, +t, parent, shown, +cause, released}:
       V.Actor{
         k,
         f,
@@ -318,7 +322,7 @@ def retire(actor: V.Actor, layout: U32, at: Nat) -> V.Actor:
           steps,
           Bool.pick(
             List<&2, V.Waypoint>,
-            U32.is_eq(t, 0),
+            U32.is_eq(t, 0) && Bool.not(U32.is_eq(p, 6) || has_delivery_path(steps)),
             waypoints(end_route(layout, cause), 6, at),
             []
           )
@@ -592,8 +596,12 @@ def wait_kind(+actor: V.Actor, +all: List<&2, V.Actor>) -> U32:
 def released(actor: V.Actor) -> Bool:
   match actor:
     case V.Actor{_, _, _, _, _, _, _, _, _, _, _, _, value}: value
+def drawable_when(shown: Bool, actor: V.Actor, all: List<&2, V.Actor>) -> Bool:
+  match shown:
+    case True{}: True{}
+    case False{}: can_play(actor, all)
 def drawable(+actor: V.Actor, all: List<&2, V.Actor>) -> Bool:
-  released(actor) || can_play(actor, all)
+  drawable_when(released(actor), actor, all)
 def queued(items: List<&2, V.Actor>, +all: List<&2, V.Actor>) -> U32:
   match items:
     case Nil{}: 0

@@ -28,6 +28,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   put("src/dynamic.test.ts", 'const fixture = import("./fixture.ts");')
   put("src/mixed.test.ts", 'import defaultRuntime, {type ChildProcess} from "node:child_process";')
   put("scripts/hook-import-boundary.test.mjs", "const finiteImportClosure = true;")
+  put("scripts/game-balance-lab.test.mts", "const boundedGameReplay = true;")
   put("src/resident/capacity.test.ts", "const boundedMetadata = true;")
   put("packages/monkey-business/src/outcomes.test.ts", "const seededReplay = true;")
   put("packages/monkey-business/src/cache-scenarios.test.ts", "const seededCacheReplay = true;")
@@ -39,6 +40,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
       ...defaultEntries,
       ...inventoryTestHarness(root, [
         "scripts/hook-import-boundary.test.mjs",
+        "scripts/game-balance-lab.test.mts",
         "packages/monkey-business/src/outcomes.test.ts",
         "packages/monkey-business/src/cache-scenarios.test.ts"
       ])
@@ -57,6 +59,7 @@ it("finds actual imports through cyclic fixtures without treating strings or typ
   expect(entries["src/resident/server.test.ts"].kind).toBe("bounded-scenario")
   for (const path of [
     "scripts/hook-import-boundary.test.mjs",
+    "scripts/game-balance-lab.test.mts",
     "src/resident/capacity.test.ts",
     "packages/monkey-business/src/outcomes.test.ts",
     "packages/monkey-business/src/cache-scenarios.test.ts"

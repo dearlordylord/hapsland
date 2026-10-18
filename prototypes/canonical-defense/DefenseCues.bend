@@ -39,9 +39,16 @@ def add(+world: M.World, cue: M.Cue) -> M.World:
 def positioned(cue: M.Cue, found: Maybe<&2, C.Work>, world: M.World, ttl: U32) -> M.Cue:
   match cue found:
     case M.Cue{kind, id, family, x, y, _} None{}: M.Cue{kind, id, family, x, y, ttl}
-    case M.Cue{kind, id, family, _, _, _} Some{work}:
+    case M.Cue{+kind, id, family, x, y, _} Some{work}:
       +point = Map.center(M.layout(world), 1, 0)
-      M.Cue{kind, id, family, Map.px(point), Map.py(point), ttl}
+      M.Cue{
+        kind,
+        id,
+        family,
+        Bool.pick(U32, U32.is_eq(kind, 2), Map.px(point), x),
+        Bool.pick(U32, U32.is_eq(kind, 2), Map.py(point), y),
+        ttl
+      }
 def expire(items: List<&2, M.Cue>, +before: M.World, +world: M.World) -> List<&2, M.Cue>:
   match items:
     case Nil{}: []
@@ -89,7 +96,20 @@ def tick(+before: M.World, +after: M.World, items: List<&2, T.Frame>) -> M.World
   # Refusal markers identify the source service; actor history carries the moving body.
   M.with_cues(
     after,
-    M.cues(frames(items, M.with_cues(before, expire(M.cues(before), before, after))))
+    M.cues(
+      frames(
+        items,
+        M.with_cues(
+          before,
+          Bool.pick(
+            List<&2, M.Cue>,
+            (M.time(after) > M.time(before) : U32),
+            expire(M.cues(before), before, after),
+            M.cues(before)
+          )
+        )
+      )
+    )
   )
 def burst(+world: M.World) -> M.World:
   +point = Map.path_position(Map.source_route(M.layout(world)), 0)

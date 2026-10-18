@@ -965,6 +965,8 @@ export const callbackNativeDescriptors = {
       { tag: "Canonical.DeliveryBatchRelease", fields: [] },
       { tag: "Canonical.DeliveryCredentialInvalid", fields: [] },
       { tag: "Canonical.DeliveryCredentialValid", fields: [] },
+      { tag: "Canonical.SourceCacheDrop", fields: [] },
+      { tag: "Canonical.SourceCacheRetain", fields: [] },
       { tag: "Canonical.IgnoreCandidate", fields: [] },
       { tag: "Canonical.ReleaseCandidate", fields: [] },
       { tag: "Canonical.RetireCandidate", fields: [] },
@@ -1926,6 +1928,13 @@ export const callbackNativeDescriptors = {
         ]
       },
       {
+        tag: "Canonical.SourceCacheCheck",
+        fields: [
+          ["remaining", "nat"],
+          ["aborted", "bool"]
+        ]
+      },
+      {
         tag: "Canonical.ValidationRouteCheck",
         fields: [
           ["owner_current", "bool"],
@@ -2493,7 +2502,8 @@ export const callbackNativeDescriptors = {
       { tag: "Callbacks.Applied", fields: [] },
       { tag: "Callbacks.Missing", fields: [] },
       { tag: "Callbacks.NotQueued", fields: [] },
-      { tag: "Callbacks.NotHeld", fields: [] }
+      { tag: "Callbacks.NotHeld", fields: [] },
+      { tag: "Callbacks.InvalidTime", fields: [] }
     ]
   },
   callbacks_control: {
@@ -2503,7 +2513,9 @@ export const callbackNativeDescriptors = {
       { tag: "Callbacks.Release", fields: [] },
       { tag: "Callbacks.Drop", fields: [] },
       { tag: "Callbacks.Duplicate", fields: [] },
-      { tag: "Callbacks.Reorder", fields: [] }
+      { tag: "Callbacks.Reorder", fields: [] },
+      { tag: "Callbacks.Reschedule", fields: [["delivery_at", "nat"]] },
+      { tag: "Callbacks.Transport", fields: [["delivery_at", "nat"]] }
     ]
   },
   adviceelifecycle_status: {
@@ -5691,7 +5703,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
-    sha256: "05e6e2367d3112c3cd0614acabf71ffa5bc247a4cdd53a2f6916f734e1c3610b"
+    sha256: "c5b08371df7f6ce42938b61f6f871ab08f720264225017eb947f13feee7d51fe"
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",
@@ -5723,7 +5735,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Handoff.bend",
-    sha256: "d1bd58f4de5346e47aa8cefa6daa86808a9aaf7312f3bbe28188dc48721d9696"
+    sha256: "2e5e414cf262a743ce7b0939cdcdcdb232c2bf3552631f43082017425bb3e920"
   },
   {
     path: "packages/agent-flow-bend/ImportGraph.bend",
@@ -5791,7 +5803,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/Callbacks.bend",
-    sha256: "fe215ef69a690ef9a6aa4667c9cf1479c1fdfb4776c47f6480aa6b097930cce5"
+    sha256: "777c18f7766ac96a2ea3d726c853474734891b49766e3212d511b92105e2fa31"
   },
   {
     path: "packages/monkey-business-bend/CollectionScenario.bend",

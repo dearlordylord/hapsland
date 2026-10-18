@@ -19777,6 +19777,26 @@ function $Callbacks$058initial$() {
   return {$: "Callbacks.State", "originals": {$: "Nil"}};
 }
 
+function $Callbacks$058reschedule_one$(_valid_0, _original_0, _delivery_at_0, _fresh_order_0) {
+  if (_valid_0) {
+    const _t_0 = _original_0["fact"];
+    const _target_0 = _t_0["target"];
+    const _original_at_0 = _t_0["at"];
+    const _action_0 = _t_0["action"];
+    const _completion_0 = _t_0["completion"];
+    const _t_1 = _original_0["status"];
+    if (_t_1.$ === "Callbacks.Queued") {
+      const _order_0 = _original_0["scheduled_order"];
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _delivery_at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else {
+      const _order_1 = _original_0["scheduled_order"];
+      return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": _original_0, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.InvalidTime"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
+  }
+}
+
 function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_0) {
   const _t_0 = _original_0["fact"];
   const _target_0 = _t_0["target"];
@@ -19794,6 +19814,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Reorder") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Con", "head": _order_0, "tail": {$: "Nil"}}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_0 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_0, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _delivery_at_0, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_1 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_1, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, _delivery_at_1, _fresh_order_0);
     } else {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
@@ -19803,6 +19829,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Queued"}, "scheduled_order": _fresh_order_0}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
     } else if (_control_0.$ === "Callbacks.Duplicate") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_2 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_2, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, _delivery_at_2, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_3 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_3, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, _delivery_at_3, _fresh_order_0);
     } else {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": {$: "Callbacks.Held"}, "scheduled_order": _order_1}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotQueued"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     }
@@ -19810,6 +19842,12 @@ function $Callbacks$058update_one$(_original_0, _control_0, _at_0, _fresh_order_
     const _order_2 = _original_0["scheduled_order"];
     if (_control_0.$ === "Callbacks.Duplicate") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.Applied"}, "cancel": {$: "Nil"}, "schedule": {$: "Con", "head": {$: "Callbacks.Scheduled", "at": _at_0, "order": _fresh_order_0, "action": _action_0}, "tail": {$: "Nil"}}};
+    } else if (_control_0.$ === "Callbacks.Transport") {
+      const _delivery_at_4 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_4, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, _delivery_at_4, ($Callbacks$058order_of$(($Callbacks$058target_of$({$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2})))));
+    } else if (_control_0.$ === "Callbacks.Reschedule") {
+      const _delivery_at_5 = _control_0["delivery_at"];
+      return $Callbacks$058reschedule_one$(($Nat$is_ge$(_delivery_at_5, _at_0)), {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, _delivery_at_5, _fresh_order_0);
     } else if (_control_0.$ === "Callbacks.Release") {
       return {$: "Callbacks.Changed", "state": {$: "Callbacks.State", "originals": {$: "Con", "head": {$: "Callbacks.Original", "fact": {$: "Callbacks.Fact", "target": _target_0, "at": _original_at_0, "action": _action_0, "completion": _completion_0}, "status": _t_1, "scheduled_order": _order_2}, "tail": {$: "Nil"}}}, "result": {$: "Callbacks.NotHeld"}, "cancel": {$: "Nil"}, "schedule": {$: "Nil"}};
     } else {
@@ -29655,7 +29693,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4012c10e2f544e9a987294fd810eab3e75d0d165cfb5800a7a6675f1ab651185";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:24924a87f84f8b24147c55c9657ab4d4079ed8976cfb7da3b1fbeb24d81430d1";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4bf47dcf9e6197c160cbd1ba42515da47172af78f80d50cddb56bc90cece88f5";
 
 const facts = value => {

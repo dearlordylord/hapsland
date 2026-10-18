@@ -1,5 +1,6 @@
 import Base
 import ./NativeRun.bend as Run
+import ./NativeRunCallbackControls.bend as CallbackControl
 import ./FreshnessScenario.bend as Freshness
 import ./NativeRunTypes.bend as T
 import ./Engine.bend as Engine
@@ -38,148 +39,9 @@ def ordinary(changed: T.Controlled) -> Applied:
   match changed:
     case T.Controlled{state, applied}: Applied{state, applied, Ordinary{}}
 
-def callback_sources(state: T.State) -> List<&2, T.RetainedCallback>:
-  match state:
-    case T.State{_, _, _, _, _, _, _, _, _, _, T.HostFacts{_, callbacks, _, _, _, _}}: callbacks
-
-def retained_match(
-  equal: Bool,
-  item: T.RetainedCallback,
-  rest: Maybe<&2, T.RetainedCallback>
-) -> Maybe<&2, T.RetainedCallback>:
-  match equal:
-    case True{}: Some{item}
-    case False{}: rest
-
-def retained_target(item: T.RetainedCallback) -> Callbacks.Target:
-  match item:
-    case T.RetainedCallback{_, _, _, _, Callbacks.Fact{target, _, _, _}}: target
-
-def callback_source(
-  items: List<&2, T.RetainedCallback>,
-  +target: Callbacks.Target
-) -> Maybe<&2, T.RetainedCallback>:
-  match items:
-    case Nil{}: None{}
-    case +head <> tail: retained_match(
-      Callbacks.target_equal(retained_target(head), target),
-      head,
-      callback_source(tail, target)
-    )
-
-def callback_fact(source: Maybe<&2, T.RetainedCallback>) -> Maybe<&2, Callbacks.Fact>:
-  match source:
-    case Some{T.RetainedCallback{_, _, _, _, fact}}: Some{fact}
-    case None{}: None{}
-
-def remaining_items(located: T.Located) -> List<&2, T.Item>:
-  match located:
-    case T.Located{_, remaining}: remaining
-
-def cancel_orders(orders: List<&2, Nat>, +state: T.State) -> T.State:
-  match orders:
-    case Nil{}: state
-    case +order <> tail:
-      cancel_orders(
-        tail,
-        Run.replaced_items(
-          Run.replace_core(state, Engine.cancel(Run.core(state), order)),
-          remaining_items(Run.locate(Run.runtime_items(state), order))
-        )
-      )
-
-# A callback's retained payload is immutable. Hold, release, reorder and copies
-# move that exact payload rather than reconstructing a current-round event.
-def scheduled_payload(source: Maybe<&2, T.RetainedCallback>) -> Maybe<&2, T.Input>:
-  match source:
-    case Some{T.RetainedCallback{_, _, _, payload, _}}: Some{payload}
-    case None{}: None{}
-
-def queue_exact(
-  state: T.State,
-  time: Nat,
-  +order: Nat,
-  payload: T.Input,
-  receipt: Maybe<&2, Callbacks.Fact>
-) -> T.State:
-  match state:
-    case T.State{core, items, next, count, seed, env, latest, valid, prepared, jobs, host}:
-      T.State{
-        [Engine.enqueue(Run.core_value(core), time, order)],
-        List.append(&2, T.Item, items, [T.Item{order, payload, [receipt]}]),
-        Nat.max(next, (order + 1n : Nat)),
-        count,
-        seed,
-        env,
-        latest,
-        valid,
-        prepared,
-        jobs,
-        host
-      }
-
-def schedule_payload(
-  payload: Maybe<&2, T.Input>,
-  state: T.State,
-  time: Nat,
-  order: Nat,
-  receipt: Maybe<&2, Callbacks.Fact>
-) -> T.State:
-  match payload:
-    case Some{payload}: queue_exact(state, time, order, payload, receipt)
-    case None{}: Run.invalid(state)
-
-def callback_schedule(
-  items: List<&2, Callbacks.Scheduled>,
-  state: T.State,
-  +payload: Maybe<&2, T.Input>,
-  +receipt: Maybe<&2, Callbacks.Fact>
-) -> T.State:
-  match items:
-    case Nil{}: state
-    case Callbacks.Scheduled{time, order, _} <> tail: callback_schedule(
-      tail,
-      schedule_payload(payload, state, time, order, receipt),
-      payload,
-      receipt
-    )
-
-def callback_changed(
-  state: T.State,
-  +source: Maybe<&2, T.RetainedCallback>,
-  changed: Engine.CallbackTransition
-) -> Applied:
+def callback_result(changed: CallbackControl.Applied) -> Applied:
   match changed:
-    case Engine.CallbackTransition{core, result, cancel, schedule}:
-      Applied{
-        callback_schedule(
-          schedule,
-          cancel_orders(cancel, Run.replace_core(state, core)),
-          scheduled_payload(source),
-          callback_fact(source)
-        ),
-        True{},
-        CallbackReport{result}
-      }
-
-def callback(
-  +state: T.State,
-  target: Callbacks.Target,
-  action: Callbacks.Control,
-  +source: Maybe<&2, T.RetainedCallback>
-) -> Applied:
-  callback_changed(
-    state,
-    source,
-    Engine.callback_action(
-      Run.core(state),
-      target,
-      action,
-      callback_fact(source),
-      Run.clock(state),
-      Run.next_order(state)
-    )
-  )
+    case CallbackControl.Applied{state, result}: Applied{state, True{}, CallbackReport{result}}
 
 def output_payload(payload: T.Input, action: Driver.Action) -> T.Input:
   match payload:
@@ -201,7 +63,13 @@ def output_schedule(
     case Callbacks.Scheduled{time, order, action} <> tail:
       output_schedule(
         tail,
-        schedule_payload(changed_output_payload(payload, action), state, time, order, None{}),
+        CallbackControl.schedule_payload(
+          [changed_output_payload(payload, action)],
+          state,
+          time,
+          order,
+          [None{}]
+        ),
         payload
       )
 
@@ -234,7 +102,7 @@ def replace_callback_sources(
   match values:
     case Nil{}: []
     case +head <> tail:
-      replaced_callback_source(Callbacks.target_equal(retained_target(head), target), head, fact) <> replace_callback_sources(
+      replaced_callback_source(CallbackControl.matches_target([head], target), head, fact) <> replace_callback_sources(
         tail,
         fact,
         target
@@ -291,8 +159,11 @@ def output_changed(
       Applied{
         output_schedule(
           schedule,
-          cancel_orders(cancel, output_receipt_state(Run.replace_core(state, core), receipt)),
-          scheduled_payload(source)
+          CallbackControl.cancel_orders(
+            cancel,
+            output_receipt_state(Run.replace_core(state, core), receipt)
+          ),
+          CallbackControl.scheduled_payload([source])
         ),
         True{},
         OutputReport{result}
@@ -307,7 +178,12 @@ def output(
   output_changed(
     state,
     source,
-    Engine.output_intervene(Run.core(state), target, outcome, callback_fact(source))
+    Engine.output_intervene(
+      Run.core(state),
+      target,
+      outcome,
+      CallbackControl.callback_fact([source])
+    )
   )
 
 def configured_environment(credentials: Credentials.State, state: T.State) -> Applied:
@@ -933,7 +809,7 @@ def request_changed(+state: T.State, +orders: List<&2, Nat>, changed: Jev.Interv
     case Jev.Applied{facts}: Applied{
       request_facts(
         facts,
-        cancel_orders(
+        CallbackControl.cancel_orders(
           orders,
           Run.replace_core(state, Engine.callback_replaced(Run.core(state), orders))
         )
@@ -1032,14 +908,6 @@ def notice_collect(
         Ordinary{}
       }
 
-def live_or_history(
-  live: Maybe<&2, T.RetainedCallback>,
-  historical: Maybe<&2, T.RetainedCallback>
-) -> Maybe<&2, T.RetainedCallback>:
-  match live:
-    case Some{live}: Some{live}
-    case None{}: historical
-
 def notice_runtime_scope(scope: Notice.Scope, runtime: T.RuntimeProfile) -> Notice.Scope:
   match scope runtime:
     case Notice.Scope{p, g, key, maximum, bytes, _, count}
@@ -1123,17 +991,27 @@ def apply(+state: T.State, control: T.Control) -> Applied:
       Engine.sharing_leave_all(Run.core(state), p, l),
       p
     )
-    case T.CallbackControl{+target, action, historical}: callback(
-      state,
-      target,
-      action,
-      live_or_history(callback_source(callback_sources(state), target), historical)
+    case T.CallbackControl{+target, action, historical}: callback_result(
+      CallbackControl.apply(
+        state,
+        target,
+        action,
+        CallbackControl.live_or_history(
+          CallbackControl.callback_source(CallbackControl.callback_sources(state), target),
+          [historical]
+        )
+      )
     )
     case T.OutputAttemptControl{+target, outcome, historical}: output(
       state,
       target,
       outcome,
-      live_or_history(callback_source(callback_sources(state), target), historical)
+      CallbackControl.source_value(
+        CallbackControl.live_or_history(
+          CallbackControl.callback_source(CallbackControl.callback_sources(state), target),
+          [historical]
+        )
+      )
     )
     case T.CredentialControl{ready, rotate}: credentials(state, ready, rotate)
     case T.FileTreesControl{profile, identity}: file_trees(
