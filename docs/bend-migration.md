@@ -269,10 +269,9 @@ to CPU in Canonical transactions/transport/driver; no causal speedup claim.
 
 ## Current unit: whole resident admission
 
-Astra path2026-10-17: pre-round `AdmissionScope`, common Canonical owner/driver;
-retain the serialized uninterruptible entry. Current obstacles:
-1. `48ccfea8`: native4/fast7/product139/protocol30 pass; Astra custody fix applied.
-   Bind AdmissionScope transfer/cleanup; fault test proves explicit recovery only.
+Astra path: pre-round `AdmissionScope`, shared owner/driver, serialized uninterruptible entry.
+1. Publication `48ccfea8` qualified; scope candidate `8c48b0c5`: receipt custody,
+   owner6/build46/source280 pass. Bind exact native receipt and cleanup drain.
 2. Connect the complete routing/retry cursor and delete admission TS orchestration.
 3. Approve/prove whole protocol, lifecycle and transfer laws; run actual routing,
    capacity, settings, inspection/IPC consumers and ≤3× qualification.

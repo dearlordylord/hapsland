@@ -1,3 +1,5 @@
+// Finite emitted-owner checks. Release acknowledgments assume a closed native
+// exact-object receipt binding; this does not establish pointer custody or IO drain.
 import assert from "node:assert/strict"
 import { it } from "node:test"
 import owner from "@hapsland/agent-flow-bend/canonical-resolver-owner"

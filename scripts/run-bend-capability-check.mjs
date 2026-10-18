@@ -35,6 +35,7 @@ const sourceOwners = [
   "packages/resident-runtime/src/resident/review-work/preparation",
   "packages/resident-runtime/src/resident/review-work/composition",
   "packages/resident-runtime/src/resident/review-work/evaluation",
+  "packages/resident-runtime/src/resident/review-work/admission",
   "packages/resident-runtime/src/resident/state/resolver-custody",
   "packages/agent-flow-bend/preparation-lifecycle",
   "src/direct-event/graph-resolution"
@@ -96,7 +97,7 @@ const suites = {
     "packages/source-analysis/src/direct-event/graph-resolution/composition/request-projection-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/construction-cleanup.test.mjs",
     "packages/resident-runtime/src/resident/review-work/admission/verification/admission-custody.test.mjs",
-    "packages/resident-runtime/src/resident/review-work/admission/verification/admission-owner-check.mjs",
+    "packages/resident-runtime/src/resident/review-work/admission/verification/admission-owner.test.mjs",
     "packages/source-artifacts/src/direct-event/value/codec-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/source-preparation-check.mjs",
     "packages/resident-runtime/src/resident/review-work/preparation/verification/post-preparation-check.mjs",
