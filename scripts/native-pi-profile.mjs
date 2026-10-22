@@ -106,7 +106,15 @@ export async function runPiNativeProfile({
   writeFileSync(
     join(evidenceRoot, `${runId}-declaration.json`),
     JSON.stringify(
-      { schemaVersion: 1, declaredAt: new Date().toISOString(), host: "pi", language, scenario, mode, declaration },
+      {
+        schemaVersion: 1,
+        declaredAt: new Date().toISOString(),
+        agentRuntime: "pi",
+        language,
+        scenario,
+        mode,
+        declaration
+      },
       null,
       2
     ) + "\n",
@@ -373,7 +381,7 @@ syncBuiltinESMExports();
                 }
               : { noReviewRequest: requests.length === 0 })
           }
-    checks.noJevRequestAttempt = !events.some((e) => e.kind === "jev-blocked-attempt")
+    checks.noReviewServiceRequestAttempt = !events.some((e) => e.kind === "jev-blocked-attempt")
     checks.nativeAgentResponseObserved = events.some((e) => e.kind === "native-message" && e.role === "assistant")
     checks.agentModelMatchesProfile = piModelObserved(events, model)
     checks.installedRuntimeMatchesBuild = runtimeAssets.sha256 === currentBuildAssets.sha256

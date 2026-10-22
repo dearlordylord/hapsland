@@ -7,42 +7,47 @@ import { recordDemoTrace } from "@hapsland/activity-observation/activity/demo-tr
 import { residentAdapter } from "../../adapter-error.ts"
 import { logicalBytes } from "../../state/encoded-size.ts"
 import { type EvaluationContext, type EvaluationResult } from "./context.ts"
-import { observeRequest } from "./observation.ts"
+import { observeReviewServiceRequest } from "./observation.ts"
 import { residentControlledOutcomePath, residentControlledOutcomeLabel } from "./request.ts"
 import { residentRetireUnitWork, residentRetainAdvice } from "./retention.ts"
 
 const residentEvaluatedOutcome = (count: number): "clear" | "finding" => (count === 0 ? "clear" : "finding")
 
 export const reportInterruption = Effect.fn("ResidentRuntime.reportInterruption")(function* (
-  context: EvaluationContext<"residentLedger" | "residentObserveJevRequest" | "residentRecordAnalytics">
+  context: EvaluationContext<"residentLedger" | "residentObserveReviewServiceRequest" | "residentRecordAnalytics">
 ) {
-  if (context.state.issuedRequest === undefined || !context.state.requestStarted || context.state.interruptionReported)
+  if (
+    context.state.issuedReviewServiceRequestId === undefined ||
+    !context.state.reviewServiceRequestStarted ||
+    context.state.interruptionReported
+  )
     return
-  context.state.interruptionReported = yield* context.deps.residentLedger.interruptJevRequest(
+  context.state.interruptionReported = yield* context.deps.residentLedger.interruptReviewServiceRequest(
     context.job.partition,
     context.job.canonicalOperationId,
-    context.state.issuedRequest
+    context.state.issuedReviewServiceRequestId
   )
-  if (context.state.interruptionReported) yield* observeRequest(context, "interrupted", context.state.issuedRequest)
+  if (context.state.interruptionReported)
+    yield* observeReviewServiceRequest(context, "interrupted", context.state.issuedReviewServiceRequestId)
 }, Effect.uninterruptible)
 
 export const observeEscapedEvaluation = (context: EvaluationContext<"inspection" | "residentInspection">): void => {
   const receipt = context.job.inspectionReceipt
   if (
-    context.state.requestStarted &&
+    context.state.reviewServiceRequestStarted &&
     !context.state.evaluationOutcomeObserved &&
     receipt !== undefined &&
     context.deps.inspection.isEnabled(receipt.scope.root)
   ) {
     context.deps.inspection.offer(
       receipt.scope,
-      context.deps.residentInspection.unitCorrelation(context.job, receipt, context.state.issuedRequest),
+      context.deps.residentInspection.unitCorrelation(context.job, receipt, context.state.issuedReviewServiceRequestId),
       { kind: "evaluation-outcome", outcome: context.signal.aborted ? "interrupted" : "backend" }
     )
   }
 }
 
-export const settleEvaluatedUnit = Effect.fn("ResidentRuntime.settleEvaluatedUnit")(function* (
+export const settleEvaluatedReviewUnit = Effect.fn("ResidentRuntime.settleEvaluatedReviewUnit")(function* (
   context: EvaluationContext<
     | "inspection"
     | "lifetime"
@@ -51,9 +56,9 @@ export const settleEvaluatedUnit = Effect.fn("ResidentRuntime.settleEvaluatedUni
     | "residentIsCurrentWork"
     | "residentJobActive"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentNow"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentRecordAnalytics"
     | "residentRecordJoinedOutcomes"
     | "residentReleaseReuseClaim"
@@ -95,22 +100,22 @@ export const settleEvaluatedUnit = Effect.fn("ResidentRuntime.settleEvaluatedUni
     )
   })
   const currentWork = yield* evaluatedWorkCurrent()
-  if (context.state.issuedRequest === undefined || !context.state.requestStarted) {
+  if (context.state.issuedReviewServiceRequestId === undefined || !context.state.reviewServiceRequestStarted) {
     throw new Error("Jev result without a matching canonical request command and start")
   }
-  const disposition = yield* context.deps.residentLedger.settleJevRequest(
+  const disposition = yield* context.deps.residentLedger.settleReviewServiceRequest(
     context.job.partition,
     context.job.canonicalOperationId,
-    context.state.issuedRequest,
+    context.state.issuedReviewServiceRequestId,
     context.job.reservation,
     residentEvaluatedOutcome(result.findings.length),
     currentWork
   )
-  context.state.requestSettled = true
-  yield* observeRequest(
+  context.state.reviewServiceRequestSettled = true
+  yield* observeReviewServiceRequest(
     context,
     "settled",
-    context.state.issuedRequest,
+    context.state.issuedReviewServiceRequestId,
     residentEvaluatedOutcome(result.findings.length),
     result.findings
   )
@@ -127,7 +132,7 @@ export const settleEvaluatedUnit = Effect.fn("ResidentRuntime.settleEvaluatedUni
     return true
   })
   if (yield* discardSettledUnit()) return
-  const recordEvaluatedUnit = Effect.fn("ResidentRuntime.recordEvaluatedUnit")(function* () {
+  const recordEvaluatedReviewUnit = Effect.fn("ResidentRuntime.recordEvaluatedReviewUnit")(function* () {
     recordDemoTrace(
       context.job.dispatch.demoBudgetPath,
       context.job.observation.root,
@@ -152,7 +157,7 @@ export const settleEvaluatedUnit = Effect.fn("ResidentRuntime.settleEvaluatedUni
     })
     return evaluation
   })
-  const evaluation = yield* recordEvaluatedUnit()
+  const evaluation = yield* recordEvaluatedReviewUnit()
   const recordOutcome = Effect.fn("ResidentRuntime.recordControlledOutcome")(function* () {
     if (controlled?.outcomePath === undefined) return
     const { sessionId, turnId, toolUseId, subagentId } = context.job.observation.advicee
@@ -201,7 +206,7 @@ export const settleFailedEvaluation = Effect.fn("ResidentRuntime.settleFailedEva
   context: EvaluationContext<
     | "lifetime"
     | "residentLedger"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentRecordAnalytics"
     | "residentRecordOperationalFailure"
     | "residentSettleJoined"
@@ -210,11 +215,11 @@ export const settleFailedEvaluation = Effect.fn("ResidentRuntime.settleFailedEva
 ) {
   if (context.signal?.aborted) yield* reportInterruption(context)
   const observedFailure = () => {
-    return context.state.issuedRequest === undefined
+    return context.state.issuedReviewServiceRequestId === undefined
       ? undefined
-      : context.signal?.aborted && context.state.requestStarted && context.state.interruptionReported
+      : context.signal?.aborted && context.state.reviewServiceRequestStarted && context.state.interruptionReported
         ? "interrupted"
-        : !context.state.requestStarted
+        : !context.state.reviewServiceRequestStarted
           ? "neverSent"
           : result?.status === "timeout"
             ? "timeout"
@@ -225,35 +230,41 @@ export const settleFailedEvaluation = Effect.fn("ResidentRuntime.settleFailedEva
     return context.deps.residentLedger.reviewFailure(
       observed === "backendFailure" ||
         observed === "timeout" ||
-        (context.state.issuedRequest === undefined && (result?.status === "backend" || result?.status === "timeout")),
+        (context.state.issuedReviewServiceRequestId === undefined &&
+          (result?.status === "backend" || result?.status === "timeout")),
       false,
       observed === "neverSent" || observed === "interrupted" || result === undefined
     )
   }
   const failure = yield* classifyEvaluationFailure()
   const settleFailedRequest = Effect.fn("ResidentRuntime.settleFailedRequest")(function* () {
-    if (context.state.issuedRequest === undefined) {
+    if (context.state.issuedReviewServiceRequestId === undefined) {
       if (
         !(yield* context.deps.residentLedger.completeReview(
           context.job.partition,
           context.job.canonicalOperationId,
           context.job.reservation,
           "unavailable",
-          context.job.canonicalRound
+          context.job.canonicalRoundId
         ))
       )
         return false
     } else {
-      yield* context.deps.residentLedger.settleJevRequest(
+      yield* context.deps.residentLedger.settleReviewServiceRequest(
         context.job.partition,
         context.job.canonicalOperationId,
-        context.state.issuedRequest,
+        context.state.issuedReviewServiceRequestId,
         context.job.reservation,
         observed ?? "neverSent",
         false
       )
-      context.state.requestSettled = true
-      yield* observeRequest(context, "settled", context.state.issuedRequest, observed ?? "neverSent")
+      context.state.reviewServiceRequestSettled = true
+      yield* observeReviewServiceRequest(
+        context,
+        "settled",
+        context.state.issuedReviewServiceRequestId,
+        observed ?? "neverSent"
+      )
     }
     return true
   })

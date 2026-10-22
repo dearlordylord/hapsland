@@ -14,11 +14,12 @@ type Purpose is Data:
   AdviceRecheck{}
 
 # Logical review-data reservation, not measured process memory or Jev capacity.
-type Charge is Data:
-  Charge{id: Nat, partition: Nat, bytes: Nat, purpose: Purpose}
+# One resident record's reserved item and byte capacity.
+type ReviewCapacityReservationRecord is Data:
+  ReviewCapacityReservationRecord{id: Nat, partition: Nat, bytes: Nat, purpose: Purpose}
 
 type Ledger is Data:
-  Ledger{limits: Limits, next_id: Nat, charges: List<&2, Charge>}
+  Ledger{limits: Limits, next_id: Nat, charges: List<&2, ReviewCapacityReservationRecord>}
 
 type Usage is Data:
   Usage{items: Nat, bytes: Nat}
@@ -68,11 +69,11 @@ def total.add(usage: Usage, bytes: Nat) -> Usage:
     case Usage{items, current_bytes}:
       Usage{(items + 1n : Nat), (current_bytes + bytes : Nat)}
 
-def total(charges: List<&2, Charge>) -> Usage:
+def total(charges: List<&2, ReviewCapacityReservationRecord>) -> Usage:
   match charges:
     case Nil{}:
       Usage{0n, 0n}
-    case Charge{_, _, bytes, _} <> rest:
+    case ReviewCapacityReservationRecord{_, _, bytes, _} <> rest:
       total.add(total(rest), bytes)
 
 def partition_usage.add(usage: Usage, bytes: Nat, same: Bool) -> Usage:
@@ -84,11 +85,11 @@ def partition_usage.add(usage: Usage, bytes: Nat, same: Bool) -> Usage:
         case False{}:
           Usage{items, current_bytes}
 
-def partition_usage(charges: List<&2, Charge>, +partition: Nat) -> Usage:
+def partition_usage(charges: List<&2, ReviewCapacityReservationRecord>, +partition: Nat) -> Usage:
   match charges:
     case Nil{}:
       Usage{0n, 0n}
-    case Charge{_, owner, bytes, _} <> rest:
+    case ReviewCapacityReservationRecord{_, owner, bytes, _} <> rest:
       partition_usage.add(partition_usage(rest, partition), bytes, Nat.is_eq(owner, partition))
 
 def fit_decision(limits: Limits, global: Usage, local: Usage, +bytes: Nat) -> FitDecision:
@@ -122,57 +123,98 @@ def admission(state: Ledger, +partition: Nat, +bytes: Nat) -> FitDecision:
     case Ledger{limits, _, +charges}:
       fit_decision(limits, total(charges), partition_usage(charges, partition), bytes)
 
-def reserve.check(limits: Limits, +next_id: Nat, charges: List<&2, Charge>,
+def reserve.check(limits: Limits, +next_id: Nat, charges: List<&2, ReviewCapacityReservationRecord>,
     partition: Nat, bytes: Nat, purpose: Purpose, allowed: Bool) -> LedgerResult:
   match allowed:
     case True{}:
-      Granted{Ledger{limits, (next_id + 1n : Nat),
-        List.append(&2, Charge, charges, Charge{next_id, partition, bytes, purpose} <> Nil{})}, next_id}
+      Granted{
+        Ledger{
+          limits,
+          (next_id + 1n : Nat),
+          List.append(
+            &2,
+            ReviewCapacityReservationRecord,
+            charges,
+            ReviewCapacityReservationRecord{next_id, partition, bytes, purpose} <> Nil{}
+          )
+        },
+        next_id
+      }
     case False{}:
       Rejected{Ledger{limits, next_id, charges}}
 
 def reserve_for(state: Ledger, +partition: Nat, +bytes: Nat, +purpose: Purpose) -> LedgerResult:
   match state:
     case Ledger{+limits, next_id, +charges}:
-      reserve.check(limits, next_id, charges, partition, bytes, purpose,
-        fits(limits_for(purpose, limits), total(charges), partition_usage(charges, partition), bytes))
+      reserve.check(
+        limits,
+        next_id,
+        charges,
+        partition,
+        bytes,
+        purpose,
+        fits(
+          limits_for(purpose, limits),
+          total(charges),
+          partition_usage(charges, partition),
+          bytes
+        )
+      )
 
 def reserve(state: Ledger, partition: Nat, bytes: Nat) -> LedgerResult:
   reserve_for(state, partition, bytes, ReviewUnit{})
 
-def find.pick(charge: Charge, fallback: Maybe<&2, Charge>, hit: Bool) -> Maybe<&2, Charge>:
+def find.pick(
+  charge: ReviewCapacityReservationRecord,
+  fallback: Maybe<&2, ReviewCapacityReservationRecord>,
+  hit: Bool
+) -> Maybe<&2, ReviewCapacityReservationRecord>:
   match hit:
     case True{}:
       Some{charge}
     case False{}:
       fallback
 
-def find(+id: Nat, charges: List<&2, Charge>) -> Maybe<&2, Charge>:
+def find(
+  +id: Nat,
+  charges: List<&2, ReviewCapacityReservationRecord>
+) -> Maybe<&2, ReviewCapacityReservationRecord>:
   match charges:
     case Nil{}:
       None{}
     case +charge <> rest:
       match charge:
-        case Charge{current, _, _, _}:
+        case ReviewCapacityReservationRecord{current, _, _, _}:
           find.pick(charge, find(id, rest), Nat.is_eq(current, id))
 
-def remove.pick(charge: Charge, tail: List<&2, Charge>, hit: Bool) -> List<&2, Charge>:
+def remove.pick(
+  charge: ReviewCapacityReservationRecord,
+  tail: List<&2, ReviewCapacityReservationRecord>,
+  hit: Bool
+) -> List<&2, ReviewCapacityReservationRecord>:
   match hit:
     case True{}:
       tail
     case False{}:
       charge <> tail
 
-def remove(+id: Nat, charges: List<&2, Charge>) -> List<&2, Charge>:
+def remove(
+  +id: Nat,
+  charges: List<&2, ReviewCapacityReservationRecord>
+) -> List<&2, ReviewCapacityReservationRecord>:
   match charges:
     case Nil{}:
       Nil{}
     case +charge <> rest:
       match charge:
-        case Charge{current, _, _, _}:
+        case ReviewCapacityReservationRecord{current, _, _, _}:
           remove.pick(charge, remove(id, rest), Nat.is_eq(current, id))
 
-def release.found(state: Ledger, +id: Nat, found: Maybe<&2, Charge>) -> LedgerResult:
+def release.found(
+  state: Ledger,
+  +id: Nat,
+  found: Maybe<&2, ReviewCapacityReservationRecord>
+) -> LedgerResult:
   match state:
     case Ledger{limits, next_id, charges}:
       match found:
@@ -186,35 +228,48 @@ def release(+state: Ledger, +id: Nat) -> LedgerResult:
     case Ledger{_, _, charges}:
       release.found(state, id, find(id, charges))
 
-def replace.pick(charge: Charge, replacement: Charge, tail: List<&2, Charge>, hit: Bool) -> List<&2, Charge>:
+def replace.pick(
+  charge: ReviewCapacityReservationRecord,
+  replacement: ReviewCapacityReservationRecord,
+  tail: List<&2, ReviewCapacityReservationRecord>,
+  hit: Bool
+) -> List<&2, ReviewCapacityReservationRecord>:
   match hit:
     case True{}:
       replacement <> tail
     case False{}:
       charge <> tail
 
-def replace(+id: Nat, +bytes: Nat, charges: List<&2, Charge>) -> List<&2, Charge>:
+def replace(
+  +id: Nat,
+  +bytes: Nat,
+  charges: List<&2, ReviewCapacityReservationRecord>
+) -> List<&2, ReviewCapacityReservationRecord>:
   match charges:
     case Nil{}:
       Nil{}
     case +charge <> rest:
       match charge:
-        case Charge{current, partition, old_bytes, purpose}:
-          replace.pick(charge, Charge{current, partition, bytes, purpose},
+        case ReviewCapacityReservationRecord{current, partition, old_bytes, purpose}:
+          replace.pick(charge, ReviewCapacityReservationRecord{current, partition, bytes, purpose},
             replace(id, bytes, rest), Nat.is_eq(current, id))
 
-def replace_for(+id: Nat, +bytes: Nat, +purpose: Purpose,
-    charges: List<&2, Charge>) -> List<&2, Charge>:
+def replace_for(
+  +id: Nat,
+  +bytes: Nat,
+  +purpose: Purpose,
+  charges: List<&2, ReviewCapacityReservationRecord>
+) -> List<&2, ReviewCapacityReservationRecord>:
   match charges:
     case Nil{}:
       Nil{}
     case +charge <> rest:
       match charge:
-        case Charge{current, partition, _, _}:
-          replace.pick(charge, Charge{current, partition, bytes, purpose},
+        case ReviewCapacityReservationRecord{current, partition, _, _}:
+          replace.pick(charge, ReviewCapacityReservationRecord{current, partition, bytes, purpose},
             replace_for(id, bytes, purpose, rest), Nat.is_eq(current, id))
 
-def resize.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
+def resize.check(limits: Limits, next_id: Nat, charges: List<&2, ReviewCapacityReservationRecord>,
     +id: Nat, partition: Nat, bytes: Nat, allowed: Bool) -> LedgerResult:
   match allowed:
     case True{}:
@@ -222,8 +277,16 @@ def resize.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
     case False{}:
       Rejected{Ledger{limits, next_id, charges}}
 
-def resize_for.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
-    +id: Nat, partition: Nat, bytes: Nat, purpose: Purpose, allowed: Bool) -> LedgerResult:
+def resize_for.check(
+  limits: Limits,
+  next_id: Nat,
+  charges: List<&2, ReviewCapacityReservationRecord>,
+  +id: Nat,
+  partition: Nat,
+  bytes: Nat,
+  purpose: Purpose,
+  allowed: Bool
+) -> LedgerResult:
   match allowed:
     case True{}:
       Granted{Ledger{limits, next_id, replace_for(id, bytes, purpose, charges)}, id}
@@ -231,29 +294,47 @@ def resize_for.check(limits: Limits, next_id: Nat, charges: List<&2, Charge>,
       Rejected{Ledger{limits, next_id, charges}}
 
 def resize_for.found(state: Ledger, +id: Nat, +bytes: Nat, +purpose: Purpose,
-    found: Maybe<&2, Charge>) -> LedgerResult:
+    found: Maybe<&2, ReviewCapacityReservationRecord>) -> LedgerResult:
   match state:
     case Ledger{+limits, next_id, +charges}:
       match found:
         case None{}:
           Rejected{Ledger{limits, next_id, charges}}
-        case Some{Charge{_, +partition, _, _}}:
+        case Some{ReviewCapacityReservationRecord{_, +partition, _, _}}:
           +others = remove(id, charges)
-          resize_for.check(limits, next_id, charges, id, partition, bytes, purpose,
-            fits(limits_for(purpose, limits), total(others), partition_usage(others, partition), bytes))
+          resize_for.check(
+            limits,
+            next_id,
+            charges,
+            id,
+            partition,
+            bytes,
+            purpose,
+            fits(
+              limits_for(purpose, limits),
+              total(others),
+              partition_usage(others, partition),
+              bytes
+            )
+          )
 
 def resize_for(+state: Ledger, +id: Nat, bytes: Nat, purpose: Purpose) -> LedgerResult:
   match state:
     case Ledger{_, _, charges}:
       resize_for.found(state, id, bytes, purpose, find(id, charges))
 
-def resize.found(state: Ledger, +id: Nat, +bytes: Nat, found: Maybe<&2, Charge>) -> LedgerResult:
+def resize.found(
+  state: Ledger,
+  +id: Nat,
+  +bytes: Nat,
+  found: Maybe<&2, ReviewCapacityReservationRecord>
+) -> LedgerResult:
   match state:
     case Ledger{+limits, next_id, +charges}:
       match found:
         case None{}:
           Rejected{Ledger{limits, next_id, charges}}
-        case Some{Charge{_, +partition, _, _}}:
+        case Some{ReviewCapacityReservationRecord{_, +partition, _, _}}:
           +others = remove(id, charges)
           resize.check(limits, next_id, charges, id, partition, bytes,
             fits(limits, total(others), partition_usage(others, partition), bytes))

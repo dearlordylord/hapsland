@@ -32,7 +32,7 @@ law selected_literal:
   {S.take(S.enqueue(S.State{[], 0n}, 3n, 2n)) == S.Taken{S.State{[], 3n}, Some{S.Entry{3n, 2n}}} : S.Taken}
 def selected_literal(): {==}
 law never_literal:
-  {D.issued_outcome(C.NeverSent{}, 1n, 1n, 1n, 2n, 3n, 5n) == D.Handled{True{}, [D.Action{C.JevRequestSettled{1n, 1n, 1n, 2n, 3n, C.NeverSent{}, True{}}, 5n, None{}, False{}, None{}}]} : D.Handled}
+  {D.issued_outcome(C.NeverSent{}, 1n, 1n, 1n, 2n, 3n, 5n) == D.Handled{True{}, [D.Action{C.ReviewServiceRequestSettled{1n, 1n, 1n, 2n, 3n, C.NeverSent{}, True{}}, 5n, None{}, False{}, None{}}]} : D.Handled}
 def never_literal(): {==}
 law duration_literal:
   {W.control(W.Advicee{1n, Session.Settings{10, 0, 2, 20, 0, 3}, Session.Stream{1, 0, 0, 0n, 0n, 0n, False{}, 0, 0, 0n, 10n, [5n]}, None{}}, W.Duration{11n}) == W.Updated{W.Advicee{1n, Session.Settings{10, 0, 2, 20, 0, 3}, Session.Stream{1, 0, 0, 0n, 0n, 0n, False{}, 0, 0, 0n, 10n, [5n]}, Some{11n}}, []} : W.Updated}
@@ -56,8 +56,8 @@ def coalescing_literal(): {==}
     ],
     [
       "JevEffects.bend",
-      "[ScheduledFact{Canonical.JevRequestSettled{p, l, r, o, request, Canonical.NeverSent{}, True{}}, delay}]",
-      "[ScheduledFact{Canonical.JevRequestStarted{p, l, r, o, request}, 0n}, ScheduledFact{Canonical.JevRequestSettled{p, l, r, o, request, Canonical.NeverSent{}, True{}}, delay}]",
+      "[ScheduledFact{Canonical.ReviewServiceRequestSettled{p, l, r, o, request, Canonical.NeverSent{}, True{}}, delay}]",
+      "[ScheduledFact{Canonical.ReviewServiceRequestStarted{p, l, r, o, request}, 0n}, ScheduledFact{Canonical.ReviewServiceRequestSettled{p, l, r, o, request, Canonical.NeverSent{}, True{}}, delay}]",
       "never_sent_lifecycle"
     ],
     ["Workload.bend", "Some{duration}}, []}", "Some{0n}}, []}", "duration_control_only_updates_profile"]

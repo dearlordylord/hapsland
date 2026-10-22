@@ -40,8 +40,15 @@ const add = (name, at) => {
   })
 }
 const work = (id, kind, parent = 9, partition = 1) =>
-  `Canonical.Work{${nat(partition)}, 1n, 2n, ${nat(id)}, ${nat(id)}, Canonical.${kind}, ${nat(parent)}}`
-const kinds = ["AwaitingSourceRead{}", "SourceReading{}", "Preparing{}", "Reviewing{}", "AtJev{}", "PendingFinding{2n}"]
+  `Canonical.ReviewWorkRecord{${nat(partition)}, 1n, 2n, ${nat(id)}, ${nat(id)}, Canonical.${kind}, ${nat(parent)}}`
+const kinds = [
+  "AwaitingSourceRead{}",
+  "SourceReading{}",
+  "Preparing{}",
+  "Reviewing{}",
+  "ReviewServiceRequestOutstanding{}",
+  "PendingFinding{2n}"
+]
 for (const seed of [0, 1, 7])
   for (const count of [0, 1, 3, 7]) {
     const items = list(
@@ -66,7 +73,7 @@ for (const seed of [0, 1, 7])
     }
   }
 // Literal contexts use the production initial history module.
-const historyImport = "import ../EditHistory.bend as EditHistory\n"
+const historyImport = ""
 const context = (items, rounds = "Nil{}") =>
   `Canonical.State{Ledger.initial(Ledger.Limits{99n, 999n, 99n, 999n}), ${rounds}, ${items}, 3n, 20n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}`
 for (const advice of [1, 7, 42])
@@ -91,7 +98,8 @@ for (const outcome of ["Finding", "Clear", "Unavailable", "Interrupted", "Discar
     add("terminal_owner_resolves_every_member", { members, outcome: `Canonical.${outcome}{}` })
     add("terminal_members_never_remain_pending", { members, outcome: `Canonical.${outcome}{}` })
   }
-const entry = (op, preparation) => `Dispatch.Entry{1n, 1n, 2n, ${nat(op)}, ${nat(op)}, False{}, ${bool(preparation)}}`
+const entry = (op, preparation) =>
+  `Dispatch.ScheduledReviewWork{1n, 1n, 2n, ${nat(op)}, ${nat(op)}, False{}, ${bool(preparation)}}`
 for (const count of [0, 1, 3, 8])
   for (const laterCount of [0, 1, 5]) {
     const running = list(Array.from({ length: 8 }, (_, i) => entry(100 + i, true)))
@@ -112,12 +120,15 @@ for (const count of [0, 1, 3, 8])
 for (const count of [0, 1, 4, 8])
   for (const retainedCount of [0, 1, 3]) {
     const charges = list(
-      Array.from({ length: count }, (_, i) => `Ledger.Charge{${nat(i + 1)}, 1n, ${nat(i + 5)}, Ledger.ReviewUnit{}}`)
+      Array.from(
+        { length: count },
+        (_, i) => `Ledger.ReviewCapacityReservationRecord{${nat(i + 1)}, 1n, ${nat(i + 5)}, Ledger.ReviewUnit{}}`
+      )
     )
     const retained = list(
       Array.from(
         { length: retainedCount },
-        (_, i) => `Ledger.Charge{${nat(100 + i)}, 2n, ${nat(i + 10)}, Ledger.StoredResult{}}`
+        (_, i) => `Ledger.ReviewCapacityReservationRecord{${nat(100 + i)}, 2n, ${nat(i + 10)}, Ledger.StoredResult{}}`
       )
     )
     add("transient_resources_drain_without_reset", {
@@ -178,12 +189,15 @@ for (const count of [0, 1, 4])
       "AdviceRecheck"
     ]) {
       const charges = list(
-        Array.from({ length: count }, (_, i) => `Ledger.Charge{${nat(i + 1)}, 1n, 5n, Ledger.ReviewUnit{}}`)
+        Array.from(
+          { length: count },
+          (_, i) => `Ledger.ReviewCapacityReservationRecord{${nat(i + 1)}, 1n, 5n, Ledger.ReviewUnit{}}`
+        )
       )
       const retained = list(
         Array.from(
           { length: retainedCount },
-          (_, i) => `Ledger.Charge{${nat(i + 100)}, 2n, 10n, Ledger.StoredResult{}}`
+          (_, i) => `Ledger.ReviewCapacityReservationRecord{${nat(i + 100)}, 2n, 10n, Ledger.StoredResult{}}`
         )
       )
       add("released_resources_allow_fresh_capacity", {
@@ -198,6 +212,156 @@ for (const count of [0, 1, 4])
         available: "{==}"
       })
     }
+// Physical request termination includes unrelated work and all lifecycle flags.
+for (const seed of [0, 1, 7])
+  for (const count of [0, 1, 4]) {
+    const common = {
+      queued: list([entry(80, true)]),
+      running: list([entry(81, false)]),
+      sequence: nat(seed),
+      closed: bool(seed % 2),
+      requests: list(
+        Array.from(
+          { length: count },
+          (_, i) => `Dispatch.ReviewServiceRequestRecord{2n, 3n, 4n, ${nat(100 + i)}, ${nat(200 + i)}, True{}, False{}}`
+        )
+      )
+    }
+    const identity = { partition: "1n", lifetime: "1n", round: "2n", operation: "7n", request: "8n" }
+    // Exercise settlement behind unrelated prefixes, including a suffix with
+    // another identical identity: request_remove removes only the first match.
+    for (const started of [false, true])
+      for (const interrupted of [false, true])
+        for (const suffix of [
+          "Nil{}",
+          common.requests,
+          list([`Dispatch.ReviewServiceRequestRecord{1n, 1n, 2n, 7n, 8n, True{}, False{}}`])
+        ]) {
+          let unmatched = "Unit{}"
+          for (let i = 0; i < count; i++) unmatched = `({==}, ${unmatched})`
+          add("physical_settlement_preserves_other_requests", {
+            queued: common.queued,
+            running: common.running,
+            sequence: common.sequence,
+            closed: common.closed,
+            ...identity,
+            prefix: common.requests,
+            suffix,
+            unmatched,
+            started: bool(started),
+            interrupted: bool(interrupted)
+          })
+        }
+    add("interruption_keeps_physical_permit", { ...common, ...identity })
+    for (const operations of ["Nil{}", "81n <> Nil{}", "80n <> 81n <> Nil{}"])
+      add("dispatch_cancellation_keeps_physical_requests", { ...common, operations })
+    for (const outcome of [
+      "NeverSent",
+      "RequestFinding",
+      "RequestClear",
+      "RequestBackendFailure",
+      "RequestTimeout",
+      "RequestInterrupted"
+    ])
+      for (const currentWork of [false, true])
+        add("absent_request_terminal_preserves_entire_state", {
+          ...common,
+          ...identity,
+          ledger:
+            "Ledger.Ledger{Ledger.Limits{9n, 999n, 9n, 999n}, 50n, Ledger.ReviewCapacityReservationRecord{49n, 2n, 20n, Ledger.StoredResult{}} <> Nil{}}",
+          rounds: "Nil{}",
+          work: list([work(90, "ReviewServiceRequestOutstanding{}"), work(91, "PendingFinding{2n}")]),
+          next_round: "5n",
+          next_operation: "99n",
+          admissions: "Nil{}",
+          collection: "CollectionState.initial()",
+          history: "EditHistory.initial()",
+          outcome: `Canonical.${outcome}{}`,
+          current_work: bool(currentWork),
+          absent: "{==}"
+        })
+  }
+
+// Reuse nat, bool, list, work, kinds, context, add already owned by that script.
+for (const seed of [0, 1, 3])
+  for (const count of [0, 1, 3, 7]) {
+    const items = list(
+      Array.from({ length: count }, (_, i) =>
+        work(i + 1, kinds[(i + seed) % kinds.length], i % 2 ? 9 : 8, i % 2 ? 1 : 3)
+      )
+    )
+    for (let operation = 0; operation <= count + 1; operation++) {
+      add("removal_preserves_all_other_work", { items, operation: nat(operation) })
+      for (const kind of kinds)
+        add("stage_change_preserves_all_other_work", { items, operation: nat(operation), kind: `Canonical.${kind}` })
+    }
+    for (const waiting of [false, true])
+      for (const uncertain of [false, true])
+        for (const write of ["None{}", "Some{5n}"])
+          for (const quiet_since of ["None{}", "Some{0n}", "Some{9n}"]) {
+            const current = `Canonical.Round{1n, 1n, 2n, ${bool(waiting)}, False{}, ${write}, ${bool(uncertain)}, ${quiet_since}}`
+            // Both unrelated rounds and arbitrary work survive admission.
+            const rounds = list(["Canonical.Round{3n, 1n, 8n, False{}, False{}, None{}, False{}, None{}}", current])
+            add("accepted_observation_is_recorded_without_losing_work", {
+              state: context(items, rounds),
+              partition: "1n",
+              lifetime: "1n",
+              round: "2n",
+              waiting: bool(waiting),
+              write,
+              uncertain: bool(uncertain),
+              quiet_since,
+              current: "{==}"
+            })
+          }
+  }
+
+for (const retained_generation of [1, 2, 9])
+  for (const old_generation of [0, 1, 8]) {
+    if (retained_generation === old_generation) continue
+    for (const members of [0, 1, 3]) {
+      add("old_revision_release_preserves_new_registry", {
+        entries: `RevisionState.Entry{1n, 7n, ${nat(retained_generation)}, ${nat(members)}} <> RevisionState.Entry{2n, 8n, 99n, 2n} <> Nil{}`,
+        next_generation: "100n",
+        found: "{==}",
+        subject: "1n",
+        input: "7n",
+        retained_generation: nat(retained_generation),
+        old_generation: nat(old_generation),
+        members: nat(members),
+        different: "{==}"
+      })
+      for (const input of [7, 8])
+        add("old_generation_cannot_become_current_again", {
+          entries: `RevisionState.Entry{1n, 7n, ${nat(retained_generation)}, ${nat(members)}} <> RevisionState.Entry{2n, 8n, 99n, 2n} <> Nil{}`,
+          next_generation: "100n",
+          found: "{==}",
+          input: nat(input),
+          retained_input: "7n",
+          subject: "1n",
+          retained_generation: nat(retained_generation),
+          old_generation: nat(old_generation),
+          members: nat(members),
+          different: "{==}"
+        })
+    }
+  }
+for (const kind of kinds)
+  for (const outcome of ["Finding", "Clear", "Unavailable", "Interrupted", "Discarded"])
+    for (const currentWork of [false, true]) {
+      const items = list([work(1, kind), work(2, "PendingFinding{2n}")])
+      const state = `Canonical.State{Ledger.Ledger{Ledger.Limits{99n, 999n, 99n, 999n}, 3n, Ledger.ReviewCapacityReservationRecord{1n, 1n, 5n, Ledger.ReviewUnit{}} <> Ledger.ReviewCapacityReservationRecord{2n, 1n, 5n, Ledger.StoredResult{}} <> Nil{}}, Nil{}, ${items}, 3n, 20n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}`
+      add("review_observation_preserves_other_findings", {
+        state,
+        partition: "1n",
+        lifetime: "1n",
+        round: "2n",
+        operation: "1n",
+        outcome: `Canonical.${outcome}{}`,
+        current_work: bool(currentWork)
+      })
+    }
+
 assert.deepEqual(new Set(rows.map((row) => row.name)), new Set(laws.keys()), "literal coverage of every law")
 const probes = (selected) =>
   imports +
@@ -228,9 +392,14 @@ try {
   cpSync(root, mirror, { recursive: true })
   const scratch = join(mirror, "journey-proof")
   const probe = join(scratch, "instances.bend")
-  writeFileSync(probe, probes(rows))
-  const control = check(probe)
-  assert.ok(control.ok, control.output)
+  const checkInstances = (selected) => {
+    for (let offset = 0; offset < selected.length; offset += 128) {
+      writeFileSync(probe, probes(selected.slice(offset, offset + 128)))
+      const result = check(probe)
+      assert.ok(result.ok, `literal batch ${offset}: ${result.output}`)
+    }
+  }
+  checkInstances(rows)
   console.log(`${rows.length} instances and their premises passed for ${laws.size} journey laws`)
   if (!process.argv.includes("--falsify-only")) {
     const table = JSON.parse(readFileSync(join(project, "mutants.json"), "utf8"))
@@ -274,15 +443,19 @@ try {
       const original = readFileSync(target, "utf8")
       assert.equal(original.split(mutant.from).length, 2, `${mutant.law}: unique mutation target`)
       const selected = rows.filter((row) => row.name === mutant.law)
-      writeFileSync(probe, probes(selected))
-      assert.ok(check(probe).ok, `${mutant.law}: positive instances and premises`)
+      checkInstances(selected)
       writeFileSync(target, original.replace(mutant.from, mutant.to))
       const compile = check(target)
       assert.ok(compile.ok, `${mutant.law}: mutant compiles: ${compile.output}`)
-      const counter = check(probe)
+      let counter
+      for (let offset = 0; offset < selected.length; offset += 128) {
+        writeFileSync(probe, probes(selected.slice(offset, offset + 128)))
+        counter = check(probe)
+        if (!counter.ok) break
+      }
       assert.ok(
-        !counter.ok && /Location: instance_/.test(counter.output),
-        `${mutant.law}: literal mutant rejected at law instance: ${counter.output}`
+        counter !== undefined && !counter.ok && /Location: instance_/.test(counter.output),
+        `${mutant.law}: literal mutant rejected at law instance: ${counter?.output}`
       )
       const rejected = check(isolated)
       const location = mutant.location ?? `Laws.${mutant.law}`

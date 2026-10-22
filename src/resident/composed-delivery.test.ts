@@ -17,7 +17,7 @@ const makeDeliveryFixture = (...args: Parameters<typeof makeResidentState>) => {
     ...delivery,
     canonical,
     admitEdit: (...args: Parameters<typeof delivery.admitEdit>) =>
-      delivery.admitEdit(...args).pipe(Effect.map((admission) => admission?.generation))
+      delivery.admitEdit(...args).pipe(Effect.map((admission) => admission?.admissionRoundId))
   }
 }
 
@@ -51,7 +51,7 @@ const canonicalFinding = (
     })
   ).outputs[0]
   if (preparation?.kind !== "prepare") throw new Error("canonical preparation failed")
-  expect(preparation.category).toBe("request")
+  expect(preparation.category).toBe("action")
   const completed = Effect.runSync(
     state.canonical.transition({
       kind: "preparationCompleted",
@@ -120,7 +120,7 @@ const canonicalFinding = (
 describe("shared Hapsland rounds", () => {
   it("retains live token identities through uncertainty and removes them when ownership ends", () => {
     const state = makeDeliveryFixture()
-    const keys = () => Effect.runSync(state.liveCollectionTokenKeys())
+    const keys = () => Effect.runSync(state.liveAdviceHandoffIdentityKeys())
     expect(keys()).toEqual(new Set())
     Effect.runSync(state.admitEdit("agent", "edit", 0))
     expect(Effect.runSync(state.claimBackground("agent", "writer", 100))).toBe(true)
@@ -197,7 +197,7 @@ describe("shared Hapsland rounds", () => {
     expect(reports).toBe(1)
     expect(nestedDecision).toEqual({ accepted: true })
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(1)
-    expect(Effect.runSync(state.admitEdit("agent", "edit", 130, true))).toMatchObject({ generation: 1 })
+    expect(Effect.runSync(state.admitEdit("agent", "edit", 130, true))).toMatchObject({ admissionRoundId: 1 })
   })
 
   it("shares delivery views and clears their native ownership with canonical state", () => {
@@ -207,16 +207,16 @@ describe("shared Hapsland rounds", () => {
     const second = ledger.delivery()
     expect(Effect.runSync(first.registerEdit("agent", "edit", now, now + 1))).toBe(true)
     expect(Effect.runSync(second.hasPendingEdits("agent"))).toBe(true)
-    expect(Effect.runSync(second.admitEdit("agent", "edit", now + 10, true))?.generation).toBe(1)
+    expect(Effect.runSync(second.admitEdit("agent", "edit", now + 10, true))?.admissionRoundId).toBe(1)
     expect(Effect.runSync(first.beginStop("agent", "attempt"))).toBe(true)
     expect(Effect.runSync(second.ownsStop("agent", "attempt"))).toBe(true)
     Effect.runSync(ledger.clear())
     expect(Effect.runSync(first.hasPendingEdits("agent"))).toBe(false)
     expect(Effect.runSync(second.ownsStop("agent", "attempt"))).toBe(false)
-    expect(Effect.runSync(first.liveCollectionTokenKeys()).size).toBe(0)
+    expect(Effect.runSync(first.liveAdviceHandoffIdentityKeys()).size).toBe(0)
     expect(Effect.runSync(first.editIdentityMappingCount())).toBe(0)
     expect(Effect.runSync(first.registerEdit("agent", "fresh", now + 100, now + 110))).toBe(true)
-    expect(Effect.runSync(second.admitEdit("agent", "fresh", now + 120, true))?.generation).toBe(1)
+    expect(Effect.runSync(second.admitEdit("agent", "fresh", now + 120, true))?.admissionRoundId).toBe(1)
   })
 
   it("closes only after five continuous quiet minutes and opens a fresh virtual round on a later edit", () => {
@@ -380,7 +380,7 @@ describe("shared Hapsland rounds", () => {
       expect(Effect.runSync(state.consumeStop("agent"))).toBe(true)
     }
     expect(Effect.runSync(state.consumeStop("agent"))).toBe(false)
-    expect(Effect.runSync(state.generation("agent"))).toBe(1)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(1)
   })
 
   it("fences a closed round and requires fresh occurrence evidence to reopen", () => {
@@ -447,7 +447,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEditDecision("agent", "same-edit", 100, 110))).toEqual({ accepted: true })
     expect(Effect.runSync(state.registerEditDecision("agent", "same-edit", 111, 120))).toEqual({ accepted: true })
     expect(Effect.runSync(state.closureCounts("agent")).editPermits).toBe(1)
-    expect(Effect.runSync(state.admitEdit("agent", "same-edit", 130, true))).toMatchObject({ generation: 1 })
+    expect(Effect.runSync(state.admitEdit("agent", "same-edit", 130, true))).toMatchObject({ admissionRoundId: 1 })
     expect(Effect.runSync(state.registerEditDecision("agent", "same-edit", 131, 140))).toEqual({
       accepted: false,
       reason: "DuplicateTool"
@@ -520,7 +520,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "first", 100, 101))).toBe(true)
     Effect.runSync(state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS))
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false)
-    expect(Effect.runSync(state.generation("agent"))).toBe(0)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(0)
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toHaveLength(0)
     expect(Effect.runSync(state.admitEdit("agent", "first", 100 + EDIT_PERMIT_EXPIRY_MS + 2, true))).toBeUndefined()
     expect(
@@ -539,7 +539,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "failed", 102, 103))).toBe(true)
     Effect.runSync(state.expirePermits(102 + EDIT_PERMIT_EXPIRY_MS))
     expect(Effect.runSync(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true))).toBeUndefined()
-    expect(Effect.runSync(state.generation("agent"))).toBe(1)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(1)
     expect(Effect.runSync(state.isActive("agent"))).toBe(false)
     expect(Effect.runSync(state.beginStop("agent", "permit-only"))).toBe(false)
     expect(
@@ -553,7 +553,7 @@ describe("shared Hapsland rounds", () => {
     for (let i = 0; i < 64; i++) Effect.runSync(state.canonical.roundId(`occupied-${i}`))
     expect(Effect.runSync(state.registerEdit("agent", "edit", 100, 101))).toBe(true)
     expect(Effect.runSync(state.admitEdit("agent", "edit", 102, true))).toBeUndefined()
-    expect(Effect.runSync(state.generation("agent"))).toBe(0)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(0)
     expect(Effect.runSync(state.isActive("agent"))).toBe(false)
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false)
     const admission = Effect.runSync(state.canonical.canonicalProjection()).admissions.find(
@@ -806,11 +806,11 @@ describe("shared Hapsland rounds", () => {
     const state = makeDeliveryFixture()
     expect(Effect.runSync(state.advance("agent", "prompt", 10))).toBe(true)
     expect(Effect.runSync(state.ensureFromHostTurn("agent", "turn", 11))).toBe(true)
-    expect(Effect.runSync(state.generation("agent"))).toBe(0)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(0)
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false)
     expect(Effect.runSync(state.consumeStop("agent"))).toBe(false)
     expect(Effect.runSync(state.registerEdit("agent", "edit", 12, 13))).toBe(true)
-    expect(Effect.runSync(state.generation("agent"))).toBe(0)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(0)
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false)
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toHaveLength(0)
     expect(Effect.runSync(state.admitEdit("agent", "edit", 14, true))).toBe(1)
@@ -823,7 +823,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.finishStop("agent", "stop", true, 100))).toBe(1)
     expect(Effect.runSync(state.registerEdit("agent", "fresh", 102, 103))).toBe(true)
     const closedRounds = Effect.runSync(state.canonical.canonicalProjection()).rounds
-    expect(Effect.runSync(state.generation("agent"))).toBe(1)
+    expect(Effect.runSync(state.readAdmissionRoundId("agent"))).toBe(1)
     expect(Effect.runSync(state.isActive("agent"))).toBe(false)
     expect(Effect.runSync(state.beginStop("agent", "permit-only"))).toBe(false)
     expect(Effect.runSync(state.canonical.canonicalProjection()).rounds).toEqual(closedRounds)
@@ -1090,7 +1090,7 @@ effectIt.effect("coalesces competing edit registrations into one permit and one 
     expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 1 })
     expect(diagnostics).toMatchObject([{ phase: "pending" }])
     expect(diagnostics).toHaveLength(1)
-    expect((yield* delivery.admitEdit("agent", "same-edit", 130, true))?.generation).toBe(1)
+    expect((yield* delivery.admitEdit("agent", "same-edit", 130, true))?.admissionRoundId).toBe(1)
     expect(yield* registration).toEqual({ accepted: false, reason: "DuplicateTool" })
     expect(yield* delivery.closureCounts("agent")).toMatchObject({ editPermits: 0 })
   })

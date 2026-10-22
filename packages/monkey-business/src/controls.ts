@@ -6,11 +6,11 @@ import { validateSharingControl, type SharingControl } from "./sharing-controls.
 import { validateNoticeControl, type NoticeControl } from "./notice-controls.ts"
 import { validateCallbackControl, type CallbackControl } from "./callback-controls.ts"
 import { validateGraphLimits, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-adapter"
-import { validateJevIntervention, type JevInterventionControl } from "./jev-interventions.ts"
+import { validateReviewServiceIntervention, type ReviewServiceInterventionControl } from "./jev-interventions.ts"
 import { validateFileTreeProfile, type FileTreeProfile } from "./file-trees.ts"
 import { validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts"
 import { validateSizeFacts } from "./sizes.ts"
-import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
+import type { ReviewServiceRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 import type { SessionControl } from "./session.ts"
 import { validateAdviceeLifecycle, type AdviceeLifecycleControl } from "./advicee-lifecycle.ts"
 import { validatePermitControl, type PermitControl } from "./permit-controls.ts"
@@ -26,7 +26,7 @@ export type OutputProfile = {
   readonly leaseMs: number
 }
 export type OutcomeChoice =
-  | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
+  | { readonly outcome: ReviewServiceRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights }
 export type LiveControl =
   | ExpiryControl
@@ -39,7 +39,7 @@ export type LiveControl =
   | AdviceeLifecycleControl
   | PermitControl
   | { readonly kind: "graphLimits"; readonly limits: GraphLimits }
-  | JevInterventionControl
+  | ReviewServiceInterventionControl
   | { readonly kind: "editDuration"; readonly durationMs: number }
   | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile }
   | SessionControl
@@ -79,9 +79,9 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
     case "graphLimits":
       validateGraphLimits(control.limits)
       break
-    case "jevRequest":
+    case "reviewServiceRequest":
     case "credentials":
-      return validateJevIntervention(control)
+      return validateReviewServiceIntervention(control)
     case "fileTrees":
       validateFileTreeProfile(control.profile)
       break

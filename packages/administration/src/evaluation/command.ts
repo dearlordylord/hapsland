@@ -15,7 +15,7 @@ import {
   type ControlledDecisionModelOptions
 } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
-  makeBackendIdentity,
+  makeReviewServiceIdentity,
   makeEvaluationRun,
   makeEvaluationScenario,
   makeInputContractIdentity,
@@ -94,7 +94,7 @@ const productionRules: ReadonlyArray<LoadedRule> = SHIPPED_DEFAULT_RULES.map((ru
 const compiledRules = compileRules({ rules: productionRules })
 const allRuleIds = BUNDLED_EVALUATION_RULES.map((rule) => rule.identity.ruleId)
 const backendIdentity = (mode: "controlled" | "live") =>
-  makeBackendIdentity({ id: JEV_PROVIDER.id, version: "1", mode })
+  makeReviewServiceIdentity({ id: JEV_PROVIDER.id, version: "1", mode })
 const inputContract = makeInputContractIdentity({
   id: "full-file-plus-path",
   version: "1",

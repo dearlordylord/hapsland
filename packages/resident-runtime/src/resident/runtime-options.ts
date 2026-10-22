@@ -6,7 +6,7 @@ import type * as HttpClient from "effect/http/HttpClient"
 import { type DirectReviewContext } from "@hapsland/review-execution/direct-event/pipeline"
 import type { Layer } from "effect"
 import { type DispatchAuthorityObservation } from "./authorization/observation.ts"
-import { type JevRequestObservation } from "./review-work/request-observation.ts"
+import { type ReviewServiceRequestObservation } from "./review-work/request-observation.ts"
 
 export type ResidentRuntimeOptions = {
   /** Local persistence failure seam; never supplied by IPC. Production uses the private per-user journal. */
@@ -22,7 +22,7 @@ export type ResidentRuntimeOptions = {
   /** Fixture-only authority observation; never supplied by resident IPC. */
   readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void
   /** Fixture-only source-free command/effect witness. */
-  readonly jevRequestObserver?: (observation: JevRequestObservation) => void
+  readonly reviewServiceRequestObserver?: (observation: ReviewServiceRequestObservation) => void
   readonly maximumOperationalNoticeKeys?: number
   /** Fixture-only HTTP transport; never supplied by resident IPC. */
   readonly offlineHttpClient?: HttpClient.HttpClient

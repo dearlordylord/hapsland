@@ -21,7 +21,7 @@ const weights = (changes: Partial<OutcomeWeights> = {}): OutcomeWeights => ({
 })
 
 const settled = (run: Run) =>
-  run.observations.flatMap((frame) => (frame.event.kind === "jevRequestSettled" ? [frame.event.outcome] : []))
+  run.observations.flatMap((frame) => (frame.event.kind === "reviewServiceRequestSettled" ? [frame.event.outcome] : []))
 const inputs = Array.from({ length: 16 }, (_, index) => ({
   kind: "edit" as const,
   at: index * 50,
@@ -47,7 +47,9 @@ describe("public weighted request profile", () => {
       jevDelay: 100,
       outcomeWeights: weights({ clear: 100 })
     })
-    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
+    while (
+      !run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
+    )
       run.step()
     run.applyControl({ kind: "jevProfile", delayMs: 100, outcomeWeights: weights({ backendFailure: 100 }) })
     run.advance({ maxEvents: 1000 })
@@ -121,7 +123,9 @@ describe("public weighted request profile", () => {
         random: (automatic.runtimeSnapshot().engine as { random: unknown }).random
       })
       if (forced === "interrupted")
-        expect(manual.observations.filter((frame) => frame.event.kind === "jevRequestInterrupted")).toHaveLength(3)
+        expect(
+          manual.observations.filter((frame) => frame.event.kind === "reviewServiceRequestInterrupted")
+        ).toHaveLength(3)
     }
   )
   it("rejects invalid config and controls before altering replay or sampling state", () => {
@@ -143,7 +147,9 @@ describe("public weighted request profile", () => {
     const run = createRun({ inputs: inputs.slice(0, 2), outcomeWeights: profile })
     profile.clear = 0
     profile.finding = 100
-    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
+    while (
+      !run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
+    )
       run.step()
     const live = { ...weights({ interrupted: 100 }) }
     run.applyControl({ kind: "jevProfile", delayMs: 5, outcomeWeights: live })
@@ -267,5 +273,5 @@ it("retains the original edit source tuple across its same-time round-opening re
   expect(run.runtimeSnapshot().jobs.map(([, job]) => job.driverSourceJob)).toEqual([
     { partition: 1, lifetime: 1, bytes: 10, units: [5], outcome: { $: "None" } }
   ])
-  expect(run.observations.some((frame) => frame.event.kind === "jevRequestStarted")).toBe(true)
+  expect(run.observations.some((frame) => frame.event.kind === "reviewServiceRequestStarted")).toBe(true)
 })

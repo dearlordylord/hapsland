@@ -6,7 +6,7 @@ export type RuntimeRecordsState = {
   readonly retirementScheduled: boolean
   readonly rejectedCapacity: number
   readonly peakLedgerBytes: number
-  readonly maxMaterializedPreparedUnits: number
+  readonly maxMaterializedPreparedReviewUnits: number
   readonly nextDispatchAuthoritySequence: number
 }
 type RuntimeRecordsDraft = {
@@ -20,7 +20,7 @@ export const initialRuntimeRecords = (): RuntimeRecordsState => ({
   retirementScheduled: false,
   rejectedCapacity: 0,
   peakLedgerBytes: 0,
-  maxMaterializedPreparedUnits: 0,
+  maxMaterializedPreparedReviewUnits: 0,
   nextDispatchAuthoritySequence: 1
 })
 export const draftRuntimeRecords = (current: RuntimeRecordsState): RuntimeRecordsDraft => ({
@@ -34,7 +34,7 @@ export const runtimeRecordView = (current: RuntimeRecordsState) =>
     retirementScheduled: current.retirementScheduled,
     rejectedCapacity: current.rejectedCapacity,
     peakLedgerBytes: current.peakLedgerBytes,
-    maxMaterializedPreparedUnits: current.maxMaterializedPreparedUnits
+    maxMaterializedPreparedReviewUnits: current.maxMaterializedPreparedReviewUnits
   })
 export const runtimeRecordOperations = (draft: RuntimeRecordsDraft, lifetime: string) => ({
   openConnection: (maximum: number): ResidentConnection | undefined => {
@@ -47,8 +47,8 @@ export const runtimeRecordOperations = (draft: RuntimeRecordsDraft, lifetime: st
   rejectCapacity: (): void => {
     draft.rejectedCapacity = Math.min(Number.MAX_SAFE_INTEGER, draft.rejectedCapacity + 1)
   },
-  observePreparedUnits: (units: number): void => {
-    draft.maxMaterializedPreparedUnits = Math.max(draft.maxMaterializedPreparedUnits, units)
+  observePreparedReviewUnits: (units: number): void => {
+    draft.maxMaterializedPreparedReviewUnits = Math.max(draft.maxMaterializedPreparedReviewUnits, units)
   },
   nextAuthoritySequence: (): number => {
     if (draft.nextDispatchAuthoritySequence >= Number.MAX_SAFE_INTEGER)

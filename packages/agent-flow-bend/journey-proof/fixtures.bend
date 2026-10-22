@@ -103,7 +103,7 @@ def admitted(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -138,7 +138,7 @@ def queued_source(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -152,7 +152,7 @@ def queued_source(
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
       1n,
       False{},
       Nil{}
@@ -179,13 +179,21 @@ def reading(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 1n, 0n, Canonical.SourceReading{}, 0n} <> Nil{},
+    Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      1n,
+      0n,
+      Canonical.SourceReading{},
+      0n
+    } <> Nil{},
     2n,
     2n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
       1n,
       False{},
       Nil{}
@@ -204,7 +212,12 @@ def preparing(
     Ledger.Ledger{
       limits,
       2n,
-      Ledger.Charge{1n, (1n + partition : Nat), (1n + size : Nat), Ledger.Preparation{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        1n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.Preparation{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -216,7 +229,7 @@ def preparing(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -224,13 +237,21 @@ def preparing(
       0n,
       Canonical.SourceReading{},
       0n
-    } <> Canonical.Work{(1n + partition : Nat), 1n, 1n, 2n, 1n, Canonical.Preparing{}, 1n} <> Nil{},
+    } <> Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      2n,
+      1n,
+      Canonical.Preparing{},
+      1n
+    } <> Nil{},
     2n,
     3n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
       1n,
       False{},
       Nil{}
@@ -249,7 +270,12 @@ def prepared(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -261,7 +287,7 @@ def prepared(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -269,13 +295,21 @@ def prepared(
       0n,
       Canonical.SourceReading{},
       0n
-    } <> Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
+    } <> Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      2n,
+      Canonical.Reviewing{},
+      1n
+    } <> Nil{},
     2n,
     4n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
       1n,
       False{},
       Nil{}
@@ -294,7 +328,12 @@ def source_done(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -306,13 +345,13 @@ def source_done(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
     2n,
     4n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 1n, 0n, False{}, True{}} <> Nil{},
       1n,
       False{},
       Nil{}
@@ -331,7 +370,12 @@ def source_settled(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -343,7 +387,7 @@ def source_settled(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
     2n,
     4n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
@@ -362,7 +406,12 @@ def queued_review(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -374,13 +423,13 @@ def queued_review(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 1n} <> Nil{},
     2n,
     4n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
       Nil{}
@@ -399,7 +448,12 @@ def request_ready(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -411,16 +465,24 @@ def request_ready(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.AtJev{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      2n,
+      Canonical.ReviewServiceRequestOutstanding{},
+      1n
+    } <> Nil{},
     2n,
     5n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
-      Dispatch.Request{(1n + partition : Nat), 1n, 1n, 3n, 4n, False{}, False{}} <> Nil{}
+      Dispatch.ReviewServiceRequestRecord{(1n + partition : Nat), 1n, 1n, 3n, 4n, False{}, False{}} <> Nil{}
     },
     CollectionState.initial(),
     EditHistory.initial()
@@ -436,7 +498,12 @@ def request_started(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -448,16 +515,24 @@ def request_started(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.AtJev{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      2n,
+      Canonical.ReviewServiceRequestOutstanding{},
+      1n
+    } <> Nil{},
     2n,
     5n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
-      Dispatch.Request{(1n + partition : Nat), 1n, 1n, 3n, 4n, True{}, False{}} <> Nil{}
+      Dispatch.ReviewServiceRequestRecord{(1n + partition : Nat), 1n, 1n, 3n, 4n, True{}, False{}} <> Nil{}
     },
     CollectionState.initial(),
     EditHistory.initial()
@@ -473,7 +548,12 @@ def request_interrupted(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.ReviewUnit{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.ReviewUnit{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -485,16 +565,24 @@ def request_interrupted(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{(1n + partition : Nat), 1n, 1n, 3n, 2n, Canonical.AtJev{}, 1n} <> Nil{},
+    Canonical.ReviewWorkRecord{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      2n,
+      Canonical.ReviewServiceRequestOutstanding{},
+      1n
+    } <> Nil{},
     2n,
     5n,
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
-      Dispatch.Request{(1n + partition : Nat), 1n, 1n, 3n, 4n, True{}, True{}} <> Nil{}
+      Dispatch.ReviewServiceRequestRecord{(1n + partition : Nat), 1n, 1n, 3n, 4n, True{}, True{}} <> Nil{}
     },
     CollectionState.initial(),
     EditHistory.initial()
@@ -510,7 +598,12 @@ def finding(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -522,7 +615,7 @@ def finding(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -536,7 +629,7 @@ def finding(
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
       Nil{}
@@ -569,7 +662,7 @@ def nonfinding(
     Admission.AdmissionState{(1n + partition : Nat), 1n, 1n, True{}, 0n, 2n, Nil{}} <> Nil{},
     Dispatch.State{
       Nil{},
-      Dispatch.Entry{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{(1n + partition : Nat), 1n, 1n, 3n, 1n, False{}, False{}} <> Nil{},
       2n,
       False{},
       Nil{}
@@ -615,7 +708,12 @@ def resolved_finding(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -627,7 +725,7 @@ def resolved_finding(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -654,7 +752,12 @@ def collectible(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -666,7 +769,7 @@ def collectible(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -701,7 +804,12 @@ def leased(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -713,7 +821,7 @@ def leased(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -748,7 +856,12 @@ def offered(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -760,7 +873,7 @@ def offered(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -822,7 +935,12 @@ def authorized(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -834,7 +952,7 @@ def authorized(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -896,7 +1014,12 @@ def submitted(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -908,7 +1031,7 @@ def submitted(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,
@@ -970,7 +1093,12 @@ def final_finding(
     Ledger.Ledger{
       limits,
       3n,
-      Ledger.Charge{2n, (1n + partition : Nat), (1n + size : Nat), Ledger.StoredResult{}} <> Nil{}
+      Ledger.ReviewCapacityReservationRecord{
+        2n,
+        (1n + partition : Nat),
+        (1n + size : Nat),
+        Ledger.StoredResult{}
+      } <> Nil{}
     },
     Canonical.Round{
       (1n + partition : Nat),
@@ -982,7 +1110,7 @@ def final_finding(
       False{},
       None{}
     } <> Nil{},
-    Canonical.Work{
+    Canonical.ReviewWorkRecord{
       (1n + partition : Nat),
       1n,
       1n,

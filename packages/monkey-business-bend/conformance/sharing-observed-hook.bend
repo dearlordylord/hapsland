@@ -115,7 +115,7 @@ def command(+facts: Facts, +actual: C.Output, runtime: List<&2, Edge.Runtime>) -
       C.ObservationAdmitted{id}
     }:
       admission(current, runtime, facts, Freshness.Scope{p, l, r, id}, actual)
-    case Facts{_, _, _, Some{C.BeginObservedPreparation{+p, +l, +r, observation, _}}, _, _} C.ActionRequested{
+    case Facts{_, _, _, Some{C.BeginObservedPreparation{+p, +l, +r, observation, _}}, _, _} C.ResidentActionRequested{
       C.Prepare{operation, _}
     }:
       preparing(
@@ -189,7 +189,7 @@ def freshness_before_settlement(
     case Nil{}: []
     case +action <> tail:
       match action:
-        case Driver.Action{C.JevRequestSettled{_, _, _, _, _, _, _}, +delay, _, _, _}:
+        case Driver.Action{C.ReviewServiceRequestSettled{_, _, _, _, _, _, _}, +delay, _, _, _}:
           List.append(&2, Driver.Action, delayed_freshness(checks, delay), action <> tail)
         case _: action <> freshness_before_settlement(tail, checks)
 
@@ -199,7 +199,7 @@ def freshness_handled(
   result: Driver.Handled
 ) -> Driver.Handled:
   match command result:
-    case C.EventEstablished{C.JevRequestIssued{p, l, r, operation, _}} Driver.Handled{
+    case C.EventEstablished{C.ReviewServiceRequestIssued{p, l, r, operation, _}} Driver.Handled{
       handled,
       actions
     }:

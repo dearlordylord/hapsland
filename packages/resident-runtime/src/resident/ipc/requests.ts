@@ -7,7 +7,7 @@ import {
 } from "@hapsland/native-observation/direct-event/observation"
 import { packageBuildIdentity } from "@hapsland/runtime-environment/runtime/package-runtime"
 import { inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
-import type { Advice } from "../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../state/advice-records.ts"
 import type { RoundWork } from "../state/round-records.ts"
 import {
   effectiveSessionAnalytics,
@@ -33,7 +33,7 @@ import {
   CURRENT_HOOK_CONTRACT,
   UPDATE_NOTICE_COOLDOWN_MS,
   MAX_UPDATE_NOTICE_KEYS,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest,
   type ResidentResponse,
   type CollectionMode
@@ -51,7 +51,7 @@ import {
   type ResponseContext
 } from "../advice-delivery/authority.ts"
 import { residentResponse } from "../advice-delivery/findings.ts"
-import { recipientPartition, editPermitIdentity } from "../recipient/identity.ts"
+import { adviceeScopeKey, editPermitIdentity } from "../recipient/identity.ts"
 import {
   residentFinishSelection,
   residentFinishBindingValid,
@@ -71,24 +71,24 @@ type Dependencies = {
   readonly finalize: (token: string) => Effect.Effect<ResidentResponse>
   readonly stats: () => Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>
   readonly close: Effect.Effect<void, ResidentAdapterError>
-  readonly residentLifetimeController: AbortController
+  readonly residentInstanceIdController: AbortController
   readonly residentLedger: ResidentLedger
   readonly residentNow: () => number
   readonly residentAdmit: (
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     composed?: boolean,
     requirePermit?: boolean
   ) => Effect.Effect<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }, never, never>
   readonly residentCollectorGate: (
     authority: ResponseAuthority,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     now: number
   ) => Effect.Effect<ResidentResponse | undefined, never, never>
   readonly residentCollect: (
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode?: CollectionMode | undefined,
     authority?: ResponseAuthority | undefined,
     composed?: boolean
@@ -120,7 +120,7 @@ type Dependencies = {
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
   readonly admit: (
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     composed?: boolean,
     requirePermit?: boolean
   ) => Effect.Effect<ResidentResponse, never, never>
@@ -128,7 +128,7 @@ type Dependencies = {
     now: number,
     exceptKey?: string | undefined
   ) => Effect.Effect<void, never, never>
-  readonly residentReleaseAdviceLease: (advice: Advice) => Effect.Effect<boolean, never, never>
+  readonly residentReleaseAdviceLease: (advice: PendingAdviceHandle) => Effect.Effect<boolean, never, never>
   readonly residentCollectionWorkCount: (
     root: string,
     advicee: DirectAdvicee,
@@ -169,7 +169,7 @@ const residentEditCollectionRequest = (request: EditRequest): EditCollectionRequ
 
 function residentResponseCredentialFields(
   deps: Dependencies,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   settings: ReviewSettingsSnapshot
 ) {
   return {
@@ -207,7 +207,7 @@ const residentAdmitAndCollect = Effect.fn("ResidentRuntime.admitAndCollect")(fun
 ): Effect.fn.Return<ResidentResponse, ResidentAdapterError> {
   const { observation, dispatch } = request
   const startedAt = deps.residentNow()
-  const group = recipientPartition(observation.advicee)
+  const group = adviceeScopeKey(observation.advicee)
   const admission = yield* deps.residentAdmit(observation, dispatch, true, true)
   const admitted = admission.response
   if (admitted.status !== "accepted" || admission.settings === undefined)
@@ -261,7 +261,7 @@ const residentHandlePromptMarker = Effect.fn("ResidentRuntime.handle.prompt-mark
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "prompt-marker" }>
 ) {
-  const group = recipientPartition(request.advicee)
+  const group = adviceeScopeKey(request.advicee)
   return residentResponse(
     (
       request.onlyIfMissing === true
@@ -277,7 +277,7 @@ const residentHandleRecipientRoot = Effect.fn("ResidentRuntime.handle.recipient-
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
 ) {
-  const round = yield* deps.residentLedger.rounds.get(recipientPartition(request.advicee))
+  const round = yield* deps.residentLedger.rounds.get(adviceeScopeKey(request.advicee))
   const activity = round === undefined ? undefined : yield* deps.residentLedger.rounds.activity(round)
   return residentResponse({ status: "recipient-root", root: activity?.root ?? null })
 })
@@ -286,7 +286,7 @@ const residentHandleBeginStop = Effect.fn("ResidentRuntime.handle.begin-stop")(f
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "begin-stop" | "finish-stop" }>
 ) {
-  const group = recipientPartition(request.advicee)
+  const group = adviceeScopeKey(request.advicee)
   if (!(yield* deps.residentComposedDelivery.beginStop(group, request.token)))
     return residentResponse({ status: "busy" })
   const expiry = yield* Effect.forkIn(
@@ -315,7 +315,7 @@ const residentHandleFinishStop = Effect.fn("ResidentRuntime.handle.finish-stop")
       const expiry = deps.residentStopExpiries.get(request.token)
       if (expiry !== undefined) yield* Fiber.interrupt(expiry)
       deps.residentStopExpiries.delete(request.token)
-      const group = recipientPartition(request.advicee)
+      const group = adviceeScopeKey(request.advicee)
       const counts = yield* deps.residentComposedDelivery.closureCounts(group)
       const closed = yield* deps.residentComposedDelivery.finishStop(
         group,
@@ -335,7 +335,7 @@ const residentHandleClaimBackground = Effect.fn("ResidentRuntime.handle.claim-ba
 ) {
   return residentResponse(
     (yield* deps.residentComposedDelivery.claimBackground(
-      recipientPartition(request.advicee),
+      adviceeScopeKey(request.advicee),
       request.token,
       deps.residentNow()
     ))
@@ -348,7 +348,7 @@ const residentHandleReleaseBackground = Effect.fn("ResidentRuntime.handle.releas
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "claim-background" | "release-background" }>
 ) {
-  yield* deps.residentComposedDelivery.releaseBackground(recipientPartition(request.advicee), request.token)
+  yield* deps.residentComposedDelivery.releaseBackground(adviceeScopeKey(request.advicee), request.token)
   return residentResponse({ status: "released" })
 })
 
@@ -428,7 +428,7 @@ const residentHandleRegisterEdit = Effect.fn("ResidentRuntime.handle.register-ed
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "register-edit" | "retire-edit" }>
 ) {
-  const group = recipientPartition(request.advicee)
+  const group = adviceeScopeKey(request.advicee)
   if (request.operation !== "retire-edit") return yield* residentRegisterEdit(deps, request, group)
   yield* deps.residentComposedDelivery.retireEdit(group, editPermitIdentity(request.root, request.advicee))
   return residentResponse({ status: "advanced" })
@@ -456,7 +456,7 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
   const prepareFinishGate = Effect.fn("ResidentRuntime.prepareFinishGate")(function* () {
     const finish = request.finish
     if (finish === undefined) return undefined
-    const group = recipientPartition(request.advicee)
+    const group = adviceeScopeKey(request.advicee)
     if (!(yield* deps.residentComposedDelivery.ownsStop(group, finish.token)))
       return residentResponse({ status: "empty" })
     // Expired leases represent uncertain external output, not live writers.
@@ -464,7 +464,7 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
     const pruneFinishLeases = Effect.fn("ResidentRuntime.pruneFinishLeases")(function* () {
       for (const { capability: advice, content } of yield* deps.residentLedger.advice.snapshots()) {
         if (
-          recipientPartition(advice.observation.advicee) === group &&
+          adviceeScopeKey(advice.observation.advicee) === group &&
           content.delivery !== undefined &&
           content.delivery.leaseUntil <= deps.residentNow()
         )
@@ -516,7 +516,7 @@ const residentHandleCollect = Effect.fn("ResidentRuntime.handle.collect")(functi
   const reserveFinishOutput = Effect.fn("ResidentRuntime.reserveFinishOutput")(function* () {
     const finish = request.finish
     if (finish === undefined) return undefined
-    const group = recipientPartition(request.advicee)
+    const group = adviceeScopeKey(request.advicee)
     const round = yield* deps.residentLedger.rounds.get(group)
     const selection = yield* residentFinishSelection(deps, collected)
     const pendingFindings = (yield* deps.residentLedger.canonicalProjection()).pendingFindings
@@ -574,9 +574,9 @@ const residentRequestNeedsSweep = (request: ResidentRequest): boolean =>
   ["register-edit", "admit", "admit-and-collect", "begin-stop"].includes(request.operation)
 
 const residentRequestUnsupported = (request: ResidentRequest): boolean =>
-  ("advicee" in request && request.advicee.host === "opencode") ||
+  ("advicee" in request && request.advicee.agentRuntime === "opencode") ||
   ((request.operation === "admit" || request.operation === "admit-and-collect") &&
-    request.observation.advicee.host === "opencode")
+    request.observation.advicee.agentRuntime === "opencode")
 
 const residentRequestLifetime = Effect.fn("ResidentRuntime.requestLifetime")(function* (
   deps: Dependencies,
@@ -603,7 +603,7 @@ const residentHandleEditPolicy = Effect.fn("ResidentRuntime.handle.edit-policy")
   deps: Dependencies,
   request: Extract<ResidentRequest, { operation: "recipient-root" | "edit-policy" }>
 ) {
-  const group = recipientPartition(request.advicee)
+  const group = adviceeScopeKey(request.advicee)
   const active = yield* deps.residentLedger.rounds.get(group)
   const pin = active === undefined ? undefined : yield* deps.residentLedger.rounds.activity(active)
   if (pin !== undefined && pin.root !== request.root) {
@@ -763,7 +763,7 @@ const incompatibleCallerResponse = Effect.fn("ResidentRuntime.incompatibleCaller
     return residentResponse({ status: "obsolete-lifetime" })
   let warn = false
   if (recipient !== undefined && eligible) {
-    const key = JSON.stringify([recipient.host, recipient.sessionId, recipient.subagentId])
+    const key = JSON.stringify([recipient.agentRuntime, recipient.sessionId, recipient.subagentId])
     const now = deps.residentNow()
     warn = yield* Ref.modify(deps.updateNoticeBudgets, (current) => {
       const next = new Map([...current].filter(([, expiry]) => expiry > now))

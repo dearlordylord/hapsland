@@ -7,10 +7,10 @@ import { type RevisionState, type WorkRevision } from "../revision.ts"
 import { type DispatchRegistry } from "../dispatch.ts"
 import { type DeliveryState } from "../delivery/model.ts"
 import { type EvaluationReuseState } from "../evaluation-reuse.ts"
-import { type CapacityReservation } from "../capacity/model.ts"
+import { type ReviewCapacityReservationHandle } from "../capacity/model.ts"
 
 export type AdviceCapture = {
-  readonly reservation: CapacityReservation
+  readonly reservation: ReviewCapacityReservationHandle
   readonly revision: WorkRevision
   readonly retainedBytes: number
 }

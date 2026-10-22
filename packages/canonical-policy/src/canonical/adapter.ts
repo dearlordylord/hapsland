@@ -10,7 +10,7 @@ export {
 } from "./canonical-boundary.ts"
 export type { ProbabilityWords } from "./canonical-boundary.ts"
 export type {
-  JevRequestOutcome,
+  ReviewServiceRequestOutcome,
   CompletedEditReason,
   QuietRoundFacts,
   CapacityPurpose,
@@ -19,10 +19,10 @@ export type {
   ProspectiveFacts,
   CleanupFacts,
   CapacityRefusal,
-  CapacityCharge,
+  ReviewCapacityReservationRecord,
   CapacityView,
   CanonicalProjection,
-  CanonicalActionRequest,
+  ResidentActionCommand,
   CanonicalDomainEvent,
   CanonicalPolicyDecision,
   CanonicalOutput,

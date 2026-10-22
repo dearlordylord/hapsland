@@ -11,9 +11,9 @@ type Owner is Data:
   Owner{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
 
 type Effect is Data:
-  JevStarted{request: Nat}
-  JevInterrupted{request: Nat}
-  JevSettled{request: Nat}
+  ReviewServiceRequestStarted{review_service_request_id: Nat}
+  ReviewServiceRequestInterrupted{review_service_request_id: Nat}
+  ReviewServiceRequestSettled{review_service_request_id: Nat}
   PreparationCompleted{}
   OutputTerminal{advice: Nat, token: Nat}
   OutputExpiry{advice: Nat, token: Nat}
@@ -65,9 +65,12 @@ def owner_equal(a: Owner, b: Owner) -> Bool:
 
 def effect_equal(a: Effect, b: Effect) -> Bool:
   match a b:
-    case JevStarted{r} JevStarted{other}: Nat.is_eq(r, other)
-    case JevInterrupted{r} JevInterrupted{other}: Nat.is_eq(r, other)
-    case JevSettled{r} JevSettled{other}: Nat.is_eq(r, other)
+    case ReviewServiceRequestStarted{r} ReviewServiceRequestStarted{other}: Nat.is_eq(r, other)
+    case ReviewServiceRequestInterrupted{r} ReviewServiceRequestInterrupted{other}: Nat.is_eq(
+      r,
+      other
+    )
+    case ReviewServiceRequestSettled{r} ReviewServiceRequestSettled{other}: Nat.is_eq(r, other)
     case PreparationCompleted{} PreparationCompleted{}: True{}
     case OutputTerminal{a, t} OutputTerminal{b, u}: Nat.is_eq(a, b) && Nat.is_eq(t, u)
     case OutputExpiry{a, t} OutputExpiry{b, u}: Nat.is_eq(a, b) && Nat.is_eq(t, u)
@@ -92,25 +95,25 @@ def target_of(original: Original) -> Target:
 
 def fact_target(owner: Owner, order: Nat, event: Canonical.CanonicalEvent) -> Maybe<&2, Target>:
   match event:
-    case Canonical.JevRequestStarted{+p, +l, +r, +o, request}:
+    case Canonical.ReviewServiceRequestStarted{+p, +l, +r, +o, request}:
       Bool.pick(
         Maybe<&2, Target>,
         owner_equal(owner, Owner{p, l, r, o}),
-        Some{Target{Owner{p, l, r, o}, JevStarted{request}, order}},
+        Some{Target{Owner{p, l, r, o}, ReviewServiceRequestStarted{request}, order}},
         None{}
       )
-    case Canonical.JevRequestInterrupted{+p, +l, +r, +o, request}:
+    case Canonical.ReviewServiceRequestInterrupted{+p, +l, +r, +o, request}:
       Bool.pick(
         Maybe<&2, Target>,
         owner_equal(owner, Owner{p, l, r, o}),
-        Some{Target{Owner{p, l, r, o}, JevInterrupted{request}, order}},
+        Some{Target{Owner{p, l, r, o}, ReviewServiceRequestInterrupted{request}, order}},
         None{}
       )
-    case Canonical.JevRequestSettled{+p, +l, +r, +o, request, _, _}:
+    case Canonical.ReviewServiceRequestSettled{+p, +l, +r, +o, request, _, _}:
       Bool.pick(
         Maybe<&2, Target>,
         owner_equal(owner, Owner{p, l, r, o}),
-        Some{Target{Owner{p, l, r, o}, JevSettled{request}, order}},
+        Some{Target{Owner{p, l, r, o}, ReviewServiceRequestSettled{request}, order}},
         None{}
       )
     case Canonical.PreparationCompleted{+p, +l, +r, +o, _}:
@@ -411,12 +414,12 @@ def apply_receipt(
 
 # Ownership queries reuse production identities; they decide receipt retention,
 # never eligibility, capacity release, callback outcome or lifecycle acceptance.
-def work_owned(found: Maybe<&2, Canonical.Work>) -> Bool:
+def work_owned(found: Maybe<&2, Canonical.ReviewWorkRecord>) -> Bool:
   match found:
     case None{}: False{}
     case Some{_}: True{}
 
-def request_owned(found: Maybe<&2, Dispatch.Request>) -> Bool:
+def request_owned(found: Maybe<&2, Dispatch.ReviewServiceRequestRecord>) -> Bool:
   match found:
     case None{}: False{}
     case Some{_}: True{}
@@ -475,11 +478,29 @@ def physical_owned(
   collection: CollectionState.State
 ) -> Bool:
   match effect owner dispatch:
-    case JevStarted{request} Owner{p, l, r, o} Dispatch.State{_, _, _, _, requests}:
+    case ReviewServiceRequestStarted{request} Owner{p, l, r, o} Dispatch.State{
+      _,
+      _,
+      _,
+      _,
+      requests
+    }:
       request_owned(Dispatch.request_phase(requests, p, l, r, o, request))
-    case JevInterrupted{request} Owner{p, l, r, o} Dispatch.State{_, _, _, _, requests}:
+    case ReviewServiceRequestInterrupted{request} Owner{p, l, r, o} Dispatch.State{
+      _,
+      _,
+      _,
+      _,
+      requests
+    }:
       request_owned(Dispatch.request_phase(requests, p, l, r, o, request))
-    case JevSettled{request} Owner{p, l, r, o} Dispatch.State{_, _, _, _, requests}:
+    case ReviewServiceRequestSettled{request} Owner{p, l, r, o} Dispatch.State{
+      _,
+      _,
+      _,
+      _,
+      requests
+    }:
       request_owned(Dispatch.request_phase(requests, p, l, r, o, request))
     case PreparationCompleted{} Owner{+p, +l, +r, +o} Dispatch.State{queued, running, _, _, _}:
       Dispatch.contains(queued, p, l, r, o) || Dispatch.contains(running, p, l, r, o)
@@ -495,7 +516,7 @@ def physical_owned(
       selected
     )
 
-def authoritative_target(work: List<&2, Canonical.Work>, dispatch: Dispatch.State,
+def authoritative_target(work: List<&2, Canonical.ReviewWorkRecord>, dispatch: Dispatch.State,
     collection: CollectionState.State, target: Target) -> Bool:
   match target:
     case Target{owner, FinishTerminal{group, round, attempt, token, selected}, _}:

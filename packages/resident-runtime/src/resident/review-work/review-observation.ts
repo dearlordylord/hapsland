@@ -6,9 +6,9 @@ import { recordAnalytics, type AnalyticsKind } from "@hapsland/activity-observat
 import * as Effect from "effect/Effect"
 import { createHash } from "node:crypto"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
-import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import { type ResidentLedger, type UnitJob, type Job } from "../work-ownership/jobs.ts"
-import { type JevRequestObservation } from "./request-observation.ts"
+import { type ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
+import { type ResidentLedger, type ReviewUnitJob, type Job } from "../work-ownership/jobs.ts"
+import { type ReviewServiceRequestObservation } from "./request-observation.ts"
 import {
   type DispatchAuthorityObservation,
   type DispatchAuthorityObservationDetails
@@ -18,11 +18,11 @@ type Dependencies = {
   readonly residentDispatchAuthorityObserver: ((observation: DispatchAuthorityObservation) => void) | undefined
   readonly residentLedger: ResidentLedger
   readonly lifetime: string
-  readonly residentJevRequestObserver: ((observation: JevRequestObservation) => void) | undefined
+  readonly residentReviewServiceRequestObserver: ((observation: ReviewServiceRequestObservation) => void) | undefined
 }
 const residentObserveDispatchAuthority = Effect.fn("ResidentRuntime.observeDispatchAuthority")(function* (
   deps: Dependencies,
-  job: UnitJob,
+  job: ReviewUnitJob,
   details: DispatchAuthorityObservationDetails
 ): Effect.fn.Return<void> {
   const observer = deps.residentDispatchAuthorityObserver
@@ -66,21 +66,21 @@ const residentRecordAnalytics = Effect.fn("ResidentRuntime.recordAnalytics")(
       })
     })
 )
-function residentObserveJevRequest(deps: Dependencies, observation: JevRequestObservation): void {
+function residentObserveReviewServiceRequest(deps: Dependencies, observation: ReviewServiceRequestObservation): void {
   try {
-    deps.residentJevRequestObserver?.(observation)
+    deps.residentReviewServiceRequestObserver?.(observation)
   } catch {
     // Fixture observation must not change request execution.
   }
 }
 
-const residentOptionalUserConfig = (dispatch: ResidentDispatchContext): string | undefined =>
+const residentOptionalUserConfig = (dispatch: ResidentReviewExecutionContext): string | undefined =>
   dispatch.userConfigPath ?? undefined
 export const makeResidentReviewObservation = (deps: Dependencies) => {
   return {
     residentRecordAnalytics: residentRecordAnalytics.bind(null, deps),
     residentOptionalUserConfig,
-    residentObserveJevRequest: residentObserveJevRequest.bind(null, deps),
+    residentObserveReviewServiceRequest: residentObserveReviewServiceRequest.bind(null, deps),
     residentObserveDispatchAuthority: residentObserveDispatchAuthority.bind(null, deps)
   }
 }

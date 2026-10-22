@@ -227,7 +227,7 @@ export class NativeRunHost {
     )
     this.metadata = {
       preparationWorkers: 8,
-      jevRequests: 8,
+      reviewServiceRequests: 8,
       continuationBudget: 4,
       deliveryGroups: scopes.map((scope) => ({ partition: scope.partition, group: scope.partition })),
       ...(config.resourceScenarios?.notices
@@ -796,7 +796,7 @@ export class NativeRunHost {
       if (!readBool(nativeRunRecord(Native.runtime_snapshot(this.state), "NativeRunTypes.RuntimeSnapshot").valid)) {
         const mismatch =
           selectedInput?.$ === "NativeRunTypes.RawEvent" &&
-          readRecord(readRecord(selectedInput.action).event).$ === "Canonical.JevRequestSettled"
+          readRecord(readRecord(selectedInput.action).event).$ === "Canonical.ReviewServiceRequestSettled"
         throw new Error(mismatch ? "mismatched completion identity" : "unhandled required command")
       }
       for (const physical of nativeRunList(stepped.physical))
@@ -1459,7 +1459,10 @@ export class NativeRunHost {
                 delay: control.delayMs,
                 weights: encodeNativeRunWeights(control.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS)
               })
-            : tag("JevOutcomeControl", { delay: control.delayMs, outcome: encodeDriverOutcome(control.outcome) })
+            : tag("ReviewServiceOutcomeControl", {
+                delay: control.delayMs,
+                outcome: encodeDriverOutcome(control.outcome)
+              })
         break
       case "callback":
         encoded = tag("CallbackControl", {
@@ -1515,9 +1518,16 @@ export class NativeRunHost {
           rotate: control.action === "rotate"
         })
         break
-      case "jevRequest":
-        encoded = tag("JevRequestControl", {
-          target: { $: "FaultTargets.Target", ...control.target },
+      case "reviewServiceRequest":
+        encoded = tag("ReviewServiceRequestControl", {
+          target: {
+            $: "FaultTargets.Target",
+            partition: control.target.partition,
+            lifetime: control.target.lifetime,
+            round: control.target.round,
+            operation: control.target.operation,
+            request: control.target.reviewServiceRequestId
+          },
           outcome: encodeDriverOutcome(control.outcome)
         })
         break
@@ -1654,7 +1664,7 @@ export class NativeRunHost {
       this.reportHistory.outputReports.push({ at: this.now, controlSequence: sequence, control, result })
     } else if (control.kind === "credentials")
       this.reportHistory.interventions.push({ at: this.now, controlSequence: sequence, control, result: "applied" })
-    else if (control.kind === "jevRequest") {
+    else if (control.kind === "reviewServiceRequest") {
       const tag = readRecord(report.result).$
       const result =
         tag === "JevEffects.Applied"

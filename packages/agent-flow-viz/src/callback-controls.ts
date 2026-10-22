@@ -8,9 +8,9 @@ import {
 
 const labels = { hold: "Hold", release: "Release", drop: "Drop", duplicate: "Repeat", reorder: "Move to now" } as const
 const effects = {
-  jevStarted: "Jev request starts",
-  jevInterrupted: "Jev request is interrupted",
-  jevSettled: "Jev request completes",
+  reviewServiceRequestStarted: "Review service request starts",
+  reviewServiceRequestInterrupted: "Review service request is interrupted",
+  reviewServiceRequestSettled: "Review service request completes",
   preparationCompleted: "Preparation completes",
   outputTerminal: "Advice delivery completes",
   outputExpiry: "Advice delivery lease expires",
@@ -20,7 +20,8 @@ const results = {
   applied: "Applied",
   missing: "Refused: original completion is unavailable",
   notQueued: "Refused: completion is not queued",
-  notHeld: "Refused: completion is not held"
+  notHeld: "Refused: completion is not held",
+  invalidTime: "Refused: completion time is invalid"
 } as const
 
 /** Dashboard decoding supplies syntax only; shared Bend records applicability. */
@@ -57,7 +58,7 @@ export function callbackControls<Message>(
             ),
             h.div(
               [h.Class("simulation-controls")],
-              (Object.keys(labels) as CallbackControl["action"][]).map((action) => {
+              (Object.keys(labels) as (keyof typeof labels)[]).map((action) => {
                 const value = validateCallbackControl({ kind: "callback", action, target })
                 return h.button(
                   [
@@ -81,7 +82,7 @@ export function callbackControls<Message>(
             h.li(
               [],
               [
-                `${report.at} virtual ms · action ${report.controlSequence} · ${labels[report.control.action]} · ${results[report.result]}`
+                `${report.at} virtual ms · action ${report.controlSequence} · ${labels[report.control.action as keyof typeof labels] ?? report.control.action} · ${results[report.result]}`
               ]
             )
           )

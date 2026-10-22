@@ -18,20 +18,20 @@ def collection(core: C.State) -> Collection.State:
   match core:
     case C.State{_, _, _, _, _, _, _, v, _}: v
 
-def charge_bytes(+id: Nat, charges: List<&2, Ledger.Charge>) -> Nat:
+def charge_bytes(+id: Nat, charges: List<&2, Ledger.ReviewCapacityReservationRecord>) -> Nat:
   match charges:
     case Nil{}: 0n
-    case Ledger.Charge{candidate, _, bytes, _} <> rest:
+    case Ledger.ReviewCapacityReservationRecord{candidate, _, bytes, _} <> rest:
       Bool.pick(Nat, Nat.is_eq(id, candidate), bytes, charge_bytes(id, rest))
 
-def charges(ledger: Ledger.Ledger) -> List<&2, Ledger.Charge>:
+def charges(ledger: Ledger.Ledger) -> List<&2, Ledger.ReviewCapacityReservationRecord>:
   match ledger:
     case Ledger.Ledger{_, _, v}: v
 
-def project(items: List<&2, C.Work>, +ledger: Ledger.Ledger) -> List<&2, Token>:
+def project(items: List<&2, C.ReviewWorkRecord>, +ledger: Ledger.Ledger) -> List<&2, Token>:
   match items:
     case Nil{}: Nil{}
-    case C.Work{part, _, _, id, charge, kind, parent} <> rest:
+    case C.ReviewWorkRecord{part, _, _, id, charge, kind, parent} <> rest:
       Token{M.number(id), M.number(parent), M.number(part), M.phase(kind),
         M.number(charge_bytes(charge, charges(ledger)))} <> project(rest, ledger)
 
@@ -65,17 +65,17 @@ def count(world: M.World, phase: U32) -> U32:
 def queued_core(core: C.State) -> U32:
   match core:
     case C.State{_, _, _, _, _, _, Dispatch.State{items, _, _, _, _}, _, _}:
-      M.number(List.length(&2, Dispatch.Entry, items))
+      M.number(List.length(&2, Dispatch.ScheduledReviewWork, items))
 def queued(world: M.World) -> U32: queued_core(M.core(world))
 def running_core(core: C.State) -> U32:
   match core:
     case C.State{_, _, _, _, _, _, Dispatch.State{_, items, _, _, _}, _, _}:
-      M.number(List.length(&2, Dispatch.Entry, items))
+      M.number(List.length(&2, Dispatch.ScheduledReviewWork, items))
 def running(world: M.World) -> U32: running_core(M.core(world))
 def requests_core(core: C.State) -> U32:
   match core:
     case C.State{_, _, _, _, _, _, Dispatch.State{_, _, _, _, items}, _, _}:
-      M.number(List.length(&2, Dispatch.Request, items))
+      M.number(List.length(&2, Dispatch.ReviewServiceRequestRecord, items))
 def requests(world: M.World) -> U32: requests_core(M.core(world))
 def ready_core(core: C.State) -> U32:
   match core:
@@ -112,7 +112,17 @@ def active_slots(items: List<&2, Delivery.Slot>) -> U32:
     case _ <> rest: active_slots(rest)
 def writes_core(core: C.State) -> U32:
   match core:
-    case C.State{_, _, _, _, _, _, _, Collection.State{_, _, _, Delivery.State{slots, _, _}, _, _, _}, _}: active_slots(slots)
+    case C.State{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      Collection.State{_, _, _, Delivery.State{slots, _, _}, _, _, _},
+      _
+    }: active_slots(slots)
 def writes(world: M.World) -> U32: writes_core(M.core(world))
 def usage(world: M.World) -> Ledger.Usage:
   Ledger.total(charges(ledger(M.core(world))))
@@ -129,20 +139,26 @@ def ledger_bytes(world: M.World) -> U32:
 
 def ledger_byte_limit_core(core: C.State) -> U32:
   match core:
-    case C.State{Ledger.Ledger{Ledger.Limits{_, v, _, _}, _, _}, _, _, _, _, _, _, _, _}: M.number(v)
+    case C.State{Ledger.Ledger{Ledger.Limits{_, v, _, _}, _, _}, _, _, _, _, _, _, _, _}: M.number(
+      v
+    )
 def ledger_byte_limit(world: M.World) -> U32: ledger_byte_limit_core(M.core(world))
 def ledger_item_limit_core(core: C.State) -> U32:
   match core:
-    case C.State{Ledger.Ledger{Ledger.Limits{v, _, _, _}, _, _}, _, _, _, _, _, _, _, _}: M.number(v)
+    case C.State{Ledger.Ledger{Ledger.Limits{v, _, _, _}, _, _}, _, _, _, _, _, _, _, _}: M.number(
+      v
+    )
 def ledger_item_limit(world: M.World) -> U32: ledger_item_limit_core(M.core(world))
-def backend_started_items(items: List<&2, Dispatch.Request>) -> U32:
+def backend_started_items(items: List<&2, Dispatch.ReviewServiceRequestRecord>) -> U32:
   match items:
     case Nil{}: 0
-    case Dispatch.Request{_, _, _, _, _, started, _} <> rest:
+    case Dispatch.ReviewServiceRequestRecord{_, _, _, _, _, started, _} <> rest:
       (Bool.to_u32(started) + backend_started_items(rest) : U32)
 def backend_started_core(core: C.State) -> U32:
   match core:
-    case C.State{_, _, _, _, _, _, Dispatch.State{_, _, _, _, items}, _, _}: backend_started_items(items)
+    case C.State{_, _, _, _, _, _, Dispatch.State{_, _, _, _, items}, _, _}: backend_started_items(
+      items
+    )
 def backend_started(world: M.World) -> U32: backend_started_core(M.core(world))
 def parent_count_tokens(items: List<&2, Token>, +owner: U32) -> U32:
   match items:
@@ -155,7 +171,10 @@ def parent_pending_tokens(items: List<&2, Token>, +owner: U32) -> U32:
   match items:
     case Nil{}: 0
     case Token{_, parent, _, p, _} <> rest:
-      (Bool.to_u32(Bool.and(U32.is_eq(parent, owner), U32.is_eq(p, 5))) + parent_pending_tokens(rest, owner) : U32)
+      (Bool.to_u32(Bool.and(U32.is_eq(parent, owner), U32.is_eq(p, 5))) + parent_pending_tokens(
+        rest,
+        owner
+      ) : U32)
 def parent_pending(world: M.World, parent: U32) -> U32:
   parent_pending_tokens(tokens(world), parent)
 
@@ -166,24 +185,38 @@ def pool_limit() -> U32:
   M.number(Dispatch.max_requests())
 def preparation_pool_limit() -> U32:
   M.number(Dispatch.max_running())
-def prep_running_entries(items: List<&2, Dispatch.Entry>) -> U32:
+def prep_running_entries(items: List<&2, Dispatch.ScheduledReviewWork>) -> U32:
   M.number(Dispatch.preparation_count(items))
 def prep_running_core(core: C.State) -> U32:
   match core:
-    case C.State{_, _, _, _, _, _, Dispatch.State{_, entries, _, _, _}, _, _}: prep_running_entries(entries)
+    case C.State{_, _, _, _, _, _, Dispatch.State{_, entries, _, _, _}, _, _}: prep_running_entries(
+      entries
+    )
 def prep_running(world: M.World) -> U32: prep_running_core(M.core(world))
 
 # Actual per-round counters in the product's delivery state, before retirement.
 def finish_counters_core(core: C.State) -> List<&2, Delivery.Counter>:
   match core:
-    case C.State{_, _, _, _, _, _, _, Collection.State{_, _, _, Delivery.State{_, counters, _}, _, _, _}, _}: counters
-def finish_counters(world: M.World) -> List<&2, Delivery.Counter>: finish_counters_core(M.core(world))
+    case C.State{
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      Collection.State{_, _, _, Delivery.State{_, counters, _}, _, _, _},
+      _
+    }: counters
+def finish_counters(
+  world: M.World
+) -> List<&2, Delivery.Counter>: finish_counters_core(M.core(world))
 def finish_used(+world: M.World) -> U32:
   M.number(Delivery.count(1n, M.round(world), finish_counters(world)))
 def counters_within_budget(items: List<&2, Delivery.Counter>) -> Bool:
   match items:
     case Nil{}: True{}
     case Delivery.Counter{_, _, used} <> rest:
-      Nat.is_le(used,4n) && counters_within_budget(rest)
+      Nat.is_le(used, 4n) && counters_within_budget(rest)
 def finish_within_budget(world: M.World) -> Bool:
   counters_within_budget(finish_counters(world))

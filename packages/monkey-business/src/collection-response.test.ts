@@ -52,7 +52,7 @@ it("temporary credential refusal recovers on the same response without a second 
   attempt(run)
   run.advance({ untilTime: 9 })
   expect(terminal(run)).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   replayExact(run)
 })
 
@@ -64,7 +64,7 @@ it("a successful response suppresses a second selection of the same retained adv
   attempt(run)
   run.advance({ untilTime: 9 })
   expect(terminal(run)).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   expect(run.projection.collection.leases).toEqual([])
   replayExact(run)
 })

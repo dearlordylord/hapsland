@@ -7,7 +7,10 @@ import { makeUpdateNoticeOutput, UPDATE_REQUIRED_TEXT } from "../resident/update
 import * as Option from "effect/Option"
 import { readFileSync } from "node:fs"
 import { adaptClaudeDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
-import { isCodexHostVersion, isClaudeHostVersion } from "@hapsland/native-observation/direct-event/observation"
+import {
+  isCodexAgentRuntimeVersion,
+  isClaudeAgentRuntimeVersion
+} from "@hapsland/native-observation/direct-event/observation"
 import { runPiHook } from "../pi/transport.ts"
 import { hookMonotonicMillis } from "@hapsland/resident-transport/resident/hook-clock"
 import type { ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
@@ -41,7 +44,7 @@ const unsupportedCodexVersion = (options: HookArguments, kind: ComposedHookKind 
   if (!options["codex-hook"]) return false
   if (!options["composed-edit-hook"] && kind === undefined) return false
   const version = options["codex-version"]
-  return version !== undefined && !isCodexHostVersion(version)
+  return version !== undefined && !isCodexAgentRuntimeVersion(version)
 }
 
 const retiredChannel = (options: HookArguments, kind: ComposedHookKind | undefined): boolean =>
@@ -83,7 +86,7 @@ const runComposed = Effect.fn("Hook.runComposed")(function* (
   }
   yield* runComposedHookEffect({
     kind,
-    host: options["composed-host"] === "claude-code" ? "claude-code" : "codex-cli",
+    agentRuntime: options["composed-host"] === "claude-code" ? "claude-code" : "codex-cli",
     event,
     codexVersion,
     ...(options["claude-version"] === undefined ? {} : { claudeVersion: options["claude-version"] }),
@@ -250,8 +253,8 @@ const attachUpdateNotice = Effect.fn("Hook.attachUpdateNotice")(function* (
 export const runHookProgram = async (options: HookArguments, startedAt: number): Promise<void> => {
   const kind = composedKind(options)
   if (unsupportedCodexVersion(options, kind)) return
-  if (options["claude-version"] !== undefined && !isClaudeHostVersion(options["claude-version"])) return
-  const codexVersion = isCodexHostVersion(options["codex-version"]) ? options["codex-version"] : "0.155.1"
+  if (options["claude-version"] !== undefined && !isClaudeAgentRuntimeVersion(options["claude-version"])) return
+  const codexVersion = isCodexAgentRuntimeVersion(options["codex-version"]) ? options["codex-version"] : "0.155.1"
   const deadline = startedAt + (options["codex-hook"] && options["composed-edit-hook"] ? 9_000 : 3_900)
   const dispatch = makeDirectHookDispatch({
     deadline,

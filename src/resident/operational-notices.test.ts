@@ -13,7 +13,7 @@ import {
   advicee
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import { MAX_OPERATIONAL_NOTICE_KEYS, OPERATIONAL_NOTICE_COOLDOWN_MS } from "@hapsland/resident-runtime/resident/server"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { PENDING_ADVICE_EXPIRY_MS } from "@hapsland/resident-runtime/resident/collection"
@@ -28,8 +28,8 @@ const answers = Object.fromEntries(
 
 const dispatch = (
   statePath: string,
-  controlled: NonNullable<ResidentDispatchContext["controlled"]>
-): ResidentDispatchContext => ({
+  controlled: NonNullable<ResidentReviewExecutionContext["controlled"]>
+): ResidentReviewExecutionContext => ({
   statePath,
   userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
   credential: null,
@@ -73,13 +73,13 @@ const installCapacityRule = async (root: string, threshold = 0.7, messageBytes =
   )
 }
 
-const capacityDispatch = (statePath: string): ResidentDispatchContext =>
+const capacityDispatch = (statePath: string): ResidentReviewExecutionContext =>
   dispatch(statePath, { answers: { ...answers, large: { _tag: "Probability", probability: 1 } } })
 
 const collectAndFinalize = async (
   server: ResidentRuntime,
   observation: DirectObservation,
-  context: ResidentDispatchContext
+  context: ResidentReviewExecutionContext
 ) => {
   const response = await Effect.runPromise(server.collect(observation.root, observation.advicee, context))
   if (response.status === "advice") {
@@ -92,7 +92,7 @@ const collectAndFinalize = async (
 const fillAndFinalizeCooldownTable = async (
   server: ResidentRuntime,
   observation: DirectObservation,
-  context: ResidentDispatchContext,
+  context: ResidentReviewExecutionContext,
   maximumKeys = MAX_OPERATIONAL_NOTICE_KEYS
 ) => {
   const scopes: Array<DirectObservation> = []
@@ -136,7 +136,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     await writeFile(credentialStatePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }))
     const previousHelper = process.env.REVIEW_CREDENTIAL_HELPER
     process.env.REVIEW_CREDENTIAL_HELPER = helper
-    const context: ResidentDispatchContext = {
+    const context: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
       credential: {

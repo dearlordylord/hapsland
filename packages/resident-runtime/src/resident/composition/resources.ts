@@ -16,7 +16,7 @@ import type * as Fiber from "effect/Fiber"
 import * as FiberHandle from "effect/FiberHandle"
 import { PENDING_ADVICE_EXPIRY_MS } from "../advice-delivery/collection.ts"
 import { ResidentAdapterError } from "../adapter-error.ts"
-import { type UnitJob, type Job } from "../work-ownership/jobs.ts"
+import { type ReviewUnitJob, type Job } from "../work-ownership/jobs.ts"
 import { type ResidentRuntimeOptions } from "../runtime-options.ts"
 import { OPERATIONAL_NOTICE_COOLDOWN_MS, validatedOperationalNoticeKeys } from "../advice-delivery/notices.ts"
 import { logicalBytes } from "../state/encoded-size.ts"
@@ -31,10 +31,10 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" }))
   )
   const reviewSettings = yield* makeReviewSettings()
-  const residentLedger = yield* makeResidentState<UnitJob, string, Job>()
+  const residentLedger = yield* makeResidentState<ReviewUnitJob, string, Job>()
   const admissionLock = yield* Semaphore.make(1)
   const updateNoticeBudgets = yield* Ref.make<ReadonlyMap<string, number>>(new Map())
-  const lifetime = residentLedger.residentLifetime
+  const lifetime = residentLedger.residentInstanceId
   const residentInspection = yield* makeResidentInspection(paths.socket, lifetime, options.inspectionPersistence)
   const inspection = residentInspection.recorder
   const residentJoined = residentLedger.joinedReviews(logicalBytes)
@@ -53,7 +53,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
   const residentQuietChecks = yield* FiberHandle.make<void, never>().pipe(
     Effect.provideService(Scope.Scope, residentDispatchScope)
   )
-  const residentLifetimeController = new AbortController()
+  const residentInstanceIdController = new AbortController()
   const residentCollectionFindingOffer = makeCollectionFindingOffer(residentLedger)
   const maximumOperationalNoticeKeys = validatedOperationalNoticeKeys(options.maximumOperationalNoticeKeys)
   const residentNow = now
@@ -79,7 +79,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     ResidentDispatchControls
   )
   const residentDispatchAuthorityObserver = options.dispatchAuthorityObserver
-  const residentJevRequestObserver = options.jevRequestObserver
+  const residentReviewServiceRequestObserver = options.reviewServiceRequestObserver
   const residentOfflineHttpClient = options.offlineHttpClient
   const residentControlledRequestEffect = options.controlledRequestEffect
   const residentReuse = residentLedger.reuse(logicalBytes)
@@ -103,7 +103,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     residentComposedDelivery,
     residentIdleChecks,
     residentQuietChecks,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentCollectionFindingOffer,
     maximumOperationalNoticeKeys,
     residentNow,
@@ -114,7 +114,7 @@ export const makeResidentResources = Effect.fn("ResidentRuntime.resources")(func
     residentReviewControls,
     residentDispatchControls,
     residentDispatchAuthorityObserver,
-    residentJevRequestObserver,
+    residentReviewServiceRequestObserver,
     residentOfflineHttpClient,
     residentControlledRequestEffect,
     residentReuse

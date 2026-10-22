@@ -3,12 +3,12 @@ import * as Effect from "effect/Effect"
 import { type ResidentTransaction } from "./transaction.ts"
 import { type AdviceCaptureRecord, type AdviceCapture } from "./model.ts"
 import { type CapacityLedger, capacityOperations } from "../capacity/operations.ts"
-import { type CapacityReservation, type CapacityResize } from "../capacity/model.ts"
+import { type ReviewCapacityReservationHandle, type CapacityResize } from "../capacity/model.ts"
 
 export const residentAdviceCaptures = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) => {
   const captureChange =
     <A>(
@@ -20,7 +20,7 @@ export const residentAdviceCaptures = <Pending, DispatchKey, DispatchValue>({
       const owner = capacityOperations(
         (run) => run(draft),
         (run) => run(draft),
-        residentLifetime
+        residentInstanceId
       )
       const revisions = revisionOperations(revision, owner)
       const value = operation(captures, owner, revisions)
@@ -30,7 +30,7 @@ export const residentAdviceCaptures = <Pending, DispatchKey, DispatchValue>({
   return {
     start: Effect.fn("AdviceCaptures.start")(
       (
-        reservation: CapacityReservation,
+        reservation: ReviewCapacityReservationHandle,
         revision: WorkRevision,
         workspaceBytes: number
       ): Effect.Effect<AdviceCapture | undefined> =>
@@ -58,7 +58,7 @@ export const residentAdviceCaptures = <Pending, DispatchKey, DispatchValue>({
         )
     ),
     retire: Effect.fn("AdviceCaptures.retire")(
-      (reservation: CapacityReservation): Effect.Effect<boolean> =>
+      (reservation: ReviewCapacityReservationHandle): Effect.Effect<boolean> =>
         commitAllEffect(
           captureChange((captures) => {
             const record = captures.get(reservation.id)

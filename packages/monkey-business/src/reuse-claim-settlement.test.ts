@@ -19,15 +19,17 @@ it("settles a superseded pre-issuance claim while preserving the other prepared 
   })
   expect(run.advance({ untilTime: 100, maxEvents: 1000 }).reason).toBe("idle")
   const unavailable = run.observations.filter((frame) =>
-    frame.outputs.some((command) => command.kind === "jevRequestUnavailable")
+    frame.outputs.some((command) => command.kind === "reviewServiceRequestUnavailable")
   )
   expect(unavailable).toHaveLength(1)
-  expect(unavailable[0]!.event.kind).toBe("jevRequestReady")
+  expect(unavailable[0]!.event.kind).toBe("reviewServiceRequestReady")
   expect(
-    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestIssued")
+    run.observations
+      .flatMap((frame) => frame.outputs)
+      .filter((command) => command.kind === "reviewServiceRequestIssued")
   ).toHaveLength(1)
   expect(run.projection.work).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.reuse.claims).toEqual([])
   expect(run.projection.reuse.cache).toHaveLength(1)
   expect(run.projection.charges.map((charge) => charge.id)).toEqual(
@@ -52,19 +54,27 @@ it("settles an authentically issued stale clear result without caching its repla
   })
   expect(run.advance({ untilTime: 100, maxEvents: 1000 }).reason).toBe("idle")
   const outputs = run.observations.flatMap((frame) => frame.outputs)
-  expect(outputs.filter((command) => command.kind === "jevRequestIssued")).toHaveLength(2)
-  // Canonical records an authentic AtJev result even when the revision became
+  expect(outputs.filter((command) => command.kind === "reviewServiceRequestIssued")).toHaveLength(2)
+  // Canonical records a result from the outstanding review service request even when the revision became
   // stale. Captured revision currency separately forbids caching that result.
-  const stale = run.observations.find((frame) => frame.time === 2 + 5 && frame.event.kind === "jevRequestSettled")
-  const current = run.observations.find((frame) => frame.time === 3 + 2 + 5 && frame.event.kind === "jevRequestSettled")
-  expect(stale?.event).toMatchObject({ kind: "jevRequestSettled", currentWork: false, outcome: "clear" })
-  expect(stale?.outputs).toContainEqual({ category: "event", kind: "jevRequestOutcomeRecorded", outcome: "clear" })
+  const stale = run.observations.find(
+    (frame) => frame.time === 2 + 5 && frame.event.kind === "reviewServiceRequestSettled"
+  )
+  const current = run.observations.find(
+    (frame) => frame.time === 3 + 2 + 5 && frame.event.kind === "reviewServiceRequestSettled"
+  )
+  expect(stale?.event).toMatchObject({ kind: "reviewServiceRequestSettled", currentWork: false, outcome: "clear" })
+  expect(stale?.outputs).toContainEqual({
+    category: "event",
+    kind: "reviewServiceRequestOutcomeRecorded",
+    outcome: "clear"
+  })
   expect(stale?.outputs).toContainEqual({ category: "event", kind: "staleClearSettled" })
-  expect(current?.event).toMatchObject({ kind: "jevRequestSettled", currentWork: true, outcome: "clear" })
+  expect(current?.event).toMatchObject({ kind: "reviewServiceRequestSettled", currentWork: true, outcome: "clear" })
   expect(current?.outputs).toContainEqual({ category: "event", kind: "clearSettled" })
   expect(outputs.filter((command) => command.kind === "cacheCommitted")).toHaveLength(1)
   expect(run.projection.work).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.reuse.claims).toEqual([])
   expect(run.projection.reuse.cache).toHaveLength(1)
   expect(run.projection.charges.map((charge) => charge.id)).toEqual(

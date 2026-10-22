@@ -1,10 +1,10 @@
 import type { ReviewSettingsSnapshot } from "@hapsland/review-definition/runtime/review-settings"
 import type { Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import type { DirectObservation } from "@hapsland/native-observation/direct-event/observation"
-import type { EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
+import type { EvaluatedReviewUnit } from "@hapsland/review-execution/direct-event/pipeline"
 import type { CapacityLedger } from "./capacity/operations.ts"
-import type { CapacityReservation } from "./capacity/model.ts"
+import type { ReviewCapacityReservationHandle } from "./capacity/model.ts"
 import type { WorkRevision } from "./revision.ts"
 import type { RoundWork } from "./round-records.ts"
 
@@ -14,15 +14,15 @@ export type AdviceMetadata = {
   readonly analyticsPath: string | undefined
   readonly analyticsEnabled: boolean
   readonly analyticsControlled: boolean
-  readonly canonicalRound: number
+  readonly canonicalRoundId: number
   readonly round?: RoundWork
   readonly workUnitId?: number
-  readonly admissionId: number
+  readonly canonicalObservationId: number
   readonly canonicalOperationId: number
   readonly observation: DirectObservation
   readonly partition: string
-  readonly reservation: CapacityReservation
-  readonly prepared: PreparedUnit
+  readonly reservation: ReviewCapacityReservationHandle
+  readonly prepared: PreparedReviewUnit
   readonly sourceHash?: string
   readonly revision: WorkRevision
   readonly evaluationKey: string
@@ -33,23 +33,24 @@ export type AdviceMetadata = {
   readonly credentialEnvironmentOnly: boolean
   readonly pendingAt: number
 }
-export type AdviceDelivery = {
+/** A collector's temporary claim on pending advice, with selected findings and submission status. */
+export type AdviceCollectionLease = {
   readonly token: string
   readonly findings: ReadonlyArray<Finding>
   readonly leaseUntil: number
-  readonly acknowledged: boolean
+  readonly submissionRecorded: boolean
 }
 export type AdviceContent = {
-  readonly evaluations: ReadonlyArray<EvaluatedUnit>
+  readonly evaluations: ReadonlyArray<EvaluatedReviewUnit>
   readonly findings: ReadonlyArray<Finding>
   readonly collectionEligible: boolean
-  readonly delivery?: AdviceDelivery
+  readonly delivery?: AdviceCollectionLease
 }
-/** Immutable identity capability; content is read through its owning service. */
-export type Advice = AdviceMetadata
+/** An immutable identity handle; the owning records service holds its current findings. */
+export type PendingAdviceHandle = AdviceMetadata
 export type AdviceInitial = AdviceMetadata & Pick<AdviceContent, "evaluations" | "findings">
 export type AdviceRecordsState = {
-  readonly entries: ReadonlyMap<string, { readonly capability: Advice; readonly content: AdviceContent }>
+  readonly entries: ReadonlyMap<string, { readonly capability: PendingAdviceHandle; readonly content: AdviceContent }>
 }
 export const initialAdviceRecords = (): AdviceRecordsState => ({ entries: new Map() })
 export const draftAdviceRecords = (state: AdviceRecordsState) => ({ entries: new Map(state.entries) })
@@ -60,13 +61,13 @@ export const emptyAdviceContent: AdviceContent = Object.freeze({
 })
 const findingsSnapshot = (findings: ReadonlyArray<Finding>): ReadonlyArray<Finding> =>
   Object.freeze(findings.map((finding) => Object.freeze({ ...finding })))
-const evaluationsSnapshot = (evaluations: ReadonlyArray<EvaluatedUnit>): ReadonlyArray<EvaluatedUnit> =>
+const evaluationsSnapshot = (evaluations: ReadonlyArray<EvaluatedReviewUnit>): ReadonlyArray<EvaluatedReviewUnit> =>
   Object.freeze(
     evaluations.map((evaluation) => Object.freeze({ ...evaluation, findings: findingsSnapshot(evaluation.findings) }))
   )
 const deliverySnapshot = (
-  delivery: AdviceDelivery | undefined,
-  previous: AdviceDelivery | undefined
+  delivery: AdviceCollectionLease | undefined,
+  previous: AdviceCollectionLease | undefined
 ): Pick<AdviceContent, "delivery"> => {
   if (delivery === undefined) return {}
   return {
@@ -85,11 +86,11 @@ const contentSnapshot = (content: AdviceContent, previous?: AdviceContent): Advi
     ...deliverySnapshot(content.delivery, previous?.delivery)
   })
 export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecords>, owner: CapacityLedger) => {
-  const entry = (advice: Advice) => {
+  const entry = (advice: PendingAdviceHandle) => {
     const retained = draft.entries.get(advice.id)
     return retained?.capability === advice ? retained : undefined
   }
-  const write = (advice: Advice, content: AdviceContent): void => {
+  const write = (advice: PendingAdviceHandle, content: AdviceContent): void => {
     draft.entries.set(
       advice.id,
       Object.freeze({ capability: advice, content: contentSnapshot(content, entry(advice)?.content) })
@@ -101,14 +102,18 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       kind: "findingCountUpdated",
       partition: owner.partitionId(advice.partition),
       lifetime: 1,
-      round: advice.canonicalRound,
+      round: advice.canonicalRoundId,
       operation: advice.canonicalOperationId,
       count
     })
     if (result.rejection !== undefined || result.outputs[0]?.kind !== "findingCountRecorded")
       throw new Error("canonical finding count update refused")
   }
-  const updateDelivery = (advice: Advice, token: string, update: Partial<Omit<AdviceDelivery, "token">>): boolean => {
+  const updateDelivery = (
+    advice: PendingAdviceHandle,
+    token: string,
+    update: Partial<Omit<AdviceCollectionLease, "token">>
+  ): boolean => {
     const retained = entry(advice)
     const delivery = retained?.content.delivery
     if (retained === undefined || delivery?.token !== token) return false
@@ -131,7 +136,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
     if (
       work?.kind !== "pendingFinding" ||
       work.partition !== owner.knownPartitionId(initial.partition) ||
-      work.round !== initial.canonicalRound ||
+      work.round !== initial.canonicalRoundId ||
       work.reservation !== initial.reservation.id
     )
       throw new Error("retained advice lacks its canonical finding owner")
@@ -145,7 +150,10 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       throw new Error("Bend denied review result retention reservation")
   }
   return {
-    insert: (initial: AdviceInitial, capability: (metadata: AdviceMetadata) => Advice): Advice => {
+    insert: (
+      initial: AdviceInitial,
+      capability: (metadata: AdviceMetadata) => PendingAdviceHandle
+    ): PendingAdviceHandle => {
       assertAdviceIdentity(initial)
       assertAdviceFindingOwner(initial)
       retainAdviceReservation(initial)
@@ -155,16 +163,16 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       write(advice, { evaluations, findings, collectionEligible: false })
       return advice
     },
-    eligible: (advice: Advice, joinedPending: boolean): boolean => {
+    eligible: (advice: PendingAdviceHandle, joinedPending: boolean): boolean => {
       const retained = entry(advice)
       if (retained === undefined) return false
       const result = owner.transition({
         kind: "collectionReady",
         advice: advice.canonicalOperationId,
         partition: owner.partitionId(advice.partition),
-        lifetime: owner.canonicalLifetime,
-        round: advice.canonicalRound,
-        observation: advice.admissionId,
+        lifetime: owner.canonicalLifetimeId,
+        round: advice.canonicalRoundId,
+        observation: advice.canonicalObservationId,
         joinedPending
       })
       const command = result.outputs[0]?.kind
@@ -174,20 +182,24 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       write(advice, { ...retained.content, collectionEligible: true })
       return true
     },
-    revise: (advice: Advice, evaluations: ReadonlyArray<EvaluatedUnit>, findings: ReadonlyArray<Finding>): boolean => {
+    revise: (
+      advice: PendingAdviceHandle,
+      evaluations: ReadonlyArray<EvaluatedReviewUnit>,
+      findings: ReadonlyArray<Finding>
+    ): boolean => {
       const retained = entry(advice)
       if (retained === undefined) return false
       recordFindingCount(advice, findings.length)
       write(advice, { ...retained.content, evaluations, findings })
       return true
     },
-    reserveLease: (advice: Advice, token: string): boolean => {
+    reserveLease: (advice: PendingAdviceHandle, token: string): boolean => {
       const retained = entry(advice)
       if (retained === undefined || retained.content.delivery !== undefined) return false
       const result = owner.transition({
         kind: "collectionReserveLease",
         advice: advice.canonicalOperationId,
-        token: owner.collectionTokenId(token)
+        token: owner.internAdviceHandoffIdentity(token)
       })
       const command = result.outputs[0]?.kind
       if (
@@ -198,11 +210,11 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       if (command === "collectionLeaseRefused") return false
       write(advice, {
         ...retained.content,
-        delivery: { token, findings: [], leaseUntil: Number.POSITIVE_INFINITY, acknowledged: false }
+        delivery: { token, findings: [], leaseUntil: Number.POSITIVE_INFINITY, submissionRecorded: false }
       })
       return true
     },
-    releaseLease: (advice: Advice, token?: string): boolean => {
+    releaseLease: (advice: PendingAdviceHandle, token?: string): boolean => {
       const retained = entry(advice)
       const delivery = retained?.content.delivery
       if (retained === undefined || delivery === undefined || (token !== undefined && token !== delivery.token))
@@ -210,7 +222,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       const result = owner.transition({
         kind: "collectionReleaseLease",
         advice: advice.canonicalOperationId,
-        token: owner.collectionTokenId(delivery.token)
+        token: owner.internAdviceHandoffIdentity(delivery.token)
       })
       if (result.rejection !== undefined || result.outputs[0]?.kind !== "collectionLeaseReleased")
         throw new Error("canonical advice lease release refused")
@@ -219,7 +231,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       return true
     },
     checkLease: (
-      advice: Advice,
+      advice: PendingAdviceHandle,
       now: number,
       stopCollector: boolean,
       sameGroup: boolean,
@@ -231,7 +243,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       const result = owner.transition({
         kind: "collectionLeaseCheck",
         advice: advice.canonicalOperationId,
-        token: owner.collectionTokenId(delivery.token),
+        token: owner.internAdviceHandoffIdentity(delivery.token),
         expired: delivery.leaseUntil <= now,
         stopCollector,
         sameGroup,
@@ -245,7 +257,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
       } else if (command !== "collectionLeaseKept") throw new Error("invalid canonical collection lease check")
     },
     updateDelivery,
-    remove: (advice: Advice, token?: string): boolean => {
+    remove: (advice: PendingAdviceHandle, token?: string): boolean => {
       const retained = entry(advice)
       if (retained === undefined || (token !== undefined && token !== retained.content.delivery?.token)) return false
       const retired = owner.transition({ kind: "collectionRetireAdvice", advice: advice.canonicalOperationId })
@@ -261,7 +273,7 @@ export const adviceRecordOperations = (draft: ReturnType<typeof draftAdviceRecor
         const lease = leases.find((lease) => lease.advice === advice.canonicalOperationId)
         if (
           (content.delivery === undefined) !== (lease === undefined) ||
-          (content.delivery !== undefined && lease?.owner !== owner.collectionTokenId(content.delivery.token))
+          (content.delivery !== undefined && lease?.owner !== owner.internAdviceHandoffIdentity(content.delivery.token))
         )
           throw new Error("native advice delivery differs from canonical lease")
       }

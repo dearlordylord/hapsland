@@ -126,7 +126,7 @@ try {
       )
       assert.ok(
         diagram.includes(
-          `Jev: agent ${projection.dispatch.requests.length} · shared ${projection.dispatch.requests.length}/${projection.executionLimits.jevRequests}`
+          `Jev: agent ${projection.dispatch.reviewServiceRequests.length} · shared ${projection.dispatch.reviewServiceRequests.length}/${projection.executionLimits.reviewServiceRequests}`
         )
       )
       assert.equal(await panel.locator(".shared-capacity-bar").count(), 0)
@@ -923,8 +923,10 @@ try {
   await waveFill("Cyclic import edges (%)", 100)
   await waveFill("Local analysis work per file", 1)
   await waveClick("Apply to future preparations")
-  const issued = await waveUntil((current) => current.projection.dispatch.requests.some((request) => !request.started))
-  const target = issued.projection.dispatch.requests.find((request) => !request.started)
+  const issued = await waveUntil((current) =>
+    current.projection.dispatch.reviewServiceRequests.some((request) => !request.started)
+  )
+  const target = issued.projection.dispatch.reviewServiceRequests.find((request) => !request.started)
   const faultPanel = panel.locator(".simulation-jev-interventions")
   if (!(await faultPanel.getByRole("button", { name: "Never sent", exact: true }).isVisible()))
     await faultPanel.locator("summary").click()
@@ -939,9 +941,11 @@ try {
   assert.match(await faultPanel.getByLabel("Jev intervention results").innerText(), /neverSent.*Applied/)
   await waveClick("Inject edit burst")
   const second = await waveUntil((current) =>
-    current.projection.dispatch.requests.some((request) => request.operation !== target.operation && request.started)
+    current.projection.dispatch.reviewServiceRequests.some(
+      (request) => request.operation !== target.operation && request.started
+    )
   )
-  const active = second.projection.dispatch.requests.find(
+  const active = second.projection.dispatch.reviewServiceRequests.find(
     (request) => request.operation !== target.operation && request.started
   )
   const activeField = faultPanel

@@ -1,7 +1,7 @@
-import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
-import type { EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
+import { canonicalValue, type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
+import type { EvaluatedReviewUnit } from "@hapsland/review-execution/direct-event/pipeline"
 import type { CapacityLedger } from "./capacity/operations.ts"
-import type { CapacityReservation } from "./capacity/model.ts"
+import type { ReviewCapacityReservationHandle } from "./capacity/model.ts"
 
 export const SUCCESS_CACHE_ENTRY_LIMIT = 8
 export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024
@@ -10,12 +10,12 @@ export const SUCCESS_CACHE_BYTE_LIMIT = 128 * 1024
  * Identity for one logical evaluation. Advicee/root isolation comes from the
  * partition; event ids, source snapshots, and scheduler bookkeeping are absent.
  */
-export const residentEvaluationIdentity = (partition: string, prepared: PreparedUnit): string =>
+export const residentEvaluationIdentity = (partition: string, prepared: PreparedReviewUnit): string =>
   canonicalValue({ partition, input: prepared.identity })
 
-export type CachedEvaluation = { readonly evaluation: EvaluatedUnit; readonly logicalBytes: number }
+export type CachedEvaluation = { readonly evaluation: EvaluatedReviewUnit; readonly logicalBytes: number }
 
-type CacheEntry = CachedEvaluation & { readonly key: string; readonly reservation: CapacityReservation }
+type CacheEntry = CachedEvaluation & { readonly key: string; readonly reservation: ReviewCapacityReservationHandle }
 
 export type EvaluationReuseState<Pending> = {
   readonly pending: ReadonlyMap<string, Pending | undefined>
@@ -53,7 +53,7 @@ export const draftEvaluationReuse = <Pending>(
 
 /** Read-only operations over the owned record; mutable registries stay private. */
 export const evaluationReuseView = <Pending>(state: EvaluationReuseState<Pending>, ledger: CapacityLedger) => {
-  function key(partition: string, prepared: PreparedUnit): string {
+  function key(partition: string, prepared: PreparedReviewUnit): string {
     return residentEvaluationIdentity(partition, prepared)
   }
 
@@ -226,7 +226,12 @@ export const evaluationReuseOperations = <Pending>(
     forgetUnused(key)
     return false
   }
-  function commitCache(partition: string, id: number, logicalBytes: number, reservation: CapacityReservation): void {
+  function commitCache(
+    partition: string,
+    id: number,
+    logicalBytes: number,
+    reservation: ReviewCapacityReservationHandle
+  ): void {
     const command = ledger.transition({
       kind: "cacheCommit",
       id,
@@ -242,7 +247,7 @@ export const evaluationReuseOperations = <Pending>(
     }
   }
 
-  function put(partition: string, key: string, evaluation: EvaluatedUnit): boolean {
+  function put(partition: string, key: string, evaluation: EvaluatedReviewUnit): boolean {
     const id = reuseId(key)
     const logicalBytes = measureLogicalBytes({ key, evaluation })
     const plan = ledger.transition({

@@ -33,14 +33,14 @@ import {
 } from "./controls.ts"
 import type { AdviceeLifecycleEntry } from "./advicee-lifecycle.ts"
 import { type encodePermitCapture, type PermitLimits, type PermitProfile } from "./permit-controls.ts"
-import type { JevInterventionReport } from "./jev-interventions.ts"
+import type { ReviewServiceInterventionReport } from "./jev-interventions.ts"
 import { type SessionConfig, type SessionInput } from "./session.ts"
 import {
   type initialCanonical,
   type CanonicalEvent,
   type CanonicalOutput,
   type CanonicalProjection,
-  type JevRequestOutcome
+  type ReviewServiceRequestOutcome
 } from "@hapsland/canonical-policy/canonical/adapter"
 import type { LifecycleProfile, CapacityMetadata } from "./lifecycle-profile.ts"
 export * from "./writer-controls.ts"
@@ -60,9 +60,9 @@ export * from "./jev-interventions.ts"
 export { SessionGenerator } from "./session.ts"
 export type { SessionConfig, SessionInput, SessionControl } from "./session.ts"
 export * from "./sizes.ts"
-export type { CanonicalEvent, CanonicalOutput, CanonicalProjection, JevRequestOutcome }
+export type { CanonicalEvent, CanonicalOutput, CanonicalProjection, ReviewServiceRequestOutcome }
 export type {
-  CanonicalActionRequest,
+  ResidentActionCommand,
   CanonicalDomainEvent,
   CanonicalPolicyDecision
 } from "@hapsland/canonical-policy/canonical/adapter"
@@ -79,7 +79,7 @@ export type RunInput =
           readonly kind: "edit"
           readonly bytes: number
           readonly unitBytes: readonly number[]
-          readonly outcome?: JevRequestOutcome
+          readonly outcome?: ReviewServiceRequestOutcome
           readonly tool?: number
           readonly editDurationMs?: number
           /** Exact source-free prepared evaluation identities, one per review unit. */
@@ -110,10 +110,15 @@ export type EffectObservation =
       readonly kind: "jev"
       readonly phase: "started"
       readonly operation: number
-      readonly request: number
+      readonly reviewServiceRequestId: number
       readonly due: number
     }
-  | { readonly kind: "jev"; readonly phase: "supplied"; readonly operation: number; readonly request: number }
+  | {
+      readonly kind: "jev"
+      readonly phase: "supplied"
+      readonly operation: number
+      readonly reviewServiceRequestId: number
+    }
   | { readonly kind: "advice"; readonly phase: "supplied"; readonly advice: number }
   | { readonly kind: "output"; readonly phase: "started"; readonly advices: readonly number[] }
   | { readonly kind: "cancellation"; readonly phase: "supplied"; readonly operation: number }
@@ -150,7 +155,7 @@ export type RunObservation = {
   readonly outputReports: readonly OutputAttemptReport[]
   readonly outputAttempts: readonly OutputAttemptObservation[]
   readonly adviceeLifecycles: readonly AdviceeLifecycleEntry[]
-  readonly interventions: readonly JevInterventionReport[]
+  readonly interventions: readonly ReviewServiceInterventionReport[]
   readonly now: number
   readonly eventCount: number
   readonly projection: CanonicalProjection
@@ -274,7 +279,10 @@ export type RunRuntimeSnapshot = {
     number,
     Extract<RunInput, { kind: "edit" }> & { readonly driverSourceJob?: Scheduled["driverSourceJob"] }
   ])[]
-  readonly issuedRequests: readonly (readonly [number, Extract<CanonicalOutput, { kind: "jevRequestIssued" }>])[]
+  readonly issuedReviewServiceRequestIds: readonly (readonly [
+    number,
+    Extract<CanonicalOutput, { kind: "reviewServiceRequestIssued" }>
+  ])[]
   readonly retainedCallbacks: readonly {
     readonly order: number
     readonly receipt: CallbackReceipt
@@ -284,7 +292,7 @@ export type RunRuntimeSnapshot = {
   readonly order: number
   readonly eventCount: number
   readonly jevDelay: number
-  readonly outcome: JevRequestOutcome | undefined
+  readonly outcome: ReviewServiceRequestOutcome | undefined
   readonly outcomeWeights: OutcomeWeights
   readonly environment: EnvironmentProfile
   readonly outputProfile: OutputProfile
@@ -389,7 +397,7 @@ export class Run {
   get futurePermitProfile(): PermitProfile {
     return this.host.futurePermitProfile
   }
-  get interventions(): readonly JevInterventionReport[] {
+  get interventions(): readonly ReviewServiceInterventionReport[] {
     return this.host.interventions
   }
   observe(): RunObservation {
@@ -452,9 +460,15 @@ export class Run {
       throw new RangeError("unknown agent control target")
     if (
       value.agent !== undefined &&
-      ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(
-        value.kind
-      )
+      [
+        "environment",
+        "jevProfile",
+        "outputProfile",
+        "fileTrees",
+        "credentials",
+        "reviewServiceRequest",
+        "graphLimits"
+      ].includes(value.kind)
     )
       throw new TypeError("resident controls cannot target one agent")
     this.host.control(value, this.timelineOrder)

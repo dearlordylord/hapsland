@@ -109,7 +109,7 @@ try {
       assert.equal(list(facts.world.towers).length, 0, "late construction really waits ten physical ticks")
   }
   const products = (id) => witnesses[id].frames.filter((frame) => frame.$ === "NativeRunTypes.ProductFrame")
-  const settlements = (id) => products(id).filter((frame) => frame.event.$ === "Canonical.JevRequestSettled")
+  const settlements = (id) => products(id).filter((frame) => frame.event.$ === "Canonical.ReviewServiceRequestSettled")
   const settledAt = (id, operation) => settlements(id).find((frame) => frame.event.operation === operation)?.time
   const recipients = (id) => [...witnesses[id].recipients.values()]
   const operations = (id) => [...new Set(recipients(id).map((target) => target.owner.operation))].sort((a, b) => a - b)
@@ -165,14 +165,16 @@ try {
     assert.ok(
       lateB &&
         list(lateB.outputs).some(
-          (output) => output.$ === "Canonical.PolicyDecided" && output.decision.$ === "Canonical.JevObservationIgnored"
+          (output) =>
+            output.$ === "Canonical.PolicyDecided" &&
+            output.decision.$ === "Canonical.ReviewServiceRequestObservationIgnored"
         ),
       "cancelled B's later physical callback remains visible and fenced"
     )
   }
   const tie = products(12)
   assert.ok(
-    tie.findIndex((frame) => frame.event.$ === "Canonical.JevRequestSettled" && frame.event.operation === 3) <
+    tie.findIndex((frame) => frame.event.$ === "Canonical.ReviewServiceRequestSettled" && frame.event.operation === 3) <
       tie.findIndex((frame) => frame.event.$ === "Canonical.FinishAuthorize"),
     "actual exact-cutoff event order: A callback before authorization"
   )
@@ -184,12 +186,14 @@ try {
   for (const frame of settlements(13))
     assert.ok(
       list(frame.outputs).some(
-        (output) => output.$ === "Canonical.PolicyDecided" && output.decision.$ === "Canonical.JevObservationIgnored"
+        (output) =>
+          output.$ === "Canonical.PolicyDecided" &&
+          output.decision.$ === "Canonical.ReviewServiceRequestObservationIgnored"
       ),
       "before-boundary cancellation fences subsequent results"
     )
   assert.equal(
-    recipients(14).filter((target) => target.effect.kind === "jevSettled").length,
+    recipients(14).filter((target) => target.effect.kind === "reviewServiceRequestSettled").length,
     2,
     "two automatic towers hit distinct exact reviews in the eight-review workload"
   )

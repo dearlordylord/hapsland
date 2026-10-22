@@ -102,23 +102,23 @@ law canonical_cross_advicee_identity_is_distinct:
 
 law canonical_pending_work_blocks_finish:
   {Canonical.pending(1n, 1n, 1n,
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 0n} <> Nil{}) ==
+    Canonical.ReviewWorkRecord{1n, 1n, 1n, 3n, 2n, Canonical.Reviewing{}, 0n} <> Nil{}) ==
     True{} : Bool}
 
 law canonical_completed_finding_does_not_block_finish:
   {Canonical.pending(1n, 1n, 1n,
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.PendingFinding{1n}, 1n} <> Nil{}) ==
+    Canonical.ReviewWorkRecord{1n, 1n, 1n, 3n, 2n, Canonical.PendingFinding{1n}, 1n} <> Nil{}) ==
     False{} : Bool}
 
 law canonical_source_without_charge_blocks_finish:
   {Canonical.pending(1n, 1n, 1n,
-    Canonical.Work{1n, 1n, 1n, 2n, 0n, Canonical.SourceReading{}, 0n} <> Nil{}) ==
+    Canonical.ReviewWorkRecord{1n, 1n, 1n, 2n, 0n, Canonical.SourceReading{}, 0n} <> Nil{}) ==
     True{} : Bool}
 
 law dispatch_first_item_starts_immediately:
   {Dispatch.enqueue(Dispatch.initial(), 1n, 1n, 1n, 7n, True{}) ==
     Dispatch.Advanced{Dispatch.State{Nil{},
-      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 7n, 0n, False{}, True{}} <> Nil{},
       1n, False{}, Nil{}},
       Dispatch.Started{7n, 0n} <> Nil{}} : Dispatch.DispatchResult}
 
@@ -128,36 +128,46 @@ law dispatch_has_eight_shared_slots:
 
 law dispatch_review_passes_full_preparation_queue:
   {Dispatch.pump_queued(
-    Dispatch.Entry{1n, 1n, 1n, 9n, 9n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
-    Dispatch.Entry{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
-      Dispatch.Entry{1n, 1n, 1n, 8n, 8n, False{}, True{}} <> Nil{},
+    Dispatch.ScheduledReviewWork{1n, 1n, 1n, 9n, 9n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
+    Dispatch.ScheduledReviewWork{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 8n, 8n, False{}, True{}} <> Nil{},
     11n, False{}, Nil{}) ==
     Dispatch.Advanced{Dispatch.State{
-      Dispatch.Entry{1n, 1n, 1n, 9n, 9n, False{}, True{}} <> Nil{},
-      Dispatch.Entry{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 8n, 8n, False{}, True{}} <>
-        Dispatch.Entry{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 9n, 9n, False{}, True{}} <> Nil{},
+      Dispatch.ScheduledReviewWork{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 8n, 8n, False{}, True{}} <>
+        Dispatch.ScheduledReviewWork{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
       11n, False{}, Nil{}}, Dispatch.Started{10n, 10n} <> Nil{}} : Dispatch.DispatchResult}
 
 law canonical_deadline_releases_exact_charge:
-  {Canonical.release_round_charges(
-    Canonical.Work{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}, 0n} <> Nil{},
-    Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n,
-      Ledger.Charge{2n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 1n, 1n) ==
-    Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n, Nil{}} : Ledger.Ledger}
+  {
+    Canonical.release_round_charges(
+      Canonical.ReviewWorkRecord{1n, 1n, 1n, 3n, 2n, Canonical.Preparing{}, 0n} <> Nil{},
+      Ledger.Ledger{
+        Ledger.Limits{3n, 100n, 2n, 60n},
+        3n,
+        Ledger.ReviewCapacityReservationRecord{2n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n,
+      1n,
+      1n
+    )
+    == Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 3n, Nil{}}
+    : Ledger.Ledger
+  }
 
 law canonical_uncertain_write_is_not_acknowledged:
   {Canonical.write_is_unknown(Canonical.Unknown{}) == True{} : Bool}
@@ -173,24 +183,24 @@ law canonical_capacity_view_uses_bend_ledger_totals:
       Ledger.Ledger{
         Ledger.Limits{3n, 100n, 2n, 60n},
         3n,
-        Ledger.Charge{
+        Ledger.ReviewCapacityReservationRecord{
           1n,
           1n,
           10n,
           Ledger.ReviewUnit{}
-        } <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+        } <> Ledger.ReviewCapacityReservationRecord{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
       },
       1n
     )
     == Canonical.CapacityView{
       Ledger.Usage{2n, 30n},
       Ledger.Usage{1n, 10n},
-      Ledger.Charge{
+      Ledger.ReviewCapacityReservationRecord{
         1n,
         1n,
         10n,
         Ledger.ReviewUnit{}
-      } <> Ledger.Charge{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      } <> Ledger.ReviewCapacityReservationRecord{2n, 2n, 20n, Ledger.ReviewUnit{}} <> Nil{}
     }
     : Canonical.CapacityView
   }
@@ -379,10 +389,10 @@ law canonical_expired_permit_does_not_create_round:
 
 law ledger_resize_changes_purpose_without_new_reservation:
   {Ledger.resize_for(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
-    Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}},
+    Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}},
     1n, 20n, Ledger.StoredResult{}) ==
     Ledger.Granted{Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.StoredResult{}} <> Nil{}}, 1n}
+      Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.StoredResult{}} <> Nil{}}, 1n}
     : Ledger.LedgerResult}
 
 def graph_limits() -> ImportGraph.Limits:
@@ -1307,7 +1317,7 @@ law unconsumed_permit_cannot_close_a_round:
 law finding_enters_pending_advice:
   for item: Nat
   {
-    Advicing.receive_finding(Advicing.AtJev{item})
+    Advicing.receive_finding(Advicing.ReviewServiceRequestOutstanding{item})
     == Advicing.AdvicePending{item}
     : Advicing.PendingAdvice
   }
@@ -1317,11 +1327,14 @@ law finding_enters_pending_advice:
 law finding_preserves_second_value:
   for item: Nat
   for second_item: Nat
-  {Advicing.receive_finding_with_second(
-    Advicing.AtJev{item}, Advicing.AtJev{second_item}
-  ) == (
-    Advicing.AdvicePending{item}, Advicing.AtJev{second_item}
-  ) : Advicing.PendingAdvice & Advicing.Jeview}
+  {
+    Advicing.receive_finding_with_second(
+      Advicing.ReviewServiceRequestOutstanding{item},
+      Advicing.ReviewServiceRequestOutstanding{second_item}
+    )
+    == (Advicing.AdvicePending{item}, Advicing.ReviewServiceRequestOutstanding{second_item})
+    : Advicing.PendingAdvice & Advicing.Jeview
+  }
 
 
 def permit_issued() -> Admission.AdmissionState:
@@ -1446,9 +1459,9 @@ def one_reading() -> Work.Work:
 
 def four_units() -> Work.Work:
   Work.Work{2n, 5n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-    Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
-    Work.ReviewUnit{2n, 1n, Work.AtJev{}, 0n, 0n} <>
-    Work.ReviewUnit{3n, 1n, Work.AtJev{}, 0n, 0n} <>
+    Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
+    Work.ReviewUnit{2n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
+    Work.ReviewUnit{3n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
     Work.ReviewUnit{4n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}}
 
 law fanout_keeps_each_review_unfinished:
@@ -1459,10 +1472,21 @@ law four_units_count_as_four_unfinished:
   {Work.unfinished(four_units()) == 4n : Nat}
 
 law streamed_fanout_keeps_source_open:
-  {Work.spawn(one_reading(), 1n, 1n) ==
-    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
-      Work.Observation{1n, Work.SourceReading{}} <> Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, 1n <> Nil{}} : Work.WorkStep}
+  {
+    Work.spawn(one_reading(), 1n, 1n)
+    == Work.Accepted{
+      Work.Work{
+        2n,
+        2n,
+        Flow.Capacity{3n, 0n},
+        Flow.Capacity{3n, 0n},
+        Work.Observation{1n, Work.SourceReading{}} <> Nil{},
+        Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}
+      },
+      1n <> Nil{}
+    }
+    : Work.WorkStep
+  }
 
 law running_source_overrides_logical_queue_projection:
   {Work.start_source(Work.Work{2n, 1n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
@@ -1470,10 +1494,31 @@ law running_source_overrides_logical_queue_projection:
     Work.Accepted{one_reading(), Nil{}} : Work.WorkStep}
 
 law running_review_overrides_logical_queue_projection:
-  {Work.start_unit(Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-      Work.ReviewUnit{1n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}}, 1n) ==
-    Work.Accepted{Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}, Nil{}} : Work.WorkStep}
+  {
+    Work.start_unit(
+      Work.Work{
+        2n,
+        2n,
+        Flow.Capacity{3n, 0n},
+        Flow.Capacity{3n, 0n},
+        Nil{},
+        Work.ReviewUnit{1n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}
+      },
+      1n
+    )
+    == Work.Accepted{
+      Work.Work{
+        2n,
+        2n,
+        Flow.Capacity{3n, 0n},
+        Flow.Capacity{3n, 0n},
+        Nil{},
+        Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}
+      },
+      Nil{}
+    }
+    : Work.WorkStep
+  }
 
 law source_completion_removes_only_source_work:
   {Work.complete_source(one_reading(), 1n) ==
@@ -1510,7 +1555,7 @@ law unfinished_unit_cannot_retire:
         Flow.Capacity{3n, 0n},
         Flow.Capacity{3n, 0n},
         Nil{},
-        Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}
+        Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}
       },
       1n
     )
@@ -1521,7 +1566,7 @@ law unfinished_unit_cannot_retire:
         Flow.Capacity{3n, 0n},
         Flow.Capacity{3n, 0n},
         Nil{},
-        Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}
+        Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}
       },
       Work.UnitStillUnfinished{}
     }
@@ -1544,9 +1589,9 @@ law finish_deadline_or_budget_ends_wait:
 law lowering_review_capacity_preserves_active_units:
   {Work.set_review_capacity(four_units(), Flow.Capacity{1n, 0n}) ==
     Work.Accepted{Work.Work{2n, 5n, Flow.Capacity{3n, 0n}, Flow.Capacity{1n, 0n}, Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
-      Work.ReviewUnit{2n, 1n, Work.AtJev{}, 0n, 0n} <>
-      Work.ReviewUnit{3n, 1n, Work.AtJev{}, 0n, 0n} <>
+      Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
+      Work.ReviewUnit{2n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
+      Work.ReviewUnit{3n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
       Work.ReviewUnit{4n, 1n, Work.ReviewQueued{}, 0n, 0n} <> Nil{}}, Nil{}} : Work.WorkStep}
 
 law zero_units_settle_quietly:
@@ -1562,11 +1607,11 @@ law zero_units_settle_quietly:
 law first_result_preserves_other_review_work:
   {Work.unfinished(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
     Work.ReviewUnit{1n, 1n, Work.PendingFinding{}, 1n, 20n} <>
-    Work.ReviewUnit{2n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}) == 1n : Nat}
+    Work.ReviewUnit{2n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}}) == 1n : Nat}
 
 def one_work_at_jev() -> Work.Work:
   Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-    Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}
+    Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}}
 
 law clear_result_is_not_finding:
   {Work.outcome(one_work_at_jev(), 1n, Work.Clear{}) ==
@@ -1596,7 +1641,7 @@ law interrupted_source_does_not_leave_unfinished_work:
 law decision_cancels_all_unfinished_but_keeps_advice:
   {Work.cancel_unfinished(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
       Work.Observation{1n, Work.SourceReading{}} <> Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
+      Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
       Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}) ==
     Work.Cancelled{Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
       Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}},
@@ -1605,7 +1650,7 @@ law decision_cancels_all_unfinished_but_keeps_advice:
 def cutoff_work() -> Work.Work:
   Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
     Work.Observation{1n, Work.SourceReading{}} <> Nil{},
-    Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
+    Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
     Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 20n} <> Nil{}}
 
 def claimed_round() -> Round.Round:
@@ -1705,8 +1750,8 @@ law wrong_stop_cannot_release_output:
       Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}, 8n) ==
     Round.Denied{Round.Round{1n, True{}, 0n, 1n, 7n, True{}, True{}, True{}}} : Round.Step}
 
-def current_advice() -> Handoff.Advice:
-  Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
+def current_advice() -> Handoff.FindingCandidate:
+  Handoff.FindingCandidate{7n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}
 
 law handoff_selects_fitting_findings:
   {
@@ -1731,19 +1776,19 @@ law handoff_rejects_stale_generation:
 
 law handoff_rejects_stale_snapshot:
   {Handoff.select(Handoff.initial(9n, 1n),
-    Handoff.Advice{7n, 4n, 9n, 1n, 2n, 4n, 3n, 3n, 25n, 300n, True{}}, 300n) ==
+    Handoff.FindingCandidate{7n, 4n, 9n, 1n, 2n, 4n, 3n, 3n, 25n, 300n, True{}}, 300n) ==
     Handoff.Expired{Handoff.initial(9n, 1n)} : Handoff.SelectResult}
 
 law handoff_rejects_stale_credential:
   {Handoff.select(Handoff.initial(9n, 1n),
-    Handoff.Advice{7n, 4n, 9n, 1n, 2n, 2n, 3n, 4n, 25n, 300n, True{}}, 300n) ==
+    Handoff.FindingCandidate{7n, 4n, 9n, 1n, 2n, 2n, 3n, 4n, 25n, 300n, True{}}, 300n) ==
     Handoff.Expired{Handoff.initial(9n, 1n)} : Handoff.SelectResult}
 
 law individually_oversized_finding_has_limitation:
   {
     Handoff.select(
       Handoff.initial(9n, 1n),
-      Handoff.Advice{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 10241n, True{}},
+      Handoff.FindingCandidate{8n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 10241n, True{}},
       10241n
     )
     == Handoff.Limited{Handoff.Selection{9n, 1n, Nil{}, 8n <> Nil{}, 0n, 0n}, 8n}
@@ -1760,7 +1805,7 @@ law same_finding_cannot_be_selected_twice:
 law sixth_finding_from_same_unit_is_selected_when_bytes_fit:
   {Handoff.select(Handoff.Selection{9n, 1n,
       1n <> 2n <> 3n <> 4n <> 5n <> Nil{}, Nil{}, 5n, 1800n},
-    Handoff.Advice{6n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}, 1900n) ==
+    Handoff.FindingCandidate{6n, 4n, 9n, 1n, 2n, 2n, 3n, 3n, 25n, 300n, True{}}, 1900n) ==
     Handoff.Selected{Handoff.Selection{9n, 1n,
       1n <> 2n <> 3n <> 4n <> 5n <> 6n <> Nil{}, Nil{}, 6n, 1900n}} : Handoff.SelectResult}
 
@@ -1904,7 +1949,7 @@ law finish_cannot_invent_actionable_finding:
 law closing_work_names_active_cancellations:
   {Work.close(Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n},
       Work.Observation{1n, Work.SourceReading{}} <> Nil{},
-      Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <>
+      Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <>
       Work.ReviewUnit{2n, 1n, Work.PendingFinding{}, 1n, 100n} <> Nil{}}) ==
     Work.Closed{Work.Work{2n, 3n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{}, Nil{}},
       1n <> Nil{}, 1n <> Nil{}, 2n <> Nil{}} : Work.CloseResult}
@@ -1913,31 +1958,82 @@ def small_limits() -> Ledger.Limits:
   Ledger.Limits{4n, 100n, 2n, 60n}
 
 law ledger_accepts_exact_partition_byte_limit:
-  {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 40n) ==
-    Ledger.Granted{Ledger.Ledger{small_limits(), 3n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <>
-      Ledger.Charge{2n, 1n, 40n, Ledger.ReviewUnit{}} <> Nil{}}, 2n} : Ledger.LedgerResult}
+  {
+    Ledger.reserve(
+      Ledger.Ledger{
+        small_limits(),
+        2n,
+        Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n,
+      40n
+    )
+    == Ledger.Granted{
+      Ledger.Ledger{
+        small_limits(),
+        3n,
+        Ledger.ReviewCapacityReservationRecord{
+          1n,
+          1n,
+          20n,
+          Ledger.ReviewUnit{}
+        } <> Ledger.ReviewCapacityReservationRecord{2n, 1n, 40n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      2n
+    }
+    : Ledger.LedgerResult
+  }
 
 law ledger_rejects_one_byte_over_partition_limit:
-  {Ledger.reserve(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 41n) ==
-    Ledger.Rejected{Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}} : Ledger.LedgerResult}
+  {
+    Ledger.reserve(
+      Ledger.Ledger{
+        small_limits(),
+        2n,
+        Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n,
+      41n
+    )
+    == Ledger.Rejected{
+      Ledger.Ledger{
+        small_limits(),
+        2n,
+        Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      }
+    }
+    : Ledger.LedgerResult
+  }
 
 law ledger_unknown_release_cannot_change_state:
   {Ledger.release(Ledger.initial(small_limits()), 1n) ==
     Ledger.Rejected{Ledger.initial(small_limits())} : Ledger.LedgerResult}
 
 law ledger_resize_preserves_id_and_count:
-  {Ledger.resize(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}, 1n, 60n) ==
-    Ledger.Granted{Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 60n, Ledger.ReviewUnit{}} <> Nil{}}, 1n} : Ledger.LedgerResult}
+  {
+    Ledger.resize(
+      Ledger.Ledger{
+        small_limits(),
+        2n,
+        Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n,
+      60n
+    )
+    == Ledger.Granted{
+      Ledger.Ledger{
+        small_limits(),
+        2n,
+        Ledger.ReviewCapacityReservationRecord{1n, 1n, 60n, Ledger.ReviewUnit{}} <> Nil{}
+      },
+      1n
+    }
+    : Ledger.LedgerResult
+  }
 
 law ledger_clear_keeps_monotonic_reservation_ids:
   {Ledger.clear(Ledger.Ledger{small_limits(), 2n,
-      Ledger.Charge{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}) ==
+      Ledger.ReviewCapacityReservationRecord{1n, 1n, 20n, Ledger.ReviewUnit{}} <> Nil{}}) ==
     Ledger.Ledger{small_limits(), 2n, Nil{}} : Ledger.Ledger}
 
 law privacy_protection_precedes_generated_and_kind:

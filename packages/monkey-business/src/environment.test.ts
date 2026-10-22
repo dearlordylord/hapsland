@@ -12,12 +12,14 @@ it("dispatches review jobs through checked cohorts and new edits reattempt after
   run.advance({ untilTime: 10 })
   expect(run.projection.dispatch.running).toEqual([])
   expect(
-    run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestUnavailable"))
+    run.observations.some((frame) =>
+      frame.outputs.some((command) => command.kind === "reviewServiceRequestUnavailable")
+    )
   ).toBe(true)
   run.applyControl({ kind: "environment", currentWork: true, credentialReady: true })
   run.schedule({ ...edit, at: 11 })
   run.advance({ untilTime: 20 })
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   expect(run.observations.filter((frame) => frame.rejection).map((frame) => frame.event.kind)).toEqual([])
 })
 
@@ -27,14 +29,14 @@ it("checks stale work at callback settlement without overriding explicitly suppl
   run.applyControl({ kind: "environment", currentWork: false, credentialReady: true })
   run.advance({ untilTime: 22 })
   expect(run.projection.pendingFindings).toEqual([])
-  const settle = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
+  const settle = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestSettled")!
   expect(settle.event).toMatchObject({ currentWork: false })
   const explicit = createRun({ inputs: [], environment: { currentWork: true, credentialReady: true } })
   explicit.schedule({
     kind: "canonical",
     at: 0,
     event: {
-      kind: "jevRequestReady",
+      kind: "reviewServiceRequestReady",
       partition: 1,
       lifetime: 1,
       round: 1,
@@ -53,7 +55,7 @@ it("checks stale work at callback settlement without overriding explicitly suppl
 
 it("distinguishes temporary credential unavailability from rotation and changed/unreadable sources at handoff", () => {
   const run = createRun({ inputs: [edit] })
-  while (!run.observations.some((frame) => frame.event.kind === "jevRequestSettled")) run.step()
+  while (!run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled")) run.step()
   run.applyControl({ kind: "environment", currentWork: true, credentialReady: false })
   run.advance({ untilTime: 8 })
   expect(run.projection.pendingFindings).toHaveLength(1)
@@ -69,7 +71,7 @@ it("distinguishes temporary credential unavailability from rotation and changed/
     { currentWork: true, sourceReadable: false }
   ]) {
     const changed = createRun({ inputs: [edit] })
-    while (!changed.observations.some((frame) => frame.event.kind === "jevRequestSettled")) changed.step()
+    while (!changed.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled")) changed.step()
     changed.applyControl({ kind: "environment", ...facts, credentialReady: true })
     changed.advance({ untilTime: 8 })
     expect(changed.projection.pendingFindings).toEqual([])
@@ -120,7 +122,7 @@ it.each([profile("uncertain"), profile("certain", 50, 10)])(
     run.advance({ untilTime: 60 })
     expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(1)
     expect(run.observations.filter((frame) => frame.event.kind === "finishTerminal")).toHaveLength(1)
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
     expect(run.observations.filter((frame) => frame.rejection).map((frame) => frame.event.kind)).toEqual([])
     const replay = replayRun(run.exportReplay())
     replay.advance({ untilTime: 60 })

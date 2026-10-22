@@ -1,7 +1,7 @@
-import type { ResidentLedger, Job, UnitJob } from "../work-ownership/jobs.ts"
+import type { ResidentLedger, Job, ReviewUnitJob } from "../work-ownership/jobs.ts"
 import type { RoundWork } from "../state/round-records.ts"
-import type { Advice } from "../state/advice-records.ts"
-import type { Dispatcher } from "../state/dispatch.ts"
+import type { PendingAdviceHandle } from "../state/advice-records.ts"
+import type { ReviewWorkScheduler } from "../state/dispatch.ts"
 import { type Socket, createServer, type Server } from "node:net"
 import type { ResidentPaths } from "@hapsland/resident-transport/resident/paths"
 import * as Effect from "effect/Effect"
@@ -29,7 +29,7 @@ type LifecycleResources = {
   readonly residentStopExpiries: Map<string, Fiber.Fiber<void>>
   readonly residentIdleChecks: FiberHandle.FiberHandle<void, never>
   readonly residentQuietChecks: FiberHandle.FiberHandle<void, never>
-  readonly residentLifetimeController: AbortController
+  readonly residentInstanceIdController: AbortController
   readonly residentNow: () => number
   readonly residentNotices: ReturnType<ResidentLedger["notices"]>
   readonly residentReuse: ReturnType<ResidentLedger["reuse"]>
@@ -43,7 +43,7 @@ type LifecycleWorkflows = {
   readonly workLifecycle: {
     readonly sweepQuietRounds: (now: number) => Effect.Effect<number>
     readonly residentReleaseReuseClaim: (key: string) => Effect.Effect<void>
-    readonly residentReleaseUnit: (job: UnitJob) => Effect.Effect<void>
+    readonly residentReleaseUnit: (job: ReviewUnitJob) => Effect.Effect<void>
     readonly residentRemoveAdvice: (
       id: string,
       token?: string,
@@ -57,9 +57,9 @@ type LifecycleWorkflows = {
   }
 }
 type LifecyclePorts = {
-  readonly residentDispatcher: Dispatcher<string, Job>
+  readonly residentDispatcher: ReviewWorkScheduler<string, Job>
   readonly cleanup: () => Effect.Effect<"busy" | "cleaned">
-  readonly residentAdvice: () => Effect.Effect<readonly Advice[]>
+  readonly residentAdvice: () => Effect.Effect<readonly PendingAdviceHandle[]>
 }
 
 export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(function* (
@@ -76,7 +76,7 @@ export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(func
     residentStopExpiries,
     residentIdleChecks,
     residentQuietChecks,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentNow,
     residentNotices,
     residentControlScope,
@@ -217,7 +217,7 @@ export const makeResidentLifecycle = Effect.fn("ResidentRuntime.lifecycle")(func
     return Effect.uninterruptible(
       Effect.gen(function* () {
         yield* residentLedger.runtime.close()
-        residentLifetimeController.abort()
+        residentInstanceIdController.abort()
         yield* FiberHandle.clear(residentIdleChecks)
         yield* FiberHandle.clear(residentQuietChecks)
         yield* Fiber.interruptAll(residentStopExpiries.values())

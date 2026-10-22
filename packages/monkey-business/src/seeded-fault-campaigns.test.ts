@@ -48,7 +48,7 @@ function reproduce(run: Run): Run {
   return restored
 }
 function noPhysicalWork(run: Run) {
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
 }
@@ -59,7 +59,7 @@ it.each(seeds)("seed %i drains suspended finite faults and heals on the same res
   edit(run, agents[1], 0, "clear")
   advance(run, 3, 64)
   // PRE2 issues and starts both original requests before Jev5 completes.
-  expect(run.projection.dispatch.requests).toHaveLength(2)
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(2)
   expect(run.projection.global).toEqual({ items: 2, bytes: 10 })
   run.applyControl({ kind: "suspendArrivals", suspended: true })
   const restored = reproduce(run)
@@ -67,8 +67,12 @@ it.each(seeds)("seed %i drains suspended finite faults and heals on the same res
   expect(restored.observe()).toEqual(run.observe())
   expect(
     run.observations
-      .filter((frame) => frame.event.kind === "jevRequestSettled")
-      .map((frame) => [frame.time, frame.partition, frame.event.kind === "jevRequestSettled" && frame.event.outcome])
+      .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
+      .map((frame) => [
+        frame.time,
+        frame.partition,
+        frame.event.kind === "reviewServiceRequestSettled" && frame.event.outcome
+      ])
   ).toEqual([
     [7, 1, "backendFailure"],
     [7, 2, "clear"]
@@ -102,16 +106,16 @@ it.each(seeds)("seed %i progresses fresh healthy work while a peer stays faulty"
   const restored = reproduce(run)
   for (const candidate of [run, restored]) advance(candidate, 50, 192)
   expect(restored.observe()).toEqual(run.observe())
-  const settlements = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")
+  const settlements = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
   for (const partition of [1, 2]) {
     expect(settlements.filter((frame) => frame.partition === partition).map((frame) => frame.time)).toEqual([7, 27, 47])
     expect(
       settlements
         .filter((frame) => frame.partition === partition)
-        .map((frame) => frame.event.kind === "jevRequestSettled" && frame.event.outcome)
+        .map((frame) => frame.event.kind === "reviewServiceRequestSettled" && frame.event.outcome)
     ).toEqual(Array(3).fill(partition === 1 ? "backendFailure" : "clear"))
   }
-  expect(Math.max(...run.observations.map((frame) => frame.after.dispatch.requests.length))).toBe(2)
+  expect(Math.max(...run.observations.map((frame) => frame.after.dispatch.reviewServiceRequests.length))).toBe(2)
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   noPhysicalWork(run)
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
@@ -124,9 +128,11 @@ it.each(seeds)("seed %i refuses unavailable credentials then recovers without re
   edit(run, agents[0], 0, "finding")
   advance(run, 10, 128)
   expect(
-    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
+    run.observations
+      .flatMap((frame) => frame.outputs)
+      .filter((command) => command.kind === "reviewServiceRequestUnavailable")
   ).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toEqual([])
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toEqual([])
   expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   noPhysicalWork(run)

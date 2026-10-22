@@ -16,7 +16,9 @@ export const CanonicalConstructors = {
   "Canonical.SourceReading": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.SourceReading") })),
   "Canonical.Preparing": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Preparing") })),
   "Canonical.Reviewing": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Reviewing") })),
-  "Canonical.AtJev": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.AtJev") })),
+  "Canonical.ReviewServiceRequestOutstanding": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestOutstanding") })
+  ),
   "Admission.AdmissionState": Schema.suspend(() =>
     Schema.Struct({
       $: Schema.Literal("Admission.AdmissionState"),
@@ -58,8 +60,8 @@ export const CanonicalConstructors = {
   "Canonical.AdmissionForgotten": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.AdmissionForgotten") })
   ),
-  "Canonical.ActionRequested": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.ActionRequested"), request: Schema.Unknown })
+  "Canonical.ResidentActionRequested": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ResidentActionRequested"), command: Schema.Unknown })
   ),
   "Canonical.EventEstablished": Schema.suspend(() =>
     Schema.Struct({ $: Schema.Literal("Canonical.EventEstablished"), event: Schema.Unknown })
@@ -363,30 +365,30 @@ export const CanonicalConstructors = {
     Schema.Struct({ $: Schema.Literal("Canonical.IncludeChoice"), choice: Schema.Unknown })
   ),
   "Canonical.Interrupted": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Interrupted") })),
-  "Canonical.JevInterruptionRecorded": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.JevInterruptionRecorded") })
+  "Canonical.ReviewServiceRequestInterruptionRecorded": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestInterruptionRecorded") })
   ),
-  "Canonical.JevObservationIgnored": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.JevObservationIgnored") })
+  "Canonical.ReviewServiceRequestObservationIgnored": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestObservationIgnored") })
   ),
-  "Canonical.JevRequestIssued": Schema.suspend(() =>
+  "Canonical.ReviewServiceRequestIssued": Schema.suspend(() =>
     Schema.Struct({
-      $: Schema.Literal("Canonical.JevRequestIssued"),
+      $: Schema.Literal("Canonical.ReviewServiceRequestIssued"),
       partition: Nat,
       lifetime: Nat,
       round: Nat,
       operation: Nat,
-      request: Nat
+      review_service_request_id: Nat
     })
   ),
-  "Canonical.JevRequestOutcomeRecorded": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.JevRequestOutcomeRecorded"), outcome: Schema.Unknown })
+  "Canonical.ReviewServiceRequestOutcomeRecorded": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestOutcomeRecorded"), outcome: Schema.Unknown })
   ),
-  "Canonical.JevRequestStartRecorded": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.JevRequestStartRecorded") })
+  "Canonical.ReviewServiceRequestStartRecorded": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestStartRecorded") })
   ),
-  "Canonical.JevRequestUnavailable": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Canonical.JevRequestUnavailable") })
+  "Canonical.ReviewServiceRequestUnavailable": Schema.suspend(() =>
+    Schema.Struct({ $: Schema.Literal("Canonical.ReviewServiceRequestUnavailable") })
   ),
   "Canonical.NeverSent": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NeverSent") })),
   "Canonical.NoticeCommitted": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.NoticeCommitted") })),
@@ -698,9 +700,9 @@ export const CanonicalConstructors = {
   "Canonical.Unknown": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Unknown") })),
   "Canonical.WaitForOutput": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.WaitForOutput") })),
   "Canonical.WaitForWork": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.WaitForWork") })),
-  "Canonical.Work": Schema.suspend(() =>
+  "Canonical.ReviewWorkRecord": Schema.suspend(() =>
     Schema.Struct({
-      $: Schema.Literal("Canonical.Work"),
+      $: Schema.Literal("Canonical.ReviewWorkRecord"),
       partition: Nat,
       lifetime: Nat,
       round: Nat,
@@ -829,9 +831,9 @@ export const CanonicalConstructors = {
   ),
   "DeliveryState.Submitted": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("DeliveryState.Submitted") })),
   "DeliveryState.Uncertain": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("DeliveryState.Uncertain") })),
-  "Dispatch.Entry": Schema.suspend(() =>
+  "Dispatch.ScheduledReviewWork": Schema.suspend(() =>
     Schema.Struct({
-      $: Schema.Literal("Dispatch.Entry"),
+      $: Schema.Literal("Dispatch.ScheduledReviewWork"),
       partition: Nat,
       lifetime: Nat,
       round: Nat,
@@ -841,14 +843,14 @@ export const CanonicalConstructors = {
       preparation: Schema.Boolean
     })
   ),
-  "Dispatch.Request": Schema.suspend(() =>
+  "Dispatch.ReviewServiceRequestRecord": Schema.suspend(() =>
     Schema.Struct({
-      $: Schema.Literal("Dispatch.Request"),
+      $: Schema.Literal("Dispatch.ReviewServiceRequestRecord"),
       partition: Nat,
       lifetime: Nat,
       round: Nat,
       operation: Nat,
-      request: Nat,
+      review_service_request_id: Nat,
       started: Schema.Boolean,
       interrupted: Schema.Boolean
     })
@@ -860,7 +862,7 @@ export const CanonicalConstructors = {
       running: Schema.Unknown,
       next_sequence: Nat,
       closed: Schema.Boolean,
-      requests: Schema.Unknown
+      review_service_requests: Schema.Unknown
     })
   ),
   "EditHistory.Closed": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("EditHistory.Closed") })),
@@ -905,8 +907,14 @@ export const CanonicalConstructors = {
     Schema.Struct({ $: Schema.Literal("Handoff.Uncertain"), surface: Schema.Unknown })
   ),
   "Ledger.AdviceRecheck": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Ledger.AdviceRecheck") })),
-  "Ledger.Charge": Schema.suspend(() =>
-    Schema.Struct({ $: Schema.Literal("Ledger.Charge"), id: Nat, partition: Nat, bytes: Nat, purpose: Schema.Unknown })
+  "Ledger.ReviewCapacityReservationRecord": Schema.suspend(() =>
+    Schema.Struct({
+      $: Schema.Literal("Ledger.ReviewCapacityReservationRecord"),
+      id: Nat,
+      partition: Nat,
+      bytes: Nat,
+      purpose: Schema.Unknown
+    })
   ),
   "Ledger.GlobalByteLimit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Ledger.GlobalByteLimit") })),
   "Ledger.GlobalItemLimit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Ledger.GlobalItemLimit") })),

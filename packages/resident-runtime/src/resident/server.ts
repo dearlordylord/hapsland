@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect"
 import * as Deferred from "effect/Deferred"
 import { resolveResidentPaths, type ResidentPaths } from "@hapsland/resident-transport/resident/paths"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { makeDispatcher, type Dispatcher } from "./state/dispatch.ts"
+import { makeReviewWorkScheduler, type ReviewWorkScheduler } from "./state/dispatch.ts"
 import { Context, Layer, Scope } from "effect"
 import { type Job } from "./work-ownership/jobs.ts"
 import { type ResidentRuntimeOptions } from "./runtime-options.ts"
@@ -104,11 +104,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentRun = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>
     job.kind === "ingress" ? preparation.residentPrepare(job, sequence) : evaluation.residentEvaluateUnit(job, sequence)
   )
-  const residentDispatcher: Dispatcher<string, Job> = yield* makeDispatcher<string, Job>(
+  const residentDispatcher: ReviewWorkScheduler<string, Job> = yield* makeReviewWorkScheduler<string, Job>(
     residentLedger,
     (job) => ({
       operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
-      round: job.canonicalRound
+      round: job.canonicalRoundId
     }),
     (entry) => residentRun(entry.value, entry.sequence)
   ).pipe(Effect.provideService(Scope.Scope, residentDispatchScope))
@@ -159,7 +159,7 @@ export const residentRuntimeLayer = (
     makeResidentRuntime(paths, now, options).pipe(Effect.map((runtime) => runtime.operations))
   )
 
-export type { JevRequestObservation } from "./review-work/request-observation.ts"
+export type { ReviewServiceRequestObservation } from "./review-work/request-observation.ts"
 
 export type { ResidentRuntimeOptions } from "./runtime-options.ts"
 

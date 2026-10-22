@@ -33,7 +33,7 @@ type OutputProfile is Data:
 type Environment is Data:
   Environment{
     jev_delay: Nat,
-    outcome: Maybe<&2, Canonical.RequestOutcome>,
+    outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
     weights: List<&2, Numeric.Words>,
     preparation_delay: Nat,
     tree_profile: TreeFacts.Profile,
@@ -115,7 +115,7 @@ type Input is Data:
   Arrival{
     emission: Workload.Emission,
     activity: Nat,
-    supplied_outcome: Maybe<&2, Canonical.RequestOutcome>
+    supplied_outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
   }
   Event{
     action: Driver.Action,
@@ -144,8 +144,9 @@ type Located is Data:
   Located{input: Maybe<&2, Input>, remaining: List<&2, Item>}
 # Resident runtime excludes the observer history itself; frames retain that history.
 # This prevents recursive snapshots of previous frame snapshots.
-type IssuedRequest is Data:
-  IssuedRequest{request: Nat, output: Canonical.Output}
+# Retains a review service request ID and its original canonical issuance output.
+type IssuedReviewServiceRequest is Data:
+  IssuedReviewServiceRequest{review_service_request_id: Nat, output: Canonical.Output}
 type RetainedCallback is Data:
   RetainedCallback{order: Nat, issued_at: Nat, due_at: Nat, payload: Input, fact: Callbacks.Fact}
 type PermitProfile is Data:
@@ -169,7 +170,7 @@ type DeliveryContinuation is Data:
   }
 type HostFacts is Data:
   HostFacts{
-    issued_requests: List<&2, IssuedRequest>,
+    issued_requests: List<&2, IssuedReviewServiceRequest>,
     retained_callbacks: List<&2, RetainedCallback>,
     generator_partitions: List<&2, Nat>,
     runtime: RuntimeProfile,
@@ -283,7 +284,10 @@ type Control is Data:
   WriterReleaseControl{target: WriterScenario.Target, expire: Bool}
   SharingLeaveControl{target: FreshnessScenario.Scope}
   SharingLeaveAllControl{partition: Nat, lifetime: Nat}
-  JevRequestControl{target: FaultTargets.Target, outcome: Canonical.RequestOutcome}
+  ReviewServiceRequestControl{
+    target: FaultTargets.Target,
+    outcome: Canonical.ReviewServiceRequestOutcome
+  }
   ExpiryProfileControl{profile: ExpiryScenario.Profile}
   PermitProfileControl{duration: Nat, lifetime: Nat, outcome: PermitScenario.PostOutcome}
   PermitLimitsControl{advicee: Nat, resident: Nat}
@@ -300,7 +304,7 @@ type Control is Data:
   CredentialControl{available: Bool, rotate: Bool}
   FileTreesControl{profile: TreeFacts.Profile, identity: Nat}
   GraphLimitsControl{limits: ImportGraph.Limits, identity: Nat}
-  JevOutcomeControl{delay: Nat, outcome: Canonical.RequestOutcome}
+  ReviewServiceOutcomeControl{delay: Nat, outcome: Canonical.ReviewServiceRequestOutcome}
   OutputProfileControl{outcome: OutputScenario.Outcome, delay: Nat, lease: Nat}
   AdviceeLifecycleControl{identity: Nat, action: AdviceeLifecycle.Action}
   WorkloadControl{identity: Maybe<&2, Nat>, control: Workload.Control}

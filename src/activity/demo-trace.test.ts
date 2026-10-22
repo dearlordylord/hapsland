@@ -12,8 +12,8 @@ const fixture = () => {
   writeFileSync(budgetPath, JSON.stringify({ root }))
   writeFileSync(join(root, "session.ts"), "type SyntheticCount = number\n")
   const advicee: DirectAdvicee = {
-    host: "claude-code",
-    hostVersion: "2.1.218",
+    agentRuntime: "claude-code",
+    agentRuntimeVersion: "2.1.218",
     sessionId: "fixture-session",
     turnId: null,
     toolUseId: "tool",

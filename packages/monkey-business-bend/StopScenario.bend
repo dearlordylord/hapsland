@@ -135,9 +135,9 @@ def reserved(
     )
 
 # Exact current Stop scope; unrelated lifetime/round findings are not candidates.
-def candidate_owned(work: Canonical.Work, p: Nat, l: Nat, r: Nat) -> Maybe<&2, Nat>:
+def candidate_owned(work: Canonical.ReviewWorkRecord, p: Nat, l: Nat, r: Nat) -> Maybe<&2, Nat>:
   match work:
-    case Canonical.Work{wp, wl, wr, o, _, Canonical.PendingFinding{_}, _}:
+    case Canonical.ReviewWorkRecord{wp, wl, wr, o, _, Canonical.PendingFinding{_}, _}:
       Bool.pick(
         Maybe<&2, Nat>,
         Nat.is_eq(p, wp) && Nat.is_eq(l, wl) && Nat.is_eq(r, wr),
@@ -151,7 +151,12 @@ def candidate_cons(value: Maybe<&2, Nat>, rest: List<&2, Nat>) -> List<&2, Nat>:
     case Some{o}: o <> rest
     case None{}: rest
 
-def candidates(work: List<&2, Canonical.Work>, +p: Nat, +l: Nat, +r: Nat) -> List<&2, Nat>:
+def candidates(
+  work: List<&2, Canonical.ReviewWorkRecord>,
+  +p: Nat,
+  +l: Nat,
+  +r: Nat
+) -> List<&2, Nat>:
   match work:
     case Nil{}: []
     case head <> tail: candidate_cons(candidate_owned(head, p, l, r), candidates(tail, p, l, r))
@@ -187,13 +192,16 @@ def retired_actions(handled: Driver.Handled) -> List<&2, Driver.Action>:
   match handled:
     case Driver.Handled{_, actions}: actions
 
-def retire_candidate(value: Maybe<&2, Nat>, work: Canonical.Work) -> List<&2, Driver.Action>:
+def retire_candidate(
+  value: Maybe<&2, Nat>,
+  work: Canonical.ReviewWorkRecord
+) -> List<&2, Driver.Action>:
   match value:
     case Some{advice}: retired_actions(Driver.retired_work(Some{work}, advice))
     case None{}: []
 
 def retire_pending(
-  work: List<&2, Canonical.Work>,
+  work: List<&2, Canonical.ReviewWorkRecord>,
   +p: Nat,
   +l: Nat,
   +r: Nat
@@ -206,7 +214,7 @@ def retire_pending(
 
 def cleanup(
   continuation: Bool,
-  work: List<&2, Canonical.Work>,
+  work: List<&2, Canonical.ReviewWorkRecord>,
   +p: Nat,
   +l: Nat,
   +r: Nat

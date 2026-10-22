@@ -314,7 +314,7 @@ const coverageFamilies = [
   {
     name: "Jev ready, command, attempt and terminal facts",
     match:
-      /^(jevRequestReady|jevRequestStarted|jevRequestInterrupted|jevRequestSettled|startReview|retireReview|reviewCompleted|reviewObserved|reviewFailureCheck|findingCountUpdated)$/,
+      /^(reviewServiceRequestReady|reviewServiceRequestStarted|reviewServiceRequestInterrupted|reviewServiceRequestSettled|startReview|retireReview|reviewCompleted|reviewObserved|reviewFailureCheck|findingCountUpdated)$/,
     source: "packages/agent-flow-bend/Canonical.bend"
   },
   {
@@ -658,7 +658,7 @@ const examplesView = (
                   h.a(
                     [
                       h.Href(
-                        "https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json"
+                        "https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-review-service-request-v1.json"
                       )
                     ],
                     ["Jev request fixture"]

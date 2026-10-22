@@ -1,5 +1,5 @@
 import { captureWorkspaceBytes, analysisWorkspaceBytes } from "../../work-ownership/workspace.ts"
-import type { Advice, AdviceContent } from "../../state/advice-records.ts"
+import type { PendingAdviceHandle, AdviceContent } from "../../state/advice-records.ts"
 import * as Effect from "effect/Effect"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 import {
@@ -24,19 +24,19 @@ export const residentHandoffSourceCurrent = Effect.fn("ResidentIpc.handoffSource
     | "residentInspection"
     | "residentIsCurrentWork"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentReviewControls"
   >,
   response: ResidentResponse
 ) => {
   return Effect.gen(function* () {
     if (response.status !== "advice") return new Map<string, boolean>()
-    const selected: Advice[] = []
+    const selected: PendingAdviceHandle[] = []
     for (const advice of yield* deps.residentAdvice())
       if ((yield* deps.residentLedger.advice.current(advice)).delivery?.token === response.token) selected.push(advice)
     // Complete all potentially waiting controls before starting the shared
     // source snapshot. A later control cannot make an earlier capture stale.
-    const eligible: Advice[] = []
+    const eligible: PendingAdviceHandle[] = []
     for (const advice of selected) {
       const workspace = yield* deps.residentLedger.adviceCaptures.start(
         advice.reservation,
@@ -48,7 +48,7 @@ export const residentHandoffSourceCurrent = Effect.fn("ResidentIpc.handoffSource
         yield* deps.residentReviewControls.afterSourceWorkspaceReserved(advice.id)
         return yield* verifyObservationRoot(advice.observation)
       }).pipe(
-        (effect) => withinWork(effect, advice.round?.controller.signal ?? deps.residentLifetimeController.signal),
+        (effect) => withinWork(effect, advice.round?.controller.signal ?? deps.residentInstanceIdController.signal),
         Effect.catch(() => Effect.succeed(false)),
         Effect.ensuring(deps.residentLedger.adviceCaptures.finish(workspace))
       )
@@ -65,7 +65,7 @@ export const residentHandoffSourceCurrent = Effect.fn("ResidentIpc.handoffSource
     const owners = new Map<string, { capture: AdviceCapture; bytes: number; analysisBytes: number }>()
     const unavailable = new Set<string>()
     const residentCommitCurrentRevalidation = Effect.fn("ResidentRuntime.commitCurrentRevalidation")(function* (
-      advice: Advice,
+      advice: PendingAdviceHandle,
       content: AdviceContent,
       validation: Extract<RevalidationResult, { readonly status: "current" }>
     ): Effect.fn.Return<boolean> {
@@ -151,7 +151,7 @@ export const residentHandoffSourceCurrent = Effect.fn("ResidentIpc.handoffSource
                 },
                 { isCurrentWork: (prepared) => deps.residentIsCurrentWork(advice.revision, prepared) }
               ),
-              advice.round?.controller.signal ?? deps.residentLifetimeController.signal
+              advice.round?.controller.signal ?? deps.residentInstanceIdController.signal
             ).pipe(
               Effect.flatMap((validation) =>
                 Effect.gen(function* () {

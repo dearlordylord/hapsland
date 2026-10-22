@@ -1,7 +1,7 @@
 import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { providerEnvironmentOnly } from "@hapsland/runtime-environment/runtime/backend"
 import type { ReviewSettingsSnapshot } from "@hapsland/review-definition/runtime/review-settings"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import type { ControlledDecisionModelOptions } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 
 type CredentialAuthorityFacts = {
@@ -13,11 +13,14 @@ type CredentialAuthorityFacts = {
 export const residentCredentialRequired = (controlled: ControlledDecisionModelOptions | undefined): boolean =>
   controlled === undefined || controlled.requireCredential === true
 export const residentCredentialShapeMatches = (
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   name: string,
   required: boolean
 ): boolean => !required || (dispatch.credential?.name === name && dispatch.credential !== null)
-export const residentCredentialGenerationCurrent = (dispatch: ResidentDispatchContext, required: boolean): boolean =>
+export const residentCredentialGenerationCurrent = (
+  dispatch: ResidentReviewExecutionContext,
+  required: boolean
+): boolean =>
   !required ||
   dispatch.credential === null ||
   readCredentialState(dispatch.credential.statePath).generation === dispatch.credential.generation

@@ -40,19 +40,19 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
   requestedLifetime?: string
 ) =>
   Effect.gen(function* () {
-    const residentLifetime = requestedLifetime ?? (yield* Effect.sync(randomUUID))
+    const residentInstanceId = requestedLifetime ?? (yield* Effect.sync(randomUUID))
     const state = yield* Ref.make<
       CapacityState & { readonly records: ResidentRecords<Pending, DispatchKey, DispatchValue> }
     >({
-      residentLifetime,
+      residentInstanceId,
       limits,
       canonical: initialCanonical(limits),
       reservations: new Map(),
       partitionIds: new Map(),
       partitionIdentityBytes: 0,
       roundIds: new Map(),
-      requestRounds: new Map(),
-      collectionTokens: new Map(),
+      reviewServiceRequestRounds: new Map(),
+      adviceHandoffIdentities: new Map(),
       nextCollectionToken: 1,
       nextPartitionId: 1,
       minimumFreshStart: 0,
@@ -69,13 +69,13 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         notices: initialNoticeRecords()
       }
     })
-    const transaction = residentTransaction(state, residentLifetime)
+    const transaction = residentTransaction(state, residentInstanceId)
 
     const rounds = residentRounds(transaction)
 
     return {
-      residentLifetime,
-      canonicalLifetime: 1,
+      residentInstanceId,
+      canonicalLifetimeId: 1,
       ...residentCapacity(transaction),
       runtime: residentRuntime(transaction),
       rounds,
@@ -100,12 +100,12 @@ export {
   MAX_PARTITION_IDENTITIES,
   MAX_PARTITION_KEY_BYTES,
   MAX_PARTITION_IDENTITY_BYTES,
-  MAX_COLLECTION_TOKEN_IDENTITIES,
-  MAX_COLLECTION_TOKEN_KEY_BYTES
+  MAX_ADVICE_HANDOFF_IDENTITIES,
+  MAX_ADVICE_HANDOFF_KEY_BYTES
 } from "../capacity/model.ts"
 export type {
   CapacityLimits,
-  CapacityReservation,
+  ReviewCapacityReservationHandle,
   PreparationAdmission,
   CapacityResize,
   CapacitySnapshot

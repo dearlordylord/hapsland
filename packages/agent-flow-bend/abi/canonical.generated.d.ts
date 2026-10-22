@@ -4,4 +4,4 @@ export declare const bendCanonicalTotal: (state: unknown) => unknown;
 export declare const bendCanonicalPartitionUsage: (state: unknown, partition: number) => unknown;
 export declare const bendCanonicalInventory: (state: unknown) => unknown;
 export declare const bendPreparationLimit: () => unknown;
-export declare const bendJevRequestLimit: () => unknown;
+export declare const bendReviewServiceRequestLimit: () => unknown;

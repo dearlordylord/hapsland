@@ -5,7 +5,7 @@ import { type CapacityState, type CapacityDraft, draftCapacity } from "../capaci
 import { type ResidentRecords } from "./model.ts"
 
 export type ResidentTransaction<Pending, DispatchKey, DispatchValue> = {
-  readonly residentLifetime: string
+  readonly residentInstanceId: string
   readonly read: Effect.Effect<
     CapacityState & { readonly records: ResidentRecords<Pending, DispatchKey, DispatchValue> }
   >
@@ -18,7 +18,7 @@ export type ResidentTransaction<Pending, DispatchKey, DispatchValue> = {
 }
 export const residentTransaction = <Pending, DispatchKey, DispatchValue>(
   state: Ref.Ref<CapacityState & { readonly records: ResidentRecords<Pending, DispatchKey, DispatchValue> }>,
-  residentLifetime: string
+  residentInstanceId: string
 ): ResidentTransaction<Pending, DispatchKey, DispatchValue> => {
   let committing = false
   const commitAllEffect = <A>(
@@ -46,5 +46,5 @@ export const residentTransaction = <Pending, DispatchKey, DispatchValue>(
         committing = false
       }
     }).pipe(Effect.withSpan("ResidentState.commit"))
-  return { read: Ref.get(state), residentLifetime, commitAllEffect }
+  return { read: Ref.get(state), residentInstanceId, commitAllEffect }
 }

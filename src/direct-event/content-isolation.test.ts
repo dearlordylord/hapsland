@@ -11,10 +11,10 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { InspectionTransportObservation } from "@hapsland/inspection-records/inspection/transport"
 import { liveLayer } from "@hapsland/review-execution/jev-decision"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { compileRule } from "@hapsland/review-definition/rules/compiler"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
-import { freezeRules, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { freezeRules, type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import type { ReviewArtifact } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import {
   evaluatePrepared,
@@ -23,7 +23,7 @@ import {
 } from "@hapsland/review-execution/direct-event/pipeline"
 
 const digest = (text: string) => createHash("sha256").update(text).digest("hex")
-const fixture = (kind: "type" | "function", secret: string): PreparedUnit => {
+const fixture = (kind: "type" | "function", secret: string): PreparedReviewUnit => {
   const artifact: ReviewArtifact = {
     path: "src/example.ts",
     id: `src/example.ts:${kind === "type" ? "type-alias" : "function"}:Example`,
@@ -63,15 +63,15 @@ const fixture = (kind: "type" | "function", secret: string): PreparedUnit => {
     root: `/local/${secret}`,
     identity: digest(secret),
     advicee: {
-      host: "codex-cli",
-      hostVersion: secret,
+      agentRuntime: "codex-cli",
+      agentRuntimeVersion: secret,
       sessionId: secret,
       turnId: secret,
       toolUseId: secret,
       subagentId: secret
     },
     input: {
-      providerIdentity: providerIdentity({ provider: "jev" }),
+      reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
       contract,
       candidateProjection: true,
       completeness: "complete",
@@ -100,7 +100,7 @@ type Wire = {
   readonly body: string
 }
 const observe = (
-  unit: PreparedUnit,
+  unit: PreparedReviewUnit,
   observer?: (body: Uint8Array | undefined) => void,
   evidenceObserver?: (evidence: EvaluationEvidence) => void
 ) =>

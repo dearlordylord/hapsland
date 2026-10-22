@@ -1,6 +1,6 @@
 /** Independent pre-port oracle, imported only by session-port.test.ts. Never use in production. */
 import { validateSizeFacts } from "./sizes.ts"
-import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
+import type { ReviewServiceRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type AdviceResponse = "ignore" | "noAction" | "promptRepair" | "delayedRepair"
 export interface SessionConfig {
@@ -33,7 +33,7 @@ export type SessionInput = {
       readonly unitBytes: readonly number[]
       readonly revision: number
       readonly repair?: boolean
-      readonly outcome?: JevRequestOutcome
+      readonly outcome?: ReviewServiceRequestOutcome
     }
   | { readonly kind: "finish" }
 )

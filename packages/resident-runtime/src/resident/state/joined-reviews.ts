@@ -21,7 +21,7 @@ export const draftJoinedReviews = (state: JoinedReviewsState) => ({ entries: new
 export const joinedReviewOperations = (
   draft: ReturnType<typeof draftJoinedReviews>,
   owner: Pick<CapacityLedger, "transition">,
-  revisions: Pick<RevisionOperations, "superseded" | "generation">,
+  revisions: Pick<RevisionOperations, "superseded" | "readRevisionGeneration">,
   hasAdvice: (id: string) => boolean
 ) => {
   const memberOutcomes = {
@@ -42,7 +42,8 @@ export const joinedReviewOperations = (
     const disposition = owner.transition({
       kind: "reuseMemberCheck",
       state,
-      staleUnavailable: revision !== undefined && revisions.generation(revision.subject) !== revision.generation,
+      staleUnavailable:
+        revision !== undefined && revisions.readRevisionGeneration(revision.subject) !== revision.revisionGeneration,
       hasRevision: revision !== undefined,
       hasAdviceId: adviceId !== undefined && hasAdvice(adviceId)
     }).outputs[0]?.kind

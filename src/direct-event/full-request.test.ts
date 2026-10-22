@@ -1,4 +1,4 @@
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import { Decision } from "effect/ai"
@@ -9,7 +9,7 @@ import {
   encodedPreparedProviderHttpBodyBytes,
   evaluatePrepared
 } from "@hapsland/review-execution/direct-event/pipeline"
-import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 
@@ -38,11 +38,11 @@ describe("complete Jev request measurement", () => {
         instructions: "x".repeat(150_000),
         criteria: { false: "No", true: "Yes" }
       })
-      const prepared: PreparedUnit = {
+      const prepared: PreparedReviewUnit = {
         root: "/fixture",
         advicee: {
-          host: "codex-cli",
-          hostVersion: "0.155.1",
+          agentRuntime: "codex-cli",
+          agentRuntimeVersion: "0.155.1",
           sessionId: "s",
           turnId: "t",
           toolUseId: "u",
@@ -50,7 +50,7 @@ describe("complete Jev request measurement", () => {
         },
         identity: "fixture",
         input: {
-          providerIdentity: providerIdentity({ provider: "jev" }),
+          reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
           contract: TYPE_INPUT_CONTRACT,
           candidateProjection: true,
           completeness: "complete",

@@ -102,21 +102,25 @@ it("compares original authorized output scripts with native Bend and preserves e
     expect(native[index]).toMatchObject({
       boundary: {
         endpoint: {
-          projection: { global: { items: 1, bytes: 5 }, dispatch: { requests: [] }, collection: { leases: [] } }
+          projection: {
+            global: { items: 1, bytes: 5 },
+            dispatch: { reviewServiceRequests: [] },
+            collection: { leases: [] }
+          }
         }
       },
       controls: [{ time: 7, result: "applied" }],
       attempts: []
     })
-    expect(run.observations.find((frame) => frame.event.kind === "jevRequestStarted")?.event).toMatchObject({
+    expect(run.observations.find((frame) => frame.event.kind === "reviewServiceRequestStarted")?.event).toMatchObject({
       partition: 1,
       lifetime: 1,
       round: 1,
       operation: 3,
-      request: 4
+      reviewServiceRequestId: 4
     })
     expect(run.projection.collection.leases).toEqual([])
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
     expect(run.projection.delivery.submissions.batches[0]?.phase).toBe(
       selected.outcome === "certain" && selected.delayMs < 10 ? "submitted" : "uncertain"
     )
@@ -150,7 +154,7 @@ it.each(["certain", "uncertain"] as const)(
     run.schedule({ at: 22, kind: "finish" })
     run.advance({ untilTime: 30, maxEvents: 100 })
     expect(run.observations.filter((frame) => frame.event.kind === "finishTerminal")).toHaveLength(terminal.length)
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
     replay(run)
   }
 )
@@ -188,7 +192,7 @@ it("targets one atomic Stop batch without rewriting membership or captured deadl
   const missing = { ...target, originalOrder: target.originalOrder + 1000 }
   run.applyControl({ kind: "outputAttempt", target: missing, outcome: "certain" })
   expect(snapshot(run).outputReports.at(-1)?.result).toBe("missing")
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(2)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(2)
   run.schedule({ at: 27, kind: "finish" })
   run.advance({ untilTime: 30, maxEvents: 100 })
   expect(run.observations.filter((frame) => frame.event.kind === "finishTerminal")).toHaveLength(1)

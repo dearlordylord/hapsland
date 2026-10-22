@@ -34,7 +34,7 @@ export const workView = (
       return findWork(operation)?.kind === "reviewing"
     },
     outcome(operation: number, _outcome: unknown): boolean {
-      return findWork(operation)?.kind === "atJev"
+      return findWork(operation)?.kind === "reviewServiceRequestOutstanding"
     },
     reviseFinding(operation: number, _count: number, _bytes: number): boolean {
       return findWork(operation)?.kind === "pendingFinding"

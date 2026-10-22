@@ -23,22 +23,34 @@ type SourceJob is Data:
     lifetime: Nat,
     bytes: Nat,
     units: List<&2, Nat>,
-    outcome: Maybe<&2, Canonical.RequestOutcome>
+    outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
   }
 type OutcomeEnvironment is Data:
-  OutcomeEnvironment{outcome: Maybe<&2, Canonical.RequestOutcome>, weights: List<&2, Numeric.Words>}
+  OutcomeEnvironment{
+    outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
+    weights: List<&2, Numeric.Words>
+  }
 type OutcomeSource is Data:
   EditForced{}
   RunForced{}
   Sampled{}
 type OutcomeReceipt is Data:
-  OutcomeReceipt{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, request: Nat,
-    outcome: Canonical.RequestOutcome, source: OutcomeSource, job: Maybe<&2, SourceJob>,
-    stream_before: Maybe<&2, U32>, stream_after: Maybe<&2, U32>}
+  OutcomeReceipt{
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    operation: Nat,
+    request: Nat,
+    outcome: Canonical.ReviewServiceRequestOutcome,
+    source: OutcomeSource,
+    job: Maybe<&2, SourceJob>,
+    stream_before: Maybe<&2, U32>,
+    stream_after: Maybe<&2, U32>
+  }
 
 type Context is Data:
   Context{partition: Nat, lifetime: Nat, round: Nat, bytes: Nat, job: Bool,
-    jev_delay: Nat, outcome: Maybe<&2, Canonical.RequestOutcome>, current_work: Bool,
+    jev_delay: Nat, outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>, current_work: Bool,
     credential_ready: Bool, credential_generation: Bool, source_readable: Bool,
     advice_lifetime: Nat, candidate: Maybe<&2, Candidate>, automatic_collection: Bool,
     automatic_review: Bool, automatic_output: Bool, output_certain: Bool,
@@ -123,22 +135,22 @@ def context_scope(event: Canonical.CanonicalEvent, provided: Nat) -> ContextScop
       lifetime,
       round
     }
-    case Canonical.JevRequestReady{partition, lifetime, round, _, _, _, _, _, _, _}: ContextScope{
+    case Canonical.ReviewServiceRequestReady{partition, lifetime, round, _, _, _, _, _, _, _}: ContextScope{
       partition,
       lifetime,
       round
     }
-    case Canonical.JevRequestStarted{partition, lifetime, round, _, _}: ContextScope{
+    case Canonical.ReviewServiceRequestStarted{partition, lifetime, round, _, _}: ContextScope{
       partition,
       lifetime,
       round
     }
-    case Canonical.JevRequestInterrupted{partition, lifetime, round, _, _}: ContextScope{
+    case Canonical.ReviewServiceRequestInterrupted{partition, lifetime, round, _, _}: ContextScope{
       partition,
       lifetime,
       round
     }
-    case Canonical.JevRequestSettled{partition, lifetime, round, _, _, _, _}: ContextScope{
+    case Canonical.ReviewServiceRequestSettled{partition, lifetime, round, _, _, _, _}: ContextScope{
       partition,
       lifetime,
       round
@@ -255,7 +267,10 @@ def with_scope(context: Context, scope: ContextScope) -> Context:
         dispatch
       }
 
-def with_outcome(context: Context, selected: Maybe<&2, Canonical.RequestOutcome>) -> Context:
+def with_outcome(
+  context: Context,
+  selected: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
+) -> Context:
   match context:
     case Context{
       p,
@@ -310,20 +325,23 @@ def immediate(event: Canonical.CanonicalEvent, job: Bool) -> Action:
 def candidate_action(event: Canonical.CanonicalEvent, candidate: Candidate) -> Action:
   Action{event, 0n, Some{candidate}, False{}, None{}}
 
-def work_id(work: Canonical.Work) -> Nat:
+def work_id(work: Canonical.ReviewWorkRecord) -> Nat:
   match work:
-    case Canonical.Work{_, _, _, operation, _, _, _}: operation
+    case Canonical.ReviewWorkRecord{_, _, _, operation, _, _, _}: operation
 
 def operation_hit(
   found: Bool,
-  head: Canonical.Work,
-  rest: Maybe<&2, Canonical.Work>
-) -> Maybe<&2, Canonical.Work>:
+  head: Canonical.ReviewWorkRecord,
+  rest: Maybe<&2, Canonical.ReviewWorkRecord>
+) -> Maybe<&2, Canonical.ReviewWorkRecord>:
   match found:
     case True{}: Some{head}
     case False{}: rest
 
-def find_operation(work: List<&2, Canonical.Work>, +operation: Nat) -> Maybe<&2, Canonical.Work>:
+def find_operation(
+  work: List<&2, Canonical.ReviewWorkRecord>,
+  +operation: Nat
+) -> Maybe<&2, Canonical.ReviewWorkRecord>:
   match work:
     case Nil{}: None{}
     case +head <> tail: operation_hit(
@@ -332,9 +350,9 @@ def find_operation(work: List<&2, Canonical.Work>, +operation: Nat) -> Maybe<&2,
       find_operation(tail, operation)
     )
 
-def dispatch_work(found: Maybe<&2, Canonical.Work>, +context: Context) -> Handled:
+def dispatch_work(found: Maybe<&2, Canonical.ReviewWorkRecord>, +context: Context) -> Handled:
   match found context:
-    case Some{Canonical.Work{+p, +l, +r, +o, _, Canonical.AwaitingSourceRead{}, _}} Context{
+    case Some{Canonical.ReviewWorkRecord{+p, +l, +r, +o, _, Canonical.AwaitingSourceRead{}, _}} Context{
       _,
       _,
       _,
@@ -364,7 +382,7 @@ def dispatch_work(found: Maybe<&2, Canonical.Work>, +context: Context) -> Handle
           immediate(Canonical.BeginObservedPreparation{p, l, r, o, bytes}, True{})
         ]
       }
-    case Some{Canonical.Work{+p, +l, +r, +o, _, Canonical.Reviewing{}, _}} Context{
+    case Some{Canonical.ReviewWorkRecord{+p, +l, +r, +o, _, Canonical.Reviewing{}, _}} Context{
       _,
       _,
       _,
@@ -392,7 +410,7 @@ def dispatch_work(found: Maybe<&2, Canonical.Work>, +context: Context) -> Handle
         [
           immediate(Canonical.StartReview{p, l, r, o}, False{}),
           immediate(
-            Canonical.JevRequestReady{
+            Canonical.ReviewServiceRequestReady{
               p,
               l,
               r,
@@ -417,7 +435,7 @@ def issued_actions(facts: List<&2, JevEffects.ScheduledFact>) -> List<&2, Action
       Action{event, delay, None{}, False{}, None{}} <> issued_actions(tail)
 
 def issued_outcome(
-  outcome: Canonical.RequestOutcome,
+  outcome: Canonical.ReviewServiceRequestOutcome,
   p: Nat,
   l: Nat,
   r: Nat,
@@ -518,13 +536,13 @@ def output(p: Nat, advice: Nat, token: Nat, certain: Bool, delay: Nat, lease: Na
     )
   }
 
-def work_list(state: Canonical.State) -> List<&2, Canonical.Work>:
+def work_list(state: Canonical.State) -> List<&2, Canonical.ReviewWorkRecord>:
   match state:
     case Canonical.State{_, _, work, _, _, _, _, _, _}: work
 
 def retained(event: Canonical.CanonicalEvent, +lifetime: Nat) -> Handled:
   match event:
-    case Canonical.JevRequestSettled{_, _, _, operation, _, _, _}:
+    case Canonical.ReviewServiceRequestSettled{_, _, _, operation, _, _, _}:
       Handled{
         True{},
         [
@@ -612,9 +630,9 @@ def submitted(
     )
     case _: Handled{False{}, Nil{}}
 
-def retired_work(found: Maybe<&2, Canonical.Work>, +advice: Nat) -> Handled:
+def retired_work(found: Maybe<&2, Canonical.ReviewWorkRecord>, +advice: Nat) -> Handled:
   match found:
-    case Some{Canonical.Work{p, l, r, _, _, Canonical.PendingFinding{_}, _}}:
+    case Some{Canonical.ReviewWorkRecord{p, l, r, _, _, Canonical.PendingFinding{_}, _}}:
       Handled{
         True{},
         [
@@ -644,7 +662,7 @@ def collection_surface(background: Bool) -> Handoff.Surface:
     case True{}: Handoff.Background{}
     case False{}: Handoff.Edit{}
 
-def running(state: Canonical.State) -> List<&2, Dispatch.Entry>:
+def running(state: Canonical.State) -> List<&2, Dispatch.ScheduledReviewWork>:
   match state:
     case Canonical.State{_, _, _, _, _, _, Dispatch.State{_, running, _, _, _}, _, _}: running
 
@@ -655,7 +673,7 @@ def release_if(available: Bool, p: Nat, l: Nat, r: Nat, o: Nat) -> Handled:
 
 def unavailable(state: Canonical.State, event: Canonical.CanonicalEvent) -> Handled:
   match event:
-    case Canonical.JevRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
+    case Canonical.ReviewServiceRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
       release_if(Dispatch.contains(running(state), p, l, r, o), p, l, r, o)
     case _: Handled{False{}, Nil{}}
 
@@ -679,7 +697,10 @@ def handle(
 ) -> Handled:
   match command context:
     case Canonical.PolicyDecided{Canonical.PreparationRefused{}} _: refused_preparation(event)
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}} _: unavailable(state, event)
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}} _: unavailable(
+      state,
+      event
+    )
     case Canonical.EventEstablished{Canonical.ObservationAdmitted{id}} Context{
       p,
       l,
@@ -752,7 +773,7 @@ def handle(
       True{}
     }:
       Handled{True{}, [immediate(Canonical.QueueDispatch{p, l, r, operation}, False{})]}
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{p, l, r, o, request}} Context{
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{p, l, r, o, request}} Context{
       _,
       _,
       _,
@@ -996,10 +1017,10 @@ def preparation_completed(
     None{}
   }
 
-def owns(work: List<&2, Canonical.Work>, +advice: Nat) -> Bool:
+def owns(work: List<&2, Canonical.ReviewWorkRecord>, +advice: Nat) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{_, _, _, operation, _, Canonical.PendingFinding{_}, _} <> tail:
+    case Canonical.ReviewWorkRecord{_, _, _, operation, _, Canonical.PendingFinding{_}, _} <> tail:
       Nat.is_eq(operation, advice) || owns(tail, advice)
     case _ <> tail: owns(tail, advice)
 
@@ -1015,7 +1036,7 @@ def fence(
   +context: Context
 ) -> Canonical.CanonicalEvent:
   match event generated context:
-    case Canonical.JevRequestSettled{p, l, r, o, request, outcome, _} True{} Context{
+    case Canonical.ReviewServiceRequestSettled{p, l, r, o, request, outcome, _} True{} Context{
       _,
       _,
       _,
@@ -1038,8 +1059,19 @@ def fence(
       _,
       _
     }:
-      Canonical.JevRequestSettled{p, l, r, o, request, outcome, current}
-    case Canonical.JevRequestReady{p, l, r, o, root, configuration, _, selected, _, physical} True{} Context{
+      Canonical.ReviewServiceRequestSettled{p, l, r, o, request, outcome, current}
+    case Canonical.ReviewServiceRequestReady{
+      p,
+      l,
+      r,
+      o,
+      root,
+      configuration,
+      _,
+      selected,
+      _,
+      physical
+    } True{} Context{
       _,
       _,
       _,
@@ -1062,7 +1094,7 @@ def fence(
       _,
       _
     }:
-      Canonical.JevRequestReady{
+      Canonical.ReviewServiceRequestReady{
         p,
         l,
         r,
@@ -1125,7 +1157,7 @@ def handled_actions(handled: Handled) -> List<&2, Action>:
     case Handled{_, actions}: actions
 
 def revalidate_work(
-  work: List<&2, Canonical.Work>,
+  work: List<&2, Canonical.ReviewWorkRecord>,
   +credential: Bool,
   +generation: Bool,
   +current: Bool,
@@ -1134,7 +1166,7 @@ def revalidate_work(
 ) -> List<&2, Action>:
   match work:
     case Nil{}: Nil{}
-    case Canonical.Work{p, _, r, o, _, Canonical.PendingFinding{_}, _} <> tail:
+    case Canonical.ReviewWorkRecord{p, _, r, o, _, Canonical.PendingFinding{_}, _} <> tail:
       List.append(
         &2,
         Action,

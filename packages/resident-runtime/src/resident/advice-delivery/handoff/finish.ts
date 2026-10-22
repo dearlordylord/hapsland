@@ -9,7 +9,7 @@ import { type RoundCloseReason } from "@hapsland/activity-observation/activity/s
 import * as Effect from "effect/Effect"
 import { type ResidentRequest, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import type { ComposedDelivery } from "../../state/delivery/operations.ts"
-import { recipientPartition } from "../../recipient/identity.ts"
+import { adviceeScopeKey } from "../../recipient/identity.ts"
 import { type HandoffContext, type Dependencies } from "./context.ts"
 import { residentEditCollectRequest } from "./workflow.ts"
 import { residentEditCollectionStatus } from "./collection-status.ts"
@@ -50,7 +50,7 @@ export const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconci
 ): Effect.fn.Return<ResidentResponse> {
   if (request.operation !== "collect" || request.finish === undefined || !residentFindingResponse(provisional))
     return final
-  const group = recipientPartition(request.advicee)
+  const group = adviceeScopeKey(request.advicee)
   if (
     !(yield* deps.residentComposedDelivery.revokeProvisionalFinishOutput(
       group,

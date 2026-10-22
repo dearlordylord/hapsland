@@ -9,11 +9,11 @@ def owner() -> Callbacks.Owner:
   Callbacks.Owner{1n, 2n, 3n, 4n}
 
 def target() -> Callbacks.Target:
-  Callbacks.Target{owner(), Callbacks.JevSettled{5n}, 6n}
+  Callbacks.Target{owner(), Callbacks.ReviewServiceRequestSettled{5n}, 6n}
 
 def action() -> Driver.Action:
   Driver.Action{
-    Canonical.JevRequestSettled{1n, 2n, 3n, 4n, 5n, Canonical.RequestClear{}, True{}},
+    Canonical.ReviewServiceRequestSettled{1n, 2n, 3n, 4n, 5n, Canonical.RequestClear{}, True{}},
     7n,
     None{},
     False{},
@@ -62,7 +62,7 @@ def scheduled(items: List<&2, Callbacks.Scheduled>) -> List<&2, Nat>:
     case Callbacks.Scheduled{
       at,
       order,
-      Driver.Action{Canonical.JevRequestSettled{p, l, r, o, id, _, _}, _, _, _, _}
+      Driver.Action{Canonical.ReviewServiceRequestSettled{p, l, r, o, id, _, _}, _, _, _, _}
     } <> tail:
       at <> order <> p <> l <> r <> o <> id <> scheduled(tail)
     case _ <> tail: 99n <> scheduled(tail)
@@ -109,7 +109,11 @@ def scenarios() -> List<&2, List<&2, Nat>>:
     row(
       Callbacks.apply(
         state(),
-        Callbacks.Target{Callbacks.Owner{1n, 9n, 3n, 4n}, Callbacks.JevSettled{5n}, 6n},
+        Callbacks.Target{
+          Callbacks.Owner{1n, 9n, 3n, 4n},
+          Callbacks.ReviewServiceRequestSettled{5n},
+          6n
+        },
         Callbacks.Hold{},
         8n,
         9n

@@ -15,10 +15,10 @@ import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/s
 import { readInspectionSettings } from "@hapsland/inspection-records/inspection/settings"
 import { HAPSLAND_STATE_DIRECTORY } from "@hapsland/runtime-environment/runtime/user-paths"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import type { PreparedUnit, PreparationDiagnostic } from "@hapsland/review-definition/direct-event/model"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
+import type { PreparedReviewUnit, PreparationDiagnostic } from "@hapsland/review-definition/direct-event/model"
 import type { prepareObservation, PreparedObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import type { Advice } from "../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../state/advice-records.ts"
 import { type InspectionReceipt } from "./receipt.ts"
 
 type InspectionIngress = { readonly inspectionReceipt?: InspectionReceipt }
@@ -27,8 +27,8 @@ type InspectionUnit = InspectionIngress & {
   readonly inspectionEvaluationId?: string
   readonly partition: string
   readonly canonicalOperationId: number
-  readonly prepared: PreparedUnit
-  readonly dispatch: Pick<ResidentDispatchContext, "controlled">
+  readonly prepared: PreparedReviewUnit
+  readonly dispatch: Pick<ResidentReviewExecutionContext, "controlled">
 }
 
 /** Optional recording owns its consent, provenance and journal, independently of review authority. */
@@ -80,7 +80,7 @@ type Dependencies = {
 
 const inspectionObserveAdviceFate = (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   findings: ReadonlyArray<Finding>,
   fate: Parameters<typeof captureInspectionFate>[1],
   reason: Parameters<typeof captureInspectionFate>[2]
@@ -90,8 +90,8 @@ const inspectionObserveAdviceFate = (
   deps.inspection.offer(
     {
       root: advice.observation.root,
-      runtime: advice.observation.advicee.host,
-      runtimeVersion: advice.observation.advicee.hostVersion,
+      runtime: advice.observation.advicee.agentRuntime,
+      runtimeVersion: advice.observation.advicee.agentRuntimeVersion,
       sessionId: advice.observation.advicee.sessionId,
       subagentId: advice.observation.advicee.subagentId
     },
@@ -103,7 +103,7 @@ const inspectionObserveAdviceFate = (
 const refreshInspectionConsent = (
   deps: Dependencies,
   root: string,
-  dispatch: Pick<ResidentDispatchContext, "userConfigPath">
+  dispatch: Pick<ResidentReviewExecutionContext, "userConfigPath">
 ): void => {
   const settings = readInspectionSettings(root, dispatch.userConfigPath ?? undefined)
   if (settings && (deps.inspectionLimits.has(root) || deps.inspectionLimits.size < 128))
@@ -127,13 +127,13 @@ const registerInspectionSource = (deps: Dependencies, scope: InspectionScope): v
 const inspectionReceiveMetadata = (
   deps: Dependencies,
   metadata: NativeEditMetadata,
-  dispatch: Pick<ResidentDispatchContext, "userConfigPath">
+  dispatch: Pick<ResidentReviewExecutionContext, "userConfigPath">
 ): InspectionReceipt => {
   refreshInspectionConsent(deps, metadata.root, dispatch)
   const scope = {
     root: metadata.root,
-    runtime: metadata.advicee.host,
-    runtimeVersion: metadata.advicee.hostVersion,
+    runtime: metadata.advicee.agentRuntime,
+    runtimeVersion: metadata.advicee.agentRuntimeVersion,
     sessionId: metadata.advicee.sessionId,
     subagentId: metadata.advicee.subagentId
   }
@@ -158,7 +158,11 @@ const inspectionReceiveMetadata = (
   }
 }
 
-const inspectionIngress = (deps: Dependencies, observation: DirectObservation, dispatch: ResidentDispatchContext) => {
+const inspectionIngress = (
+  deps: Dependencies,
+  observation: DirectObservation,
+  dispatch: ResidentReviewExecutionContext
+) => {
   const metadata =
     observation.nativeMetadata ??
     (observation.candidateRoots === undefined
@@ -197,7 +201,7 @@ const inspectionIngress = (deps: Dependencies, observation: DirectObservation, d
 const inspectionRefuse = (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   outcome: "unsupported" | "obsolete-lifetime"
 ) => {
   for (const receipt of inspectionIngress(deps, observation, dispatch).values())
@@ -214,10 +218,10 @@ const inspectionUnitCorrelation = (
   unitId: createHash("sha256").update(`${job.partition}:${job.canonicalOperationId}`).digest("hex"),
   ...(request === undefined
     ? {}
-    : { requestId: createHash("sha256").update(`${job.partition}:${request}`).digest("hex") })
+    : { reviewServiceRequestId: createHash("sha256").update(`${job.partition}:${request}`).digest("hex") })
 })
 
-const inspectionObservePreparedUnit = (deps: Dependencies, unit: InspectionUnit): void => {
+const inspectionObservePreparedReviewUnit = (deps: Dependencies, unit: InspectionUnit): void => {
   if (unit.inspectionReceipt !== undefined) {
     deps.inspection.offer(unit.inspectionReceipt.scope, inspectionUnitCorrelation(unit, unit.inspectionReceipt), {
       kind: "unit-prepared",
@@ -373,7 +377,7 @@ const makeResidentInspectionOperations = (deps: Dependencies) => {
     ingress: inspectionIngress.bind(null, deps),
     refuse: inspectionRefuse.bind(null, deps),
     unitCorrelation: inspectionUnitCorrelation,
-    observePreparedUnit: inspectionObservePreparedUnit.bind(null, deps),
+    observePreparedReviewUnit: inspectionObservePreparedReviewUnit.bind(null, deps),
     observeUnitFate: inspectionObserveUnitFate.bind(null, deps),
     observeDiagnostic: inspectionObserveDiagnostic.bind(null, deps),
     preparationPorts: preparationInspectionPorts.bind(null, deps),

@@ -1,4 +1,4 @@
-import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/codex-version"
+import { isCodexAgentRuntimeVersion } from "@hapsland/native-observation/direct-event/codex-version"
 import { statSync, accessSync, constants, realpathSync } from "node:fs"
 import { isNodeError } from "./file-snapshots.ts"
 import { sourceRuntimeFromEntrypoint } from "@hapsland/runtime-environment/runtime/source-runtime-layout"
@@ -24,7 +24,7 @@ import { homedir } from "node:os"
 const codexCompatibility = (observed: string, versions: ReadonlyArray<string>, hooksAvailable: boolean) => {
   const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable"
   return {
-    supported: isCodexHostVersion(version) && hooksAvailable,
+    supported: isCodexAgentRuntimeVersion(version) && hooksAvailable,
     hooksAvailable,
     tested: versions.includes(version),
     observed,

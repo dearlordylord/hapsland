@@ -5,7 +5,7 @@ import {
   resolveConfiguration,
   validateCapturedPolicy
 } from "@hapsland/runtime-inputs/configuration/resolve"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 
 const cloudflare = { provider: "cloudflare", model: "clef", accountId: "a".repeat(32) } as const
 describe("review provider configuration authority", () => {
@@ -52,7 +52,9 @@ describe("review provider configuration authority", () => {
     const first = policy(cloudflare)
     expect(policy({ ...cloudflare, model: "clef-flash" }).digest).not.toBe(first.digest)
     expect(policy({ ...cloudflare, accountId: "b".repeat(32) }).digest).not.toBe(first.digest)
-    expect(providerIdentity(effectiveReviewBackend(first)).destination).toContain(`/accounts/${cloudflare.accountId}/`)
+    expect(reviewServiceIdentity(effectiveReviewBackend(first)).destination).toContain(
+      `/accounts/${cloudflare.accountId}/`
+    )
   })
   it("binds OpenAI selection and its user-owned credential reference", () => {
     const openai = { provider: "openai", model: "gpt-6-luna" } as const
@@ -64,7 +66,7 @@ describe("review provider configuration authority", () => {
     expect(policy.credentialEnvVar.value).toBe("OPENAI_API_KEY")
     expect(policy.credentialEnvVar.origin.layer).toBe("user")
     expect(() => validateCapturedPolicy(policy)).not.toThrow()
-    expect(providerIdentity(openai)).toEqual({
+    expect(reviewServiceIdentity(openai)).toEqual({
       provider: "openai",
       model: "gpt-6-luna",
       destination: "https://api.openai.com/v1/decisions"

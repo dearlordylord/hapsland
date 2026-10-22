@@ -15,7 +15,7 @@ import { canonicalProjection } from "../capacity/canonical.ts"
 export const residentRounds = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) => {
   const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): Effect.Effect<A> =>
     commitAllEffect((draft, records) => {
@@ -23,41 +23,43 @@ export const residentRounds = <Pending, DispatchKey, DispatchValue>({
       const owner = capacityOperations(
         (run) => run(draft),
         (run) => run(draft),
-        residentLifetime
+        residentInstanceId
       )
       const value = operation(roundRecordOperations(rounds, owner))
       return [value, { ...records, rounds }]
     })
   const rounds: RoundRecords = {
-    bind: Effect.fn("ResidentState.bindRound")((group, generation, activity, cohortId) =>
+    bind: Effect.fn("ResidentState.bindRound")((adviceeScopeKey, admissionRoundId, activity, cohortId) =>
       roundCommit((operations) =>
-        operations.bind(group, generation, activity, (canonicalRound) => {
+        operations.bind(adviceeScopeKey, admissionRoundId, activity, (canonicalRoundId) => {
           const issuedWork: WorkCohort = Object.freeze({ id: cohortId, controller: new AbortController() })
           const discarded = Object.freeze({ queued: 0, running: 0 })
           const capability: RoundWork = Object.freeze({
-            group,
-            generation,
-            canonicalRound,
+            adviceeScopeKey,
+            admissionRoundId,
+            canonicalRoundId,
             controller: new AbortController()
           })
           return { capability, work: issuedWork, discarded }
         })
       )
     ),
-    get: Effect.fn("ResidentState.getRound")((group) =>
-      read.pipe(Effect.map((state) => state.records.rounds.entries.get(group)?.capability))
+    get: Effect.fn("ResidentState.getRound")((adviceeScopeKey) =>
+      read.pipe(Effect.map((state) => state.records.rounds.entries.get(adviceeScopeKey)?.capability))
     ),
     entries: Effect.fn("ResidentState.roundEntries")(() =>
       read.pipe(
         Effect.map((state) =>
-          [...state.records.rounds.entries].map(([group, record]) => [group, record.capability] as const)
+          [...state.records.rounds.entries].map(
+            ([adviceeScopeKey, record]) => [adviceeScopeKey, record.capability] as const
+          )
         )
       )
     ),
     activity: Effect.fn("ResidentState.roundActivity")((round) =>
       read.pipe(
         Effect.map((state) => {
-          const record = state.records.rounds.entries.get(round.group)
+          const record = state.records.rounds.entries.get(round.adviceeScopeKey)
           return record?.capability === round ? record.activity : undefined
         })
       )
@@ -65,7 +67,7 @@ export const residentRounds = <Pending, DispatchKey, DispatchValue>({
     snapshot: Effect.fn("ResidentState.roundSnapshot")((round) =>
       read.pipe(
         Effect.map((state) => {
-          const record = state.records.rounds.entries.get(round.group)
+          const record = state.records.rounds.entries.get(round.adviceeScopeKey)
           return record?.capability === round ? record : undefined
         })
       )
@@ -73,12 +75,12 @@ export const residentRounds = <Pending, DispatchKey, DispatchValue>({
     policyWork: Effect.fn("ResidentState.roundPolicyWork")((round) =>
       read.pipe(
         Effect.map((state) => {
-          const partition = state.partitionIds.get(round.group)
-          const current = state.records.rounds.entries.get(round.group)?.capability === round
+          const partition = state.partitionIds.get(round.adviceeScopeKey)
+          const current = state.records.rounds.entries.get(round.adviceeScopeKey)?.capability === round
           return workView(
             current && partition !== undefined ? canonicalProjection(state) : { work: [], pendingFindings: [] },
             partition ?? 0,
-            round.canonicalRound
+            round.canonicalRoundId
           )
         })
       )

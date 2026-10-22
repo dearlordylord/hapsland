@@ -11,25 +11,25 @@ const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 const codexHookOptions = (
   runtime: string,
   entrypoint: string,
-  hostVersion: string,
+  agentRuntimeVersion: string,
   controlledReviewer: boolean,
   bindingCommand?: string
 ) => ({
   command: bindingCommand ?? commandTokens(runtime, entrypoint).map(quoteShell).join(" "),
   editMarker: OWNED_MARKER,
   composedMarker: COMPOSED_MARKER,
-  ...(hostVersion === "0.155.1" ? {} : { versionFlag: `--codex-version=${hostVersion}` }),
+  ...(agentRuntimeVersion === "0.155.1" ? {} : { versionFlag: `--codex-version=${agentRuntimeVersion}` }),
   controlledReviewer
 })
 
 export const composedGroups = (
   runtime: string,
   entrypoint: string,
-  hostVersion: string,
+  agentRuntimeVersion: string,
   controlledReviewer = false,
   bindingCommand?: string
 ) => {
-  const options = codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer, bindingCommand)
+  const options = codexHookOptions(runtime, entrypoint, agentRuntimeVersion, controlledReviewer, bindingCommand)
   return {
     PreToolUse: commandHookGroup("codex", "PreToolUse", options),
     Stop: commandHookGroup("codex", "Stop", options),
@@ -40,14 +40,14 @@ export const composedGroups = (
 export const ownedGroup = (
   runtime: string,
   entrypoint: string,
-  hostVersion = "0.155.1",
+  agentRuntimeVersion = "0.155.1",
   controlledReviewer = false,
   bindingCommand?: string
 ) =>
   commandHookGroup(
     "codex",
     "PostToolUse",
-    codexHookOptions(runtime, entrypoint, hostVersion, controlledReviewer, bindingCommand)
+    codexHookOptions(runtime, entrypoint, agentRuntimeVersion, controlledReviewer, bindingCommand)
   )
 
 export const markerCount = (value: unknown): number => {

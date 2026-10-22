@@ -23,10 +23,10 @@ import {
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { readAnalytics } from "@hapsland/activity-observation/activity/analytics"
-import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "@hapsland/resident-transport/resident/client"
+import { makeResidentReviewExecutionContextEffect as makeResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 
 const directories: string[] = []
@@ -39,7 +39,7 @@ const setup = async (enabled = true) => {
   await put(root, "type.ts", "type OrderCount = number\n")
   const userConfigPath = await put(root, "user.jsonc", JSON.stringify({ version: 1, sessionAnalytics: enabled }))
   const activityPath = join(root, "activity")
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath: join(root, "state"),
     activityPath,
     userConfigPath,
@@ -75,7 +75,7 @@ describe("resident session analytics", () => {
       const f = await setup(!projectEnabled)
       await put(f.root, ".hapsland.jsonc", JSON.stringify({ version: 1, sessionAnalytics: projectEnabled }))
       const context = await runClient(
-        makeResidentDispatchContext(
+        makeResidentReviewExecutionContext(
           f.root,
           f.dispatch.statePath,
           f.dispatch.activityPath ?? "",
@@ -90,7 +90,7 @@ describe("resident session analytics", () => {
   it("propagates user opt-in through the native dispatch context", async () => {
     const f = await setup()
     const context = await runClient(
-      makeResidentDispatchContext(
+      makeResidentReviewExecutionContext(
         f.root,
         f.dispatch.statePath,
         f.dispatch.activityPath ?? "",
@@ -212,7 +212,7 @@ describe("resident session analytics", () => {
         reviewsWithFindings: 1,
         findings: 1
       })
-      expect(f.read().details.find((detail) => detail.kind === "request-findings")?.ruleIds).toEqual([
+      expect(f.read().details.find((detail) => detail.kind === "review-service-request-findings")?.ruleIds).toEqual([
         "bare_domain_value"
       ])
       const response = await Effect.runPromise(
@@ -271,7 +271,7 @@ describe("resident session analytics", () => {
     const f = await setup()
     let requests = 0
     const credentialStatePath = join(f.root, "credential-state")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...f.dispatch,
       controlled: null,
       credential: {
@@ -396,7 +396,7 @@ describe("resident session analytics", () => {
       })
       expect(human.status).toBe(0)
       expect(human.stdout).toContain("analytics: recorded (recording=enabled)")
-      expect(human.stdout).toContain("controlled request-clear")
+      expect(human.stdout).toContain("controlled review-service-request-clear")
       expect(f.read().controlledTotals.requestsStarted).toBe(1)
     } finally {
       await Effect.runPromise(server.close)

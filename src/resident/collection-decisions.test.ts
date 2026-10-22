@@ -36,7 +36,7 @@ describe("checked collection decision decoding", () => {
         { category: "decision", kind: "collectionLimited" }
       ]
     },
-    { outputs: [{ category: "request", kind: "collectionFits" }] },
+    { outputs: [{ category: "action", kind: "collectionFits" }] },
     { outputs: [{ category: "event", kind: "collectionFits" }] }
   ] as const)("refuses rejected or ambiguous final output decisions %#", (result) => {
     expect(() => finalCollectionFits(result)).toThrow("canonical final response fit refused")

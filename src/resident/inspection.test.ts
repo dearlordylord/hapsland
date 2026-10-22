@@ -13,7 +13,7 @@ import { addEvent, makeGitFixture, put, advicee } from "@hapsland/build-tooling/
 import { makeInspectionStorage } from "@hapsland/inspection-records/inspection/storage"
 import * as inspectionStorage from "@hapsland/inspection-records/inspection/storage"
 import { nativeDeferred } from "@hapsland/build-tooling/test-support/native-deferred"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import type { InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 describe("resident inspection capture", () => {
@@ -48,7 +48,7 @@ describe("resident inspection capture", () => {
     let server: Awaited<ReturnType<typeof acquireResidentFixture>> | undefined
     try {
       server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
-      const dispatch: ResidentDispatchContext = {
+      const dispatch: ResidentReviewExecutionContext = {
         statePath: join(root, "consent"),
         userConfigPath: join(root, "absent-user"),
         credential: null,
@@ -105,7 +105,7 @@ describe("resident inspection capture", () => {
     })
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts", "second.ts"])))
     if (!observation) throw new Error("missing observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user"),
       credential: null,
@@ -186,7 +186,7 @@ describe("resident inspection capture", () => {
       })
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
       if (!observation) throw new Error("missing observation")
-      const dispatch: ResidentDispatchContext = {
+      const dispatch: ResidentReviewExecutionContext = {
         statePath: join(root, "consent"),
         userConfigPath: join(root, "absent-user"),
         credential: null,
@@ -264,7 +264,7 @@ describe("resident inspection capture", () => {
           )
       }
     })
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user"),
       credential: null,
@@ -433,7 +433,7 @@ describe("resident inspection capture", () => {
           )
       }
     })
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user.jsonc"),
       credential: null,
@@ -548,7 +548,7 @@ describe("resident inspection capture", () => {
     })
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (!observation) throw new Error("missing observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user.jsonc"),
       credential: null,
@@ -615,7 +615,7 @@ describe("resident inspection capture", () => {
     })
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (!observation) throw new Error("missing observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(root, "consent"),
       userConfigPath: join(root, "absent-user.jsonc"),
       credential: null,

@@ -18,7 +18,7 @@ import { makeResidentHandoff } from "../advice-delivery/handoff/workflow.ts"
 import { makeResidentIpc } from "../ipc/socket.ts"
 import type * as Effect from "effect/Effect"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { type Dispatcher } from "../state/dispatch.ts"
+import { type ReviewWorkScheduler } from "../state/dispatch.ts"
 import type { ResidentAdapterError } from "../adapter-error.ts"
 import { type Job } from "../work-ownership/jobs.ts"
 import { type ResidentRuntime } from "../runtime.ts"
@@ -27,7 +27,7 @@ import { type ResidentResources } from "./resources.ts"
 type RuntimePorts = {
   readonly stats: () => Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>
   readonly close: Effect.Effect<void, ResidentAdapterError>
-  readonly residentDispatcher: Dispatcher<string, Job>
+  readonly residentDispatcher: ReviewWorkScheduler<string, Job>
   readonly residentAdvice: ResidentResources["residentLedger"]["advice"]["values"]
   readonly residentScheduleRetirementClose: () => Effect.Effect<void>
   readonly residentScheduleIdleCheck: () => Effect.Effect<void>
@@ -47,7 +47,7 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     inspection,
     residentJoined,
     residentComposedDelivery,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentCollectionFindingOffer,
     residentNow,
     residentNotices,
@@ -56,7 +56,7 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     residentReviewControls,
     residentDispatchControls,
     residentDispatchAuthorityObserver,
-    residentJevRequestObserver,
+    residentReviewServiceRequestObserver,
     residentOfflineHttpClient,
     residentControlledRequestEffect,
     residentReuse
@@ -172,7 +172,7 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     get residentDispatcher() {
       return ports.residentDispatcher
     },
-    residentLifetimeController,
+    residentInstanceIdController,
     residentRoundSnapshot: admission.residentRoundSnapshot,
     get residentRecordAnalytics() {
       return reviewObservation.residentRecordAnalytics
@@ -183,14 +183,14 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     residentDispatchAuthorityObserver,
     residentLedger,
     lifetime,
-    residentJevRequestObserver
+    residentReviewServiceRequestObserver
   })
   const preparation = makeResidentPreparation({
     lifetime,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentLedger,
     get residentAwaitBackendGate() {
-      return () => residentAwaitBackendGate(residentLifetimeController)
+      return () => residentAwaitBackendGate(residentInstanceIdController)
     },
     residentCredentialRequired,
     residentCredentialShapeMatches,
@@ -225,8 +225,8 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
   const evaluation = makeResidentEvaluation({
     lifetime,
     residentRecordAnalytics: reviewObservation.residentRecordAnalytics,
-    residentObserveJevRequest: reviewObservation.residentObserveJevRequest,
-    residentLifetimeController,
+    residentObserveReviewServiceRequest: reviewObservation.residentObserveReviewServiceRequest,
+    residentInstanceIdController,
     residentLedger,
     inspection,
     residentInspection,
@@ -235,7 +235,7 @@ const makeResidentReviewWorkflows = (resources: ResidentResources, ports: Runtim
     residentJobActive: workLifecycle.residentJobActive,
     residentIsCurrentWork: workLifecycle.residentIsCurrentWork,
     get residentAwaitBackendGate() {
-      return () => residentAwaitBackendGate(residentLifetimeController)
+      return () => residentAwaitBackendGate(residentInstanceIdController)
     },
     residentSettleJoined: workLifecycle.residentSettleJoined,
     residentReviewControls,
@@ -286,7 +286,7 @@ const makeResidentInteractionWorkflows = (
     residentDispatchScope,
     residentStopExpiries,
     residentComposedDelivery,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentCollectionFindingOffer,
     residentNow,
     residentNotices,
@@ -307,7 +307,7 @@ const makeResidentInteractionWorkflows = (
     beginComposedSubmission: delivery.beginComposedSubmission,
     acknowledge: delivery.acknowledge,
     finalize: delivery.finalize,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentLedger,
     residentNow,
     residentAdmit: admission.residentAdmit,
@@ -355,7 +355,7 @@ const makeResidentInteractionWorkflows = (
     residentAdviceExpired: adviceCollection.residentAdviceExpired,
     residentCollectionWorkCount: delivery.residentCollectionWorkCount,
     residentReviewControls,
-    residentLifetimeController,
+    residentInstanceIdController,
     residentInspection,
     residentIsCurrentWork: workLifecycle.residentIsCurrentWork,
     residentCaptureSource,

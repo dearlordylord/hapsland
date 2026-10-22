@@ -12,9 +12,9 @@ const codes: Record<string, number> = {
   completeObservation: 7,
   dispatchSettled: 8,
   startReview: 9,
-  jevRequestReady: 10,
-  jevRequestStarted: 11,
-  jevRequestSettled: 12,
+  reviewServiceRequestReady: 10,
+  reviewServiceRequestStarted: 11,
+  reviewServiceRequestSettled: 12,
   collectionReady: 13,
   finalCandidateCheck: 14,
   submissionSuppressCheck: 15,
@@ -75,7 +75,7 @@ function publicRow(frame: Observation): number[] | undefined {
     p.global.items,
     p.global.bytes,
     p.dispatch.running.filter((work) => work.preparation).length,
-    p.dispatch.requests.length,
+    p.dispatch.reviewServiceRequests.length,
     Number(!!frame.rejection)
   ]
 }
@@ -142,7 +142,7 @@ it("compares original generated PRE scripts through actual native preparation, J
       expect(consumed?.time).toBe(6)
       expect(consumed?.outputs).toContainEqual({ category: "event", kind: "permitConsumed", round: 1 })
       expect(consumed?.after.rounds.find((round) => round.partition === 1)?.id).toBe(2)
-      const started = run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")
+      const started = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")
       expect(started).toHaveLength(1)
       expect(started[0]?.after.dispatch.running.filter((work) => !work.preparation)).toHaveLength(1)
       expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(
@@ -160,7 +160,7 @@ it("compares original generated PRE scripts through actual native preparation, J
       )
       expect(run.observations.filter((frame) => frame.rejection)).toHaveLength(scenario.outcome === "duplicate" ? 1 : 0)
     } else {
-      expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toEqual([])
+      expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toEqual([])
       expect(run.observations.some((frame) => frame.preparation)).toBe(false)
       if (scenario.durationMs === 11) expect(consumed?.rejection).toBeDefined()
     }
@@ -182,7 +182,7 @@ it("compares original generated PRE scripts through actual native preparation, J
         { id: owned[0]!.reservation, partition: 1, bytes: 5, purpose: "storedResult" }
       ])
     }
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(run.projection.collection.leases).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())

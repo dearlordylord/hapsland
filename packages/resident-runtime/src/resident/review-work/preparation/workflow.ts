@@ -2,7 +2,7 @@ import { effectiveSessionAnalytics } from "@hapsland/runtime-inputs/configuratio
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { verifyObservationRoot } from "@hapsland/native-observation/direct-event/adapter"
-import { type CapacityReservation } from "../../state/resident/state.ts"
+import { type ReviewCapacityReservationHandle } from "../../state/resident/state.ts"
 import { type IngressJob } from "../../work-ownership/jobs.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { decodeControlledOptions } from "../../authorization/controlled.ts"
@@ -26,7 +26,7 @@ const residentPrepare = Effect.fn("ResidentRuntime.prepare")((
     | "residentJobActive"
     | "residentJoined"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentPreparationControls"
     | "residentRecordAnalytics"
     | "residentRecordJoinedOutcomes"
@@ -46,8 +46,8 @@ const residentPrepare = Effect.fn("ResidentRuntime.prepare")((
 ) => {
   const expectedActivityUnits: Array<string> = []
   const unassignedClaims = new Set<string>()
-  const activeWorkspaces = new Set<CapacityReservation>()
-  const preparationSignal = job.work?.controller.signal ?? deps.residentLifetimeController.signal
+  const activeWorkspaces = new Set<ReviewCapacityReservationHandle>()
+  const preparationSignal = job.work?.controller.signal ?? deps.residentInstanceIdController.signal
   const context: PreparationContext<
     | "inspection"
     | "lifetime"
@@ -62,7 +62,7 @@ const residentPrepare = Effect.fn("ResidentRuntime.prepare")((
     | "residentJobActive"
     | "residentJoined"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentPreparationControls"
     | "residentRecordAnalytics"
     | "residentRecordJoinedOutcomes"
@@ -148,7 +148,7 @@ const residentPrepare = Effect.fn("ResidentRuntime.prepare")((
             job.partition,
             job.canonicalObservationId,
             "interruptObservation",
-            job.canonicalRound
+            job.canonicalRoundId
           )
       })
     )
@@ -171,7 +171,7 @@ export const makeResidentPreparation = (
     | "residentJobActive"
     | "residentJoined"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentPreparationControls"
     | "residentRecordAnalytics"
     | "residentRecordJoinedOutcomes"

@@ -232,7 +232,7 @@ def level(tower: Tower) -> U32:
     case Tower{_, _, _, v, _, _, _}: v
 
 # Fixed approach spacing and started-service time are game animation metadata.
-def work(core: C.State) -> List<&2, C.Work>:
+def work(core: C.State) -> List<&2, C.ReviewWorkRecord>:
   match core:
     case C.State{_, _, items, _, _, _, _, _, _}: items
 def rounds(core: C.State) -> List<&2, C.Round>:
@@ -245,13 +245,13 @@ def with_engine(world: World, next: T.State) -> World:
   match world:
     case World{_, t, p, l, c, g, h, ts, a, o, r, cl, d, auto, x, y, selected, damage, flash}:
       World{[next], t, p, l, c, g, h, ts, a, o, r, cl, d, auto, x, y, selected, damage, flash}
-def phase(kind: C.WorkKind) -> U32:
+def phase(kind: C.ReviewWorkPhase) -> U32:
   match kind:
     case C.AwaitingSourceRead{}: 0
     case C.SourceReading{}: 1
     case C.Preparing{}: 2
     case C.Reviewing{}: 3
-    case C.AtJev{}: 4
+    case C.ReviewServiceRequestOutstanding{}: 4
     case C.PendingFinding{_}: 5
 
 def with_towers(world: World, towers: List<&2, Tower>) -> World:

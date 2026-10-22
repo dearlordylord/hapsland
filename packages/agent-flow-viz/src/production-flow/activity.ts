@@ -35,7 +35,7 @@ export const flowPresentation = (
   const startedRound = outputs.find((command) => command.kind === "roundStarted")
   const admittedSource = outputs.find((command) => command.kind === "observationAdmitted")
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled"
-  const requests = projection.dispatch.requests
+  const requests = projection.dispatch.reviewServiceRequests
   const flow = projectFlowStep(
     last && last.event.kind !== "preparationGraph" ? { ...last, event: last.event } : undefined,
     numbers
@@ -48,7 +48,7 @@ export const flowPresentation = (
   const linkedReviewStatus =
     sourceCompletion?.linkedReviews.map(
       (work) =>
-        `${recordLabel("review", work.operation, numbers).split("/")[0]} ${work.kind === "reviewing" ? "continues" : work.kind === "atJev" ? "awaits Jev" : "has a retained finding"}`
+        `${recordLabel("review", work.operation, numbers).split("/")[0]} ${work.kind === "reviewing" ? "continues" : work.kind === "reviewServiceRequestOutstanding" ? "awaits Jev" : "has a retained finding"}`
     ) ?? []
   const completionContext =
     sourceCompletion === undefined
@@ -67,7 +67,7 @@ export const flowPresentation = (
   const clearedReviewLabel =
     flow.clearedReview === undefined ? undefined : recordLabel("review", flow.clearedReview, numbers).split("/")[0]
   const retainedOperation =
-    (last?.event.kind === "jevRequestSettled" ||
+    (last?.event.kind === "reviewServiceRequestSettled" ||
       last?.event.kind === "reviewCompleted" ||
       last?.event.kind === "reviewObserved") &&
     outputs.some((command) => command.kind === "findingRetained")
@@ -81,7 +81,8 @@ export const flowPresentation = (
       : findingLineage(projection).find((item) => item.operation === retainedOperation)
   const waitingReview =
     retainedFinding?.unfinished.length === 1 &&
-    (retainedFinding.unfinished[0].kind === "reviewing" || retainedFinding.unfinished[0].kind === "atJev")
+    (retainedFinding.unfinished[0].kind === "reviewing" ||
+      retainedFinding.unfinished[0].kind === "reviewServiceRequestOutstanding")
       ? recordLabel("review", retainedFinding.unfinished[0].operation, numbers).split("/")[0]
       : undefined
   const retainMarker =

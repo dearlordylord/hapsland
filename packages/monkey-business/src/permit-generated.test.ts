@@ -20,13 +20,13 @@ it.each(["success", "failure", "duplicate", "absent"] as const)(
       run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "permitConsumed"))
     ).toHaveLength(outcome === "success" || outcome === "duplicate" ? 1 : 0)
     expect(
-      run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
+      run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
     ).toHaveLength(outcome === "success" || outcome === "duplicate" ? 1 : 0)
     expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])
     expect(run.observations.filter((frame) => frame.rejection)).toHaveLength(outcome === "duplicate" ? 1 : 0)
     expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
     expect(run.projection.dispatch.running).toEqual([])
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(run.exportReplay().config).toMatchObject({
       editPermitLimits: { perAdvicee: 32, resident: 4096 },
       permitProfile: config(outcome).permitProfile
@@ -66,6 +66,6 @@ it.each(permitScenarioCases)("bounded campaign observes $outcome POST at $durati
   expect(run.observations.filter((frame) => frame.rejection)).toHaveLength(scenario.rejectedPosts)
   expect(run.projection.admissions.flatMap((admission) => admission.permits)).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
 })

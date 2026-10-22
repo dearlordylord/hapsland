@@ -41,7 +41,7 @@ a second resident policy engine.
 | Runtime edit recognition and advicee attribution | Reviewed TypeScript placement in TS-001 and TS-002; Bend admits the resulting opaque identity | [Runtime event tests](../src/direct-event/adapter.test.ts), [Claude attribution](../src/direct-event/claude-adapter.test.ts), and [Pi attribution](../src/direct-event/pi-adapter.test.ts) check accepted payloads and uncertain identity. Recognition does not authorize source use or open a round. |
 | Configuration precedence, file selection, rule eligibility, finding thresholds and ranking | Canonical configuration and rule events; `ImportGraph` controls reference traversal and budget outcomes | [Configuration](../src/configuration/configuration.test.ts), [rule decisions](../src/rules/decision.test.ts), and [graph authority](../src/direct-event/graph-resolver-authority.test.ts) check separately expected decisions. TS-006 keeps parsing, authored data, physical/Git facts, and pattern matches native. |
 | Permits, round opening, work callbacks, shared capacity and scheduling | Canonical admission, round, work, ledger and dispatch transitions | [Capacity](../src/resident/capacity.test.ts), [dispatch](../src/resident/dispatch.test.ts), and [composed delivery](../src/resident/composed-delivery.test.ts) check lifetime/round fences and accounting. TS-003 through TS-007 retain identity maps, clocks, native jobs and byte measurements. |
-| Backend authorization, physical settlement, supersession and reuse/cache | Canonical request, revision, reuse and cache transitions | [Request lifecycle](../src/resident/jev-request.test.ts), [revision](../src/resident/revision.test.ts), and [reuse](../src/resident/evaluation-reuse.test.ts) check saturation, stale outcomes, shared work and exact release. TS-008 and TS-010 retain external effects and provider-native input validation. |
+| Backend authorization, physical settlement, supersession and reuse/cache | Canonical request, revision, reuse and cache transitions | [Request lifecycle](../src/resident/review-service-request.test.ts), [revision](../src/resident/revision.test.ts), and [reuse](../src/resident/evaluation-reuse.test.ts) check saturation, stale outcomes, shared work and exact release. TS-008 and TS-010 retain external effects and provider-native input validation. |
 | Finding collection, output fit, leases, submission, Stop and continuation | Canonical collection, handoff, delivery, submission and finish transitions | [Collection](../src/resident/collection.test.ts) and [terminal collection](../src/resident/terminal-collection.test.ts) check independently expected output and closure behavior. TS-008 measures the final encoded response; a native write is distinct from its decision and from model visibility. |
 | Notices, expiry, identities with length limits and safe cleanup | Canonical notice, retention, round and cleanup transitions, with reviewed native identity limits in TS-005h | [Operational notices](../src/resident/operational-notices.test.ts) and [resident process cases](../src/resident/subprocess.test.ts) check logical and physical boundaries separately. TS-009a/TS-009b schedule checks and supply facts rather than closing rounds by native timer alone. |
 | State/event representation and compiled ABI | Shared checked adapters and Effect Schema representation validation | [Boundary](../src/canonical/boundary.test.ts), [immutable state](../src/canonical/adapter.test.ts), and [constructor/ABI checks](../scripts/check-canonical-authority.mjs) reject malformed or foreign values. Validation cannot synthesize an admission or delivery decision. |
@@ -233,7 +233,7 @@ wire and mutation tests cover native boundaries; input provenance remains unprov
 | --- | --- |
 | Decision | TypeScript resolves the user-selected review provider, model, and fixed-origin destination; encodes native JSON fragments for the Bend body projector; and rejects invalid native protocol sizes/counts before any HTTP effect. Unknown limits remain unknown. Declared token budgets are recorded without a claim of exact token enforcement. |
 | TypeScript owner | [@hapsland/runtime-environment/runtime/backend](../packages/runtime-environment/src/runtime/backend.ts); [@hapsland/review-definition/review-providers/catalog](../packages/review-definition/src/review-providers/catalog.ts); [@hapsland/review-execution/review-providers/live](../packages/review-execution/src/review-providers/live.ts) |
-| Bend boundary | Existing file/rule admission, source exploration, capacity, request permits, settlement, and advice authority retain their current reducer routes. Passing provider validation cannot authorize a request or synthesize a clear result. Existing internal `jevRequest` event names continue to describe the shared physical review-request lifecycle; they do not select a transport. |
+| Bend boundary | Existing file/rule admission, source exploration, capacity, request permits, settlement, and advice authority retain their current reducer routes. Passing provider validation cannot authorize a request or synthesize a clear result. Existing internal `reviewServiceRequest` event names continue to describe the shared physical review-request lifecycle; they do not select a transport. |
 | Why outside Bend | Provider formats, HTTP destinations, encoded UTF-8 sizes, response schemas, and credentials belong to the external adapter. This is protocol validation, separate from product scheduling and capacity policy. |
 | Review and limits | Implemented under the owner's 2026-10-02 request to form a provider-limit architecture and support Clef. Offline checks cover transport and identity behavior; there is no live Cloudflare, token-budget, quality, or platform claim. Recheck this boundary when adding batching, truncation, retry, fallback, token counters, or dynamically fetched capabilities. |
 
@@ -241,7 +241,7 @@ wire and mutation tests cover native boundaries; input provenance remains unprov
 
 ## Code-derived boundary inventory
 
-Canonical outputs form one ordered stream. Each output is an action request (`request`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Requests ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.
+Canonical outputs form one ordered stream. Each output is an resident action command (`action`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Action commands ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.
 
 This inventory resolves declared private exports through the package graph and reads variant kinds and fields from the production Effect schemas. It establishes representation and ownership facts, not why a decision belongs outside Bend, review acceptance, runtime execution, or passing tests. A `?` marks an optional field. Regenerate with `npm run docs:generate`.
 
@@ -309,7 +309,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | deliveryFinalCredentialCheck | invalidSeen, sharedCollect |
 | deliveryFinalizeCheck | allAcknowledged, anyExpired, items |
 | deliveryFindingDispositionCheck | composed, remaining |
-| deliveryReleaseCheck | acknowledged |
+| deliveryReleaseCheck | submissionRecorded |
 | deliverySubmissionAllowedCheck | active, barrier, deciding, existingToken, finishPermit, surface |
 | deliverySubmissionBatchCheck | allValid, count |
 | deliverySubmissionCandidateCheck | facts |
@@ -334,10 +334,6 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | interruptObservation | lifetime, observation, partition, round |
 | interruptPreparation | lifetime, operation, partition, round |
 | issuePermit | deadline, facts, lifetime, minimumStarted, now, partition, started, tool |
-| jevRequestInterrupted | lifetime, operation, partition, request, round |
-| jevRequestReady | configurationValid, credentialReady, currentWork, lifetime, operation, partition, physicalAvailable, rootValid, round, selected |
-| jevRequestSettled | currentWork, lifetime, operation, outcome, partition, request, round |
-| jevRequestStarted | lifetime, operation, partition, request, round |
 | noticeAdvance | key, maxCount, maximumKeys, proposed, remaining?, sequence |
 | noticeClearPending | key |
 | noticeCommit | group, key, maximumKeys, partition, pending, reservation, sequence |
@@ -372,6 +368,10 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | reviewCompleted | lifetime, operation, outcome, partition, round |
 | reviewFailureCheck | backendOrTimeout, credential, missing |
 | reviewObserved | currentWork, lifetime, operation, outcome, partition, round |
+| reviewServiceRequestInterrupted | lifetime, operation, partition, reviewServiceRequestId, round |
+| reviewServiceRequestReady | configurationValid, credentialReady, currentWork, lifetime, operation, partition, physicalAvailable, rootValid, round, selected |
+| reviewServiceRequestSettled | currentWork, lifetime, operation, outcome, partition, reviewServiceRequestId, round |
+| reviewServiceRequestStarted | lifetime, operation, partition, reviewServiceRequestId, round |
 | revisionCountCheck | — |
 | revisionCurrentCheck | generation, input, subject |
 | revisionGenerationCheck | subject |
@@ -418,7 +418,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | cacheDiscarded | event | ids |
 | cachePrepared | event | evicted |
 | cacheRejected | decision | — |
-| cancelWork | request | operation |
+| cancelWork | action | operation |
 | candidateFile | decision | candidate |
 | capacityGranted | event | after, id |
 | capacityRefused | decision | after, reason |
@@ -468,7 +468,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | continuationConsumed | event | — |
 | continuationRefused | decision | — |
 | continueCandidate | decision | — |
-| createNoticeKey | request | — |
+| createNoticeKey | action | — |
 | deliveryAckEmpty | decision | — |
 | deliveryAckExpired | decision | — |
 | deliveryAckReady | decision | — |
@@ -520,12 +520,6 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | finishReserved | event | — |
 | ignoreCandidate | decision | — |
 | includeChoice | decision | choice |
-| jevInterruptionRecorded | event | — |
-| jevObservationIgnored | decision | — |
-| jevRequestIssued | event | lifetime, operation, partition, request, round |
-| jevRequestOutcomeRecorded | event | outcome |
-| jevRequestStartRecorded | event | — |
-| jevRequestUnavailable | decision | — |
 | noticeCommitted | event | — |
 | noticeDropped | event | — |
 | noticeLeased | event | — |
@@ -551,7 +545,7 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | permitRoundClosed | event | round |
 | preparationRefused | decision | — |
 | preparationReleased | event | after, id |
-| prepare | request | operation, reservation |
+| prepare | action | operation, reservation |
 | preparedAdmitted | decision | — |
 | preparedCapacityRefused | decision | — |
 | preparedSkipped | decision | — |
@@ -580,6 +574,12 @@ Schema owner: [packages/canonical-policy/src/canonical/models.ts](../packages/ca
 | reuseSetMemberUnavailable | decision | — |
 | reviewAdmission | decision | admission |
 | reviewRecorded | event | outcome |
+| reviewServiceRequestInterruptionRecorded | event | — |
+| reviewServiceRequestIssued | event | lifetime, operation, partition, reviewServiceRequestId, round |
+| reviewServiceRequestObservationIgnored | decision | — |
+| reviewServiceRequestOutcomeRecorded | event | outcome |
+| reviewServiceRequestStartRecorded | event | — |
+| reviewServiceRequestUnavailable | decision | — |
 | reviewStarted | event | — |
 | revisionCount | decision | count |
 | revisionCurrent | decision | — |

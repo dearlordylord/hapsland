@@ -1,24 +1,24 @@
 import { type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import type { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice, AdviceContent } from "../state/advice-records.ts"
+import type { PendingAdviceHandle, AdviceContent } from "../state/advice-records.ts"
 import type { PendingNoticeSnapshot as PendingNotice } from "../state/notice-records.ts"
 import type { RoundWork } from "../state/round-records.ts"
 import { type WorkRevision } from "../state/revision.ts"
 import { recordAnalytics } from "@hapsland/activity-observation/activity/analytics"
 import * as Effect from "effect/Effect"
-import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
-import { type EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
+import { type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
+import { type EvaluatedReviewUnit } from "@hapsland/review-execution/direct-event/pipeline"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import { type CapacityLedger } from "../state/resident/state.ts"
-import { type Dispatcher } from "../state/dispatch.ts"
+import { type ReviewWorkScheduler } from "../state/dispatch.ts"
 import type { CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"
 import { type ResidentLedger, type Job } from "../work-ownership/jobs.ts"
 import type { PendingAdviceMetadata, AccountingMetrics } from "./metadata.ts"
-import { recipientPartition } from "../recipient/identity.ts"
+import { adviceeScopeKey } from "../recipient/identity.ts"
 import { withoutDeliveredFindings } from "./findings.ts"
 
-type AdviceSnapshot = { readonly capability: Advice; readonly content: AdviceContent }
+type AdviceSnapshot = { readonly capability: PendingAdviceHandle; readonly content: AdviceContent }
 type DeliveryBatch = { readonly advice: ReadonlyArray<AdviceSnapshot>; readonly notices: ReadonlyArray<PendingNotice> }
 type SubmissionSurface = "edit" | "background" | "stop"
 type Dependencies = {
@@ -29,7 +29,7 @@ type Dependencies = {
   ) => Effect.Effect<void, never, never>
   readonly residentLedger: ResidentLedger
   readonly residentNoticesForToken: (token: string) => Effect.Effect<PendingNotice[], never, never>
-  readonly residentReleaseAdviceLease: (advice: Advice) => Effect.Effect<boolean, never, never>
+  readonly residentReleaseAdviceLease: (advice: PendingAdviceHandle) => Effect.Effect<boolean, never, never>
   readonly residentNotices: ReturnType<ResidentLedger["notices"]>
   readonly lifetime: string
   readonly residentNow: () => number
@@ -49,10 +49,10 @@ type Dependencies = {
   readonly residentRoundActive: (round: RoundWork | undefined) => Effect.Effect<boolean, never, never>
   readonly residentIsCurrentWork: (
     revision: WorkRevision,
-    prepared: PreparedUnit
+    prepared: PreparedReviewUnit
   ) => Effect.Effect<boolean, never, never>
-  readonly residentAdviceCredentialAuthority: (advice: Advice) => boolean
-  readonly residentDispatcher: Dispatcher<string, Job>
+  readonly residentAdviceCredentialAuthority: (advice: PendingAdviceHandle) => boolean
+  readonly residentDispatcher: ReviewWorkScheduler<string, Job>
   readonly residentReuse: ReturnType<ResidentLedger["reuse"]>
 }
 const residentDeliveryBatch = Effect.fn("ResidentRuntime.deliveryBatch")(function* (
@@ -94,7 +94,7 @@ const residentReleaseDeliveryBatch = Effect.fn("ResidentRuntime.releaseDeliveryB
   })
 })
 const unacknowledgedDelivery = (delivery: AdviceContent["delivery"]): boolean =>
-  delivery !== undefined && !delivery.acknowledged
+  delivery !== undefined && !delivery.submissionRecorded
 const residentSubmissionAnalyticsEligible = (item: AdviceSnapshot): boolean =>
   item.capability.analyticsEnabled && unacknowledgedDelivery(item.content.delivery)
 function residentSubmissionAnalyticsGroups(
@@ -131,7 +131,7 @@ const residentAcknowledgeBatch = Effect.fn("ResidentRuntime.acknowledgeBatch")(f
 ) {
   for (const group of residentSubmissionAnalyticsGroups(batch.advice)) residentRecordSubmissionAnalytics(deps, group)
   for (const { capability } of batch.advice)
-    yield* deps.residentLedger.advice.updateDelivery(capability, token, { acknowledged: true })
+    yield* deps.residentLedger.advice.updateDelivery(capability, token, { submissionRecorded: true })
   for (const item of batch.notices) yield* deps.residentNotices.acknowledge(item.id)
 })
 const acknowledge = Effect.fn("ResidentRuntime.acknowledge")(function* (
@@ -169,7 +169,7 @@ const residentRemainingDeliveryFindings = (
 function residentRemainingEvaluations(
   content: AdviceContent,
   delivered: ReadonlyArray<Finding>
-): ReadonlyArray<EvaluatedUnit> {
+): ReadonlyArray<EvaluatedReviewUnit> {
   return content.evaluations
     .map((evaluation) => ({ ...evaluation, findings: withoutDeliveredFindings(evaluation.findings, delivered) }))
     .filter((evaluation) => evaluation.findings.length > 0)
@@ -204,8 +204,8 @@ const residentFinalizeAdvice = Effect.fn("ResidentRuntime.finalizeAdvice")(funct
   yield* deps.residentReleaseAdviceLease(item)
 })
 const residentBatchAcknowledged = (batch: DeliveryBatch): boolean =>
-  batch.advice.every(({ content }) => content.delivery?.acknowledged === true) &&
-  batch.notices.every((item) => item.delivery?.acknowledged === true)
+  batch.advice.every(({ content }) => content.delivery?.submissionRecorded === true) &&
+  batch.notices.every((item) => item.delivery?.submissionRecorded === true)
 const residentFinalizeBatch = Effect.fn("ResidentRuntime.finalizeBatch")(function* (
   deps: Dependencies,
   batch: DeliveryBatch,
@@ -242,10 +242,10 @@ const finalize = Effect.fn("ResidentRuntime.finalize")(function* (
 }, Effect.uninterruptible)
 const residentReleaseUnacknowledged = Effect.fn("ResidentRuntime.releaseUnacknowledged")(function* (
   deps: Dependencies,
-  acknowledged: boolean
+  submissionRecorded: boolean
 ) {
   const command = residentDeliveryDecision(
-    yield* deps.residentLedger.transition({ kind: "deliveryReleaseCheck", acknowledged }),
+    yield* deps.residentLedger.transition({ kind: "deliveryReleaseCheck", submissionRecorded }),
     "canonical delivery release refused"
   )
   if (command?.kind === "deliveryReleaseUnacknowledged") return true
@@ -255,11 +255,11 @@ const residentReleaseUnacknowledged = Effect.fn("ResidentRuntime.releaseUnacknow
 const residentReleaseTokenLease = Effect.fn("ResidentRuntime.releaseTokenLease")(function* (
   deps: Dependencies,
   token: string,
-  delivery: { readonly token: string; readonly acknowledged: boolean } | undefined,
+  delivery: { readonly token: string; readonly submissionRecorded: boolean } | undefined,
   release: Effect.Effect<void>
 ) {
   if (delivery?.token !== token) return
-  if (yield* residentReleaseUnacknowledged(deps, delivery.acknowledged)) yield* release
+  if (yield* residentReleaseUnacknowledged(deps, delivery.submissionRecorded)) yield* release
 })
 const residentReleaseAdviceForToken = Effect.fn("ResidentRuntime.releaseAdviceForToken")(
   (deps: Dependencies, token: string, snapshot: AdviceSnapshot) =>
@@ -282,7 +282,7 @@ const releaseDelivery = Effect.fn("ResidentRuntime.releaseDelivery")(function* (
 }, Effect.uninterruptible)
 const residentPendingSubmissionCapacity = Effect.fn("ResidentRuntime.pendingSubmissionCapacity")(function* (
   deps: Dependencies,
-  item: Advice,
+  item: PendingAdviceHandle,
   delivery: AdviceContent["delivery"]
 ) {
   if (item.round === undefined || item.workUnitId === undefined || delivery === undefined) return false
@@ -302,7 +302,7 @@ const residentSubmissionCandidateFacts = Effect.fn("ResidentRuntime.submissionCa
     hasDelivery: content.delivery !== undefined,
     pendingCapacity: yield* residentPendingSubmissionCapacity(deps, item, content.delivery),
     submissionAllowed: yield* deps.residentComposedDelivery.canBeginSubmission(
-      recipientPartition(item.observation.advicee),
+      adviceeScopeKey(item.observation.advicee),
       surface,
       token
     ),
@@ -363,10 +363,7 @@ const residentAuthorizeStopSubmission = Effect.fn("ResidentRuntime.authorizeStop
 ) {
   if (surface !== "stop") return true
   const first = advice[0]!.capability
-  return yield* deps.residentComposedDelivery.authorizeFinishOutput(
-    recipientPartition(first.observation.advicee),
-    token
-  )
+  return yield* deps.residentComposedDelivery.authorizeFinishOutput(adviceeScopeKey(first.observation.advicee), token)
 })
 const residentBeginSubmissionAdvice = Effect.fn("ResidentRuntime.beginSubmissionAdvice")(function* (
   deps: Dependencies,
@@ -380,7 +377,7 @@ const residentBeginSubmissionAdvice = Effect.fn("ResidentRuntime.beginSubmission
     if (finishPermit) continue
     const begun = yield* deps.residentComposedDelivery.beginSubmission(
       item.id,
-      recipientPartition(item.observation.advicee),
+      adviceeScopeKey(item.observation.advicee),
       token,
       content.delivery?.findings ?? [],
       surface,
@@ -473,7 +470,7 @@ const residentLeasedAdviceCount = Effect.fn("ResidentRuntime.leasedAdviceCount")
 ) {
   return (yield* deps.residentLedger.advice.snapshots()).filter(
     ({ capability: item, content }) =>
-      (composed ? recipientPartition(item.observation.advicee) : item.partition) === partition &&
+      (composed ? adviceeScopeKey(item.observation.advicee) : item.partition) === partition &&
       content.delivery !== undefined
   ).length
 })
@@ -493,7 +490,7 @@ const residentCollectionWorkCount = Effect.fn("ResidentRuntime.collectionWorkCou
   advicee: DirectAdvicee,
   composed = false
 ): Effect.fn.Return<number> {
-  const partition = recipientPartition(advicee)
+  const partition = adviceeScopeKey(advicee)
   const dispatcherWork = composed ? 0 : yield* residentDispatcherWorkCount(deps, partition)
   const work = composed ? yield* residentComposedWorkCount(deps, partition) : dispatcherWork
   const pendingEdits = composed && (yield* deps.residentComposedDelivery.hasPendingEdits(partition))
@@ -528,7 +525,7 @@ const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")
         pendingAt: advice.pendingAt,
         collectionEligible: content.collectionEligible,
         retainedBytes: reservation.bytes,
-        generation: advice.revision.generation,
+        generation: advice.revision.revisionGeneration,
         evaluationIdentities: content.evaluations.map(({ prepared }) => prepared.identity),
         path: advice.prepared.input.path,
         pendingFindings: content.findings.length,
@@ -536,7 +533,7 @@ const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")
         delivery:
           content.delivery === undefined
             ? "available"
-            : content.delivery.acknowledged
+            : content.delivery.submissionRecorded
               ? "leased-acknowledged"
               : "leased-unacknowledged"
       } as const
@@ -557,7 +554,7 @@ const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(functio
   }
   return {
     peakLedgerBytes: runtimeState.peakLedgerBytes,
-    maxMaterializedPreparedUnits: runtimeState.maxMaterializedPreparedUnits,
+    maxMaterializedPreparedReviewUnits: runtimeState.maxMaterializedPreparedReviewUnits,
     successfulCacheEntries: reuse.entries,
     successfulCacheBytes: reuse.bytes,
     pendingEvaluations: reuse.pending,

@@ -23,7 +23,7 @@ test("schema fields track requiredness and shared multi-kind branches", () => {
   ])
 })
 test("nested output unions retain category ownership without separate streams", () => {
-  const requests = Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("prepare") })
+  const requests = Schema.Struct({ category: Schema.Literal("action"), kind: Schema.Literal("prepare") })
   const events = Schema.Union([
     Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("findingRetained") }),
     Schema.Struct({ category: Schema.Literal("event"), kind: Schema.Literal("clearSettled") })
@@ -33,7 +33,7 @@ test("nested output unions retain category ownership without separate streams", 
     { kind: "clearSettled", category: "event", fields: [] },
     { kind: "collectionFits", category: "decision", fields: [] },
     { kind: "findingRetained", category: "event", fields: [] },
-    { kind: "prepare", category: "request", fields: [] }
+    { kind: "prepare", category: "action", fields: [] }
   ])
   assert.throws(
     () =>
@@ -64,7 +64,7 @@ test("current production schemas and exports produce the maintained ledger witho
   )
   const outputs = model.inventories.find((inventory) => inventory.name === "Canonical outputs")!
   assert.equal(outputs.rows.length, 217)
-  assert.equal(outputs.rows.find((row) => row.kind === "prepare")?.category, "request")
+  assert.equal(outputs.rows.find((row) => row.kind === "prepare")?.category, "action")
   assert.equal(outputs.rows.find((row) => row.kind === "findingRetained")?.category, "event")
   assert.equal(outputs.rows.find((row) => row.kind === "collectionFits")?.category, "decision")
   assert.equal(outputs.rows.find((row) => row.kind === "sourceCacheDrop")?.category, "decision")

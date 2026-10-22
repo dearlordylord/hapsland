@@ -104,29 +104,35 @@ def ledger_purpose(values: List<&2, Ledger.Purpose>, suffix: List<&2, Nat>) -> L
     case Ledger.AdviceRecheck{} <> Nil{}: 5n <> suffix
     case _: 999999n <> suffix
 
-def ledger_charge(values: List<&2, Ledger.Charge>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def ledger_reviewcapacityreservationrecord(
+  values: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Ledger.Charge{v0, v1, v2, v3} <> Nil{}: 0n <> v0 <> v1 <> v2 <> ledger_purpose(
+    case Ledger.ReviewCapacityReservationRecord{v0, v1, v2, v3} <> Nil{}: 0n <> v0 <> v1 <> v2 <> ledger_purpose(
       [v3],
       suffix
     )
     case _: 999999n <> suffix
 
-def list_ledger_charge_items(
-  values: List<&2, List<&2, Ledger.Charge>>,
+def list_ledger_reviewcapacityreservationrecord_items(
+  values: List<&2, List<&2, Ledger.ReviewCapacityReservationRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: ledger_charge([head], list_ledger_charge_items([tail], suffix))
+    case Con{head, tail} <> Nil{}: ledger_reviewcapacityreservationrecord(
+      [head],
+      list_ledger_reviewcapacityreservationrecord_items([tail], suffix)
+    )
     case _: 999999n <> suffix
 
-def list_ledger_charge(
-  values: List<&2, List<&2, Ledger.Charge>>,
+def list_ledger_reviewcapacityreservationrecord(
+  values: List<&2, List<&2, Ledger.ReviewCapacityReservationRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, Ledger.Charge, value) <> list_ledger_charge_items(
+    case +value <> Nil{}: List.length(&2, Ledger.ReviewCapacityReservationRecord, value) <> list_ledger_reviewcapacityreservationrecord_items(
       [value],
       suffix
     )
@@ -136,7 +142,7 @@ def ledger_ledger(values: List<&2, Ledger.Ledger>, suffix: List<&2, Nat>) -> Lis
   match values:
     case Ledger.Ledger{v0, v1, v2} <> Nil{}: 0n <> ledger_limits(
       [v0],
-      v1 <> list_ledger_charge([v2], suffix)
+      v1 <> list_ledger_reviewcapacityreservationrecord([v2], suffix)
     )
     case _: 999999n <> suffix
 
@@ -177,8 +183,8 @@ def list_canonical_round(
     )
     case _: 999999n <> suffix
 
-def canonical_workkind(
-  values: List<&2, Canonical.WorkKind>,
+def canonical_reviewworkphase(
+  values: List<&2, Canonical.ReviewWorkPhase>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
@@ -186,33 +192,39 @@ def canonical_workkind(
     case Canonical.SourceReading{} <> Nil{}: 1n <> suffix
     case Canonical.Preparing{} <> Nil{}: 2n <> suffix
     case Canonical.Reviewing{} <> Nil{}: 3n <> suffix
-    case Canonical.AtJev{} <> Nil{}: 4n <> suffix
+    case Canonical.ReviewServiceRequestOutstanding{} <> Nil{}: 4n <> suffix
     case Canonical.PendingFinding{v0} <> Nil{}: 5n <> v0 <> suffix
     case _: 999999n <> suffix
 
-def canonical_work(values: List<&2, Canonical.Work>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def canonical_reviewworkrecord(
+  values: List<&2, Canonical.ReviewWorkRecord>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Canonical.Work{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_workkind(
+    case Canonical.ReviewWorkRecord{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_reviewworkphase(
       [v5],
       v6 <> suffix
     )
     case _: 999999n <> suffix
 
-def list_canonical_work_items(
-  values: List<&2, List<&2, Canonical.Work>>,
+def list_canonical_reviewworkrecord_items(
+  values: List<&2, List<&2, Canonical.ReviewWorkRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: canonical_work([head], list_canonical_work_items([tail], suffix))
+    case Con{head, tail} <> Nil{}: canonical_reviewworkrecord(
+      [head],
+      list_canonical_reviewworkrecord_items([tail], suffix)
+    )
     case _: 999999n <> suffix
 
-def list_canonical_work(
-  values: List<&2, List<&2, Canonical.Work>>,
+def list_canonical_reviewworkrecord(
+  values: List<&2, List<&2, Canonical.ReviewWorkRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, Canonical.Work, value) <> list_canonical_work_items(
+    case +value <> Nil{}: List.length(&2, Canonical.ReviewWorkRecord, value) <> list_canonical_reviewworkrecord_items(
       [value],
       suffix
     )
@@ -280,60 +292,69 @@ def list_admission_admissionstate(
     )
     case _: 999999n <> suffix
 
-def dispatch_entry(values: List<&2, Dispatch.Entry>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def dispatch_scheduledreviewwork(
+  values: List<&2, Dispatch.ScheduledReviewWork>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Dispatch.Entry{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> boolean(
+    case Dispatch.ScheduledReviewWork{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> boolean(
       v5,
       boolean(v6, suffix)
     )
     case _: 999999n <> suffix
 
-def list_dispatch_entry_items(
-  values: List<&2, List<&2, Dispatch.Entry>>,
+def list_dispatch_scheduledreviewwork_items(
+  values: List<&2, List<&2, Dispatch.ScheduledReviewWork>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: dispatch_entry([head], list_dispatch_entry_items([tail], suffix))
+    case Con{head, tail} <> Nil{}: dispatch_scheduledreviewwork(
+      [head],
+      list_dispatch_scheduledreviewwork_items([tail], suffix)
+    )
     case _: 999999n <> suffix
 
-def list_dispatch_entry(
-  values: List<&2, List<&2, Dispatch.Entry>>,
+def list_dispatch_scheduledreviewwork(
+  values: List<&2, List<&2, Dispatch.ScheduledReviewWork>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, Dispatch.Entry, value) <> list_dispatch_entry_items(
+    case +value <> Nil{}: List.length(&2, Dispatch.ScheduledReviewWork, value) <> list_dispatch_scheduledreviewwork_items(
       [value],
       suffix
     )
     case _: 999999n <> suffix
 
-def dispatch_request(values: List<&2, Dispatch.Request>, suffix: List<&2, Nat>) -> List<&2, Nat>:
+def dispatch_reviewservicerequestrecord(
+  values: List<&2, Dispatch.ReviewServiceRequestRecord>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
   match values:
-    case Dispatch.Request{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> boolean(
+    case Dispatch.ReviewServiceRequestRecord{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> boolean(
       v5,
       boolean(v6, suffix)
     )
     case _: 999999n <> suffix
 
-def list_dispatch_request_items(
-  values: List<&2, List<&2, Dispatch.Request>>,
+def list_dispatch_reviewservicerequestrecord_items(
+  values: List<&2, List<&2, Dispatch.ReviewServiceRequestRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: dispatch_request(
+    case Con{head, tail} <> Nil{}: dispatch_reviewservicerequestrecord(
       [head],
-      list_dispatch_request_items([tail], suffix)
+      list_dispatch_reviewservicerequestrecord_items([tail], suffix)
     )
     case _: 999999n <> suffix
 
-def list_dispatch_request(
-  values: List<&2, List<&2, Dispatch.Request>>,
+def list_dispatch_reviewservicerequestrecord(
+  values: List<&2, List<&2, Dispatch.ReviewServiceRequestRecord>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, Dispatch.Request, value) <> list_dispatch_request_items(
+    case +value <> Nil{}: List.length(&2, Dispatch.ReviewServiceRequestRecord, value) <> list_dispatch_reviewservicerequestrecord_items(
       [value],
       suffix
     )
@@ -341,9 +362,12 @@ def list_dispatch_request(
 
 def dispatch_state(values: List<&2, Dispatch.State>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
-    case Dispatch.State{v0, v1, v2, v3, v4} <> Nil{}: 0n <> list_dispatch_entry(
+    case Dispatch.State{v0, v1, v2, v3, v4} <> Nil{}: 0n <> list_dispatch_scheduledreviewwork(
       [v0],
-      list_dispatch_entry([v1], v2 <> boolean(v3, list_dispatch_request([v4], suffix)))
+      list_dispatch_scheduledreviewwork(
+        [v1],
+        v2 <> boolean(v3, list_dispatch_reviewservicerequestrecord([v4], suffix))
+      )
     )
     case _: 999999n <> suffix
 
@@ -866,7 +890,7 @@ def canonical_state(values: List<&2, Canonical.State>, suffix: List<&2, Nat>) ->
       [v0],
       list_canonical_round(
         [v1],
-        list_canonical_work(
+        list_canonical_reviewworkrecord(
           [v2],
           v3 <> v4 <> list_admission_admissionstate(
             [v5],
@@ -877,8 +901,8 @@ def canonical_state(values: List<&2, Canonical.State>, suffix: List<&2, Nat>) ->
     )
     case _: 999999n <> suffix
 
-def canonical_actionrequest(
-  values: List<&2, Canonical.ActionRequest>,
+def canonical_residentactioncommand(
+  values: List<&2, Canonical.ResidentActionCommand>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
@@ -899,12 +923,12 @@ def canonical_capacityview(
   match values:
     case Canonical.CapacityView{v0, v1, v2} <> Nil{}: 0n <> ledger_usage(
       [v0],
-      ledger_usage([v1], list_ledger_charge([v2], suffix))
+      ledger_usage([v1], list_ledger_reviewcapacityreservationrecord([v2], suffix))
     )
     case _: 999999n <> suffix
 
-def canonical_requestoutcome(
-  values: List<&2, Canonical.RequestOutcome>,
+def canonical_reviewservicerequestoutcome(
+  values: List<&2, Canonical.ReviewServiceRequestOutcome>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
@@ -979,10 +1003,10 @@ def canonical_domainevent(
       suffix
     )
     case Canonical.ReviewStarted{} <> Nil{}: 20n <> suffix
-    case Canonical.JevRequestIssued{v0, v1, v2, v3, v4} <> Nil{}: 21n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
-    case Canonical.JevRequestStartRecorded{} <> Nil{}: 22n <> suffix
-    case Canonical.JevInterruptionRecorded{} <> Nil{}: 23n <> suffix
-    case Canonical.JevRequestOutcomeRecorded{v0} <> Nil{}: 24n <> canonical_requestoutcome(
+    case Canonical.ReviewServiceRequestIssued{v0, v1, v2, v3, v4} <> Nil{}: 21n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
+    case Canonical.ReviewServiceRequestStartRecorded{} <> Nil{}: 22n <> suffix
+    case Canonical.ReviewServiceRequestInterruptionRecorded{} <> Nil{}: 23n <> suffix
+    case Canonical.ReviewServiceRequestOutcomeRecorded{v0} <> Nil{}: 24n <> canonical_reviewservicerequestoutcome(
       [v0],
       suffix
     )
@@ -1165,8 +1189,8 @@ def canonical_policydecision(
       [v2],
       canonical_capacityview([v3], suffix)
     )
-    case Canonical.JevRequestUnavailable{} <> Nil{}: 7n <> suffix
-    case Canonical.JevObservationIgnored{} <> Nil{}: 8n <> suffix
+    case Canonical.ReviewServiceRequestUnavailable{} <> Nil{}: 7n <> suffix
+    case Canonical.ReviewServiceRequestObservationIgnored{} <> Nil{}: 8n <> suffix
     case Canonical.PreparedSkipped{} <> Nil{}: 9n <> suffix
     case Canonical.PreparedAdmitted{} <> Nil{}: 10n <> suffix
     case Canonical.PreparedCapacityRefused{} <> Nil{}: 11n <> suffix
@@ -1292,7 +1316,10 @@ def canonical_policydecision(
 
 def canonical_output(values: List<&2, Canonical.Output>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
-    case Canonical.ActionRequested{v0} <> Nil{}: 0n <> canonical_actionrequest([v0], suffix)
+    case Canonical.ResidentActionRequested{v0} <> Nil{}: 0n <> canonical_residentactioncommand(
+      [v0],
+      suffix
+    )
     case Canonical.EventEstablished{v0} <> Nil{}: 1n <> canonical_domainevent([v0], suffix)
     case Canonical.PolicyDecided{v0} <> Nil{}: 2n <> canonical_policydecision([v0], suffix)
     case _: 999999n <> suffix
@@ -1536,13 +1563,13 @@ def canonical_canonicalevent(
       suffix
     )
     case Canonical.StartReview{v0, v1, v2, v3} <> Nil{}: 23n <> v0 <> v1 <> v2 <> v3 <> suffix
-    case Canonical.JevRequestReady{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 24n <> v0 <> v1 <> v2 <> v3 <> boolean(
+    case Canonical.ReviewServiceRequestReady{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 24n <> v0 <> v1 <> v2 <> v3 <> boolean(
       v4,
       boolean(v5, boolean(v6, boolean(v7, boolean(v8, boolean(v9, suffix)))))
     )
-    case Canonical.JevRequestStarted{v0, v1, v2, v3, v4} <> Nil{}: 25n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
-    case Canonical.JevRequestInterrupted{v0, v1, v2, v3, v4} <> Nil{}: 26n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
-    case Canonical.JevRequestSettled{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 27n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_requestoutcome(
+    case Canonical.ReviewServiceRequestStarted{v0, v1, v2, v3, v4} <> Nil{}: 25n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
+    case Canonical.ReviewServiceRequestInterrupted{v0, v1, v2, v3, v4} <> Nil{}: 26n <> v0 <> v1 <> v2 <> v3 <> v4 <> suffix
+    case Canonical.ReviewServiceRequestSettled{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 27n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_reviewservicerequestoutcome(
       [v5],
       boolean(v6, suffix)
     )
@@ -1986,9 +2013,9 @@ def callbacks_owner(values: List<&2, Callbacks.Owner>, suffix: List<&2, Nat>) ->
 
 def callbacks_effect(values: List<&2, Callbacks.Effect>, suffix: List<&2, Nat>) -> List<&2, Nat>:
   match values:
-    case Callbacks.JevStarted{v0} <> Nil{}: 0n <> v0 <> suffix
-    case Callbacks.JevInterrupted{v0} <> Nil{}: 1n <> v0 <> suffix
-    case Callbacks.JevSettled{v0} <> Nil{}: 2n <> v0 <> suffix
+    case Callbacks.ReviewServiceRequestStarted{v0} <> Nil{}: 0n <> v0 <> suffix
+    case Callbacks.ReviewServiceRequestInterrupted{v0} <> Nil{}: 1n <> v0 <> suffix
+    case Callbacks.ReviewServiceRequestSettled{v0} <> Nil{}: 2n <> v0 <> suffix
     case Callbacks.PreparationCompleted{} <> Nil{}: 3n <> suffix
     case Callbacks.OutputTerminal{v0, v1} <> Nil{}: 4n <> v0 <> v1 <> suffix
     case Callbacks.OutputExpiry{v0, v1} <> Nil{}: 5n <> v0 <> v1 <> suffix
@@ -3071,13 +3098,13 @@ def treefacts_profile(values: List<&2, TreeFacts.Profile>, suffix: List<&2, Nat>
     case TreeFacts.Profile{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> v5 <> v6 <> v7 <> v8 <> v9 <> v10 <> v11 <> v12 <> v13 <> v14 <> v15 <> suffix
     case _: 999999n <> suffix
 
-def maybe_canonical_requestoutcome(
-  values: List<&2, Maybe<&2, Canonical.RequestOutcome>>,
+def maybe_canonical_reviewservicerequestoutcome(
+  values: List<&2, Maybe<&2, Canonical.ReviewServiceRequestOutcome>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case None{} <> Nil{}: 0n <> suffix
-    case Some{value} <> Nil{}: 1n <> canonical_requestoutcome([value], suffix)
+    case Some{value} <> Nil{}: 1n <> canonical_reviewservicerequestoutcome([value], suffix)
     case _: 999999n <> suffix
 
 def numeric_words(values: List<&2, Numeric.Words>, suffix: List<&2, Nat>) -> List<&2, Nat>:
@@ -3110,7 +3137,7 @@ def driver_outcomeenvironment(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case Driver.OutcomeEnvironment{v0, v1} <> Nil{}: 0n <> maybe_canonical_requestoutcome(
+    case Driver.OutcomeEnvironment{v0, v1} <> Nil{}: 0n <> maybe_canonical_reviewservicerequestoutcome(
       [v0],
       list_numeric_words([v1], suffix)
     )
@@ -3182,7 +3209,7 @@ def stop_original_inputs_input(
   match values:
     case stop_original_inputs.Edit{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> maybe_string(
       [v1],
-      v2 <> list_nat([v3], maybe_canonical_requestoutcome([v4], suffix))
+      v2 <> list_nat([v3], maybe_canonical_reviewservicerequestoutcome([v4], suffix))
     )
     case stop_original_inputs.Finish{v0, v1, v2} <> Nil{}: 1n <> v0 <> maybe_string(
       [v1],
@@ -3409,7 +3436,7 @@ def cachescenario_offer(
   match values:
     case CacheScenario.Offer{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> sharingscenario_sharingkey(
       [v1],
-      freshnessscenario_scope([v2], v3 <> canonical_requestoutcome([v4], suffix))
+      freshnessscenario_scope([v2], v3 <> canonical_reviewservicerequestoutcome([v4], suffix))
     )
     case _: 999999n <> suffix
 
@@ -3580,7 +3607,7 @@ def driver_sourcejob(values: List<&2, Driver.SourceJob>, suffix: List<&2, Nat>) 
   match values:
     case Driver.SourceJob{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> list_nat(
       [v3],
-      maybe_canonical_requestoutcome([v4], suffix)
+      maybe_canonical_reviewservicerequestoutcome([v4], suffix)
     )
     case _: 999999n <> suffix
 
@@ -3614,7 +3641,7 @@ def driver_outcomereceipt(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case Driver.OutcomeReceipt{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_requestoutcome(
+    case Driver.OutcomeReceipt{v0, v1, v2, v3, v4, v5, v6, v7, v8, v9} <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> v4 <> canonical_reviewservicerequestoutcome(
       [v5],
       driver_outcomesource(
         [v6],
@@ -3680,7 +3707,7 @@ def stop_observed_wire_emission(
     )
     case stop_observed_wire.SourceEdit{v0, v1, v2, v3, v4, v5, v6} <> Nil{}: 2n <> v0 <> v1 <> v2 <> v3 <> v4 <> list_nat(
       [v5],
-      maybe_canonical_requestoutcome([v6], suffix)
+      maybe_canonical_reviewservicerequestoutcome([v6], suffix)
     )
     case stop_observed_wire.FinishInput{v0, v1, v2} <> Nil{}: 3n <> v0 <> v1 <> stopscenario_input(
       [v2],
@@ -3939,7 +3966,10 @@ def sharing_original_inputs_edit(
           [v4],
           text(
             [v5],
-            sharing_original_inputs_namespace([v6], maybe_canonical_requestoutcome([v7], suffix))
+            sharing_original_inputs_namespace(
+              [v6],
+              maybe_canonical_reviewservicerequestoutcome([v7], suffix)
+            )
           )
         )
       )
@@ -4513,35 +4543,35 @@ def sharingruntime_disposition(
     case SharingRuntime.CachedFinding{} <> Nil{}: 3n <> suffix
     case _: 999999n <> suffix
 
-def sharingruntime_preparedunit(
-  values: List<&2, SharingRuntime.PreparedUnit>,
+def sharingruntime_preparedreviewunit(
+  values: List<&2, SharingRuntime.PreparedReviewUnit>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case SharingRuntime.PreparedUnit{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> v1 <> sharingscenario_sharingkey(
+    case SharingRuntime.PreparedReviewUnit{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> v1 <> sharingscenario_sharingkey(
       [v2],
       v3 <> sharingruntime_disposition([v4], suffix)
     )
     case _: 999999n <> suffix
 
-def list_sharingruntime_preparedunit_items(
-  values: List<&2, List<&2, SharingRuntime.PreparedUnit>>,
+def list_sharingruntime_preparedreviewunit_items(
+  values: List<&2, List<&2, SharingRuntime.PreparedReviewUnit>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
     case Nil{} <> Nil{}: suffix
-    case Con{head, tail} <> Nil{}: sharingruntime_preparedunit(
+    case Con{head, tail} <> Nil{}: sharingruntime_preparedreviewunit(
       [head],
-      list_sharingruntime_preparedunit_items([tail], suffix)
+      list_sharingruntime_preparedreviewunit_items([tail], suffix)
     )
     case _: 999999n <> suffix
 
-def list_sharingruntime_preparedunit(
-  values: List<&2, List<&2, SharingRuntime.PreparedUnit>>,
+def list_sharingruntime_preparedreviewunit(
+  values: List<&2, List<&2, SharingRuntime.PreparedReviewUnit>>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case +value <> Nil{}: List.length(&2, SharingRuntime.PreparedUnit, value) <> list_sharingruntime_preparedunit_items(
+    case +value <> Nil{}: List.length(&2, SharingRuntime.PreparedReviewUnit, value) <> list_sharingruntime_preparedreviewunit_items(
       [value],
       suffix
     )
@@ -4554,7 +4584,7 @@ def sharingruntime_preparation(
   match values:
     case SharingRuntime.Preparation{v0, v1, v2} <> Nil{}: 0n <> freshnessscenario_scope(
       [v0],
-      sharingscenario_member([v1], list_sharingruntime_preparedunit([v2], suffix))
+      sharingscenario_member([v1], list_sharingruntime_preparedreviewunit([v2], suffix))
     )
     case _: 999999n <> suffix
 
@@ -4620,7 +4650,7 @@ def sharingruntime_sharingresult(
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case SharingRuntime.SharingResult{v0, v1, v2, v3} <> Nil{}: 0n <> v0 <> canonical_requestoutcome(
+    case SharingRuntime.SharingResult{v0, v1, v2, v3} <> Nil{}: 0n <> v0 <> canonical_reviewservicerequestoutcome(
       [v1],
       freshnessscenario_scope([v2], v3 <> suffix)
     )
@@ -4975,7 +5005,7 @@ def advicee_lifecycle_driver_job(
   match values:
     case advicee_lifecycle_driver.Job{v0, v1, v2, v3, v4} <> Nil{}: 0n <> v0 <> v1 <> v2 <> list_nat(
       [v3],
-      maybe_canonical_requestoutcome([v4], suffix)
+      maybe_canonical_reviewservicerequestoutcome([v4], suffix)
     )
     case advicee_lifecycle_driver.NoJob{v0, v1} <> Nil{}: 1n <> v0 <> v1 <> suffix
     case advicee_lifecycle_driver.Unbound{v0} <> Nil{}: 2n <> driver_sourcejob([v0], suffix)
@@ -5007,7 +5037,7 @@ def driver_context(values: List<&2, Driver.Context>, suffix: List<&2, Nat>) -> L
       v20
     } <> Nil{}: 0n <> v0 <> v1 <> v2 <> v3 <> boolean(
       v4,
-      v5 <> maybe_canonical_requestoutcome(
+      v5 <> maybe_canonical_reviewservicerequestoutcome(
         [v6],
         boolean(
           v7,
@@ -5079,7 +5109,7 @@ def advicee_lifecycle_driver_input(
     )
     case advicee_lifecycle_driver.SourceEdit{v0, v1, v2, v3, v4} <> Nil{}: 1n <> v0 <> v1 <> v2 <> list_nat(
       [v3],
-      maybe_canonical_requestoutcome([v4], suffix)
+      maybe_canonical_reviewservicerequestoutcome([v4], suffix)
     )
     case advicee_lifecycle_driver.Finish{v0} <> Nil{}: 2n <> stopscenario_input([v0], suffix)
     case advicee_lifecycle_driver.FinishIntent{v0, v1, v2, v3} <> Nil{}: 3n <> v0 <> v1 <> v2 <> boolean(
@@ -5920,7 +5950,7 @@ def writer_original_inputs_edit(
   match values:
     case writer_original_inputs.Edit{v0, v1, v2, v3, v4} <> Nil{}: 0n <> text(
       [v0],
-      v1 <> v2 <> list_nat([v3], maybe_canonical_requestoutcome([v4], suffix))
+      v1 <> v2 <> list_nat([v3], maybe_canonical_reviewservicerequestoutcome([v4], suffix))
     )
     case writer_original_inputs.SharedEdit{v0} <> Nil{}: 1n <> sharing_original_inputs_edit(
       [v0],

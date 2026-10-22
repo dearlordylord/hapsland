@@ -10,13 +10,13 @@ const Count = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MA
 const Timestamp = Count.check(Schema.isBetween({ minimum: 0, maximum: 8_640_000_000_000_000 }))
 const Hash = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))
 export const AnalyticsKind = Schema.Literals([
-  "request-started",
-  "request-clear",
-  "request-findings",
-  "request-failed",
-  "request-timeout",
-  "request-interrupted",
-  "request-never-sent",
+  "review-service-request-started",
+  "review-service-request-clear",
+  "review-service-request-findings",
+  "review-service-request-failed",
+  "review-service-request-timeout",
+  "review-service-request-interrupted",
+  "review-service-request-never-sent",
   "cache-hit",
   "joined-review",
   "skipped-candidate",
@@ -116,13 +116,13 @@ const emptyTotals = (): MutableTotals => ({
 })
 const add = (a: number, b: number): number => Math.min(Number.MAX_SAFE_INTEGER, a + b)
 const analyticsCounters: Readonly<Record<AnalyticsKind, ReadonlyArray<keyof AnalyticsTotals>>> = {
-  "request-started": ["requestsStarted"],
-  "request-clear": ["requestsSucceeded", "clearReviews"],
-  "request-findings": ["requestsSucceeded", "reviewsWithFindings", "findings"],
-  "request-failed": ["requestsFailed"],
-  "request-timeout": ["requestsTimedOut"],
-  "request-interrupted": ["requestsInterrupted"],
-  "request-never-sent": ["requestsNeverSent"],
+  "review-service-request-started": ["requestsStarted"],
+  "review-service-request-clear": ["requestsSucceeded", "clearReviews"],
+  "review-service-request-findings": ["requestsSucceeded", "reviewsWithFindings", "findings"],
+  "review-service-request-failed": ["requestsFailed"],
+  "review-service-request-timeout": ["requestsTimedOut"],
+  "review-service-request-interrupted": ["requestsInterrupted"],
+  "review-service-request-never-sent": ["requestsNeverSent"],
   "cache-hit": ["cacheHits"],
   "joined-review": ["joinedReviews"],
   "skipped-candidate": ["skippedCandidates"],

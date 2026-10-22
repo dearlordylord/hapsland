@@ -9,7 +9,7 @@ import { AiError, DecisionModel } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import type { ProviderIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import type { ReviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { OPENAI_DESTINATION, OPENAI_PROVIDER } from "@hapsland/runtime-environment/runtime/backend"
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts"
 
@@ -73,7 +73,7 @@ const decodeAnswers = Effect.fn("OpenAIDecisionModel.decodeAnswers")(function* (
 })
 
 /** One OpenAI Decisions request. Refusal of any question fails the complete review unit. */
-export const liveLayer = (options: { readonly identity: ProviderIdentity; readonly credentialEnvVar: string }) =>
+export const liveLayer = (options: { readonly identity: ReviewServiceIdentity; readonly credentialEnvVar: string }) =>
   Layer.effect(
     DecisionModel.DecisionModel,
     Effect.gen(function* () {

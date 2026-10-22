@@ -5,9 +5,9 @@
   "harnessNode": "24.20.0",
   "installedBun": "1.3.14",
   "host": "Codex CLI",
-  "hostVersion": "codex-cli 0.155.1",
+  "agentRuntimeVersion": "codex-cli 0.155.1",
   "elapsedMs": 20231,
-  "controlledJevRequests": 0,
+  "controlledReviewServiceRequests": 0,
   "normalTrustValidated": false,
   "requestShapes": [
     {

@@ -12,7 +12,7 @@ import { Decision, DecisionModel } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { decide } from "@hapsland/review-execution/jev-decision"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { liveLayer } from "@hapsland/review-execution/review-providers/openai"
 import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
@@ -21,7 +21,7 @@ const decision = Decision.probability({
   criteria: { false: "All states have meaning", true: "An invalid state is representable" }
 })
 const tokenLayer = ConfigProvider.layer(ConfigProvider.fromUnknown({ OPENAI_API_KEY: "SECRET-SENTINEL" }))
-const identity = () => providerIdentity({ provider: "openai", model: "gpt-6-luna" })
+const identity = () => reviewServiceIdentity({ provider: "openai", model: "gpt-6-luna" })
 const envelope = (answers: unknown = [{ type: "predicate", name: "q0", probability: 0.91 }]) => ({
   model: "gpt-6-luna",
   answers,

@@ -17,7 +17,7 @@ import type {
   DirectCandidate,
   DirectObservation,
   DirectAdvicee,
-  CodexHostVersion
+  CodexAgentRuntimeVersion
 } from "./observation.ts"
 import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import { MAX_SOURCE_BYTES } from "./capture.ts"
@@ -196,10 +196,13 @@ const normalizedPatchCommand = (
     .map((line) => normalizedPatchHeader(line, paths))
     .join("\n")
 }
-const codexAdvicee = (event: ToolEvent, hostVersion: CodexHostVersion): Extract<DirectAdvicee, { host: "codex-cli" }> =>
+const codexAdvicee = (
+  event: ToolEvent,
+  agentRuntimeVersion: CodexAgentRuntimeVersion
+): Extract<DirectAdvicee, { agentRuntime: "codex-cli" }> =>
   Object.freeze({
-    host: "codex-cli",
-    hostVersion,
+    agentRuntime: "codex-cli",
+    agentRuntimeVersion,
     sessionId: event.session_id,
     turnId: event.turn_id,
     toolUseId: event.tool_use_id,
@@ -223,10 +226,10 @@ const codexPatchInput = (event: ToolEvent) => {
   if (candidates === undefined) return undefined
   return { command: input.command, response, candidates }
 }
-/** Strictly adapts the bounded native patch profile for the selected host version. */
+/** Strictly adapts the bounded native patch profile for the selected agent runtime version. */
 export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEvent")(function* (
   value: unknown,
-  hostVersion: CodexHostVersion = "0.155.1"
+  agentRuntimeVersion: CodexAgentRuntimeVersion = "0.155.1"
 ) {
   const event = record(value)
   if (!codexToolEvent(event) || !isCodexNativeApplyPatch(event)) return undefined
@@ -266,7 +269,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
   return Object.freeze({
     root: root.value.root,
     rootIdentity: root.value.rootIdentity,
-    advicee: codexAdvicee(event, hostVersion),
+    advicee: codexAdvicee(event, agentRuntimeVersion),
     candidates: Object.freeze(normalized.map((candidate) => Object.freeze(candidate))),
     candidateRoots: Object.freeze(
       discoveries.map((discovered) =>
@@ -281,68 +284,68 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
 /** Identity-only adaptation for later reply opportunities. It never supplies paths. */
 export const adaptCodexReply = Effect.fn("DirectEvent.adaptCodexReply")(function* (
   value: unknown,
-  hostVersion: CodexHostVersion = "0.155.1"
+  agentRuntimeVersion: CodexAgentRuntimeVersion = "0.155.1"
 ) {
   const event = record(value)
   if (!codexToolEvent(event)) return undefined
   const root = yield* canonicalGitRoot(event.cwd)
   if (root._tag === "None") return undefined
-  return Object.freeze({ root: root.value.root, advicee: codexAdvicee(event, hostVersion) })
+  return Object.freeze({ root: root.value.root, advicee: codexAdvicee(event, agentRuntimeVersion) })
 })
 type ComposedEventName = "PreToolUse" | "PostToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit"
 type ComposedHost = "codex-cli" | "claude-code"
-const composedToolMatches = (event: EventRecord, host: ComposedHost): boolean => {
+const composedToolMatches = (event: EventRecord, agentRuntime: ComposedHost): boolean => {
   if (!nonEmpty(event.tool_use_id)) return false
-  if (host === "codex-cli")
+  if (agentRuntime === "codex-cli")
     return event.tool_name === "apply_patch" || (event.hook_event_name === "PostToolUse" && event.tool_name === "Bash")
   return event.tool_name === "Edit" || event.tool_name === "Write"
 }
-const composedEventMatches = (event: IdentifiedEvent, host: ComposedHost, name: ComposedEventName): boolean => {
+const composedEventMatches = (event: IdentifiedEvent, agentRuntime: ComposedHost, name: ComposedEventName): boolean => {
   if (event.hook_event_name !== name) return false
   if (name === "SubagentStop" && !nonEmpty(event.agent_id)) return false
-  if (name === "PostToolUse" || name === "PreToolUse") return composedToolMatches(event, host)
+  if (name === "PostToolUse" || name === "PreToolUse") return composedToolMatches(event, agentRuntime)
   return true
 }
 const deliveryOpportunity = (value: unknown): string => (nonEmpty(value) ? value : "delivery-opportunity")
 const composedAdvicee = (
   event: IdentifiedEvent,
-  host: ComposedHost,
-  codexVersion: CodexHostVersion,
+  agentRuntime: ComposedHost,
+  codexVersion: CodexAgentRuntimeVersion,
   claudeVersion: string
 ): DirectAdvicee => {
-  if (host === "codex-cli")
+  if (agentRuntime === "codex-cli")
     return {
-      host,
-      hostVersion: codexVersion,
+      agentRuntime,
+      agentRuntimeVersion: codexVersion,
       sessionId: event.session_id,
       turnId: deliveryOpportunity(event.turn_id),
       toolUseId: deliveryOpportunity(event.tool_use_id),
       subagentId: event.agent_id ?? null
     }
   return {
-    host,
-    hostVersion: claudeVersion,
+    agentRuntime,
+    agentRuntimeVersion: claudeVersion,
     sessionId: event.session_id,
     turnId: null,
     toolUseId: deliveryOpportunity(event.tool_use_id),
     subagentId: event.agent_id ?? null
   }
 }
-const composedTargetPaths = (event: IdentifiedEvent, host: ComposedHost): ReadonlyArray<string> => {
+const composedTargetPaths = (event: IdentifiedEvent, agentRuntime: ComposedHost): ReadonlyArray<string> => {
   const input = record(event.tool_input)
-  if (host === "claude-code") return typeof input?.file_path === "string" ? [input.file_path] : []
+  if (agentRuntime === "claude-code") return typeof input?.file_path === "string" ? [input.file_path] : []
   return typeof input?.command === "string"
     ? (nativeDirectCandidates(input.command)?.map((candidate) => candidate.path) ?? [])
     : []
 }
 const composedEditRoots = Effect.fn("DirectEvent.composedEditRoots")(function* (
   event: IdentifiedEvent,
-  host: ComposedHost
+  agentRuntime: ComposedHost
 ) {
-  const base = host === "codex-cli" ? codexToolBase(event) : event.cwd
+  const base = agentRuntime === "codex-cli" ? codexToolBase(event) : event.cwd
   if (base === undefined) return undefined
   const editRoots: string[] = []
-  for (const target of composedTargetPaths(event, host)) {
+  for (const target of composedTargetPaths(event, agentRuntime)) {
     const discovered = yield* discoverToolTargetRoot(base, target).pipe(Effect.option)
     if (discovered._tag === "Some" && !editRoots.includes(discovered.value.root)) editRoots.push(discovered.value.root)
   }
@@ -351,19 +354,19 @@ const composedEditRoots = Effect.fn("DirectEvent.composedEditRoots")(function* (
 /** Identity-only mapping for composed background, Stop, and prompt hooks. */
 export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHookIdentity")(function* (
   value: unknown,
-  host: ComposedHost,
+  agentRuntime: ComposedHost,
   eventName: ComposedEventName,
-  codexVersion: CodexHostVersion = "0.155.1",
+  codexVersion: CodexAgentRuntimeVersion = "0.155.1",
   claudeVersion: string = "2.1.218"
 ) {
   const event = record(value)
-  if (!identifiedEvent(event) || !composedEventMatches(event, host, eventName)) return undefined
-  const editRoots = eventName === "PreToolUse" ? yield* composedEditRoots(event, host) : []
+  if (!identifiedEvent(event) || !composedEventMatches(event, agentRuntime, eventName)) return undefined
+  const editRoots = eventName === "PreToolUse" ? yield* composedEditRoots(event, agentRuntime) : []
   if (editRoots === undefined) return undefined
   const root = yield* canonicalGitRoot(event.cwd)
   return Object.freeze({
     root: editRoots[0] ?? (root._tag === "Some" ? root.value.root : resolve(event.cwd)),
-    advicee: Object.freeze(composedAdvicee(event, host, codexVersion, claudeVersion)),
+    advicee: Object.freeze(composedAdvicee(event, agentRuntime, codexVersion, claudeVersion)),
     ...(eventName === "PreToolUse" ? { editRoots: Object.freeze(editRoots) } : {})
   })
 })
@@ -566,10 +569,13 @@ const verifiedClaudeChange = (
   event.tool_name === "Edit"
     ? verifiedClaudeEdit(input, response, path, relativePath, text)
     : verifiedClaudeWrite(input, response, path, relativePath, text)
-const claudeAdvicee = (event: ClaudeEvent, claudeVersion: string): Extract<DirectAdvicee, { host: "claude-code" }> =>
+const claudeAdvicee = (
+  event: ClaudeEvent,
+  claudeVersion: string
+): Extract<DirectAdvicee, { agentRuntime: "claude-code" }> =>
   Object.freeze({
-    host: "claude-code",
-    hostVersion: claudeVersion,
+    agentRuntime: "claude-code",
+    agentRuntimeVersion: claudeVersion,
     sessionId: event.session_id,
     turnId: null,
     toolUseId: event.tool_use_id,

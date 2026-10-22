@@ -10,7 +10,8 @@ export const MAX_BACKGROUND_WAITERS = 64
 export const EDIT_PERMIT_EXPIRY_MS = 30_000
 export const BACKGROUND_WAITER_EXPIRY_MS = 20_000
 export const VIRTUAL_ROUND_QUIET_MS = DEFAULT_VIRTUAL_ROUND_QUIET_MS
-export type Round = { readonly quietMs: number }
+/** Settings retained for an active virtual round, not the round's identity or complete state. */
+export type VirtualRoundSettings = { readonly quietMs: number }
 export type RepeatEditDiagnostic = {
   readonly kind: "repeat-edit-id"
   readonly phase: "pending" | "completed"
@@ -27,16 +28,16 @@ export type SubmissionBatch = {
 }
 export type Submission = {
   readonly partition: string
-  readonly generation: number
+  readonly admissionRoundId: number
   readonly batches: Map<string, SubmissionBatch>
 }
 export const fingerprint = (finding: unknown): string =>
   createHash("sha256").update(canonicalValue(finding)).digest("hex")
-export type EditAdmission = { readonly generation: number; readonly settings?: ReviewSettingsSnapshot }
+export type EditAdmission = { readonly admissionRoundId: number; readonly settings?: ReviewSettingsSnapshot }
 export type EditPermit = {
   readonly settings?: ReviewSettingsSnapshot
   readonly partition: string
-  readonly generation: number
+  readonly admissionRoundId: number
   readonly expiresAt: number
   readonly token: number
   readonly tool: number
@@ -46,14 +47,14 @@ export type EditPermit = {
 export type StopRecord = {
   token: string
   id: number
-  generation: number
-  canonicalRound: number
+  admissionRoundId: number
+  canonicalRoundId: number
   continuationsAtStart: number
   outputToken?: string
 }
 export type FinishPermit = {
   readonly partition: string
-  readonly generation: number
+  readonly admissionRoundId: number
   readonly attempt: string
   readonly selected: ReadonlyArray<number>
   readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }>
@@ -62,7 +63,7 @@ export type FinishPermit = {
   revoked: boolean
 }
 export type DeliveryState = {
-  readonly rounds: ReadonlyMap<string, Round>
+  readonly rounds: ReadonlyMap<string, VirtualRoundSettings>
   readonly permits: ReadonlyMap<string, EditPermit>
   readonly toolIds: ReadonlyMap<string, number>
   readonly toolKeys: ReadonlyMap<number, string>
@@ -120,7 +121,7 @@ export const assertDeliveryState = (state: DeliveryState, owner: CapacityLedger)
           admission.partition === partition &&
           admission.permits.some(
             (native) =>
-              native.token === permit.token && native.tool === permit.tool && native.round === permit.generation
+              native.token === permit.token && native.tool === permit.tool && native.round === permit.admissionRoundId
           )
       )
     }) ||

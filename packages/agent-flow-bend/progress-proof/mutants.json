@@ -10,7 +10,7 @@
     "law": "settled_failures_allow_fresh_request",
     "file": "core.bend",
     "from": "Dispatch.reserve_request(state, partition, lifetime, round, operation, request)",
-    "to": "Dispatch.RequestDenied{state}"
+    "to": "Dispatch.ReviewServiceRequestDenied{state}"
   },
   {
     "law": "eligible_advice_reaches_handoff",
@@ -33,8 +33,8 @@
   {
     "law": "request_cohort_resolves",
     "file": "../Dispatch.bend",
-    "from": "request_matches(item, partition, lifetime, round, operation, request),\n        rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
-    "to": "request_matches(item, partition, lifetime, round, operation, request),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "from": "request_matches(item, partition, lifetime, round, operation, review_service_request_id),\n        rest,\n        item <> request_remove(\n          rest,\n          partition,\n          lifetime,\n          round,\n          operation,\n          review_service_request_id\n        )\n      )",
+    "to": "request_matches(item, partition, lifetime, round, operation, review_service_request_id),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, review_service_request_id))",
     "instance": "nonempty",
     "expectedLocation": "request_head_remove"
   },
@@ -54,8 +54,8 @@
   {
     "law": "matching_completion_decreases_request_count",
     "file": "../Dispatch.bend",
-    "from": "request_matches(item, partition, lifetime, round, operation, request),\n        rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
-    "to": "request_matches(item, partition, lifetime, round, operation, request),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "from": "request_matches(item, partition, lifetime, round, operation, review_service_request_id),\n        rest,\n        item <> request_remove(\n          rest,\n          partition,\n          lifetime,\n          round,\n          operation,\n          review_service_request_id\n        )\n      )",
+    "to": "request_matches(item, partition, lifetime, round, operation, review_service_request_id),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, review_service_request_id))",
     "expectedLocation": "remove_decreases_false",
     "evidence": "law's own helper"
   },

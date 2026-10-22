@@ -16,7 +16,7 @@
   "diagnosticOnly": false,
   "hookInterposition": "standard-installed-hooks",
   "installationProbeRuntime": "pinned-bun-with-packaged-native-entrypoint",
-  "maximumJevRequests": 0,
+  "maximumReviewServiceRequests": 0,
   "automaticHostRetries": 0,
   "syntheticRepositoryOnly": true,
   "ordinaryTaskInstructions": true,

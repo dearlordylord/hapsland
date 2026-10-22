@@ -108,7 +108,7 @@ const actSimulationNow = (model: SimulationModel, action: string): SimulationMod
           "fileTrees",
           "graphLimits"
         ].includes(action)) ||
-      (replaySource && (action.startsWith("credentials:") || action.startsWith("jev-request:")))
+      (replaySource && (action.startsWith("credentials:") || action.startsWith("review-service-request:")))
     ) {
       return {
         ...model,

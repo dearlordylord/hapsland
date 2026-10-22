@@ -32,7 +32,7 @@ mutants.push(
  ["certain_submission_counted",owner+"DefenseHost.bend","Bool.to_u32(recorded_submission(outputs))","0","budget"],
  ["uncertain_submission_not_counted",owner+"DefenseHost.bend","C.SubmissionTerminal{_,_,True{}}","C.SubmissionTerminal{_,_,_}","budget"],
  ["ignored_submission_not_counted",owner+"DefenseHost.bend","Bool.to_u32(recorded_submission(outputs))","1","budget"],
- ["ignored_clear_not_counted",owner+"DefenseHost.bend","    case C.AdmitObservation{_, _, _}: Bool.to_u32(U32.is_eq(kind, 1))","    case C.JevRequestSettled{_,_,_,_,_,C.RequestClear{},_}: Bool.to_u32(U32.is_eq(kind,2))\n    case C.AdmitObservation{_, _, _}: Bool.to_u32(U32.is_eq(kind, 1))","budget"]
+ ["ignored_clear_not_counted",owner+"DefenseHost.bend","    case C.AdmitObservation{_, _, _}: Bool.to_u32(U32.is_eq(kind, 1))","    case C.ReviewServiceRequestSettled{_,_,_,_,_,C.RequestClear{},_}: Bool.to_u32(U32.is_eq(kind,2))\n    case C.AdmitObservation{_, _, _}: Bool.to_u32(U32.is_eq(kind, 1))","budget"]
 )
 mutants.push(
  ["disabled_stop_preserves_world",owner+"DefenseHost.bend","    case False{}: world\ndef request_finish(","    case False{}: M.with_submissions(world,0)\ndef request_finish(","budget"],

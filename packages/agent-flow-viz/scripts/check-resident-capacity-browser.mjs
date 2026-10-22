@@ -187,7 +187,7 @@ try {
   assert.equal(retained.projection.global.items, 1)
   assert.equal(retained.projection.global.bytes, 35)
   assert.ok(retained.projection.charges.some((charge) => charge.purpose === "storedResult"))
-  assert.equal(retained.projection.dispatch.requests.length, 0)
+  assert.equal(retained.projection.dispatch.reviewServiceRequests.length, 0)
   assert.equal(retained.projection.dispatch.running.filter((job) => job.preparation).length, 0)
   await load(retained)
   await assertLedger(retained.projection)

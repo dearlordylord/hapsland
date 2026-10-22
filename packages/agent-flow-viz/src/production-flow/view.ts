@@ -117,7 +117,9 @@ export const productionFlowView = <Message>(
                 ),
                 h.span(
                   [],
-                  [`Jev in-flight: ${requests.length}/${projection.executionLimits.jevRequests} · no Jev wait queue`]
+                  [
+                    `Jev in-flight: ${requests.length}/${projection.executionLimits.reviewServiceRequests} · no Jev wait queue`
+                  ]
                 ),
                 h.span(
                   [],

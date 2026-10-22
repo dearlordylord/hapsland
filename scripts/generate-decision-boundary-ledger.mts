@@ -52,7 +52,7 @@ export const boundarySchemaRows = (schema: Schema.Constraint) => {
         (Array.isArray(categoryNode?.enum) && categoryNode.enum.length === 1 ? categoryNode.enum[0] : undefined)
       if (
         properties.category !== undefined &&
-        (!["request", "event", "decision"].includes(String(category)) || !required.includes("category"))
+        (!["action", "event", "decision"].includes(String(category)) || !required.includes("category"))
       )
         throw new Error("Boundary output must require one recognized category")
       return kinds.map((kind: string) => ({
@@ -176,7 +176,7 @@ export const decisionBoundaryDocument = (current: string, model: ReturnType<type
     "",
     "## Code-derived boundary inventory",
     "",
-    "Canonical outputs form one ordered stream. Each output is an action request (`request`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Requests ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.",
+    "Canonical outputs form one ordered stream. Each output is an resident action command (`action`), established canonical event (`event`), or policy decision (`decision`); the alphabetical inventory below does not create separate execution streams. Action commands ask the host to act, events report committed canonical transitions, and decisions report policy outcomes. Native effects and observations retain their own execution boundary.",
     "",
     "This inventory resolves declared private exports through the package graph and reads variant kinds and fields from the production Effect schemas. It establishes representation and ownership facts, not why a decision belongs outside Bend, review acceptance, runtime execution, or passing tests. A `?` marks an optional field. Regenerate with `npm run docs:generate`.",
     "",

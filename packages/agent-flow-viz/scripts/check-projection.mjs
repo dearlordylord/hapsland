@@ -99,7 +99,7 @@ try {
   // Identical snapshots must retain committed event and supplied outcome evidence.
   for (const outcome of ["clear", "failed"]) {
     const step = {
-      event: { kind: "jevRequestSettled", operation: 1, partition: 1, lifetime: 1, round: 1, outcome },
+      event: { kind: "reviewServiceRequestSettled", operation: 1, partition: 1, lifetime: 1, round: 1, outcome },
       outputs: [{ category: "event", kind: "reviewRecorded", outcome }],
       before: compiled,
       after: compiled
@@ -360,7 +360,8 @@ try {
     }
     if (index === 20)
       assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")))
-    if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight")
+    if (index === 25)
+      assert.equal(step.after.dispatch.reviewServiceRequests.length, 2, "two Jev requests are in flight")
     if (index === 26) {
       assert.ok(!active.some((route) => labels(route).includes("retain finding command")))
       assert.match(
@@ -400,7 +401,7 @@ try {
         "the earlier finding and its unfinished sibling remain visible until clear"
       )
     if (index === 35) {
-      assert.equal(step.event.kind, "jevRequestSettled")
+      assert.equal(step.event.kind, "reviewServiceRequestSettled")
       assert.equal(step.event.outcome, "clear")
       assert.ok(!active.some((route) => labels(route).includes("retain finding command")))
       assert.ok(!step.after.work.some((work) => work.operation === 7))

@@ -2,7 +2,7 @@ import type { RoundRecords, RoundWork } from "@hapsland/resident-runtime/residen
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Deferred, Effect, Exit } from "effect"
-import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
+import { makeReviewWorkScheduler } from "@hapsland/resident-runtime/resident/dispatch"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
@@ -26,7 +26,7 @@ const counts = { named: { queued: 1, running: 0 }, all: { queued: 2, running: 3 
 it.effect("serializes concurrent round binding, replacement and retirement without losing ownership", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const bound = yield* Effect.all(
       Array.from({ length: 16 }, (_, index) => owner.rounds.bind("agent", generation, activity, `cohort-${index}`)),
@@ -54,13 +54,13 @@ it.effect("serializes concurrent round binding, replacement and retirement witho
   })
 )
 
-it.effect("binds immutable handles and activity to the canonical admission generation", () =>
+it.effect("binds immutable handles and activity to the canonical admission round", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "first-cohort")
-    expect(round.canonicalRound).toBe(yield* owner.currentRoundId("agent"))
+    expect(round.canonicalRoundId).toBe(yield* owner.currentRoundId("agent"))
     expect(yield* owner.rounds.get("agent")).toBe(round)
     expect(Object.isFrozen(round)).toBe(true)
     expect(Object.isFrozen((yield* snapshotRound(owner.rounds, round)).work)).toBe(true)
@@ -84,17 +84,17 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
     const owner = yield* makeResidentState()
     const before = yield* owner.canonicalProjection()
     expect(yield* defectMessage(owner.rounds.bind("agent", 1, activity, "cohort"))).toContain(
-      "canonical admission generation"
+      "canonical admission round"
     )
     expect(yield* owner.canonicalProjection()).toEqual(before)
     expect(yield* owner.knownPartitionId("agent")).toBeUndefined()
     expect(yield* owner.currentRoundId("agent")).toBeUndefined()
     expect(yield* owner.rounds.entries()).toEqual([])
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const admitted = yield* owner.canonicalProjection()
     expect(yield* defectMessage(owner.rounds.bind("agent", generation + 1, activity, "cohort"))).toContain(
-      "canonical admission generation"
+      "canonical admission round"
     )
     expect(yield* owner.canonicalProjection()).toEqual(admitted)
     expect(yield* owner.rounds.entries()).toEqual([])
@@ -104,7 +104,7 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
 it.effect("rolls back native binding and preserves a prior activity snapshot on construction failure", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const before = yield* owner.canonicalProjection()
     const broken = {
@@ -131,7 +131,7 @@ it.effect("rolls back native binding and preserves a prior activity snapshot on 
 it.effect("publishes cohort replacement and the Bend-selected discard counts together", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "first")
     const before = yield* snapshotRound(owner.rounds, round)
@@ -159,7 +159,7 @@ it.effect("publishes cohort replacement and the Bend-selected discard counts tog
 it.effect("publishes no replacement or discarded counts when native cohort construction fails", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "cohort")
     const first = (yield* snapshotRound(owner.rounds, round)).work
@@ -187,7 +187,7 @@ it.effect("publishes no replacement or discarded counts when native cohort const
 it.effect("retires canonical and native ownership together and fences identity reuse after clear", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const firstGeneration = (yield* owner.delivery().admitEdit("agent", "first", 0))?.generation
+    const firstGeneration = (yield* owner.delivery().admitEdit("agent", "first", 0))?.admissionRoundId
     if (firstGeneration === undefined) throw new Error("fixture edit admission refused")
     const first = yield* owner.rounds.bind("agent", firstGeneration, activity, "first")
     expect(yield* owner.rounds.retire(first)).toBe(true)
@@ -195,12 +195,12 @@ it.effect("retires canonical and native ownership together and fences identity r
     expect(yield* owner.rounds.entries()).toEqual([])
     expect((yield* owner.canonicalProjection()).rounds).toEqual([])
     yield* owner.clear()
-    const nextGeneration = (yield* owner.delivery().admitEdit("agent", "next", 0))?.generation
+    const nextGeneration = (yield* owner.delivery().admitEdit("agent", "next", 0))?.admissionRoundId
     if (nextGeneration === undefined) throw new Error("fixture edit admission refused")
     const next = yield* owner.rounds.bind("agent", nextGeneration, activity, "next")
-    expect(next.canonicalRound).toBe(first.canonicalRound)
+    expect(next.canonicalRoundId).toBe(first.canonicalRoundId)
     const beforeObservation = yield* owner.rounds.policyWork(next)
-    yield* owner.admitObservation("agent", next.canonicalRound)
+    yield* owner.admitObservation("agent", next.canonicalRoundId)
     expect(beforeObservation.unfinished()).toBe(0)
     expect((yield* owner.rounds.policyWork(next)).unfinished()).toBe(1)
     expect(yield* owner.rounds.snapshot(first)).toBeUndefined()
@@ -222,12 +222,12 @@ it.effect("retires canonical and native ownership together and fences identity r
 it.effect("retains round metadata until outstanding physical dispatch work settles before clear", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState<never, string, { readonly operation: number; readonly round: number }>()
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit admission refused")
     const round = yield* owner.rounds.bind("agent", generation, activity, "cohort")
     const started = yield* Deferred.make<void>()
     const finish = yield* Deferred.make<void>()
-    const dispatch = yield* makeDispatcher(
+    const dispatch = yield* makeReviewWorkScheduler(
       owner,
       (job) => job,
       () =>
@@ -237,8 +237,8 @@ it.effect("retains round metadata until outstanding physical dispatch work settl
         })
     )
     yield* Effect.gen(function* () {
-      const operation = yield* owner.admitObservation("agent", round.canonicalRound)
-      expect(yield* dispatch.enqueue("agent", { operation, round: round.canonicalRound })).toBe(true)
+      const operation = yield* owner.admitObservation("agent", round.canonicalRoundId)
+      expect(yield* dispatch.enqueue("agent", { operation, round: round.canonicalRoundId })).toBe(true)
       yield* Deferred.await(started)
       round.controller.abort()
       ;(yield* snapshotRound(owner.rounds, round)).work.controller.abort()

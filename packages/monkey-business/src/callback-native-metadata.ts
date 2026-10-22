@@ -26,11 +26,11 @@ export const callbackNativeDescriptors = {
       { tag: "Ledger.AdviceRecheck", fields: [] }
     ]
   },
-  ledger_charge: {
+  ledger_reviewcapacityreservationrecord: {
     kind: "adt",
     constructors: [
       {
-        tag: "Ledger.Charge",
+        tag: "Ledger.ReviewCapacityReservationRecord",
         fields: [
           ["id", "nat"],
           ["partition", "nat"],
@@ -40,7 +40,11 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
-  list_ledger_charge: { kind: "list", element: "ledger_charge", representation: "bend" },
+  list_ledger_reviewcapacityreservationrecord: {
+    kind: "list",
+    element: "ledger_reviewcapacityreservationrecord",
+    representation: "bend"
+  },
   ledger_ledger: {
     kind: "adt",
     constructors: [
@@ -49,7 +53,7 @@ export const callbackNativeDescriptors = {
         fields: [
           ["limits", "ledger_limits"],
           ["next_id", "nat"],
-          ["charges", "list_ledger_charge"]
+          ["charges", "list_ledger_reviewcapacityreservationrecord"]
         ]
       }
     ]
@@ -74,35 +78,35 @@ export const callbackNativeDescriptors = {
     ]
   },
   list_canonical_round: { kind: "list", element: "canonical_round", representation: "bend" },
-  canonical_workkind: {
+  canonical_reviewworkphase: {
     kind: "adt",
     constructors: [
       { tag: "Canonical.AwaitingSourceRead", fields: [] },
       { tag: "Canonical.SourceReading", fields: [] },
       { tag: "Canonical.Preparing", fields: [] },
       { tag: "Canonical.Reviewing", fields: [] },
-      { tag: "Canonical.AtJev", fields: [] },
+      { tag: "Canonical.ReviewServiceRequestOutstanding", fields: [] },
       { tag: "Canonical.PendingFinding", fields: [["count", "nat"]] }
     ]
   },
-  canonical_work: {
+  canonical_reviewworkrecord: {
     kind: "adt",
     constructors: [
       {
-        tag: "Canonical.Work",
+        tag: "Canonical.ReviewWorkRecord",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
           ["charge", "nat"],
-          ["kind", "canonical_workkind"],
+          ["kind", "canonical_reviewworkphase"],
           ["parent", "nat"]
         ]
       }
     ]
   },
-  list_canonical_work: { kind: "list", element: "canonical_work", representation: "bend" },
+  list_canonical_reviewworkrecord: { kind: "list", element: "canonical_reviewworkrecord", representation: "bend" },
   admission_permit: {
     kind: "adt",
     constructors: [
@@ -137,11 +141,11 @@ export const callbackNativeDescriptors = {
     ]
   },
   list_admission_admissionstate: { kind: "list", element: "admission_admissionstate", representation: "bend" },
-  dispatch_entry: {
+  dispatch_scheduledreviewwork: {
     kind: "adt",
     constructors: [
       {
-        tag: "Dispatch.Entry",
+        tag: "Dispatch.ScheduledReviewWork",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
@@ -154,36 +158,40 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
-  list_dispatch_entry: { kind: "list", element: "dispatch_entry", representation: "bend" },
-  dispatch_request: {
+  list_dispatch_scheduledreviewwork: { kind: "list", element: "dispatch_scheduledreviewwork", representation: "bend" },
+  dispatch_reviewservicerequestrecord: {
     kind: "adt",
     constructors: [
       {
-        tag: "Dispatch.Request",
+        tag: "Dispatch.ReviewServiceRequestRecord",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"],
+          ["review_service_request_id", "nat"],
           ["started", "bool"],
           ["interrupted", "bool"]
         ]
       }
     ]
   },
-  list_dispatch_request: { kind: "list", element: "dispatch_request", representation: "bend" },
+  list_dispatch_reviewservicerequestrecord: {
+    kind: "list",
+    element: "dispatch_reviewservicerequestrecord",
+    representation: "bend"
+  },
   dispatch_state: {
     kind: "adt",
     constructors: [
       {
         tag: "Dispatch.State",
         fields: [
-          ["queued", "list_dispatch_entry"],
-          ["running", "list_dispatch_entry"],
+          ["queued", "list_dispatch_scheduledreviewwork"],
+          ["running", "list_dispatch_scheduledreviewwork"],
           ["next_sequence", "nat"],
           ["closed", "bool"],
-          ["requests", "list_dispatch_request"]
+          ["review_service_requests", "list_dispatch_reviewservicerequestrecord"]
         ]
       }
     ]
@@ -525,7 +533,7 @@ export const callbackNativeDescriptors = {
         fields: [
           ["ledger", "ledger_ledger"],
           ["rounds", "list_canonical_round"],
-          ["work", "list_canonical_work"],
+          ["work", "list_canonical_reviewworkrecord"],
           ["next_round", "nat"],
           ["next_operation", "nat"],
           ["admissions", "list_admission_admissionstate"],
@@ -536,7 +544,7 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
-  canonical_actionrequest: {
+  canonical_residentactioncommand: {
     kind: "adt",
     constructors: [
       {
@@ -570,12 +578,12 @@ export const callbackNativeDescriptors = {
         fields: [
           ["global", "ledger_usage"],
           ["local", "ledger_usage"],
-          ["charges", "list_ledger_charge"]
+          ["charges", "list_ledger_reviewcapacityreservationrecord"]
         ]
       }
     ]
   },
-  canonical_requestoutcome: {
+  canonical_reviewservicerequestoutcome: {
     kind: "adt",
     constructors: [
       { tag: "Canonical.NeverSent", fields: [] },
@@ -676,18 +684,21 @@ export const callbackNativeDescriptors = {
       },
       { tag: "Canonical.ReviewStarted", fields: [] },
       {
-        tag: "Canonical.JevRequestIssued",
+        tag: "Canonical.ReviewServiceRequestIssued",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"]
+          ["review_service_request_id", "nat"]
         ]
       },
-      { tag: "Canonical.JevRequestStartRecorded", fields: [] },
-      { tag: "Canonical.JevInterruptionRecorded", fields: [] },
-      { tag: "Canonical.JevRequestOutcomeRecorded", fields: [["outcome", "canonical_requestoutcome"]] },
+      { tag: "Canonical.ReviewServiceRequestStartRecorded", fields: [] },
+      { tag: "Canonical.ReviewServiceRequestInterruptionRecorded", fields: [] },
+      {
+        tag: "Canonical.ReviewServiceRequestOutcomeRecorded",
+        fields: [["outcome", "canonical_reviewservicerequestoutcome"]]
+      },
       { tag: "Canonical.ReservationReleased", fields: [["id", "nat"]] },
       { tag: "Canonical.ReviewRecorded", fields: [["outcome", "canonical_outcome"]] },
       { tag: "Canonical.FindingRetained", fields: [] },
@@ -882,8 +893,8 @@ export const callbackNativeDescriptors = {
           ["after", "canonical_capacityview"]
         ]
       },
-      { tag: "Canonical.JevRequestUnavailable", fields: [] },
-      { tag: "Canonical.JevObservationIgnored", fields: [] },
+      { tag: "Canonical.ReviewServiceRequestUnavailable", fields: [] },
+      { tag: "Canonical.ReviewServiceRequestObservationIgnored", fields: [] },
       { tag: "Canonical.PreparedSkipped", fields: [] },
       { tag: "Canonical.PreparedAdmitted", fields: [] },
       { tag: "Canonical.PreparedCapacityRefused", fields: [] },
@@ -1016,7 +1027,7 @@ export const callbackNativeDescriptors = {
   canonical_output: {
     kind: "adt",
     constructors: [
-      { tag: "Canonical.ActionRequested", fields: [["request", "canonical_actionrequest"]] },
+      { tag: "Canonical.ResidentActionRequested", fields: [["command", "canonical_residentactioncommand"]] },
       { tag: "Canonical.EventEstablished", fields: [["event", "canonical_domainevent"]] },
       { tag: "Canonical.PolicyDecided", fields: [["decision", "canonical_policydecision"]] }
     ]
@@ -1398,7 +1409,7 @@ export const callbackNativeDescriptors = {
         ]
       },
       {
-        tag: "Canonical.JevRequestReady",
+        tag: "Canonical.ReviewServiceRequestReady",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
@@ -1413,34 +1424,34 @@ export const callbackNativeDescriptors = {
         ]
       },
       {
-        tag: "Canonical.JevRequestStarted",
+        tag: "Canonical.ReviewServiceRequestStarted",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"]
+          ["review_service_request_id", "nat"]
         ]
       },
       {
-        tag: "Canonical.JevRequestInterrupted",
+        tag: "Canonical.ReviewServiceRequestInterrupted",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"]
+          ["review_service_request_id", "nat"]
         ]
       },
       {
-        tag: "Canonical.JevRequestSettled",
+        tag: "Canonical.ReviewServiceRequestSettled",
         fields: [
           ["partition", "nat"],
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"],
-          ["outcome", "canonical_requestoutcome"],
+          ["review_service_request_id", "nat"],
+          ["outcome", "canonical_reviewservicerequestoutcome"],
           ["current_work", "bool"]
         ]
       },
@@ -1881,7 +1892,7 @@ export const callbackNativeDescriptors = {
       },
       { tag: "Canonical.CleanupCheck", fields: [["facts", "retention_cleanupfacts"]] },
       { tag: "Canonical.CleanupCommit", fields: [] },
-      { tag: "Canonical.DeliveryReleaseCheck", fields: [["acknowledged", "bool"]] },
+      { tag: "Canonical.DeliveryReleaseCheck", fields: [["submission_recorded", "bool"]] },
       {
         tag: "Canonical.DeliveryAcknowledgeCheck",
         fields: [
@@ -2453,9 +2464,9 @@ export const callbackNativeDescriptors = {
   callbacks_effect: {
     kind: "adt",
     constructors: [
-      { tag: "Callbacks.JevStarted", fields: [["request", "nat"]] },
-      { tag: "Callbacks.JevInterrupted", fields: [["request", "nat"]] },
-      { tag: "Callbacks.JevSettled", fields: [["request", "nat"]] },
+      { tag: "Callbacks.ReviewServiceRequestStarted", fields: [["review_service_request_id", "nat"]] },
+      { tag: "Callbacks.ReviewServiceRequestInterrupted", fields: [["review_service_request_id", "nat"]] },
+      { tag: "Callbacks.ReviewServiceRequestSettled", fields: [["review_service_request_id", "nat"]] },
       { tag: "Callbacks.PreparationCompleted", fields: [] },
       {
         tag: "Callbacks.OutputTerminal",
@@ -3251,7 +3262,11 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
-  maybe_canonical_requestoutcome: { kind: "maybe", element: "canonical_requestoutcome", representation: "bend" },
+  maybe_canonical_reviewservicerequestoutcome: {
+    kind: "maybe",
+    element: "canonical_reviewservicerequestoutcome",
+    representation: "bend"
+  },
   numeric_words: {
     kind: "adt",
     constructors: [
@@ -3271,7 +3286,7 @@ export const callbackNativeDescriptors = {
       {
         tag: "Driver.OutcomeEnvironment",
         fields: [
-          ["outcome", "maybe_canonical_requestoutcome"],
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"],
           ["weights", "list_numeric_words"]
         ]
       }
@@ -3325,7 +3340,7 @@ export const callbackNativeDescriptors = {
           ["agent", "maybe_string"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       },
       {
@@ -3508,7 +3523,7 @@ export const callbackNativeDescriptors = {
           ["key", "sharingscenario_sharingkey"],
           ["original", "freshnessscenario_scope"],
           ["bytes", "nat"],
-          ["outcome", "canonical_requestoutcome"]
+          ["outcome", "canonical_reviewservicerequestoutcome"]
         ]
       }
     ]
@@ -3660,7 +3675,7 @@ export const callbackNativeDescriptors = {
           ["lifetime", "nat"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       }
     ]
@@ -3686,7 +3701,7 @@ export const callbackNativeDescriptors = {
           ["round", "nat"],
           ["operation", "nat"],
           ["request", "nat"],
-          ["outcome", "canonical_requestoutcome"],
+          ["outcome", "canonical_reviewservicerequestoutcome"],
           ["source", "driver_outcomesource"],
           ["job", "maybe_driver_sourcejob"],
           ["stream_before", "maybe_u32"],
@@ -3753,7 +3768,7 @@ export const callbackNativeDescriptors = {
           ["activity", "nat"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       },
       {
@@ -3948,7 +3963,7 @@ export const callbackNativeDescriptors = {
           ["subject", "string"],
           ["input", "string"],
           ["namespace", "sharing_original_inputs_namespace"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       }
     ]
@@ -4259,7 +4274,7 @@ export const callbackNativeDescriptors = {
           ["lifetime", "nat"],
           ["round", "nat"],
           ["operation", "nat"],
-          ["request", "nat"]
+          ["review_service_request_id", "nat"]
         ]
       }
     ]
@@ -4303,11 +4318,11 @@ export const callbackNativeDescriptors = {
       { tag: "SharingRuntime.CachedFinding", fields: [] }
     ]
   },
-  sharingruntime_preparedunit: {
+  sharingruntime_preparedreviewunit: {
     kind: "adt",
     constructors: [
       {
-        tag: "SharingRuntime.PreparedUnit",
+        tag: "SharingRuntime.PreparedReviewUnit",
         fields: [
           ["position", "nat"],
           ["bytes", "nat"],
@@ -4318,7 +4333,11 @@ export const callbackNativeDescriptors = {
       }
     ]
   },
-  list_sharingruntime_preparedunit: { kind: "list", element: "sharingruntime_preparedunit", representation: "bend" },
+  list_sharingruntime_preparedreviewunit: {
+    kind: "list",
+    element: "sharingruntime_preparedreviewunit",
+    representation: "bend"
+  },
   sharingruntime_preparation: {
     kind: "adt",
     constructors: [
@@ -4327,7 +4346,7 @@ export const callbackNativeDescriptors = {
         fields: [
           ["scope", "freshnessscenario_scope"],
           ["member", "sharingscenario_member"],
-          ["units", "list_sharingruntime_preparedunit"]
+          ["units", "list_sharingruntime_preparedreviewunit"]
         ]
       }
     ]
@@ -4355,7 +4374,7 @@ export const callbackNativeDescriptors = {
         tag: "SharingRuntime.SharingResult",
         fields: [
           ["evaluation", "nat"],
-          ["outcome", "canonical_requestoutcome"],
+          ["outcome", "canonical_reviewservicerequestoutcome"],
           ["original", "freshnessscenario_scope"],
           ["bytes", "nat"]
         ]
@@ -4587,7 +4606,7 @@ export const callbackNativeDescriptors = {
           ["lifetime", "nat"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       },
       {
@@ -4612,7 +4631,7 @@ export const callbackNativeDescriptors = {
           ["bytes", "nat"],
           ["job", "bool"],
           ["jev_delay", "nat"],
-          ["outcome", "maybe_canonical_requestoutcome"],
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"],
           ["current_work", "bool"],
           ["credential_ready", "bool"],
           ["credential_generation", "bool"],
@@ -4667,7 +4686,7 @@ export const callbackNativeDescriptors = {
           ["activity", "nat"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       },
       { tag: "advicee_lifecycle_driver.Finish", fields: [["input", "stopscenario_input"]] },
@@ -5157,7 +5176,7 @@ export const callbackNativeDescriptors = {
           ["at", "nat"],
           ["bytes", "nat"],
           ["units", "list_nat"],
-          ["outcome", "maybe_canonical_requestoutcome"]
+          ["outcome", "maybe_canonical_reviewservicerequestoutcome"]
         ]
       },
       { tag: "writer_original_inputs.SharedEdit", fields: [["original", "sharing_original_inputs_edit"]] }
@@ -5703,7 +5722,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
-    sha256: "c5b08371df7f6ce42938b61f6f871ab08f720264225017eb947f13feee7d51fe"
+    sha256: "0442cf430778dd4e5e2008aec36b023d1c149abc8449ab7f99e043c727f0c1cb"
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",
@@ -5727,7 +5746,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Dispatch.bend",
-    sha256: "ae10e0bde2c5059b330cb968a165703e029eb05d1d223bd790b413bf5998bf46"
+    sha256: "46fbb678b263e7db93b1dc94f12adeb8a636a573fa502917e8a117b1466434e8"
   },
   {
     path: "packages/agent-flow-bend/EditHistory.bend",
@@ -5735,7 +5754,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Handoff.bend",
-    sha256: "2e5e414cf262a743ce7b0939cdcdcdb232c2bf3552631f43082017425bb3e920"
+    sha256: "185f2f2a00375bae321d6c4c95db37c05d478ed67408a368260a22d094f016b3"
   },
   {
     path: "packages/agent-flow-bend/ImportGraph.bend",
@@ -5743,7 +5762,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Ledger.bend",
-    sha256: "5bb64c9bb55d7ec4d94648cf320b27cfaa3660f29c9806131ed96ffdee075cad"
+    sha256: "72d2adb5f00b59416964e214b43c2a94a57c3d62cb190ba336429d0ad4719c30"
   },
   {
     path: "packages/agent-flow-bend/NoticeState.bend",
@@ -5787,7 +5806,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/AdviceeLifecycleCleanup.bend",
-    sha256: "305f635b955172ad0dc52a1a4a89c55f16994b867d4ac30b9296d44ca5493135"
+    sha256: "27f90efbf82893eb0bcc24ef537c568bcdd6994767dc56e55d6175e9a1ed46ec"
   },
   {
     path: "packages/monkey-business-bend/Advicees.bend",
@@ -5799,19 +5818,19 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/CacheScenario.bend",
-    sha256: "ff1792e62fd289dcd81938231b070a9b0fb9a40c18732bf1d5550d4638f5f737"
+    sha256: "55550cbe78268a89c347d1f7827b69785d7b78c207c302439a64d77cf2e9df0e"
   },
   {
     path: "packages/monkey-business-bend/Callbacks.bend",
-    sha256: "777c18f7766ac96a2ea3d726c853474734891b49766e3212d511b92105e2fa31"
+    sha256: "594de62a12cb436ee572ef64adcead41aecf0752e52dee30fbd057ee6bb53628"
   },
   {
     path: "packages/monkey-business-bend/CollectionScenario.bend",
-    sha256: "227d85c6070fab18990a41a9fc318ff478a01a87377fa8660e2ca042a650a638"
+    sha256: "361cf2cee2b050317078dc546af06f618fa4cbcc8ec2f089a713c7cbce2abfc8"
   },
   {
     path: "packages/monkey-business-bend/CollectorScenario.bend",
-    sha256: "a3c2903e38605e0d304dc9ed8d4bca50d6be356a9830931da78fa0c1951b767c"
+    sha256: "fca7e5356e6a77af8e83ecd642f07123c11ac3c252096641437d5301732f5786"
   },
   {
     path: "packages/monkey-business-bend/CredentialFacts.bend",
@@ -5819,11 +5838,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/Driver.bend",
-    sha256: "7c5c76130225134e117c467143d7011411be3b1fc1d91244d9ca9b964fae5f36"
+    sha256: "978b16d43815426e92c59cafc768bec34f59e2e0337ee20402d36231f4b2b291"
   },
   {
     path: "packages/monkey-business-bend/Engine.bend",
-    sha256: "1392c9d269bd0284d9e6621189b2ce5c2aa69ab09961bda73150a48609624fd3"
+    sha256: "c9ba465e4316f8a6e8ddb7a509dc67f4cdb80d4b5c7502a8de214ab94207b948"
   },
   {
     path: "packages/monkey-business-bend/ExpiryScenario.bend",
@@ -5831,11 +5850,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/FreshnessScenario.bend",
-    sha256: "28284f350e4225d46d3a7ea457c9c0a8a6b634ab3842b26e58349ad862ee0a89"
+    sha256: "b14a11ab26c8de9d34ef5d2ff2ec491d4dd8557bf79f7b8b2831573b0b26b05c"
   },
   {
     path: "packages/monkey-business-bend/NoticeScenario.bend",
-    sha256: "a088d8d889ba2aed5fa68c8a59fccda331bd034da9c1b046b780d5c48c89d6e4"
+    sha256: "b54ba9bc852ade7708158f64514d69e6782de97b45f6543cc838b26d85c8f8a8"
   },
   {
     path: "packages/monkey-business-bend/Numeric.bend",
@@ -5867,15 +5886,15 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/SharingRuntime.bend",
-    sha256: "8fed55f906b8f2f0cc7af97c8d657d2ad4f3134b0692313d911450c176e18503"
+    sha256: "68741fd34c5d4ed2f943960585145d1605da11d1ab41bc222a7f49485612e6c8"
   },
   {
     path: "packages/monkey-business-bend/SharingScenario.bend",
-    sha256: "316a96c614863696710f2bb1b4ba7e3ee85a4d9c01d722e7023a94c0306cbaab"
+    sha256: "860e2481ff6ca0fe8a4d64a50e6c91cc7f4acad8ea4231d43fa1fe83e32f1c02"
   },
   {
     path: "packages/monkey-business-bend/StopScenario.bend",
-    sha256: "bd38c6fe0f3743809baba5bd9bc3694e42e6717660299ab430f77cad6685e317"
+    sha256: "2558c064bf990da0c1ec9467281fdbd1a1451a43b36773b843ffd1bd6b5bf265"
   },
   {
     path: "packages/monkey-business-bend/TreeFacts.bend",
@@ -5895,7 +5914,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/advicee-lifecycle-driver.bend",
-    sha256: "a2049c407e7d68127191163c11aaab8cc90d2a8dc882d1ceaa2def8e2eae93e7"
+    sha256: "225a9f33466a72a0f22bb9400846625d789e60a5f117726affe537f532f88aad"
   },
   {
     path: "packages/monkey-business-bend/conformance/expiry-observed-driver.bend",
@@ -5927,15 +5946,15 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/sharing-original-inputs.bend",
-    sha256: "ea0146abe9364918d37bd4a27e84ca9434796062a3c9cf5cb45f462c485f4d18"
+    sha256: "4b0c8fa674b54412b1c073068f12e3a3919e3c21d8a806093a6592e0eeeeacf4"
   },
   {
     path: "packages/monkey-business-bend/conformance/stop-observed-wire.bend",
-    sha256: "7e64eb5fb89e43e30f77b2f4eb2d2f434cf9efd8b10c810f7f2d4afd8c3a14b6"
+    sha256: "ef8b221d7c62b87982397e4835e15188a0b326ff46d68f0af14196beaed751d5"
   },
   {
     path: "packages/monkey-business-bend/conformance/stop-original-inputs.bend",
-    sha256: "5a7d9f2529d52078cc44eaeb1fb62c6149b0aa39e90941fc2e1be5335c6b33d6"
+    sha256: "4a24edb903bedd955dbcb0dd38209a03ac02bd4ba0c333d699495270545055ee"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-intersection-controls.bend",
@@ -5943,7 +5962,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-context.bend",
-    sha256: "7c60e600bf2e79a777ca94599c397943e88c1677a457f394209c437884fda666"
+    sha256: "5710efdfb7a62c9a44815a8536ee9b5deaa6ba9696d383df5d0919ca1e87d5b9"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-driver.bend",
@@ -5951,7 +5970,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-program.bend",
-    sha256: "8bfc2337efa90941719bf921c041d1a2f4b790e09424a53b4dc640e97c311d43"
+    sha256: "fe45ea146746fc76b9de6b8bd33cc80e6633d57ab2e3d02515a99886f1d69921"
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-observed-transport.bend",
@@ -5963,6 +5982,6 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/conformance/writer-original-inputs.bend",
-    sha256: "282471e9f7e45a9b33ae503bef885e3638e0cac5f4e1d32047652712d5fbbc15"
+    sha256: "05ee0a22b4d5ff0042afd891f756df25ad4062d4c3455b234b381625696adba5"
   }
 ] as const

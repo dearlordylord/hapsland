@@ -1,10 +1,10 @@
 import type { CanonicalOutput } from "@hapsland/canonical-policy/canonical/adapter"
 import type { CapacityLedger } from "./capacity/operations.ts"
-import type { CapacityReservation } from "./capacity/model.ts"
+import type { ReviewCapacityReservationHandle } from "./capacity/model.ts"
 import type { OperationalNotice, OperationalNoticeKind } from "./collection-facts.ts"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
 
-type NoticeDelivery = { readonly token: string; leaseUntil: number; acknowledged: boolean }
+type NoticeDelivery = { readonly token: string; leaseUntil: number; submissionRecorded: boolean }
 
 type PendingNotice = {
   readonly canonicalId: number
@@ -19,7 +19,7 @@ type NoticeCooldown = {
   readonly canonicalId: number
   readonly partition: string
   readonly deliveryGroup: string
-  readonly reservation: CapacityReservation
+  readonly reservation: ReviewCapacityReservationHandle
   nextAllowedAt: number
   suppressedCount: number
   pending?: PendingNotice
@@ -66,7 +66,7 @@ const noticeReservationBytes = (key: string, partition: string, measure: (value:
         delivery: {
           token: "00000000-0000-0000-0000-000000000000",
           leaseUntil: Number.MAX_SAFE_INTEGER,
-          acknowledged: true
+          submissionRecorded: true
         }
       }
     }
@@ -382,7 +382,7 @@ export const noticeRecordOperations = (
       }),
     acknowledge: (id: string) =>
       updateDelivery(id, (pending) => {
-        if (pending.delivery !== undefined) pending.delivery.acknowledged = true
+        if (pending.delivery !== undefined) pending.delivery.submissionRecorded = true
       }),
     renew: (id: string, until: number) =>
       updateDelivery(id, (pending) => {

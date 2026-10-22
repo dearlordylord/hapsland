@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect"
-import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 
 const ReviewControlPhase = Schema.Literals([
   "beforeSelection",
@@ -17,7 +17,7 @@ export class ReviewControlError extends Schema.TaggedError<ReviewControlError>()
 
 export interface ReviewControls {
   readonly beforeSelection: (adviceId: string) => Effect.Effect<void, ReviewControlError>
-  readonly beforeEvaluate: (prepared: PreparedUnit) => Effect.Effect<void, ReviewControlError>
+  readonly beforeEvaluate: (prepared: PreparedReviewUnit) => Effect.Effect<void, ReviewControlError>
   readonly afterSourceWorkspaceReserved: (adviceId: string) => Effect.Effect<void, ReviewControlError>
   readonly afterAdvicePending: (adviceId: string) => Effect.Effect<void, ReviewControlError>
   readonly beforeFinalSelection: (adviceId: string) => Effect.Effect<void, ReviewControlError>
@@ -31,7 +31,7 @@ export class ResidentReviewControls extends Context.Service<ResidentReviewContro
 
 export const defaultReviewControls = ResidentReviewControls.of({
   beforeSelection: Effect.fn("ResidentReviewControls.beforeSelection")((_adviceId: string) => Effect.void),
-  beforeEvaluate: Effect.fn("ResidentReviewControls.beforeEvaluate")((_prepared: PreparedUnit) => Effect.void),
+  beforeEvaluate: Effect.fn("ResidentReviewControls.beforeEvaluate")((_prepared: PreparedReviewUnit) => Effect.void),
   afterSourceWorkspaceReserved: Effect.fn("ResidentReviewControls.workspaceReserved")(
     (_adviceId: string) => Effect.void
   ),

@@ -15,8 +15,8 @@ import {
 } from "../../work-ownership/reservation.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { type PreparationContext, type RetainedPreparationItem } from "./context.ts"
-import { planPreparedUnits } from "./planning.ts"
-import { observePlannedEvaluation, recordReuseObservation, retainPreparedUnit } from "./retention.ts"
+import { planPreparedReviewUnits } from "./planning.ts"
+import { observePlannedEvaluation, recordReuseObservation, retainPreparedReviewUnit } from "./retention.ts"
 
 const startCanonicalSource = Effect.fn("ResidentRuntime.startCanonicalSource")(function* (
   context: PreparationContext<"residentLedger">
@@ -39,7 +39,7 @@ export const startSourcePreparation = Effect.fn("ResidentRuntime.startSourcePrep
       context.job.partition,
       context.job.canonicalObservationId,
       "startObservation",
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     ))
   ) {
     yield* context.deps.residentLedger.release(context.job.reservation)
@@ -127,7 +127,7 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       context.job.partition,
       context.job.canonicalObservationId,
       requestedBytes,
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     )
     if (preparation.status !== "admitted") {
       yield* recordRefusedPreparation(context, candidate, preparation, requestedBytes)
@@ -187,7 +187,7 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       return ready
     })
     const ready = yield* admitPreparedOutcomes()
-    yield* context.deps.residentLedger.runtime.observePreparedUnits(ready.length)
+    yield* context.deps.residentLedger.runtime.observePreparedReviewUnits(ready.length)
     const filterDeliverableOutcomes = Effect.fn("ResidentRuntime.filterDeliverableOutcomes")(function* () {
       let rejectedDeliverable = false
       const deliverable: typeof ready = []
@@ -207,7 +207,7 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       return { rejectedDeliverable, deliverable }
     })
     const { rejectedDeliverable, deliverable } = yield* filterDeliverableOutcomes()
-    const planned = yield* planPreparedUnits(context, deliverable)
+    const planned = yield* planPreparedReviewUnits(context, deliverable)
     for (const item of planned) observePlannedEvaluation(context, item)
     const recordReuseAnalytics = Effect.fn("ResidentRuntime.recordReuseAnalytics")(function* () {
       for (const item of planned) {
@@ -243,7 +243,7 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       retained.map((item) =>
         residentUnitReservationBytes(pathObservation, context.job.dispatch, item.outcome.prepared)
       ),
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     )
     context.activeWorkspaces.delete(workspace)
     // Workspace has been released and all accepted unit reservations are
@@ -273,10 +273,10 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       }
     })
     yield* observeJoinedBoundary()
-    const retainPreparedUnits = Effect.fn("ResidentRuntime.retainPreparedUnits")(function* () {
+    const retainPreparedReviewUnits = Effect.fn("ResidentRuntime.retainPreparedReviewUnits")(function* () {
       for (const [index, item] of retained.entries()) {
         if (
-          !(yield* retainPreparedUnit(
+          !(yield* retainPreparedReviewUnit(
             context,
             retained,
             reservations,
@@ -291,7 +291,7 @@ export const prepareCandidate = Effect.fn("ResidentRuntime.prepareCandidate")(
       }
       return true
     })
-    return yield* retainPreparedUnits()
+    return yield* retainPreparedReviewUnits()
   },
   (effect, context, _settings, _analyticsEnabled, candidate) =>
     effect.pipe(

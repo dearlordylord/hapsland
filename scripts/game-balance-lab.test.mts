@@ -246,7 +246,7 @@ function nativeTicks(world: unknown, count: number) {
     world = tick.world
     // Retain actual semantic event frames, not every large intermediate state.
     const frames = tick.frames as { $: string }
-    for (const name of ["JevRequestSettled", "SubmissionTerminal", "FinishTerminal"])
+    for (const name of ["ReviewServiceRequestSettled", "SubmissionTerminal", "FinishTerminal"])
       for (const event of gameEvents([frames], name))
         trace.push({ $: "NativeRunTypes.ProductFrame", ...(normalized(event) as object) })
   }
@@ -290,7 +290,7 @@ it("accelerates the selected physical operation and independently replays the co
   expect(result.actions.map((a) => a.result)).toEqual(["Applied", "Applied", "CoolingDown"])
   expect(result.actions[1]?.target?.owner.operation).toBe(3)
   expect(result.actions[2]?.target).toBeUndefined()
-  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => [e.event.operation, e.time])).toEqual([
+  expect(gameEvents(result.trace, "ReviewServiceRequestSettled").map((e) => [e.event.operation, e.time])).toEqual([
     [3, 7960],
     [4, 10240]
   ])
@@ -310,7 +310,7 @@ it("two local shots target distinct callbacks and improve the final family arriv
   expect(second.result.$).toBe("Applied")
   expect(nativeFire(second.world, 1, 3).result.$).toBe("CoolingDown")
   const journey = nativeTicks(second.world, 610)
-  expect(gameEvents(journey.trace, "JevRequestSettled").map((e) => e.time)).toEqual([7960, 8060])
+  expect(gameEvents(journey.trace, "ReviewServiceRequestSettled").map((e) => e.time)).toEqual([7960, 8060])
   expect(gameEvents(journey.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([12520, 13020])
   const baseline = nativeTicks(warmWorld(), 610)
   expect(gameEvents(baseline.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([14640, 15140])
@@ -324,7 +324,9 @@ it("wrong placement, zero-time ingress and completed work are not actionable", (
   expect(nativeFire(complete).result.$).toBe("NoTarget")
   expect(nativeFire(complete, 2).result.$).toBe("UnknownTower")
   expect(
-    gameEvents(nativeTicks(nativeBuild(warmWorld(), 152, 215), 240).trace, "JevRequestSettled").map((e) => e.time)
+    gameEvents(nativeTicks(nativeBuild(warmWorld(), 152, 215), 240).trace, "ReviewServiceRequestSettled").map(
+      (e) => e.time
+    )
   ).toEqual([10080, 10240])
 })
 
@@ -337,7 +339,7 @@ it("courier accelerates one assembled packet without changing the independent fo
   })
   expect(result.actions.map((a) => a.result)).toEqual(["Applied", "NoTarget", "NoTarget", "Applied", "CoolingDown"])
   expect(result.actions[3]?.target?.owner.operation).toBe(3)
-  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => e.time)).toEqual([10080, 10240])
+  expect(gameEvents(result.trace, "ReviewServiceRequestSettled").map((e) => e.time)).toEqual([10080, 10240])
   // Only the assembled selected packet accelerates. The independent follower
   // keeps its baseline arrival and both captured certainties remain intact.
   expect(gameEvents(result.trace, "SubmissionTerminal").map((e) => [e.event.advice, e.time, e.event.certain])).toEqual([
@@ -446,7 +448,7 @@ it("clear reviews preserve their outcome and offer no result to the courier", ()
   const shot = nativeFire(nativeBuild(warmWorld(290, 1)))
   expect(shot.result.$).toBe("Applied")
   const done = nativeTicks(shot.world, 240)
-  expect(gameEvents(done.trace, "JevRequestSettled").map((e) => [e.time, e.event.outcome])).toEqual([
+  expect(gameEvents(done.trace, "ReviewServiceRequestSettled").map((e) => [e.time, e.event.outcome])).toEqual([
     [7960, { $: "Canonical.RequestClear" }],
     [10240, { $: "Canonical.RequestClear" }]
   ])
@@ -605,7 +607,7 @@ it("preserves already issued Jev facts when purchasing after issuance", () => {
   const result = runExperiment({ ...direct, actions: [{ at: 2, mechanism: "jevService" }] })
   expect(
     result.observations.flatMap((f) =>
-      f.event.kind === "jevRequestSettled" ? [{ time: f.time, outcome: f.event.outcome }] : []
+      f.event.kind === "reviewServiceRequestSettled" ? [{ time: f.time, outcome: f.event.outcome }] : []
     )
   ).toEqual([{ time: 62, outcome: "finding" }])
 })
@@ -725,7 +727,7 @@ it("automatic towers act on real moving work without authored fire inputs", () =
     { index: 2, target: { owner: { operation: 4 } } },
     { index: 1, target: { owner: { operation: 4 } } }
   ])
-  expect(gameEvents(result.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
+  expect(gameEvents(result.trace, "ReviewServiceRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
   expect(Game.observe(result.world)).toMatchObject({ remainingBudget: 60 })
 })
 
@@ -758,8 +760,8 @@ it("an upgrade changes range and cadence while two towers provide separate firin
   const paired = automaticJourney(false, true)
   expect(upgraded.shots.map((shot) => shot.tick)).toEqual([194, 204, 214, 224, 234, 244])
   expect(paired.shots.map((shot) => shot.tick)).toEqual([198, 209, 218, 229, 238, 249])
-  expect(gameEvents(upgraded.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6560, 6720])
-  expect(gameEvents(paired.trace, "JevRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
+  expect(gameEvents(upgraded.trace, "ReviewServiceRequestSettled").map((e) => e.time)).toEqual([6560, 6720])
+  expect(gameEvents(paired.trace, "ReviewServiceRequestSettled").map((e) => e.time)).toEqual([6660, 6820])
   expect(Game.observe(upgraded.world)).toMatchObject({ remainingBudget: 70 })
   expect(Game.observe(paired.world)).toMatchObject({ remainingBudget: 60 })
 })

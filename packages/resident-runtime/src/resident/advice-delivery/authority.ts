@@ -1,6 +1,9 @@
 import { type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import type { RoundWork } from "../state/round-records.ts"
-import { type ResidentDispatchContext, type ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
+import {
+  type ResidentReviewExecutionContext,
+  type ResidentRequest
+} from "@hapsland/resident-transport/resident/protocol"
 import { type ClaudeOutputMode } from "./collection.ts"
 
 export type ResponseAuthority = {
@@ -25,7 +28,7 @@ export type EditCollectionRequest = {
   readonly lifetime: string
   readonly root: string
   readonly advicee: DirectAdvicee
-  readonly dispatch: ResidentDispatchContext
+  readonly dispatch: ResidentReviewExecutionContext
   readonly composed: true
   readonly mode: "ordinary"
 }

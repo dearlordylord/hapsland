@@ -14,7 +14,13 @@ type SharingKey is Data:
 type Member is Data:
   Member{scope: Freshness.Scope, source: Freshness.Source, generation: Nat}
 type Physical is Data:
-  Physical{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, request: Nat}
+  Physical{
+    partition: Nat,
+    lifetime: Nat,
+    round: Nat,
+    operation: Nat,
+    review_service_request_id: Nat
+  }
 type Evaluation is Data:
   Evaluation{id: Nat, key: SharingKey, members: List<&2, Member>,
     physical: Maybe<&2, Physical>, advice: Maybe<&2, Freshness.Scope>}
@@ -165,10 +171,10 @@ def routed(+state: State, evaluation_id: Nat, member: Member,
     outputs: List<&2, C.Output>) -> State:
   joined(state, lookup(state, evaluation_id), member, join_command(outputs))
 
-def pending_advice(items: List<&2, C.Work>, +scope: Freshness.Scope) -> Bool:
+def pending_advice(items: List<&2, C.ReviewWorkRecord>, +scope: Freshness.Scope) -> Bool:
   match items scope:
     case [] _: False{}
-    case C.Work{p, l, r, operation, _, C.PendingFinding{_}, _} <> tail
+    case C.ReviewWorkRecord{p, l, r, operation, _, C.PendingFinding{_}, _} <> tail
         Freshness.Scope{+owner, +generation, +round, +advice}:
       (Nat.is_eq(p, owner) && Nat.is_eq(l, generation) && Nat.is_eq(r, round) && Nat.is_eq(
         operation,
@@ -177,7 +183,7 @@ def pending_advice(items: List<&2, C.Work>, +scope: Freshness.Scope) -> Bool:
         pending_advice(tail, Freshness.Scope{owner, generation, round, advice})
     case _ <> tail _: pending_advice(tail, scope)
 
-def work(canonical: C.State) -> List<&2, C.Work>:
+def work(canonical: C.State) -> List<&2, C.ReviewWorkRecord>:
   match canonical:
     case C.State{_, _, work, _, _, _, _, _, _}: work
 
@@ -299,7 +305,7 @@ def physical_record(state: State, found: Maybe<&2, Evaluation>, physical: Physic
       replace(state, Evaluation{id, key, members, Some{physical}, advice})
     case _: state
 
-# Call with the actual JevRequestIssued tuple, once. A later member is never
+# Call with the actual ReviewServiceRequestIssued tuple, once. A later member is never
 # substituted as the physical callback owner, even if the original member left.
 def issued(+state: State, evaluation_id: Nat, physical: Physical) -> State:
   physical_record(state, lookup(state, evaluation_id), physical)

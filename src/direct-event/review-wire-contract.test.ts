@@ -1,5 +1,5 @@
 import { bundledBendArtifact } from "@hapsland/source-analysis/direct-event/languages/bend/bundled-evidence"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { createHash } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
@@ -9,7 +9,7 @@ import {
   canonicalValue,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit
+  type PreparedReviewUnit
 } from "@hapsland/review-definition/direct-event/model"
 import {
   bundledArtifactDomain,
@@ -18,7 +18,7 @@ import {
 } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import {
   candidateReviewInput,
-  encodedFullJevRequestBytes,
+  encodedFullReviewServiceRequestBytes,
   encodedPreparedProviderInputBytes,
   preparedProviderInput
 } from "@hapsland/review-execution/direct-event/pipeline"
@@ -73,7 +73,7 @@ const rules = [
   }
 ].map((rule) => compileRule({ version: 1, ...rule }, "fixture:issue-138-wire"))
 
-const prepared = (branch: "type" | "function"): PreparedUnit => {
+const prepared = (branch: "type" | "function"): PreparedReviewUnit => {
   const isType = branch === "type"
   const path = isType ? "src/order.ts" : "src/checkout.ts"
   const supportPath = isType ? "src/amount.ts" : "src/helper.ts"
@@ -92,15 +92,15 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
     root: "/fixture",
     identity: `wire-${branch}`,
     advicee: {
-      host: "codex-cli",
-      hostVersion: "0.155.1",
+      agentRuntime: "codex-cli",
+      agentRuntimeVersion: "0.155.1",
       sessionId: "s",
       turnId: "t",
       toolUseId: "u",
       subagentId: null
     },
     input: {
-      providerIdentity: providerIdentity({ provider: "jev" }),
+      reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
       contract,
       candidateProjection: true,
       completeness: "complete",
@@ -120,7 +120,7 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
 const goldenUrl = (branch: "type" | "function"): URL =>
   new URL(`../test-support/fixtures/issue-138-wire/${branch}-candidate.json`, import.meta.url)
 
-const wireRecord = (unit: PreparedUnit) => {
+const wireRecord = (unit: PreparedReviewUnit) => {
   const candidate = candidateReviewInput(unit.input)
   const input = preparedProviderInput(unit)
   if (candidate === undefined || input === undefined) throw new Error("fixture did not render")
@@ -134,7 +134,7 @@ const wireRecord = (unit: PreparedUnit) => {
     completeRequest,
     canonicalTreeBytes: Buffer.byteLength(canonicalValue(tree), "utf8"),
     providerInputBytes: encodedPreparedProviderInputBytes(unit),
-    completeRequestBytes: encodedFullJevRequestBytes(unit)
+    completeRequestBytes: encodedFullReviewServiceRequestBytes(unit)
   }
 }
 
@@ -253,12 +253,12 @@ describe("candidate wire no-send cases", () => {
       }
     }
     expect(preparedProviderInput(absolutePathUnit)).toBeUndefined()
-    expect(encodedFullJevRequestBytes(absolutePathUnit)).toBe(Number.POSITIVE_INFINITY)
+    expect(encodedFullReviewServiceRequestBytes(absolutePathUnit)).toBe(Number.POSITIVE_INFINITY)
   })
 })
 
 describe("bundled Bend provider evidence", () => {
-  const libraryUnit = (): PreparedUnit => {
+  const libraryUnit = (): PreparedReviewUnit => {
     const unit = prepared("type")
     const library = bundledBendArtifact("List")
     if (library === undefined) throw new Error("pinned Base.List evidence unavailable")

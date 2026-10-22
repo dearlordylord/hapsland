@@ -43,8 +43,8 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
       )
     )
     expect(result?.advicee).toEqual({
-      host: "opencode",
-      hostVersion: "1.14.44",
+      agentRuntime: "opencode",
+      agentRuntimeVersion: "1.14.44",
       sessionId: "ses-1",
       turnId: null,
       toolUseId: "call-1",

@@ -3,9 +3,9 @@ import { captureInspectionFate } from "@hapsland/review-execution/inspection/cap
 import type { RoundWork } from "../../state/round-records.ts"
 import * as Effect from "effect/Effect"
 import { randomUUID } from "node:crypto"
-import { type EvaluatedUnit } from "@hapsland/review-execution/direct-event/pipeline"
-import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
-import { type UnitJob } from "../../work-ownership/jobs.ts"
+import { type EvaluatedReviewUnit } from "@hapsland/review-execution/direct-event/pipeline"
+import { type ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
+import { type ReviewUnitJob } from "../../work-ownership/jobs.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { type Dependencies } from "./context.ts"
@@ -20,15 +20,15 @@ const residentRetireRoundUnit = Effect.fn("ResidentRuntime.retireRoundUnit")(fun
 
 export const residentRetireUnitWork = Effect.fn("ResidentRuntime.retireUnitWork")(function* (
   deps: Pick<Dependencies, "residentLedger">,
-  job: UnitJob
+  job: ReviewUnitJob
 ) {
   if (job.round !== undefined) yield* residentRetireRoundUnit(deps, job.round, job.workUnitId)
 })
 
-const residentRetainedCredentialRequired = (dispatch: ResidentDispatchContext): boolean =>
+const residentRetainedCredentialRequired = (dispatch: ResidentReviewExecutionContext): boolean =>
   dispatch.controlled === null || dispatch.controlled.requireCredential === true
 
-const residentRetainedCredentialFields = (job: UnitJob) => {
+const residentRetainedCredentialFields = (job: ReviewUnitJob) => {
   const required = residentRetainedCredentialRequired(job.dispatch)
   const credential = job.dispatch.credential
   if (credential === null)
@@ -51,7 +51,7 @@ const residentJoinRetainedAdvice = Effect.fn("ResidentRuntime.joinRetainedAdvice
     Dependencies,
     "residentAdvice" | "residentLedger" | "residentRecordJoinedOutcomes" | "residentReleaseUnit"
   >,
-  job: UnitJob
+  job: ReviewUnitJob
 ) {
   const existing = (yield* deps.residentAdvice()).find((item) => item.evaluationKey === job.evaluationKey)
   if (existing === undefined) return false
@@ -70,15 +70,15 @@ export const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
     | "residentAdvice"
     | "residentJobActive"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentNow"
     | "residentRecordJoinedOutcomes"
     | "residentReleaseUnit"
     | "residentRemoveAdvice"
     | "residentReviewControls"
   >,
-  job: UnitJob,
-  evaluation: EvaluatedUnit,
+  job: ReviewUnitJob,
+  evaluation: EvaluatedReviewUnit,
   sequence: number
 ) => {
   return Effect.gen(function* () {
@@ -96,9 +96,9 @@ export const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
         id: randomUUID(),
         ...(job.round === undefined ? {} : { round: job.round }),
         ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
-        admissionId: job.admissionId,
+        canonicalObservationId: job.canonicalObservationId,
         canonicalOperationId: job.canonicalOperationId,
-        canonicalRound: job.canonicalRound,
+        canonicalRoundId: job.canonicalRoundId,
         observation: job.observation,
         settings: job.settings,
         partition: job.partition,
@@ -130,7 +130,7 @@ export const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
         deps.residentReviewControls
           .afterAdvicePending(advice.id)
           .pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "pending advice barrier" }))),
-        deps.residentLifetimeController.signal
+        deps.residentInstanceIdController.signal
       )
       // A finding already retained is excluded from unfinished-work cutoff.
       // Replacing that work cohort must not discard the completed finding.

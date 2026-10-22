@@ -205,7 +205,7 @@ def finding_count(found: Maybe<&2, R.Group>) -> Nat:
     case _: 0n
 def count_event(+event: C.CanonicalEvent, +state: R.State) -> List<&2, C.CanonicalEvent>:
   match event:
-    case C.JevRequestSettled{p, l, r, o, _, C.RequestFinding{}, True{}}:
+    case C.ReviewServiceRequestSettled{p, l, r, o, _, C.RequestFinding{}, True{}}:
       [
         C.FindingCountUpdated{
           p,
@@ -222,9 +222,17 @@ def count_frames(frames: List<&2, T.Frame>, +state: R.State) -> List<&2, C.Canon
     case T.ProductFrame{_, _, event, _, _, _, None{}, _} <> tail:
       List.append(&2, C.CanonicalEvent, count_event(event, state), count_frames(tail, state))
     case _ <> tail: count_frames(tail, state)
-def count_supported(event: C.CanonicalEvent, +work: List<&2, C.Work>) -> Bool:
+def count_supported(event: C.CanonicalEvent, +work: List<&2, C.ReviewWorkRecord>) -> Bool:
   match event work:
-    case C.FindingCountUpdated{+p, +l, +r, +o, +n} C.Work{wp, wl, wr, wo, _, C.PendingFinding{_}, _} <> tail:
+    case C.FindingCountUpdated{+p, +l, +r, +o, +n} C.ReviewWorkRecord{
+      wp,
+      wl,
+      wr,
+      wo,
+      _,
+      C.PendingFinding{_},
+      _
+    } <> tail:
       (Nat.is_gt(n, 0n) && Motion.same(V.WorkIdentity{p, l, r, o}, V.WorkIdentity{wp, wl, wr, wo})) || count_supported(
         event,
         tail

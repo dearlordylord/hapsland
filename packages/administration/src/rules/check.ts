@@ -82,7 +82,7 @@ export const checkRuleAtLine = Effect.fn("Rules.checkAtLine")(function* (request
     operation: "rule-check" as const,
     path,
     line: request.line,
-    provider: settings.providerIdentity,
+    provider: settings.reviewServiceIdentity,
     omissions,
     analysis: preparation.observation.outcomes.map((outcome) =>
       outcome.status === "observed"

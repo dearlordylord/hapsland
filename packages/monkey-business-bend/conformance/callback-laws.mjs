@@ -30,9 +30,9 @@ const proofs = names
     return `# ---- ${name} ----\n${qualify(source.slice(start, end)).replace(`def ${name}(`, `def Laws.${name}(`)}`
   })
   .join("\n\n")
-const target = "C.Target{C.Owner{1n, 2n, 3n, 4n}, C.JevSettled{5n}, 6n}"
+const target = "C.Target{C.Owner{1n, 2n, 3n, 4n}, C.ReviewServiceRequestSettled{5n}, 6n}"
 const action =
-  "Driver.Action{Canonical.JevRequestSettled{1n, 2n, 3n, 4n, 5n, Canonical.RequestClear{}, True{}}, 7n, None{}, False{}, None{}}"
+  "Driver.Action{Canonical.ReviewServiceRequestSettled{1n, 2n, 3n, 4n, 5n, Canonical.RequestClear{}, True{}}, 7n, None{}, False{}, None{}}"
 const at = { target, original_at: "7n", action, order: "6n", at: "8n", fresh: "9n" }
 const run = (args) => {
   const executable = process.env.BUN ?? "bun"

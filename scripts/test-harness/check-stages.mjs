@@ -41,7 +41,11 @@ export const precheckStages = [
   ["bend-generation", "scripts/build-bend-producers.mjs"],
   ["bend-artifacts", "scripts/verify-bend-artifacts.mjs"],
   ["canonical-authority", "scripts/check-canonical-authority.mjs"],
-  ["jev-request", "--experimental-strip-types", "packages/agent-flow-bend/scripts/check-jev-request.mjs"],
+  [
+    "review-service-request",
+    "--experimental-strip-types",
+    "packages/agent-flow-bend/scripts/check-review-service-request.mjs"
+  ],
   ...[
     "production-authority",
     "capacity-boundary",

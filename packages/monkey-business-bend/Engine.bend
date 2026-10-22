@@ -74,22 +74,25 @@ def captured_commands(
 ) -> CredentialFacts.State:
   match outputs:
     case Nil{}: credentials
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, operation, _}} <> tail:
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, operation, _}} <> tail:
       captured_commands(tail, CredentialFacts.capture(credentials, operation))
     case _ <> tail: captured_commands(tail, credentials)
 
 # Captures belong to retained Canonical work, including findings awaiting handoff.
 # Historical settled operations no longer carry authorization authority.
-def captured_work_present(+operation: Nat, work: List<&2, Canonical.Work>) -> Bool:
+def captured_work_present(+operation: Nat, work: List<&2, Canonical.ReviewWorkRecord>) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{_, _, _, candidate, _, _, _} <> tail:
+    case Canonical.ReviewWorkRecord{_, _, _, candidate, _, _, _} <> tail:
       Nat.is_eq(operation, candidate) || captured_work_present(operation, tail)
 
-def captured_request_present(+operation: Nat, requests: List<&2, Dispatch.Request>) -> Bool:
+def captured_request_present(
+  +operation: Nat,
+  requests: List<&2, Dispatch.ReviewServiceRequestRecord>
+) -> Bool:
   match requests:
     case Nil{}: False{}
-    case Dispatch.Request{_, _, _, candidate, _, _, _} <> tail:
+    case Dispatch.ReviewServiceRequestRecord{_, _, _, candidate, _, _, _} <> tail:
       Nat.is_eq(operation, candidate) || captured_request_present(operation, tail)
 
 def captured_authority_present(+operation: Nat, canonical: Canonical.State) -> Bool:
@@ -134,7 +137,10 @@ def retained_retirement(keep: Bool, operation: Nat, tail: List<&2, Nat>) -> List
     case True{}: operation <> tail
     case False{}: tail
 
-def retained_retirements(pending: List<&2, Nat>, +work: List<&2, Canonical.Work>) -> List<&2, Nat>:
+def retained_retirements(
+  pending: List<&2, Nat>,
+  +work: List<&2, Canonical.ReviewWorkRecord>
+) -> List<&2, Nat>:
   match pending:
     case Nil{}: []
     case +operation <> tail: retained_retirement(
@@ -204,11 +210,11 @@ def canceled_preparation_parent(
     )
 
 def canceled_preparation(
-  found: Maybe<&2, Canonical.Work>,
+  found: Maybe<&2, Canonical.ReviewWorkRecord>,
   items: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>
 ) -> List<&2, AdviceeLifecycleCleanup.CapturedPreparation>:
   match found:
-    case Some{Canonical.Work{p, l, r, o, _, Canonical.Preparing{}, +parent}}:
+    case Some{Canonical.ReviewWorkRecord{p, l, r, o, _, Canonical.Preparing{}, +parent}}:
       canceled_preparation_parent(
         Nat.is_gt(parent, 0n),
         AdviceeLifecycleCleanup.CapturedPreparation{p, l, r, o, parent},
@@ -218,12 +224,12 @@ def canceled_preparation(
 
 def cancellation_preparations(
   outputs: List<&2, Canonical.Output>,
-  +work: List<&2, Canonical.Work>,
+  +work: List<&2, Canonical.ReviewWorkRecord>,
   items: List<&2, AdviceeLifecycleCleanup.CapturedPreparation>
 ) -> List<&2, AdviceeLifecycleCleanup.CapturedPreparation>:
   match outputs:
     case Nil{}: items
-    case Canonical.ActionRequested{Canonical.CancelWork{operation}} <> tail:
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{operation}} <> tail:
       cancellation_preparations(
         tail,
         work,
@@ -343,9 +349,9 @@ def freshness_state(state: Types.State) -> FreshnessScenario.State:
       scenarios
     )
 
-def cached_review_work(found: Maybe<&2, Canonical.Work>) -> Bool:
+def cached_review_work(found: Maybe<&2, Canonical.ReviewWorkRecord>) -> Bool:
   match found:
-    case Some{Canonical.Work{_, _, _, _, _, Canonical.Reviewing{}, _}}: True{}
+    case Some{Canonical.ReviewWorkRecord{_, _, _, _, _, Canonical.Reviewing{}, _}}: True{}
     case _: False{}
 
 def cached_review_owned(+state: Types.State, +scope: FreshnessScenario.Scope) -> Bool:
@@ -457,7 +463,7 @@ def preparation_completed(
 ) -> Driver.Action:
   Driver.preparation_completed(partition, lifetime, round, operation, unit_bytes, delay)
 
-def preparation_running(state: Canonical.State) -> List<&2, Dispatch.Entry>:
+def preparation_running(state: Canonical.State) -> List<&2, Dispatch.ScheduledReviewWork>:
   match state:
     case Canonical.State{_, _, _, _, _, _, Dispatch.State{_, running, _, _, _}, _, _}: running
 
@@ -944,7 +950,7 @@ def outcome_stream(state: Types.State) -> U32:
   match state:
     case Types.State{_, _, _, _, random, _, _, _, _, _, _, _, _}: Random.outcomes(random)
 
-def outcome_variant(value: Nat) -> Maybe<&2, Canonical.RequestOutcome>:
+def outcome_variant(value: Nat) -> Maybe<&2, Canonical.ReviewServiceRequestOutcome>:
   match value:
     case 0n: Some{Canonical.NeverSent{}}
     case 1n: Some{Canonical.RequestFinding{}}
@@ -954,7 +960,9 @@ def outcome_variant(value: Nat) -> Maybe<&2, Canonical.RequestOutcome>:
     case 5n: Some{Canonical.RequestInterrupted{}}
     case _: None{}
 
-def source_outcome(job: Maybe<&2, Driver.SourceJob>) -> Maybe<&2, Canonical.RequestOutcome>:
+def source_outcome(
+  job: Maybe<&2, Driver.SourceJob>
+) -> Maybe<&2, Canonical.ReviewServiceRequestOutcome>:
   match job:
     case Some{Driver.SourceJob{_, _, _, _, outcome}}: outcome
     case None{}: None{}
@@ -963,14 +971,16 @@ def prepared_outcome(
   +state: Types.State,
   command: Canonical.Output,
   job: Maybe<&2, Driver.SourceJob>,
-  selected: Maybe<&2, Canonical.RequestOutcome>,
+  selected: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   source: Driver.OutcomeSource,
   before: Maybe<&2, U32>,
   after: Maybe<&2, U32>,
   context: Driver.Context
 ) -> PreparedCommandContext:
   match command selected:
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{p, l, r, o, request}} Some{+outcome}:
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{p, l, r, o, request}} Some{
+      +outcome
+    }:
       PreparedCommandContext{state, Driver.with_outcome(context, Some{outcome}),
         Some{Driver.OutcomeReceipt{p, l, r, o, request, outcome, source, job, before, after}}}
     case _ _: PreparedCommandContext{state, Driver.with_outcome(context, None{}), None{}}
@@ -996,7 +1006,7 @@ def prepared_sample(
       )
 
 def prepared_environment(
-  configured: Maybe<&2, Canonical.RequestOutcome>,
+  configured: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   weights: List<&2, Numeric.Words>,
   +state: Types.State,
   command: Canonical.Output,
@@ -1023,7 +1033,7 @@ def prepared_environment(
     )
 
 def prepared_source(
-  override: Maybe<&2, Canonical.RequestOutcome>,
+  override: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   environment: Driver.OutcomeEnvironment,
   state: Types.State,
   command: Canonical.Output,
@@ -1058,7 +1068,7 @@ def prepare_command_context(
   +context: Driver.Context
 ) -> PreparedCommandContext:
   match command context:
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, _, _}} _:
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, _, _}} _:
       prepared_source(source_outcome(source_job), environment, state, command, source_job, context)
     case _ _: PreparedCommandContext{state, context, None{}}
 
@@ -1138,7 +1148,7 @@ def session_delay(settings: Session.Config, random: U32) -> U32:
 def intervene_request(
   state: Types.State,
   target: FaultTargets.Target,
-  outcome: Canonical.RequestOutcome,
+  outcome: Canonical.ReviewServiceRequestOutcome,
   delay: Nat
 ) -> JevEffects.Intervention:
   JevEffects.intervene(FaultTargets.request(canonical(state), target), outcome, delay)
@@ -2099,10 +2109,13 @@ def callback_action(+state: Types.State, target: Callbacks.Target, control: Call
     Callbacks.apply_receipt(callback_state(state), target, control, receipt, at, order)
   )
 
-def callback_work_owner(work: List<&2, Canonical.Work>, +advice: Nat) -> Maybe<&2, Callbacks.Owner>:
+def callback_work_owner(
+  work: List<&2, Canonical.ReviewWorkRecord>,
+  +advice: Nat
+) -> Maybe<&2, Callbacks.Owner>:
   match work:
     case Nil{}: None{}
-    case Canonical.Work{p, l, r, +operation, _, _, _} <> tail:
+    case Canonical.ReviewWorkRecord{p, l, r, +operation, _, _, _} <> tail:
       Bool.pick(
         Maybe<&2, Callbacks.Owner>,
         Nat.is_eq(operation, advice),
@@ -2151,9 +2164,11 @@ def callback_owner(
   event: Canonical.CanonicalEvent
 ) -> Maybe<&2, Callbacks.Owner>:
   match event:
-    case Canonical.JevRequestStarted{p, l, r, o, _}: Some{Callbacks.Owner{p, l, r, o}}
-    case Canonical.JevRequestInterrupted{p, l, r, o, _}: Some{Callbacks.Owner{p, l, r, o}}
-    case Canonical.JevRequestSettled{p, l, r, o, _, _, _}: Some{Callbacks.Owner{p, l, r, o}}
+    case Canonical.ReviewServiceRequestStarted{p, l, r, o, _}: Some{Callbacks.Owner{p, l, r, o}}
+    case Canonical.ReviewServiceRequestInterrupted{p, l, r, o, _}: Some{Callbacks.Owner{p, l, r, o}}
+    case Canonical.ReviewServiceRequestSettled{p, l, r, o, _, _, _}: Some{
+      Callbacks.Owner{p, l, r, o}
+    }
     case Canonical.PreparationCompleted{p, l, r, o, _}: Some{Callbacks.Owner{p, l, r, o}}
     case Canonical.SubmissionTerminal{advice, _, _}: callback_output_owner(canonical(state), advice)
     case Canonical.SubmissionExpiryCheck{advice, _, _, _}: callback_output_owner(
@@ -2671,10 +2686,10 @@ def sharing_prepare_found(
   +scope: FreshnessScenario.Scope,
   keys: List<&2, SharingScenario.SharingKey>,
   sizes: List<&2, Nat>,
-  found: Maybe<&2, Canonical.Work>
+  found: Maybe<&2, Canonical.ReviewWorkRecord>
 ) -> SharingCapture:
   match found:
-    case Some{Canonical.Work{p, l, r, _, _, Canonical.Preparing{}, parent}}:
+    case Some{Canonical.ReviewWorkRecord{p, l, r, _, _, Canonical.Preparing{}, parent}}:
       sharing_captured(
         state,
         SharingRuntime.capture(
@@ -2774,7 +2789,10 @@ def sharing_binding(
 ) -> Maybe<&2, SharingRuntime.Binding>:
   SharingRuntime.lookup_binding(sharing_runtime(state), scope)
 
-def sharing_result(state: Types.State, evaluation: Nat) -> Maybe<&2, Canonical.RequestOutcome>:
+def sharing_result(
+  state: Types.State,
+  evaluation: Nat
+) -> Maybe<&2, Canonical.ReviewServiceRequestOutcome>:
   SharingRuntime.result(sharing_runtime(state), evaluation)
 
 
@@ -2982,7 +3000,7 @@ def cache_published(state: Types.State, published: CacheRuntime.Published) -> Ca
 def recorded_cache_result(outputs: List<&2, Canonical.Output>) -> Bool:
   match outputs:
     case Nil{}: False{}
-    case Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}} <> _: True{}
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestOutcomeRecorded{_}} <> _: True{}
     case _ <> tail: recorded_cache_result(tail)
 
 def cache_begin_current(
@@ -3059,14 +3077,14 @@ def cache_begin_checked(
     )
     case False{}: CachePublished{state, [], []}
 
-def cache_original_found(found: Maybe<&2, Dispatch.Request>) -> Bool:
+def cache_original_found(found: Maybe<&2, Dispatch.ReviewServiceRequestRecord>) -> Bool:
   match found:
     case Some{_}: True{}
     case None{}: False{}
 
 def cache_original_request(state: Canonical.State, event: Canonical.CanonicalEvent) -> Bool:
   match event:
-    case Canonical.JevRequestSettled{p, l, r, o, request, _, _}: cache_original_found(
+    case Canonical.ReviewServiceRequestSettled{p, l, r, o, request, _, _}: cache_original_found(
       FaultTargets.request(state, FaultTargets.Target{p, l, r, o, request})
     )
     case _: False{}

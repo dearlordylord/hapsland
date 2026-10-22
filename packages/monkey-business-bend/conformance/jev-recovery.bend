@@ -20,42 +20,42 @@ def edits(count: Nat, +queue: Minimal.Queue, +at: Nat) -> Minimal.Queue:
     case 0n: queue
     case 1n+rest: edits(rest, Minimal.append(queue, at, Minimal.Edit{}), Nat.add(at, 20n))
 
-def config(fault: Canonical.RequestOutcome, now: Nat) -> Minimal.Config:
-  Minimal.Config{Bool.pick(Canonical.RequestOutcome, Nat.is_eq(Nat.mod(Nat.div(now, 20n), 2n), 0n), fault, Canonical.RequestFinding{}), True{}, True{}, True{}, True{}, 1n}
+def config(fault: Canonical.ReviewServiceRequestOutcome, now: Nat) -> Minimal.Config:
+  Minimal.Config{Bool.pick(Canonical.ReviewServiceRequestOutcome, Nat.is_eq(Nat.mod(Nat.div(now, 20n), 2n), 0n), fault, Canonical.RequestFinding{}), True{}, True{}, True{}, True{}, 1n}
 
-def taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat, +fault: Canonical.RequestOutcome,
+def taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat, +fault: Canonical.ReviewServiceRequestOutcome,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match taken:
     case Engine.Taken{state, Some{Scheduler.Entry{+at, +order}}}:
       Minimal.input(Minimal.lookup(items, order), state, Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, at, config(fault, at), ih)
     case Engine.Taken{_, None{}}: Nil{}
 
-def bounded(in_budget: Bool, state: Types.State, items: List<&2, Minimal.Item>, sequence: Nat, fault: Canonical.RequestOutcome,
+def bounded(in_budget: Bool, state: Types.State, items: List<&2, Minimal.Item>, sequence: Nat, fault: Canonical.ReviewServiceRequestOutcome,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match in_budget:
     case False{}: Nil{}
     case True{}: taken(Engine.take(state), items, sequence, fault, ih)
 
-def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, items: List<&2, Minimal.Item>, sequence: Nat, fault: Canonical.RequestOutcome,
+def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, items: List<&2, Minimal.Item>, sequence: Nat, fault: Canonical.ReviewServiceRequestOutcome,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match entries:
     case Nil{}: Nil{}
     case Scheduler.Entry{at, _} <> _:
       bounded(Nat.is_le(at, 470n), state, items, sequence, fault, ih)
 
-def next(pair: Types.State & Minimal.Queue, fault: Canonical.RequestOutcome,
+def next(pair: Types.State & Minimal.Queue, fault: Canonical.ReviewServiceRequestOutcome,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match pair:
     case (state, Minimal.Queue{+items, sequence, synced}):
       +state = Minimal.sync(items, state, synced)
       selected(Engine.queued(state), state, items, sequence, fault, ih)
 
-def loop(fuel: Nat, pair: Types.State & Minimal.Queue, +fault: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+def loop(fuel: Nat, pair: Types.State & Minimal.Queue, +fault: Canonical.ReviewServiceRequestOutcome) -> List<&2, List<&2, Nat>>:
   match fuel:
     case 0n: Nil{}
     case 1n+rest: next(pair, fault, pair => loop(rest, pair, fault))
 
-def scenario(fault: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+def scenario(fault: Canonical.ReviewServiceRequestOutcome) -> List<&2, List<&2, Nat>>:
   loop(1000n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), edits(24n, Minimal.Queue{Nil{}, 0n, 0n}, 0n)), fault)
 
 type Trigger is Data:
@@ -64,7 +64,7 @@ type Trigger is Data:
   AfterSettlement{}
 
 type Control is Data:
-  Control{trigger: Trigger, target: Targets.Target, outcome: Canonical.RequestOutcome}
+  Control{trigger: Trigger, target: Targets.Target, outcome: Canonical.ReviewServiceRequestOutcome}
 
 type AppliedControl is Data:
   AppliedControl{state: Types.State, queue: Minimal.Queue, code: Nat, applied: Bool}
@@ -118,7 +118,7 @@ def controlled(result: JevEffects.Intervention, pair: Types.State & Minimal.Queu
     case JevEffects.RefusedStarted{}: refused(pair, 3n)
     case JevEffects.RefusedInterrupted{}: refused(pair, 4n)
 
-def control(pair: Types.State & Minimal.Queue, +target: Targets.Target, outcome: Canonical.RequestOutcome, +now: Nat) -> AppliedControl:
+def control(pair: Types.State & Minimal.Queue, +target: Targets.Target, outcome: Canonical.ReviewServiceRequestOutcome, +now: Nat) -> AppliedControl:
   match pair:
     case (+state, queue): controlled(Engine.intervene_request(state, target, outcome, Nat.sub(7n, now)), (state, queue), target, now)
 
@@ -141,11 +141,11 @@ def execute_before(result: AppliedControl, +input: Minimal.Input, +now: Nat, +ta
 def scripted_input(+input: Minimal.Input, +state: Types.State, +queue: Minimal.Queue, +now: Nat, script: Maybe<&2, Control>,
     ih: ((Types.State & Minimal.Queue) & Maybe<&2, Control>) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match input script:
-    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_, _, _, _, _}, _, _, _, _}} Some{Control{BeforeStart{}, +target, outcome}}:
+    case Minimal.Event{Driver.Action{Canonical.ReviewServiceRequestStarted{_, _, _, _, _}, _, _, _, _}} Some{Control{BeforeStart{}, +target, outcome}}:
       execute_before(control((state, queue), target, outcome, now), input, now, target, pair => ih((pair, None{})))
-    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_, _, _, _, _}, _, _, _, _}} Some{Control{AfterStart{}, +target, +outcome}}:
+    case Minimal.Event{Driver.Action{Canonical.ReviewServiceRequestStarted{_, _, _, _, _}, _, _, _, _}} Some{Control{AfterStart{}, +target, +outcome}}:
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => execute_after(control(pair, target, outcome, now), now, target, pair => ih((pair, None{}))))
-    case Minimal.Event{Driver.Action{Canonical.JevRequestSettled{_, _, _, _, _, _, _}, _, _, _, _}} Some{Control{AfterSettlement{}, +target, +outcome}}:
+    case Minimal.Event{Driver.Action{Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}, _, _, _, _}} Some{Control{AfterSettlement{}, +target, +outcome}}:
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => execute_after(control(pair, target, outcome, now), now, target, pair => ih((pair, None{}))))
     case _ _:
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => ih((pair, script)))
@@ -181,7 +181,7 @@ def scripted_loop(fuel: Nat, pair: (Types.State & Minimal.Queue) & Maybe<&2, Con
     case 0n: Nil{}
     case 1n+rest: scripted_next(pair, pair => scripted_loop(rest, pair))
 
-def targeted(trigger: Trigger, outcome: Canonical.RequestOutcome, lifetime: Nat) -> List<&2, List<&2, Nat>>:
+def targeted(trigger: Trigger, outcome: Canonical.ReviewServiceRequestOutcome, lifetime: Nat) -> List<&2, List<&2, Nat>>:
   scripted_loop(100n, ((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), Minimal.initial_queue(1n)), Some{Control{trigger, Targets.Target{1n, lifetime, 1n, 3n, 4n}, outcome}}))
 
 def target_scenarios() -> List<&2, List<&2, List<&2, Nat>>>:

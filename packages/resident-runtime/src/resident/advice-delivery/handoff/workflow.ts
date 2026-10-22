@@ -52,7 +52,7 @@ export const residentClaudeStopRequest = (
   request.operation === "collect" &&
   request.requestRoute === "shared" &&
   request.composed === true &&
-  request.advicee.host === "claude-code" &&
+  request.advicee.agentRuntime === "claude-code" &&
   request.mode === "turn-end"
 
 export const residentHandoffSurface = (
@@ -242,7 +242,7 @@ export const makeResidentHandoff = (
     | "residentInspection"
     | "residentIsCurrentWork"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentNotices"
     | "residentNoticesForToken"
     | "residentNow"

@@ -913,7 +913,7 @@ function $Work$058fill_review$(_units_0, _capacity_0, _occupied_0) {
       const _bytes_0 = _t_0["bytes"];
       const _rest_0 = _units_0["tail"];
       const _room_0 = ($Flow$058has_room$(_occupied_0, _capacity_0));
-      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.AtJev"}, {$: "Work.ReviewQueued"}));
+      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.ReviewServiceRequestOutstanding"}, {$: "Work.ReviewQueued"}));
       const _x_0 = ($Bool$pick$(_room_0, 1, 0));
       return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _next_stage_0, "findings": _findings_0, "bytes": _bytes_0}, "tail": ($Work$058fill_review$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
     } else {
@@ -955,10 +955,10 @@ function $List$find$put$(_h_0, _r_0, _hit_0) {
 }
 
 function $Work$058outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return $Work$058outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -1051,7 +1051,7 @@ function $Work$058jev_cancel_ids$($0) {
         const _t_0 = _units_0["head"];
         const _id_0 = _t_0["id"];
         const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.AtJev") {
+        if (_t_1.$ === "Work.ReviewServiceRequestOutstanding") {
           const _rest_0 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($Work$058jev_cancel_ids$(_rest_0))};
         } else {
@@ -1139,7 +1139,7 @@ function $Bool$pick$(_c_0, _a_0, _b_0) {
 function $Work$058is_unit_unfinished$(_stage_0) {
   if (_stage_0.$ === "Work.ReviewQueued") {
     return true;
-  } else if (_stage_0.$ === "Work.AtJev") {
+  } else if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -1222,7 +1222,7 @@ function $Work$058is_source_reading$(_stage_0) {
 }
 
 function $Work$058is_at_jev$(_stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -1262,12 +1262,12 @@ function $Work$058remove_observation$(_id_0, _observations_0) {
 }
 
 function $Work$058interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return $Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else if (_stage_0.$ === "Work.ReviewQueued") {
     return $Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 

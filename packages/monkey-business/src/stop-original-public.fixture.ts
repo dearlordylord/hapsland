@@ -59,7 +59,7 @@ export function originalWaitingStopPublic() {
     assert.deepEqual(restored.observe(), run.observe(), "ordinary Stop replay boundary")
     assert.deepEqual(restored.runtimeSnapshot(), run.runtimeSnapshot(), "ordinary replay full source state and queue")
     if (endpoint === 3) {
-      const started = run.observations.find((frame) => frame.event.kind === "jevRequestStarted")
+      const started = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestStarted")
       assert.equal(started?.time, 2, "original physical request starts after preparation")
       const waiting = run.observations.find((frame) => frame.event.kind === "stopPolled")
       assert.equal(waiting?.time, 3, "original Stop starts at the caller boundary")
@@ -83,7 +83,7 @@ export function originalWaitingStopPublic() {
         true
       )
     } else {
-      assert.deepEqual(run.projection.dispatch.requests, [], "original request physically settles")
+      assert.deepEqual(run.projection.dispatch.reviewServiceRequests, [], "original request physically settles")
       assert.deepEqual(run.projection.global, { items: 0, bytes: 0 }, "original work charge is released")
     }
     return {

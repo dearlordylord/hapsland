@@ -137,7 +137,7 @@ def label(target: CB.Target) -> String:
     case CB.Target{CB.Owner{_, _, _, operation}, CB.PreparationCompleted{}, _}: "PREP U" ++ Nat.show(
       operation
     )
-    case CB.Target{CB.Owner{_, _, _, operation}, CB.JevSettled{_}, _}: "CHECK U" ++ Nat.show(
+    case CB.Target{CB.Owner{_, _, _, operation}, CB.ReviewServiceRequestSettled{_}, _}: "CHECK U" ++ Nat.show(
       operation
     )
     case CB.Target{CB.Owner{_, _, _, operation}, _, _}: "OUTPUT U" ++ Nat.show(operation)

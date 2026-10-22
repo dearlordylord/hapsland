@@ -514,22 +514,25 @@ def gated(allowed: Bool, context: Context, state: State, current_block: Bool) ->
       }
     case False{} _: Change{updated(state, reset(context)), Applied{}, None{}, []}
 
-def work_operation(work: Canonical.Work) -> Nat:
+def work_operation(work: Canonical.ReviewWorkRecord) -> Nat:
   match work:
-    case Canonical.Work{_, _, _, operation, _, _, _}: operation
+    case Canonical.ReviewWorkRecord{_, _, _, operation, _, _, _}: operation
 
 def sorted_pick(
   before: Collection.Order,
-  head: Canonical.Work,
-  next: Canonical.Work,
-  tail: List<&2, Canonical.Work>,
-  rest: List<&2, Canonical.Work>
-) -> List<&2, Canonical.Work>:
+  head: Canonical.ReviewWorkRecord,
+  next: Canonical.ReviewWorkRecord,
+  tail: List<&2, Canonical.ReviewWorkRecord>,
+  rest: List<&2, Canonical.ReviewWorkRecord>
+) -> List<&2, Canonical.ReviewWorkRecord>:
   match before:
     case Collection.After{}: head <> rest
     case _: next <> head <> tail
 
-def insert_work(items: List<&2, Canonical.Work>, +next: Canonical.Work) -> List<&2, Canonical.Work>:
+def insert_work(
+  items: List<&2, Canonical.ReviewWorkRecord>,
+  +next: Canonical.ReviewWorkRecord
+) -> List<&2, Canonical.ReviewWorkRecord>:
   match items:
     case Nil{}: [next]
     case +head <> +tail: sorted_pick(
@@ -540,7 +543,9 @@ def insert_work(items: List<&2, Canonical.Work>, +next: Canonical.Work) -> List<
       insert_work(tail, next)
     )
 
-def sorted_work(items: List<&2, Canonical.Work>) -> List<&2, Canonical.Work>:
+def sorted_work(
+  items: List<&2, Canonical.ReviewWorkRecord>
+) -> List<&2, Canonical.ReviewWorkRecord>:
   match items:
     case Nil{}: []
     case head <> tail: insert_work(sorted_work(tail), head)
@@ -561,10 +566,13 @@ def candidate_owned(
     ) <> rest
     case False{}: rest
 
-def candidate_work(items: List<&2, Canonical.Work>, +response: Response) -> List<&2, Driver.Action>:
+def candidate_work(
+  items: List<&2, Canonical.ReviewWorkRecord>,
+  +response: Response
+) -> List<&2, Driver.Action>:
   match items response:
     case Nil{} _: []
-    case Canonical.Work{+p, +l, +r, +operation, _, Canonical.PendingFinding{_}, +parent} <> tail Response{
+    case Canonical.ReviewWorkRecord{+p, +l, +r, +operation, _, Canonical.PendingFinding{_}, +parent} <> tail Response{
       owner,
       life,
       round,

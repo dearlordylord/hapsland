@@ -17,17 +17,17 @@ it.each(["neverSent", "backendFailure", "timeout", "interrupted"] as const)(
         run.schedule({ at: run.now, kind: "edit", bytes: 10, unitBytes: [5] })
         run.advance({ untilTime: run.now + 20, maxEvents: 100 })
         const frames = run.observations.filter((frame) => frame.sequence >= start)
-        const settled = frames.filter((frame) => frame.event.kind === "jevRequestSettled")
+        const settled = frames.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
         expect(settled).toHaveLength(1)
         expect(settled[0]?.event).toMatchObject({ outcome: selected })
-        expect(frames.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(
+        expect(frames.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(
           selected === "neverSent" ? 0 : 1
         )
-        expect(frames.filter((frame) => frame.event.kind === "jevRequestInterrupted")).toHaveLength(
+        expect(frames.filter((frame) => frame.event.kind === "reviewServiceRequestInterrupted")).toHaveLength(
           selected === "interrupted" ? 1 : 0
         )
         expect(frames.filter((frame) => frame.rejection)).toEqual([])
-        expect(run.projection.dispatch.requests).toEqual([])
+        expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
         expect(run.projection.dispatch.running).toEqual([])
         expect(
           frames.flatMap((frame) => frame.outputs).filter((command) => command.kind === "submissionRecorded")
@@ -52,9 +52,9 @@ const eventCodes: Record<string, number> = {
   completeObservation: 7,
   dispatchSettled: 8,
   startReview: 9,
-  jevRequestReady: 10,
-  jevRequestStarted: 11,
-  jevRequestSettled: 12,
+  reviewServiceRequestReady: 10,
+  reviewServiceRequestStarted: 11,
+  reviewServiceRequestSettled: 12,
   collectionReady: 13,
   finalCandidateCheck: 14,
   submissionSuppressCheck: 15,
@@ -66,7 +66,7 @@ const eventCodes: Record<string, number> = {
   collectionRetireAdvice: 22,
   submissionForget: 23,
   retireReview: 24,
-  jevRequestInterrupted: 25
+  reviewServiceRequestInterrupted: 25
 }
 const commandCodes: Record<string, number> = {
   roundStarted: 1,
@@ -74,7 +74,7 @@ const commandCodes: Record<string, number> = {
   dispatchStarted: 3,
   prepare: 4,
   unitAdmitted: 5,
-  jevRequestIssued: 6,
+  reviewServiceRequestIssued: 6,
   findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
@@ -86,8 +86,8 @@ const commandCodes: Record<string, number> = {
   preparationReleased: 15,
   observationCompleted: 16,
   reviewStarted: 17,
-  jevRequestStartRecorded: 18,
-  jevRequestOutcomeRecorded: 19,
+  reviewServiceRequestStartRecorded: 18,
+  reviewServiceRequestOutcomeRecorded: 19,
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
@@ -97,8 +97,8 @@ const commandCodes: Record<string, number> = {
   releaseCandidate: 26,
   collectionAdviceRetired: 27,
   submissionForgotten: 28,
-  jevInterruptionRecorded: 29,
-  jevRequestUnavailable: 30
+  reviewServiceRequestInterruptionRecorded: 29,
+  reviewServiceRequestUnavailable: 30
 }
 const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 }
 const code = (codes: Record<string, number>, kind: string): number => {
@@ -111,7 +111,7 @@ const row = (frame: Observation): number[] => {
     frame.after.global.items,
     frame.after.global.bytes,
     frame.after.dispatch.running.length,
-    frame.after.dispatch.requests.length,
+    frame.after.dispatch.reviewServiceRequests.length,
     frame.after.collection.leases.length
   ]
   if (frame.preparation) {
@@ -130,7 +130,7 @@ const row = (frame: Observation): number[] => {
           "workCurrent",
           "hasFindings"
         ])
-      : event.kind === "jevRequestReady"
+      : event.kind === "reviewServiceRequestReady"
         ? numbers([
             "rootValid",
             "configurationValid",
@@ -139,7 +139,7 @@ const row = (frame: Observation): number[] => {
             "currentWork",
             "physicalAvailable"
           ])
-        : event.kind === "jevRequestSettled"
+        : event.kind === "reviewServiceRequestSettled"
           ? [
               Number(event.currentWork),
               code(
@@ -169,18 +169,19 @@ const row = (frame: Observation): number[] => {
                   : event.kind === "collectionLeaseCheck"
                     ? numbers(["expired", "stopCollector", "sameGroup", "reofferable"]).concat([0, 0])
                     : [0, 0, 0, 0, 0, 0]
-  const identity = ["partition", "lifetime", "round", "operation", "request", "advice", "token"].map((key) =>
-    Number(
-      event[key] ??
-        (key === "operation"
-          ? event.observation
-          : key === "partition"
-            ? event.group
-            : key === "token"
-              ? event.fingerprint
-              : undefined) ??
-        0
-    )
+  const identity = ["partition", "lifetime", "round", "operation", "reviewServiceRequestId", "advice", "token"].map(
+    (key) =>
+      Number(
+        event[key] ??
+          (key === "operation"
+            ? event.observation
+            : key === "partition"
+              ? event.group
+              : key === "token"
+                ? event.fingerprint
+                : undefined) ??
+          0
+      )
   )
   return [
     code(eventCodes, frame.event.kind),
@@ -296,21 +297,24 @@ it(
       })
       const reached = () =>
         scenario.trigger === "issued"
-          ? run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
+          ? run.observations.some((frame) =>
+              frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued")
+            )
           : run.observations.some(
               (frame) =>
-                frame.event.kind === (scenario.trigger === "started" ? "jevRequestStarted" : "jevRequestSettled")
+                frame.event.kind ===
+                (scenario.trigger === "started" ? "reviewServiceRequestStarted" : "reviewServiceRequestSettled")
             )
       for (let transitions = 0; transitions < 100 && !reached(); transitions++) run.step()
       expect(reached()).toBe(true)
       run.applyControl({
-        kind: "jevRequest",
-        target: { partition: 1, lifetime: scenario.lifetime, round: 1, operation: 3, request: 4 },
+        kind: "reviewServiceRequest",
+        target: { partition: 1, lifetime: scenario.lifetime, round: 1, operation: 3, reviewServiceRequestId: 4 },
         outcome: scenario.outcome
       })
       expect(run.interventions.at(-1)?.result).toBe(scenario.result)
       run.advance({ untilTime: 10, maxEvents: 100 })
-      expect(run.projection.dispatch.requests).toEqual([])
+      expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
       expect(run.projection.dispatch.running).toEqual([])
       expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
       expect(nativeTrace.filter((row) => row[0] !== 30)).toEqual(run.observations.map(row))
@@ -370,7 +374,7 @@ it.each([0, 1, 2] as const)(
         state.global.items,
         state.global.bytes,
         state.dispatch.running.length,
-        state.dispatch.requests.length,
+        state.dispatch.reviewServiceRequests.length,
         state.collection.leases.length
       ])
     }
@@ -384,13 +388,15 @@ it.each([0, 1, 2] as const)(
         run.observations.some((frame) => frame.event.kind === "dispatchSettled" && frame.event.operation === 3)
       )
       expect(
-        run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
+        run.observations
+          .flatMap((frame) => frame.outputs)
+          .filter((command) => command.kind === "reviewServiceRequestUnavailable")
       ).toHaveLength(1)
       expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
       expect(run.projection.dispatch.running).toEqual([])
       control("restore")
     } else if (mode === 1) {
-      reach(() => run.observations.some((frame) => frame.event.kind === "jevRequestSettled"))
+      reach(() => run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled"))
       control("unavailable")
       run.advance({ untilTime: 8, maxEvents: 100 })
       expect(run.projection.pendingFindings.map((finding) => finding.operation)).toEqual([3])
@@ -398,12 +404,12 @@ it.each([0, 1, 2] as const)(
       expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
       control("restore")
     } else {
-      reach(() => run.observations.some((frame) => frame.event.kind === "jevRequestStarted"))
+      reach(() => run.observations.some((frame) => frame.event.kind === "reviewServiceRequestStarted"))
       control("rotate")
       run.advance({ untilTime: 10, maxEvents: 100 })
       expect(run.projection.pendingFindings).toEqual([])
       expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-      expect(run.projection.dispatch.requests).toEqual([])
+      expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
       expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
       expect(
         run.observations.filter((frame) => frame.event.kind === "retireReview").map((frame) => frame.event)
@@ -419,9 +425,9 @@ it.each([0, 1, 2] as const)(
     // The fresh edit at11 completes PRE2 at13 and Jev5 at18. Captures
     // follow live work/physical-request ownership, not historical numeric IDs.
     if (mode === 0) {
-      const started = run.observations.find((frame) => frame.event.kind === "jevRequestStarted")
-      expect(started?.event.kind).toBe("jevRequestStarted")
-      if (started?.event.kind === "jevRequestStarted") {
+      const started = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestStarted")
+      expect(started?.event.kind).toBe("reviewServiceRequestStarted")
+      if (started?.event.kind === "reviewServiceRequestStarted") {
         expect(nativeTrace.filter((row) => row[0] === 35)).toEqual([[35, 13, started.event.operation, 1]])
       }
     }
@@ -435,7 +441,7 @@ it.each([0, 1, 2] as const)(
     )
     expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(run.projection.collection.leases).toEqual([])
     expect(run.interventions.every((report) => report.result === "applied")).toBe(true)
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())

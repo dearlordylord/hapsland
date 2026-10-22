@@ -4,25 +4,25 @@ import {
   minimumFreshStart,
   knownPartitionId,
   partitionIdentityCount,
-  collectionTokenIdentityCount,
-  collectionTokenId,
+  adviceHandoffIdentityCount,
+  internAdviceHandoffIdentity,
   discardUnusedPartition,
   partitionId,
-  pruneCollectionTokenIds
+  pruneAdviceHandoffIdentities
 } from "../capacity/identities.ts"
 
 import * as Effect from "effect/Effect"
 
-import { type Arguments, type CapacityReservation } from "../capacity/model.ts"
+import { type Arguments, type ReviewCapacityReservationHandle } from "../capacity/model.ts"
 
 import { transition, canonicalProjection, dispatchScope } from "../capacity/canonical.ts"
 import { replace, reserve, resize, release, snapshot } from "../capacity/reservations.ts"
 import {
-  readyJevRequest,
-  startJevRequest,
-  interruptJevRequest,
+  readyReviewServiceRequest,
+  startReviewServiceRequest,
+  interruptReviewServiceRequest,
   startReview,
-  settleJevRequest,
+  settleReviewServiceRequest,
   completeReview,
   observeReview,
   preparedOffer,
@@ -71,20 +71,24 @@ export const residentCapacity = <Pending, DispatchKey, DispatchValue>({
   knownPartitionId: Effect.fn("Capacity.knownPartitionId")((...args: Arguments<typeof knownPartitionId>) =>
     read.pipe(Effect.map((snapshot) => knownPartitionId(snapshot, ...args)))
   ),
-  readyJevRequest: Effect.fn("Capacity.readyJevRequest")((...args: Arguments<typeof readyJevRequest>) =>
-    commitAllEffect((draft, records) => [readyJevRequest(draft, ...args), records])
+  readyReviewServiceRequest: Effect.fn("Capacity.readyReviewServiceRequest")(
+    (...args: Arguments<typeof readyReviewServiceRequest>) =>
+      commitAllEffect((draft, records) => [readyReviewServiceRequest(draft, ...args), records])
   ),
-  startJevRequest: Effect.fn("Capacity.startJevRequest")((...args: Arguments<typeof startJevRequest>) =>
-    commitAllEffect((draft, records) => [startJevRequest(draft, ...args), records])
+  startReviewServiceRequest: Effect.fn("Capacity.startReviewServiceRequest")(
+    (...args: Arguments<typeof startReviewServiceRequest>) =>
+      commitAllEffect((draft, records) => [startReviewServiceRequest(draft, ...args), records])
   ),
-  interruptJevRequest: Effect.fn("Capacity.interruptJevRequest")((...args: Arguments<typeof interruptJevRequest>) =>
-    commitAllEffect((draft, records) => [interruptJevRequest(draft, ...args), records])
+  interruptReviewServiceRequest: Effect.fn("Capacity.interruptReviewServiceRequest")(
+    (...args: Arguments<typeof interruptReviewServiceRequest>) =>
+      commitAllEffect((draft, records) => [interruptReviewServiceRequest(draft, ...args), records])
   ),
   startReview: Effect.fn("Capacity.startReview")((...args: Arguments<typeof startReview>) =>
     commitAllEffect((draft, records) => [startReview(draft, ...args), records])
   ),
-  settleJevRequest: Effect.fn("Capacity.settleJevRequest")((...args: Arguments<typeof settleJevRequest>) =>
-    commitAllEffect((draft, records) => [settleJevRequest(draft, ...args), records])
+  settleReviewServiceRequest: Effect.fn("Capacity.settleReviewServiceRequest")(
+    (...args: Arguments<typeof settleReviewServiceRequest>) =>
+      commitAllEffect((draft, records) => [settleReviewServiceRequest(draft, ...args), records])
   ),
   completeReview: Effect.fn("Capacity.completeReview")((...args: Arguments<typeof completeReview>) =>
     commitAllEffect((draft, records) => [completeReview(draft, ...args), records])
@@ -135,9 +139,9 @@ export const residentCapacity = <Pending, DispatchKey, DispatchValue>({
     (...args: Arguments<typeof partitionIdentityBytes>) =>
       read.pipe(Effect.map((snapshot) => partitionIdentityBytes(snapshot, ...args)))
   ),
-  collectionTokenIdentityCount: Effect.fn("Capacity.collectionTokenIdentityCount")(
-    (...args: Arguments<typeof collectionTokenIdentityCount>) =>
-      read.pipe(Effect.map((snapshot) => collectionTokenIdentityCount(snapshot, ...args)))
+  adviceHandoffIdentityCount: Effect.fn("Capacity.adviceHandoffIdentityCount")(
+    (...args: Arguments<typeof adviceHandoffIdentityCount>) =>
+      read.pipe(Effect.map((snapshot) => adviceHandoffIdentityCount(snapshot, ...args)))
   ),
   currentRoundId: Effect.fn("Capacity.currentRoundId")((...args: Arguments<typeof currentRoundId>) =>
     read.pipe(Effect.map((snapshot) => currentRoundId(snapshot, ...args)))
@@ -145,8 +149,9 @@ export const residentCapacity = <Pending, DispatchKey, DispatchValue>({
   roundId: Effect.fn("Capacity.roundId")((partition: string) =>
     commitAllEffect((draft, records) => [roundId(draft, partition), records])
   ),
-  collectionTokenId: Effect.fn("Capacity.collectionTokenId")((...args: Arguments<typeof collectionTokenId>) =>
-    commitAllEffect((draft, records) => [collectionTokenId(draft, ...args), records])
+  internAdviceHandoffIdentity: Effect.fn("Capacity.internAdviceHandoffIdentity")(
+    (...args: Arguments<typeof internAdviceHandoffIdentity>) =>
+      commitAllEffect((draft, records) => [internAdviceHandoffIdentity(draft, ...args), records])
   ),
   discardUnusedPartition: Effect.fn("Capacity.discardUnusedPartition")(
     (...args: Arguments<typeof discardUnusedPartition>) =>
@@ -161,10 +166,10 @@ export const residentCapacity = <Pending, DispatchKey, DispatchValue>({
   dispatchIdentity: Effect.fn("Capacity.dispatchIdentity")((...args: Arguments<typeof dispatchIdentity>) =>
     commitAllEffect((draft, records) => [dispatchIdentity(draft, ...args), records])
   ),
-  pruneCollectionTokenIds: Effect.fn("Capacity.pruneCollectionTokenIds")((nativeLive: ReadonlySet<string>) =>
-    commitAllEffect((draft, records) => [pruneCollectionTokenIds(draft, nativeLive), records])
+  pruneAdviceHandoffIdentities: Effect.fn("Capacity.pruneAdviceHandoffIdentities")((nativeLive: ReadonlySet<string>) =>
+    commitAllEffect((draft, records) => [pruneAdviceHandoffIdentities(draft, nativeLive), records])
   ),
-  reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")((capability: CapacityReservation) =>
+  reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")((capability: ReviewCapacityReservationHandle) =>
     read.pipe(
       Effect.map((snapshot) => {
         const record = snapshot.reservations.get(capability.id)

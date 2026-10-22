@@ -77,8 +77,8 @@ describe("installed-product first-review demo", () => {
     writeFileSync(join(test.root, "session.ts"), "private synthetic source")
     writeFileSync(budget, JSON.stringify({ root: test.root }))
     const advicee = {
-      host: "codex-cli" as const,
-      hostVersion: "0.155.1" as const,
+      agentRuntime: "codex-cli" as const,
+      agentRuntimeVersion: "0.155.1" as const,
       sessionId: "session",
       turnId: "turn",
       toolUseId: "tool",
@@ -347,7 +347,7 @@ describe("installed-product first-review demo", () => {
       status: "inconclusive",
       paidVerificationPerformed: false,
       evidence: {
-        hostVersion: "synthetic-host",
+        agentRuntimeVersion: "synthetic-host",
         hostFailure: null,
         hostStdoutBytes: Buffer.byteLength(stdout, "utf8"),
         hostStderrBytes: Buffer.byteLength(stderr, "utf8"),

@@ -163,7 +163,7 @@ export const deliveryPermitRegistration = (
     }
     state.permits.set(key, {
       partition,
-      generation: command.round,
+      admissionRoundId: command.round,
       expiresAt: started + EDIT_PERMIT_EXPIRY_MS,
       token: command.token,
       tool,

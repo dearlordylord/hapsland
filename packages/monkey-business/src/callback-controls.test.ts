@@ -7,7 +7,7 @@ import {
 } from "./callback-controls.ts"
 const target = {
   owner: { partition: 1, lifetime: 2, round: 3, operation: 4 },
-  effect: { kind: "jevSettled" as const, request: 5 },
+  effect: { kind: "reviewServiceRequestSettled" as const, reviewServiceRequestId: 5 },
   originalOrder: 6
 }
 describe("callback control syntax", () => {

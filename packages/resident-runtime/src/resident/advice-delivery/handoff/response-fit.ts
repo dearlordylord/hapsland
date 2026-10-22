@@ -1,6 +1,6 @@
 import { finalCollectionFits } from "../collection-decisions.ts"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice } from "../../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../../state/advice-records.ts"
 import * as Effect from "effect/Effect"
 import { DELIVERY_LEASE_MS, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import {
@@ -8,7 +8,7 @@ import {
   selectFittingCurrentFindingIndices,
   type ClaudeOutputMode
 } from "../collection.ts"
-import { recipientPartition } from "../../recipient/identity.ts"
+import { adviceeScopeKey } from "../../recipient/identity.ts"
 import { findingAtDeliveryRoot, handoffCallerRoot } from "../findings.ts"
 import { type HandoffContext, type HandoffNotices } from "./context.ts"
 import { residentHandoffSurface, residentClaudeStopRequest } from "./workflow.ts"
@@ -25,7 +25,7 @@ export const selectHandoffCandidates = Effect.fn("ResidentRuntime.selectHandoffC
     | "residentRoundActive"
   >
 ) {
-  const finalCandidateRoute = Effect.fn("ResidentRuntime.finalCandidateRoute")(function* (advice: Advice) {
+  const finalCandidateRoute = Effect.fn("ResidentRuntime.finalCandidateRoute")(function* (advice: PendingAdviceHandle) {
     return yield* context.deps.residentCandidateRoute({
       kind: "finalCandidateCheck",
       ownerCurrent: true,
@@ -40,7 +40,7 @@ export const selectHandoffCandidates = Effect.fn("ResidentRuntime.selectHandoffC
       hasFindings: ((yield* context.deps.residentLedger.advice.current(advice)).delivery?.findings.length ?? 0) > 0
     })
   })
-  const handoff: Array<Advice> = []
+  const handoff: Array<PendingAdviceHandle> = []
   for (const advice of [...(yield* context.deps.residentAdvice())]) {
     if ((yield* context.deps.residentLedger.advice.current(advice)).delivery?.token !== context.response.token) continue
     if (!context.sourceCurrent.has(advice.id)) {
@@ -67,7 +67,7 @@ export const selectHandoffCandidates = Effect.fn("ResidentRuntime.selectHandoffC
 
 export const capturedHandoffMode = Effect.fn("ResidentRuntime.capturedHandoffMode")(function* (
   context: HandoffContext<"residentLedger">,
-  handoff: readonly Advice[]
+  handoff: readonly PendingAdviceHandle[]
 ): Effect.fn.Return<ClaudeOutputMode> {
   if (context.authority?.claudeFeedbackMode !== "block-current-findings") return "advisory"
   for (const advice of handoff) {
@@ -86,12 +86,12 @@ export const fitHandoffFindings = Effect.fn("ResidentRuntime.fitHandoffFindings"
     | "residentPendingCanonicalFindings"
     | "residentReleaseAdviceLease"
   >,
-  handoff: readonly Advice[],
+  handoff: readonly PendingAdviceHandle[],
   handoffMode: ClaudeOutputMode
 ) {
   if (context.request.operation === "collect") {
     const composed = context.request.composed === true
-    const partition = recipientPartition(context.request.advicee)
+    const partition = adviceeScopeKey(context.request.advicee)
     const generation = context.request.dispatch.credential?.generation ?? null
     const pruneHandoffBounds = Effect.fn("ResidentRuntime.pruneHandoffBounds")(function* () {
       if (composed)

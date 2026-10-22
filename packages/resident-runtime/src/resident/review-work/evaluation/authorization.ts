@@ -15,11 +15,11 @@ import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { workInvalidated } from "../../work-ownership/cancellation.ts"
 import { type EvaluationContext, type ResolvedEvaluationCredentials } from "./context.ts"
-import { observeRequest } from "./observation.ts"
+import { observeReviewServiceRequest } from "./observation.ts"
 import { reportInterruption } from "./settlement.ts"
 
 const requestReady = Effect.fn("ResidentRuntime.requestReady")(function* (
-  context: EvaluationContext<"residentLedger" | "residentObserveJevRequest" | "residentRecordAnalytics">,
+  context: EvaluationContext<"residentLedger" | "residentObserveReviewServiceRequest" | "residentRecordAnalytics">,
   facts: {
     readonly rootValid: boolean
     readonly configurationValid: boolean
@@ -30,42 +30,42 @@ const requestReady = Effect.fn("ResidentRuntime.requestReady")(function* (
   }
 ) {
   context.state.readyReported = true
-  const decision = yield* context.deps.residentLedger.readyJevRequest(
+  const decision = yield* context.deps.residentLedger.readyReviewServiceRequest(
     context.job.partition,
     context.job.canonicalOperationId,
     context.job.reservation,
     facts,
-    context.job.canonicalRound
+    context.job.canonicalRoundId
   )
   if (decision.status !== "stale") {
     const canonicalPartition = yield* context.deps.residentLedger.knownPartitionId(context.job.partition)
     if (canonicalPartition === undefined) throw new Error("issued review lost its partition identity")
-    context.state.requestIdentity = {
+    context.state.reviewServiceRequestIdentity = {
       partition: context.job.partition,
       canonicalPartition,
-      lifetime: context.deps.residentLedger.residentLifetime,
-      canonicalLifetime: context.deps.residentLedger.canonicalLifetime,
+      lifetime: context.deps.residentLedger.residentInstanceId,
+      canonicalLifetimeId: context.deps.residentLedger.canonicalLifetimeId,
       round: decision.round,
-      hapslandRound: context.job.round?.generation ?? null,
+      admissionRoundId: context.job.round?.admissionRoundId ?? null,
       operation: context.job.canonicalOperationId
     }
   }
   if (decision.status === "issued") {
-    context.state.issuedRequest = decision.request
-    context.job.requestId = decision.request
-    yield* observeRequest(context, "issued", decision.request)
+    context.state.issuedReviewServiceRequestId = decision.reviewServiceRequestId
+    context.job.reviewServiceRequestId = decision.reviewServiceRequestId
+    yield* observeReviewServiceRequest(context, "issued", decision.reviewServiceRequestId)
     yield* workInvalidated(context.signal).pipe(
       Effect.catch(() => reportInterruption(context)),
       Effect.forkScoped
     )
   } else if (decision.status === "unavailable") {
-    yield* observeRequest(context, "unavailable")
+    yield* observeReviewServiceRequest(context, "unavailable")
   }
   return decision
 })
 
 export const denyReady = Effect.fn("ResidentRuntime.denyReady")(function* (
-  context: EvaluationContext<"residentLedger" | "residentObserveJevRequest" | "residentRecordAnalytics">,
+  context: EvaluationContext<"residentLedger" | "residentObserveReviewServiceRequest" | "residentRecordAnalytics">,
   reason?: "credential"
 ) {
   const decision = yield* requestReady(context, {
@@ -99,7 +99,7 @@ const startNativeUnit = Effect.fn("ResidentRuntime.startNativeUnit")(function* (
     !(yield* context.deps.residentLedger.startReview(
       context.job.partition,
       context.job.canonicalOperationId,
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     ))
   ) {
     yield* context.deps.residentReleaseReuseClaim(context.job.evaluationKey)
@@ -125,7 +125,7 @@ export const startUnitEvaluation = Effect.fn("ResidentRuntime.startUnitEvaluatio
     | "residentIsCurrentWork"
     | "residentJobActive"
     | "residentLedger"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentRecordAnalytics"
     | "residentReleaseReuseClaim"
     | "residentReleaseUnit"
@@ -159,7 +159,7 @@ export const resolveEvaluationCredentials = Effect.fn("ResidentRuntime.resolveEv
     | "residentCredentialShapeMatches"
     | "residentDispatchControls"
     | "residentLedger"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentRecordAnalytics"
   >,
   controlled: ControlledDecisionModelOptions | undefined
@@ -211,13 +211,13 @@ export const resolveEvaluationCredentials = Effect.fn("ResidentRuntime.resolveEv
   return { settings, credentialRequired, dispatchCredential, credential }
 })
 
-export const authorizePreparedUnit = Effect.fn("ResidentRuntime.authorizePreparedUnit")(function* (
+export const authorizePreparedReviewUnit = Effect.fn("ResidentRuntime.authorizePreparedReviewUnit")(function* (
   context: EvaluationContext<
     | "residentIsCurrentWork"
     | "residentJobActive"
     | "residentLedger"
     | "residentObserveDispatchAuthority"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentRecordAnalytics"
   >,
   resolved: ResolvedEvaluationCredentials
@@ -231,7 +231,9 @@ export const authorizePreparedUnit = Effect.fn("ResidentRuntime.authorizePrepare
   const editConfiguration = context.job.settings.configuration
   if (credentialRequired && dispatchCredential?.name !== editConfiguration.policy.credentialEnvVar.value)
     return yield* denyReady(context, "credential")
-  if (canonicalValue(context.job.prepared.input.providerIdentity) !== canonicalValue(settings.providerIdentity))
+  if (
+    canonicalValue(context.job.prepared.input.reviewServiceIdentity) !== canonicalValue(settings.reviewServiceIdentity)
+  )
     return yield* denyReady(context)
   const dispatchRootVerified = yield* verifyObservationRoot(context.job.observation)
   if (!dispatchRootVerified) {

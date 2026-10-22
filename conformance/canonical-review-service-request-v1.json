@@ -44,7 +44,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -55,36 +55,36 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "neverSent",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "neverSent",
           "currentWork": true,
           "requestCount": 0,
@@ -129,7 +129,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -140,45 +140,45 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "clear",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,clearSettled,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,clearSettled,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "clear",
           "currentWork": true,
           "requestCount": 0,
@@ -223,7 +223,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -234,45 +234,45 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "finding",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,findingRetained,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,findingRetained,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "finding",
           "currentWork": true,
           "requestCount": 0,
@@ -317,7 +317,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -328,45 +328,45 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "backendFailure",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "backendFailure",
           "currentWork": true,
           "requestCount": 0,
@@ -411,7 +411,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -422,45 +422,45 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "timeout",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "timeout",
           "currentWork": true,
           "requestCount": 0,
@@ -505,7 +505,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -516,54 +516,54 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
-          "kind": "jevRequestInterrupted",
+          "kind": "reviewServiceRequestInterrupted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
-          "expect": "jevInterruptionRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestInterruptionRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "interrupted",
           "currentWork": true,
           "requestCount": 0,
-          "expect": "reservationReleased,reviewRecorded,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,reviewServiceRequestOutcomeRecorded"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "interrupted",
           "currentWork": true,
           "requestCount": 0,
@@ -616,7 +616,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -628,25 +628,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 1,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 2,
-            "request": 11
+            "reviewServiceRequestId": 11
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 11,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 11,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -657,7 +657,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -669,25 +669,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 2,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 3,
-            "request": 12
+            "reviewServiceRequestId": 12
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 3,
-          "request": 12,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 12,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -698,7 +698,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -710,25 +710,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 3,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 4,
-            "request": 13
+            "reviewServiceRequestId": 13
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 4,
-          "request": 13,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 13,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -739,7 +739,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -751,25 +751,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 4,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 5,
-            "request": 14
+            "reviewServiceRequestId": 14
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 5,
-          "request": 14,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 14,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -780,7 +780,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -792,25 +792,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 5,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 6,
-            "request": 15
+            "reviewServiceRequestId": 15
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 6,
-          "request": 15,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 15,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -821,7 +821,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -833,25 +833,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 6,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 7,
-            "request": 16
+            "reviewServiceRequestId": 16
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 7,
-          "request": 16,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 16,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -862,7 +862,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -874,25 +874,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 7,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 8,
-            "request": 17
+            "reviewServiceRequestId": 17
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 8,
-          "request": 17,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 17,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -903,7 +903,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -915,25 +915,25 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 8,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 9,
-            "request": 18
+            "reviewServiceRequestId": 18
           }
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 9,
-          "request": 18,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 18,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "startReview",
@@ -944,7 +944,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -956,19 +956,19 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 8,
-          "expect": "reservationReleased,reviewRecorded,jevRequestUnavailable"
+          "expect": "reservationReleased,reviewRecorded,reviewServiceRequestUnavailable"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
           "operation": 2,
-          "request": 11,
+          "reviewServiceRequestId": 11,
           "outcome": "clear",
           "currentWork": true,
           "requestCount": 7,
-          "expect": "reservationReleased,reviewRecorded,clearSettled,jevRequestOutcomeRecorded"
+          "expect": "reservationReleased,reviewRecorded,clearSettled,reviewServiceRequestOutcomeRecorded"
         },
         {
           "kind": "beginPreparation",
@@ -998,7 +998,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 1,
           "lifetime": 1,
           "round": 1,
@@ -1010,15 +1010,15 @@
           "currentWork": true,
           "physicalAvailable": true,
           "requestCount": 8,
-          "expect": "jevRequestIssued",
-          "issuedRequest": {
+          "expect": "reviewServiceRequestIssued",
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 1,
             "lifetime": 1,
             "round": 1,
             "operation": 20,
-            "request": 21
+            "reviewServiceRequestId": 21
           }
         }
       ]
@@ -1066,7 +1066,7 @@
           "expect": "reviewStarted"
         },
         {
-          "kind": "jevRequestReady",
+          "kind": "reviewServiceRequestReady",
           "partition": 7,
           "lifetime": 11,
           "round": 2,
@@ -1077,26 +1077,26 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "issuedRequest": {
+          "issuedReviewServiceRequestId": {
             "category": "event",
-            "kind": "jevRequestIssued",
+            "kind": "reviewServiceRequestIssued",
             "partition": 7,
             "lifetime": 11,
             "round": 2,
             "operation": 2,
-            "request": 3
+            "reviewServiceRequestId": 3
           },
           "requestCount": 1,
-          "expect": "jevRequestIssued"
+          "expect": "reviewServiceRequestIssued"
         },
         {
-          "kind": "jevRequestStarted",
+          "kind": "reviewServiceRequestStarted",
           "partition": 7,
           "lifetime": 11,
           "round": 2,
           "operation": 2,
-          "request": 3,
-          "expect": "jevRequestStartRecorded"
+          "reviewServiceRequestId": 3,
+          "expect": "reviewServiceRequestStartRecorded"
         },
         {
           "kind": "retirePartition",
@@ -1107,24 +1107,24 @@
           "expect": "reservationReleased,cancelWork,partitionRetired"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 7,
           "lifetime": 11,
           "round": 2,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "clear",
           "currentWork": false,
           "requestCount": 0,
-          "expect": "jevObservationIgnored"
+          "expect": "reviewServiceRequestObservationIgnored"
         },
         {
-          "kind": "jevRequestSettled",
+          "kind": "reviewServiceRequestSettled",
           "partition": 7,
           "lifetime": 11,
           "round": 2,
           "operation": 2,
-          "request": 3,
+          "reviewServiceRequestId": 3,
           "outcome": "clear",
           "currentWork": false,
           "requestCount": 0,

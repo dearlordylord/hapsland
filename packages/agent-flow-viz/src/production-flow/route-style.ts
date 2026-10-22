@@ -9,13 +9,13 @@ const unreachable = (value: never): never => {
 }
 export const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
   if (evidence.length === 0) return "possible"
-  let request = false
+  let action = false
   let external = false
   let native = false
   for (const item of evidence) {
     switch (item.source) {
-      case "request":
-        request = true
+      case "action":
+        action = true
         break
       case "external fact":
         external = true
@@ -31,8 +31,8 @@ export const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
         unreachable(item.source)
     }
   }
-  if (request && evidence.some((item) => item.source !== "request")) return external ? "mixed external" : "mixed"
-  if (request) return "request"
+  if (action && evidence.some((item) => item.source !== "action")) return external ? "mixed external" : "mixed"
+  if (action) return "action"
   if (external) return "external fact"
   return native ? "native fact" : "state"
 }
@@ -47,7 +47,7 @@ export const arrowPaint = (kind: ArrowKind) => {
       return { color: "#e66035", dashed: false, overlay: false, external: false, command: false }
     case "external fact":
       return { color: "#8a5a00", dashed: false, overlay: false, external: true, command: false }
-    case "request":
+    case "action":
       return { color: "#794aa0", dashed: true, overlay: false, external: false, command: true }
     case "mixed":
       return { color: "#e66035", dashed: false, overlay: true, external: false, command: false }

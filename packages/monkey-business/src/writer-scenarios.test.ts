@@ -51,7 +51,7 @@ it("waits with one actual membership and no advice lease, then authorizes one cu
   run.advance({ untilTime: 8, maxEvents: 200 })
   expect(terminal(run)).toHaveLength(1)
   expect(run.projection.collection.leases).toEqual([])
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   replay(run)
 })
 
@@ -197,11 +197,11 @@ it.each([
     expect(terminal(run)).toEqual([])
     advance(preparationDelay)
     expect(run.observations.filter((frame) => frame.event.kind === "preparationCompleted")).toHaveLength(2)
-    expect(run.projection.dispatch.requests).toHaveLength(2)
+    expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(2)
     expect(run.projection.pendingFindings).toEqual([])
     advance(readyAt)
     expect(run.projection.pendingFindings).toHaveLength(2)
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(terminal(run)).toEqual([])
     if (ending === "expire") {
       advance(cutoff)
@@ -222,7 +222,7 @@ it.each([
     expect(terminal(run)).toHaveLength(1)
     expect(terminal(run)[0]?.partition).toBe(2)
     expect(run.projection.collection.leases).toEqual([])
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(2)
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(2)
     // Original issuance facts remain immutable even after departure/expiry.
     expect(
       run
@@ -324,7 +324,7 @@ it.each(["disconnect", "remove"] as const)(
     expect(run.projection.collection.claims.some((c) => c.group === 1)).toBe(false)
     expect(terminal(run)).toHaveLength(1)
     expect(terminal(run)[0]?.partition).toBe(2)
-    expect(run.observations.filter((f) => f.event.kind === "jevRequestStarted")).toHaveLength(2)
+    expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestStarted")).toHaveLength(2)
     replay(run)
   }
 )
@@ -416,7 +416,7 @@ it("same-partition compatible members share one actual physical request while th
   run.advance({ untilTime: 2, maxEvents: 300 })
   expect(run.projection.revision.entries).toEqual([expect.objectContaining({ members: 2 })])
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
-  expect(run.projection.dispatch.requests).toHaveLength(1)
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
   expect(run.projection.collection.leases).toEqual([])
   const begin = run.observations.find((frame) => frame.event.kind === "beginObservedPreparation")?.event
   if (begin?.kind !== "beginObservedPreparation") throw new Error("missing original shared member")
@@ -429,13 +429,13 @@ it("same-partition compatible members share one actual physical request while th
   run.advance({ untilTime: 3, maxEvents: 100 })
   expect(run.projection.revision.entries).toEqual([expect.objectContaining({ members: 1 })])
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
-  expect(run.projection.dispatch.requests).toHaveLength(1)
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
   run.advance({ untilTime: 12, maxEvents: 300 })
   expect(run.projection.pendingFindings).toHaveLength(1)
   apply(run, { kind: "backgroundWriter", action: "attempt", agent, target, currentBlock: false })
   run.advance({ untilTime: 13, maxEvents: 200 })
   expect(terminal(run)).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   replay(run)
 })
 
@@ -475,7 +475,7 @@ it("Stop collection uses its independent original path while a background writer
     )
   ).toBe(true)
   expect(run.observations.some((frame) => frame.event.kind === "finishTerminal")).toBe(true)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   replay(run)
 })
 

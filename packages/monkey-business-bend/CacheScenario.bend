@@ -13,7 +13,7 @@ import ./FreshnessScenario.bend as Freshness
 # the logical ledger owner. Credential generation is not semantic input content.
 type Offer is Data:
   Offer{id: Nat, key: Sharing.SharingKey, original: Freshness.Scope,
-    bytes: Nat, outcome: C.RequestOutcome}
+    bytes: Nat, outcome: C.ReviewServiceRequestOutcome}
 type Payload is Data:
   Payload{offer: Offer, reservation: Nat}
 type State is Data:
@@ -36,7 +36,7 @@ def payload_id(payload: Payload) -> Nat:
   match payload:
     case Payload{offer, _}: offer_id(offer)
 
-def same_outcome(left: C.RequestOutcome, right: C.RequestOutcome) -> Bool:
+def same_outcome(left: C.ReviewServiceRequestOutcome, right: C.ReviewServiceRequestOutcome) -> Bool:
   match left right:
     case C.NeverSent{} C.NeverSent{}: True{}
     case C.RequestClear{} C.RequestClear{}: True{}
@@ -52,7 +52,7 @@ def same_offer(left: Offer, right: Offer) -> Bool:
       Nat.is_eq(id, other) && Sharing.same_key(key, other_key) &&
         Freshness.same(original, scope) && Nat.is_eq(bytes, size) && same_outcome(outcome, result)
 
-def successful(outcome: C.RequestOutcome) -> Bool:
+def successful(outcome: C.ReviewServiceRequestOutcome) -> Bool:
   match outcome:
     case C.RequestFinding{}: True{}
     case C.RequestClear{}: True{}
@@ -299,7 +299,7 @@ def refused_release_checked(eligible: Bool, reservation: Nat) -> List<&2, C.Cano
     case True{}: [C.ReleaseCapacity{reservation}]
     case False{}: []
 
-def ledger_charges(state: C.State) -> List<&2, Ledger.Charge>:
+def ledger_charges(state: C.State) -> List<&2, Ledger.ReviewCapacityReservationRecord>:
   match state:
     case C.State{Ledger.Ledger{_, _, charges}, _, _, _, _, _, _, _, _}: charges
 

@@ -39,7 +39,7 @@ it.each(["finding", "clear"] as const)(
     expect(
       run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
     ).toEqual([])
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toEqual([])
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")).toEqual([])
     expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
     const graphs = run.observations.filter((frame) => frame.preparation)
     expect(graphs.map((frame) => frame.preparation!.command.kind)).toEqual([
@@ -59,8 +59,10 @@ it.each(["finding", "clear"] as const)(
     run.advance({ untilTime: 10 })
     const frames = run.observations
     expect(frames.filter((frame) => frame.rejection)).toEqual([])
-    expect(frames.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
-    expect(frames.filter((frame) => frame.event.kind === "jevRequestSettled").map((frame) => frame.time)).toEqual([7])
+    expect(frames.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
+    expect(
+      frames.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").map((frame) => frame.time)
+    ).toEqual([7])
     expect(
       frames.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
     ).toHaveLength(outcome === "finding" ? 1 : 0)
@@ -71,7 +73,7 @@ it.each(["finding", "clear"] as const)(
       outcome === "finding" ? ["submitted"] : []
     )
     expect(run.projection.dispatch.running).toEqual([])
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(run.projection.global).toEqual(outcome === "finding" ? { items: 1, bytes: 5 } : { items: 0, bytes: 0 })
     expect(run.projection.collection.leases).toEqual([])
     expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -86,11 +88,11 @@ it.each([
   const run = createRun(minimal("finding"))
   for (
     let steps = 0;
-    steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
+    steps < 100 && !run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled");
     steps++
   )
     run.step()
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")).toHaveLength(1)
   run.applyControl({ kind: "environment", ...environment })
   run.advance({ untilTime: 10 })
   expect(run.observations.some((frame) => frame.event.kind === "finalCandidateCheck")).toBe(true)
@@ -103,7 +105,7 @@ it("preserves a current finding during credential unavailability and delivers af
   const run = createRun(minimal("finding"))
   for (
     let steps = 0;
-    steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
+    steps < 100 && !run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled");
     steps++
   )
     run.step()
@@ -116,7 +118,7 @@ it("preserves a current finding during credential unavailability and delivers af
   for (const instance of [run, restored]) {
     instance.applyControl({ kind: "environment", currentWork: true, credentialReady: true })
     instance.advance({ untilTime: 11 })
-    expect(instance.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+    expect(instance.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
     expect(instance.projection.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["submitted"])
   }
   expect(restored.observe()).toEqual(run.observe())
@@ -132,7 +134,9 @@ it("keeps a full path above the U32 clock boundary exact across step, advance an
   batched.advance({ untilTime: at + 10, maxEvents: 100 })
   expect(stepped.observe()).toEqual(batched.observe())
   expect(
-    batched.observations.filter((frame) => frame.event.kind === "jevRequestSettled").map((frame) => frame.time)
+    batched.observations
+      .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
+      .map((frame) => frame.time)
   ).toEqual([at + 7])
   expect(batched.projection.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["submitted"])
   expect(restoreReplay(batched.exportReplay()).observe()).toEqual(batched.observe())
@@ -156,9 +160,9 @@ it("generates native request callbacks from original outcomes without the Starte
     expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
     return run.observations.flatMap((frame) => {
       const event = frame.event
-      if (event.kind === "jevRequestStarted") return [1, frame.time - 2]
-      if (event.kind === "jevRequestInterrupted") return [2, frame.time - 2]
-      if (event.kind !== "jevRequestSettled") return []
+      if (event.kind === "reviewServiceRequestStarted") return [1, frame.time - 2]
+      if (event.kind === "reviewServiceRequestInterrupted") return [2, frame.time - 2]
+      if (event.kind !== "reviewServiceRequestSettled") return []
       const code = { neverSent: 3, finding: 4, clear: 5, interrupted: 6, backendFailure: 7, timeout: 8 }[event.outcome]
       return [code, frame.time - 2]
     })
@@ -175,11 +179,14 @@ it("refuses request issuance while credentials are unavailable and a later edit 
   const run = createRun({ ...minimal("finding"), environment: { currentWork: true, credentialReady: false } })
   run.advance({ untilTime: 10 })
   expect(
-    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestUnavailable")
+    run.observations
+      .flatMap((frame) => frame.outputs)
+      .filter((command) => command.kind === "reviewServiceRequestUnavailable")
   ).toHaveLength(1)
   expect(
     run.observations.filter(
-      (frame) => frame.event.kind === "jevRequestStarted" || frame.event.kind === "jevRequestSettled"
+      (frame) =>
+        frame.event.kind === "reviewServiceRequestStarted" || frame.event.kind === "reviewServiceRequestSettled"
     )
   ).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
@@ -188,7 +195,7 @@ it("refuses request issuance while credentials are unavailable and a later edit 
   run.schedule({ at: 11, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" })
   run.advance({ untilTime: 21 })
   expect(run.observations.filter((frame) => frame.rejection)).toEqual([])
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   expect(run.projection.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["submitted"])
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
 })
@@ -255,9 +262,9 @@ it(
       completeObservation: 7,
       dispatchSettled: 8,
       startReview: 9,
-      jevRequestReady: 10,
-      jevRequestStarted: 11,
-      jevRequestSettled: 12,
+      reviewServiceRequestReady: 10,
+      reviewServiceRequestStarted: 11,
+      reviewServiceRequestSettled: 12,
       collectionReady: 13,
       finalCandidateCheck: 14,
       submissionSuppressCheck: 15,
@@ -276,7 +283,7 @@ it(
       dispatchStarted: 3,
       prepare: 4,
       unitAdmitted: 5,
-      jevRequestIssued: 6,
+      reviewServiceRequestIssued: 6,
       findingRetained: 7,
       collectionEligible: 8,
       retainCandidate: 9,
@@ -288,8 +295,8 @@ it(
       preparationReleased: 15,
       observationCompleted: 16,
       reviewStarted: 17,
-      jevRequestStartRecorded: 18,
-      jevRequestOutcomeRecorded: 19,
+      reviewServiceRequestStartRecorded: 18,
+      reviewServiceRequestOutcomeRecorded: 19,
       reservationReleased: 20,
       collectionLeaseKept: 21,
       collectionLeaseReleased: 22,
@@ -333,7 +340,7 @@ it(
       if (environment) {
         for (
           let steps = 0;
-          steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
+          steps < 100 && !run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled");
           steps++
         )
           run.step()
@@ -366,7 +373,7 @@ it(
             frame.after.global.items,
             frame.after.global.bytes,
             frame.after.dispatch.running.length,
-            frame.after.dispatch.requests.length,
+            frame.after.dispatch.reviewServiceRequests.length,
             frame.after.collection.leases.length
           ]
         }
@@ -381,7 +388,7 @@ it(
                 event.workCurrent,
                 event.hasFindings
               ].map(Number)
-            : event.kind === "jevRequestReady"
+            : event.kind === "reviewServiceRequestReady"
               ? [
                   event.rootValid,
                   event.configurationValid,
@@ -390,7 +397,7 @@ it(
                   event.currentWork,
                   event.physicalAvailable
                 ].map(Number)
-              : event.kind === "jevRequestSettled"
+              : event.kind === "reviewServiceRequestSettled"
                 ? [
                     Number(event.currentWork),
                     { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[
@@ -429,7 +436,7 @@ it(
         return [
           eventCodes[frame.event.kind] ?? 99,
           frame.time,
-          ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(
+          ...["partition", "lifetime", "round", "operation", "reviewServiceRequestId", "advice", "token"].map(
             (key) =>
               (frame.event as unknown as Record<string, unknown>)[key] ??
               (key === "operation"
@@ -445,7 +452,7 @@ it(
           frame.after.global.items,
           frame.after.global.bytes,
           frame.after.dispatch.running.length,
-          frame.after.dispatch.requests.length,
+          frame.after.dispatch.reviewServiceRequests.length,
           frame.after.collection.leases.length,
           Number(!!frame.rejection),
           ...frame.outputs.map((command) => {
@@ -471,7 +478,7 @@ it.each([
   })
   for (
     let steps = 0;
-    steps < 100 && !run.observations.some((frame) => frame.event.kind === "jevRequestSettled");
+    steps < 100 && !run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled");
     steps++
   )
     run.step()

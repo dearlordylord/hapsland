@@ -48,30 +48,33 @@ def operation(target: CB.Target) -> Nat:
 def callback_phase(target: CB.Target) -> U32:
   match target:
     case CB.Target{_, CB.PreparationCompleted{}, _}: 2
-    case CB.Target{_, CB.JevSettled{_}, _}: 4
+    case CB.Target{_, CB.ReviewServiceRequestSettled{_}, _}: 4
     case CB.Target{_, CB.OutputTerminal{_, _}, _}: 5
     case CB.Target{_, CB.FinishTerminal{_, _, _, _, _}, _}: 5
     case _: 255
-def find_work(target: CB.Target, work: List<&2, C.Work>) -> Maybe<&2, C.Work>:
+def find_work(
+  target: CB.Target,
+  work: List<&2, C.ReviewWorkRecord>
+) -> Maybe<&2, C.ReviewWorkRecord>:
   match target:
     case CB.Target{CB.Owner{p, l, r, o}, _, _}: C.find_work(p, l, r, o, work)
-def work_phase(found: Maybe<&2, C.Work>) -> U32:
+def work_phase(found: Maybe<&2, C.ReviewWorkRecord>) -> U32:
   match found:
     case Some{work}: Effects.kind(work)
     case None{}: 255
-def work_lane(+world: M.World, found: Maybe<&2, C.Work>) -> U32:
+def work_lane(+world: M.World, found: Maybe<&2, C.ReviewWorkRecord>) -> U32:
   match found:
     case Some{work}: Effects.lane(world, work)
     case None{}: 0
-def request_started(found: Maybe<&2, Dispatch.Request>) -> Bool:
+def request_started(found: Maybe<&2, Dispatch.ReviewServiceRequestRecord>) -> Bool:
   match found:
-    case Some{Dispatch.Request{_, _, _, _, _, started, interrupted}}: started && Bool.not(
+    case Some{Dispatch.ReviewServiceRequestRecord{_, _, _, _, _, started, interrupted}}: started && Bool.not(
       interrupted
     )
     case None{}: False{}
 def started(target: CB.Target, dispatch: Dispatch.State) -> Bool:
   match target dispatch:
-    case CB.Target{CB.Owner{p, l, r, o}, CB.JevSettled{request}, _} Dispatch.State{
+    case CB.Target{CB.Owner{p, l, r, o}, CB.ReviewServiceRequestSettled{request}, _} Dispatch.State{
       _,
       _,
       _,

@@ -9,7 +9,7 @@ export const CanonicalLimitsSchema = Schema.Struct({
   partitionBytes: ByteCount
 })
 
-export const JevRequestOutcomeSchema = Schema.Union([
+export const ReviewServiceRequestOutcomeSchema = Schema.Union([
   Schema.Literal("neverSent"),
   Schema.Literal("finding"),
   Schema.Literal("clear"),
@@ -17,7 +17,7 @@ export const JevRequestOutcomeSchema = Schema.Union([
   Schema.Literal("timeout"),
   Schema.Literal("interrupted")
 ])
-export type JevRequestOutcome = typeof JevRequestOutcomeSchema.Type
+export type ReviewServiceRequestOutcome = typeof ReviewServiceRequestOutcomeSchema.Type
 
 export const CompletedEditReasonSchema = Schema.Union([
   Schema.Literal("consumed"),
@@ -94,22 +94,22 @@ export const CapacityRefusalSchema = Schema.Union([
 ])
 export type CapacityRefusal = typeof CapacityRefusalSchema.Type
 
-export const CapacityChargeSchema = Schema.Struct({
+export const ReviewCapacityReservationRecordSchema = Schema.Struct({
   id: Nat,
   partition: Nat,
   bytes: Nat,
   purpose: CapacityPurposeSchema
 })
-export type CapacityCharge = typeof CapacityChargeSchema.Type
+export type ReviewCapacityReservationRecord = typeof ReviewCapacityReservationRecordSchema.Type
 
 export const CapacityViewSchema = Schema.Struct({
   global: Schema.Struct({ items: Nat, bytes: Nat }),
   local: Schema.Struct({ items: Nat, bytes: Nat }),
-  charges: boundedArray(CapacityChargeSchema, 2048)
+  charges: boundedArray(ReviewCapacityReservationRecordSchema, 2048)
 })
 export type CapacityView = typeof CapacityViewSchema.Type
 
-export const DispatchEntrySchema = Schema.Struct({
+export const ScheduledReviewWorkSchema = Schema.Struct({
   partition: Nat,
   lifetime: Nat,
   round: Nat,
@@ -118,15 +118,15 @@ export const DispatchEntrySchema = Schema.Struct({
   cancelled: Schema.Boolean,
   preparation: Schema.Boolean
 })
-export type DispatchEntry = typeof DispatchEntrySchema.Type
+export type ScheduledReviewWork = typeof ScheduledReviewWorkSchema.Type
 
 export const CanonicalProjectionSchema = Schema.suspend(() =>
   Schema.Struct({
-    executionLimits: Schema.Struct({ preparation: Nat, jevRequests: Nat }),
+    executionLimits: Schema.Struct({ preparation: Nat, reviewServiceRequests: Nat }),
     global: Schema.Struct({ items: Nat, bytes: Nat }),
     limits: Schema.Struct({ globalItems: Nat, globalBytes: Nat, partitionItems: Nat, partitionBytes: Nat }),
     partitions: boundedArray(Schema.Struct({ partition: Nat, items: Nat, bytes: Nat }), 2048),
-    charges: boundedArray(CapacityChargeSchema, 2048),
+    charges: boundedArray(ReviewCapacityReservationRecordSchema, 2048),
     inventory: boundedArray(Schema.Struct({ purpose: CapacityPurposeSchema, limits: CanonicalLimitsSchema }), 2048),
     rounds: boundedArray(
       Schema.Struct({
@@ -169,7 +169,7 @@ export const CanonicalProjectionSchema = Schema.suspend(() =>
           Schema.Literal("sourceReading"),
           Schema.Literal("preparing"),
           Schema.Literal("reviewing"),
-          Schema.Literal("atJev"),
+          Schema.Literal("reviewServiceRequestOutstanding"),
           Schema.Literal("pendingFinding")
         ])
       }),
@@ -177,17 +177,17 @@ export const CanonicalProjectionSchema = Schema.suspend(() =>
     ),
     pendingFindings: boundedArray(Schema.Struct({ operation: Nat, count: Nat }), 2048),
     dispatch: Schema.Struct({
-      queued: boundedArray(DispatchEntrySchema, 2048),
-      running: boundedArray(DispatchEntrySchema, 2048),
+      queued: boundedArray(ScheduledReviewWorkSchema, 2048),
+      running: boundedArray(ScheduledReviewWorkSchema, 2048),
       nextSequence: Nat,
       closed: Schema.Boolean,
-      requests: boundedArray(
+      reviewServiceRequests: boundedArray(
         Schema.Struct({
           partition: Nat,
           lifetime: Nat,
           round: Nat,
           operation: Nat,
-          request: Nat,
+          reviewServiceRequestId: Nat,
           started: Schema.Boolean,
           interrupted: Schema.Boolean
         }),
@@ -278,19 +278,19 @@ export const CanonicalProjectionSchema = Schema.suspend(() =>
 )
 export type CanonicalProjection = typeof CanonicalProjectionSchema.Type
 
-export const CanonicalActionRequestSchema = Schema.suspend(() =>
+export const ResidentActionCommandSchema = Schema.suspend(() =>
   Schema.Union([
     Schema.Struct({
-      category: Schema.Literal("request"),
+      category: Schema.Literal("action"),
       kind: Schema.Literal("prepare"),
       operation: Nat,
       reservation: Nat
     }),
-    Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("cancelWork"), operation: Nat }),
-    Schema.Struct({ category: Schema.Literal("request"), kind: Schema.Literal("createNoticeKey") })
+    Schema.Struct({ category: Schema.Literal("action"), kind: Schema.Literal("cancelWork"), operation: Nat }),
+    Schema.Struct({ category: Schema.Literal("action"), kind: Schema.Literal("createNoticeKey") })
   ])
 )
-export type CanonicalActionRequest = typeof CanonicalActionRequestSchema.Type
+export type ResidentActionCommand = typeof ResidentActionCommandSchema.Type
 
 export const CanonicalDomainEventSchema = Schema.suspend(() =>
   Schema.Union([
@@ -350,21 +350,24 @@ export const CanonicalDomainEventSchema = Schema.suspend(() =>
     }),
     Schema.Struct({
       category: Schema.Literal("event"),
-      kind: Schema.Literal("jevRequestIssued"),
+      kind: Schema.Literal("reviewServiceRequestIssued"),
       partition: Nat,
       lifetime: Nat,
       round: Nat,
       operation: Nat,
-      request: Nat
+      reviewServiceRequestId: Nat
     }),
     Schema.Struct({
       category: Schema.Literal("event"),
-      kind: Schema.Union([Schema.Literal("jevRequestStartRecorded"), Schema.Literal("jevInterruptionRecorded")])
+      kind: Schema.Union([
+        Schema.Literal("reviewServiceRequestStartRecorded"),
+        Schema.Literal("reviewServiceRequestInterruptionRecorded")
+      ])
     }),
     Schema.Struct({
       category: Schema.Literal("event"),
-      kind: Schema.Literal("jevRequestOutcomeRecorded"),
-      outcome: JevRequestOutcomeSchema
+      kind: Schema.Literal("reviewServiceRequestOutcomeRecorded"),
+      outcome: ReviewServiceRequestOutcomeSchema
     }),
     Schema.Struct({
       category: Schema.Literal("event"),
@@ -546,7 +549,10 @@ export const CanonicalPolicyDecisionSchema = Schema.suspend(() =>
     Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("permitKept") }),
     Schema.Struct({
       category: Schema.Literal("decision"),
-      kind: Schema.Union([Schema.Literal("jevRequestUnavailable"), Schema.Literal("jevObservationIgnored")])
+      kind: Schema.Union([
+        Schema.Literal("reviewServiceRequestUnavailable"),
+        Schema.Literal("reviewServiceRequestObservationIgnored")
+      ])
     }),
     Schema.Struct({ category: Schema.Literal("decision"), kind: Schema.Literal("preparationRefused") }),
     Schema.Struct({
@@ -815,7 +821,7 @@ export const CanonicalPolicyDecisionSchema = Schema.suspend(() =>
 export type CanonicalPolicyDecision = typeof CanonicalPolicyDecisionSchema.Type
 
 export const CanonicalOutputSchema = Schema.Union([
-  CanonicalActionRequestSchema,
+  ResidentActionCommandSchema,
   CanonicalDomainEventSchema,
   CanonicalPolicyDecisionSchema
 ])
@@ -971,7 +977,7 @@ export const CanonicalEventSchema = Schema.Union([
     operation: PositiveNat
   }),
   Schema.Struct({
-    kind: Schema.Literal("jevRequestReady"),
+    kind: Schema.Literal("reviewServiceRequestReady"),
     partition: PositiveNat,
     lifetime: PositiveNat,
     round: PositiveNat,
@@ -984,21 +990,24 @@ export const CanonicalEventSchema = Schema.Union([
     physicalAvailable: Schema.Boolean
   }),
   Schema.Struct({
-    kind: Schema.Union([Schema.Literal("jevRequestStarted"), Schema.Literal("jevRequestInterrupted")]),
+    kind: Schema.Union([
+      Schema.Literal("reviewServiceRequestStarted"),
+      Schema.Literal("reviewServiceRequestInterrupted")
+    ]),
     partition: PositiveNat,
     lifetime: PositiveNat,
     round: PositiveNat,
     operation: PositiveNat,
-    request: PositiveNat
+    reviewServiceRequestId: PositiveNat
   }),
   Schema.Struct({
-    kind: Schema.Literal("jevRequestSettled"),
+    kind: Schema.Literal("reviewServiceRequestSettled"),
     partition: PositiveNat,
     lifetime: PositiveNat,
     round: PositiveNat,
     operation: PositiveNat,
-    request: PositiveNat,
-    outcome: JevRequestOutcomeSchema,
+    reviewServiceRequestId: PositiveNat,
+    outcome: ReviewServiceRequestOutcomeSchema,
     currentWork: Schema.Boolean
   }),
   Schema.Struct({
@@ -1288,7 +1297,7 @@ export const CanonicalEventSchema = Schema.Union([
   }),
   Schema.Struct({ kind: Schema.Literal("cleanupCheck"), facts: CleanupFactsSchema }),
   Schema.Struct({ kind: Schema.Literal("cleanupCommit") }),
-  Schema.Struct({ kind: Schema.Literal("deliveryReleaseCheck"), acknowledged: Schema.Boolean }),
+  Schema.Struct({ kind: Schema.Literal("deliveryReleaseCheck"), submissionRecorded: Schema.Boolean }),
   Schema.Struct({ kind: Schema.Literal("deliveryAcknowledgeCheck"), items: Nat, anyExpired: Schema.Boolean }),
   Schema.Struct({
     kind: Schema.Literal("deliveryFinalizeCheck"),

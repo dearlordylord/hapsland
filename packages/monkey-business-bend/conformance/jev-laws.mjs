@@ -50,7 +50,7 @@ try {
   const instances = ["0n", "1n", "7n", "Nat.add(4294967295n, 2n)"].flatMap((value, position) =>
     ["False{}", "True{}"].map((interrupted, index) => ({
       name: `started_${position}_${index}`,
-      claim: `{C.intervene(Some{Dispatch.Request{${value}, ${value}, ${value}, ${value}, ${value}, True{}, ${interrupted}}}, Canonical.NeverSent{}, ${value}) == C.RefusedStarted{} : C.Intervention}`
+      claim: `{C.intervene(Some{Dispatch.ReviewServiceRequestRecord{${value}, ${value}, ${value}, ${value}, ${value}, True{}, ${interrupted}}}, Canonical.NeverSent{}, ${value}) == C.RefusedStarted{} : C.Intervention}`
     }))
   )
   writeFileSync(
@@ -71,7 +71,7 @@ try {
         law: "started_never_sent_refused",
         section: "started NeverSent refusal",
         from: "    case Canonical.NeverSent{} _: RefusedStarted{}",
-        to: "    case Canonical.NeverSent{} _: Applied{[ScheduledFact{Canonical.JevRequestSettled{p, l, r, o, id, Canonical.NeverSent{}, True{}}, delay}]}",
+        to: "    case Canonical.NeverSent{} _: Applied{[ScheduledFact{Canonical.ReviewServiceRequestSettled{p, l, r, o, id, Canonical.NeverSent{}, True{}}, delay}]}",
         why: "allows NeverSent after an existing start",
         at: { p: "1n", l: "1n", r: "1n", o: "2n", id: "1n", delay: "5n", interrupted: "False{}" },
         failsIn: "Laws.started_never_sent_refused"

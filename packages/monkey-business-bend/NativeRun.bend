@@ -724,14 +724,14 @@ def find_stored(jobs: List<&2, T.StoredJob>, +operation: Nat) -> Maybe<&2, T.Job
 
 def command_operation(command: Canonical.Output) -> Maybe<&2, Nat>:
   match command:
-    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: Some{operation}
+    case Canonical.ResidentActionRequested{Canonical.Prepare{operation, _}}: Some{operation}
     case Canonical.EventEstablished{Canonical.UnitAdmitted{operation, _, _, _, _}}: Some{operation}
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, operation, _}}: Some{
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, operation, _}}: Some{
       operation
     }
     case Canonical.EventEstablished{Canonical.DispatchStarted{operation, _}}: Some{operation}
     case Canonical.EventEstablished{Canonical.DispatchDiscarded{operation, _}}: Some{operation}
-    case Canonical.ActionRequested{Canonical.CancelWork{operation}}: Some{operation}
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{operation}}: Some{operation}
     case _: None{}
 
 def lookup_operation(jobs: List<&2, T.StoredJob>, operation: Maybe<&2, Nat>) -> Maybe<&2, T.Job>:
@@ -798,7 +798,7 @@ def remember_command(state: T.State, command: Canonical.Output, job: Maybe<&2, T
       operation,
       job
     )
-    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: remember_job(
+    case Canonical.ResidentActionRequested{Canonical.Prepare{operation, _}}: remember_job(
       state,
       operation,
       job
@@ -813,10 +813,10 @@ def remember_command(state: T.State, command: Canonical.Output, job: Maybe<&2, T
 def drop_job(+state: T.State, operation: Nat) -> T.State:
   replace_jobs(state, remove_job(stored_jobs(state), operation))
 
-def pending_job(work: List<&2, Canonical.Work>, +operation: Nat) -> Bool:
+def pending_job(work: List<&2, Canonical.ReviewWorkRecord>, +operation: Nat) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{_, _, _, owner, _, Canonical.PendingFinding{_}, _} <> tail:
+    case Canonical.ReviewWorkRecord{_, _, _, owner, _, Canonical.PendingFinding{_}, _} <> tail:
       Nat.is_eq(owner, operation) || pending_job(tail, operation)
     case _ <> tail: pending_job(tail, operation)
 
@@ -832,9 +832,9 @@ def settled_job(+state: T.State, +operation: Nat) -> T.State:
     operation
   )
 
-def preparation_parent(found: Maybe<&2, Canonical.Work>) -> Maybe<&2, Nat>:
+def preparation_parent(found: Maybe<&2, Canonical.ReviewWorkRecord>) -> Maybe<&2, Nat>:
   match found:
-    case Some{Canonical.Work{_, _, _, _, _, _, +parent}}:
+    case Some{Canonical.ReviewWorkRecord{_, _, _, _, _, _, +parent}}:
       Bool.pick(Maybe<&2, Nat>, Nat.is_gt(parent, 0n), Some{parent}, None{})
     case None{}: None{}
 
@@ -843,10 +843,10 @@ def drop_parent(state: T.State, parent: Maybe<&2, Nat>) -> T.State:
     case Some{operation}: drop_job(state, operation)
     case None{}: state
 
-def running_operation(entries: List<&2, Dispatch.Entry>, +operation: Nat) -> Bool:
+def running_operation(entries: List<&2, Dispatch.ScheduledReviewWork>, +operation: Nat) -> Bool:
   match entries:
     case Nil{}: False{}
-    case Dispatch.Entry{_, _, _, owner, _, _, _} <> tail:
+    case Dispatch.ScheduledReviewWork{_, _, _, owner, _, _, _} <> tail:
       Nat.is_eq(owner, operation) || running_operation(tail, operation)
 
 def running_before(before: Canonical.State, operation: Nat) -> Bool:
@@ -870,7 +870,7 @@ def refusal_command(command: Canonical.Output, event: Canonical.CanonicalEvent,
       _
     }:
       drop_job(state, operation)
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}} Canonical.JevRequestReady{
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}} Canonical.ReviewServiceRequestReady{
       _,
       _,
       _,
@@ -898,20 +898,23 @@ def refusal_jobs(outputs: List<&2, Canonical.Output>, +event: Canonical.Canonica
 
 def request_kept(
   equal: Bool,
-  value: T.IssuedRequest,
-  rest: List<&2, T.IssuedRequest>
-) -> List<&2, T.IssuedRequest>:
+  value: T.IssuedReviewServiceRequest,
+  rest: List<&2, T.IssuedReviewServiceRequest>
+) -> List<&2, T.IssuedReviewServiceRequest>:
   match equal:
     case True{}: rest
     case False{}: value <> rest
 
-def remove_request(values: List<&2, T.IssuedRequest>, +request: Nat) -> List<&2, T.IssuedRequest>:
+def remove_request(
+  values: List<&2, T.IssuedReviewServiceRequest>,
+  +request: Nat
+) -> List<&2, T.IssuedReviewServiceRequest>:
   match values:
     case Nil{}: []
-    case T.IssuedRequest{+key, command} <> tail:
+    case T.IssuedReviewServiceRequest{+key, command} <> tail:
       request_kept(
         Nat.is_eq(key, request),
-        T.IssuedRequest{key, command},
+        T.IssuedReviewServiceRequest{key, command},
         remove_request(tail, request)
       )
 
@@ -958,7 +961,7 @@ def event_jobs(state: T.State, event: Canonical.CanonicalEvent, before: Canonica
         drop_job(state, operation),
         preparation_parent(Canonical.find_work(p, l, r, operation, Driver.work_list(before)))
       )
-    case Canonical.JevRequestSettled{_, _, _, operation, request, _, _}: settled_job(
+    case Canonical.ReviewServiceRequestSettled{_, _, _, operation, request, _, _}: settled_job(
       request_settled(state, request),
       operation
     )
@@ -1228,7 +1231,7 @@ def context_environment(
   job: T.Job,
   supplied: Bool,
   action: Driver.Action,
-  outcome: Maybe<&2, Canonical.RequestOutcome>,
+  outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   environment: T.Environment,
   collection: Bool,
   background: Bool
@@ -1283,7 +1286,7 @@ def source_present(source: Maybe<&2, Driver.SourceJob>) -> Bool:
 def job_context(
   job: Maybe<&2, T.Job>,
   action: Driver.Action,
-  outcome: Maybe<&2, Canonical.RequestOutcome>,
+  outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   environment: T.Environment,
   collection: Bool,
   background: Bool
@@ -1333,7 +1336,7 @@ def context_scoped(
   +state: T.State,
   +action: Driver.Action,
   job: Maybe<&2, T.Job>,
-  outcome: Maybe<&2, Canonical.RequestOutcome>,
+  outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>,
   scope: Driver.ContextScope
 ) -> Driver.Context:
   match state scope:
@@ -1392,7 +1395,7 @@ def context(
   +state: T.State,
   +action: Driver.Action,
   +job: Maybe<&2, T.Job>,
-  outcome: Maybe<&2, Canonical.RequestOutcome>
+  outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
 ) -> Driver.Context:
   context_scoped(
     state,
@@ -2302,7 +2305,13 @@ def freshness_before_settlement(
     case Nil{}: []
     case +action <> tail:
       match action:
-        case Driver.Action{Canonical.JevRequestSettled{_, _, _, _, _, _, _}, +delay, _, _, _}:
+        case Driver.Action{
+          Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _},
+          +delay,
+          _,
+          _,
+          _
+        }:
           List.append(&2, Driver.Action, freshness_delayed(checks, delay), action <> tail)
         case _:
           action <> freshness_before_settlement(tail, checks)
@@ -2313,7 +2322,7 @@ def freshness_driven(
   result: Driver.Handled
 ) -> Driver.Handled:
   match command result:
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{p, l, r, operation, _}} Driver.Handled{
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{p, l, r, operation, _}} Driver.Handled{
       handled,
       actions
     }:
@@ -2939,7 +2948,7 @@ def ordinary_fallback(
       ),
       action
     )
-    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: prepare_job(
+    case Canonical.ResidentActionRequested{Canonical.Prepare{operation, _}}: prepare_job(
       state,
       job,
       operation
@@ -3303,27 +3312,27 @@ def command_partition(
 
 def request_put_selected(
   equal: Bool,
-  original: T.IssuedRequest,
-  tail: List<&2, T.IssuedRequest>,
+  original: T.IssuedReviewServiceRequest,
+  tail: List<&2, T.IssuedReviewServiceRequest>,
   request: Nat,
   command: Canonical.Output,
-  next: List<&2, T.IssuedRequest>
-) -> List<&2, T.IssuedRequest>:
+  next: List<&2, T.IssuedReviewServiceRequest>
+) -> List<&2, T.IssuedReviewServiceRequest>:
   match equal:
-    case True{}: T.IssuedRequest{request, command} <> tail
+    case True{}: T.IssuedReviewServiceRequest{request, command} <> tail
     case False{}: original <> next
 
 def put_request(
-  values: List<&2, T.IssuedRequest>,
+  values: List<&2, T.IssuedReviewServiceRequest>,
   +request: Nat,
   +command: Canonical.Output
-) -> List<&2, T.IssuedRequest>:
+) -> List<&2, T.IssuedReviewServiceRequest>:
   match values:
-    case Nil{}: [T.IssuedRequest{request, command}]
-    case T.IssuedRequest{+key, original} <> +tail:
+    case Nil{}: [T.IssuedReviewServiceRequest{request, command}]
+    case T.IssuedReviewServiceRequest{+key, original} <> +tail:
       request_put_selected(
         Nat.is_eq(key, request),
-        T.IssuedRequest{key, original},
+        T.IssuedReviewServiceRequest{key, original},
         tail,
         request,
         command,
@@ -3368,10 +3377,12 @@ def request_issued(state: T.State, request: Nat, command: Canonical.Output) -> T
 
 def issued_command(state: T.State, command: Canonical.Output) -> T.State:
   match command:
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{p, l, r, operation, +request}}: request_issued(
+    case Canonical.EventEstablished{
+      Canonical.ReviewServiceRequestIssued{p, l, r, operation, +request}
+    }: request_issued(
       state,
       request,
-      Canonical.EventEstablished{Canonical.JevRequestIssued{p, l, r, operation, request}}
+      Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{p, l, r, operation, request}}
     )
     case _: state
 
@@ -3915,7 +3926,7 @@ def wake_finishes(finishes: List<&2, StopScenario.Finish>, state: T.State) -> T.
 def wake_event(+state: T.State, event: Canonical.CanonicalEvent) -> T.State:
   match event:
     case Canonical.PreparationCompleted{_, _, _, _, _}: wake_finishes(finish_scopes(state), state)
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: wake_finishes(
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}: wake_finishes(
       finish_scopes(state),
       state
     )
@@ -5074,7 +5085,7 @@ def activity_job(
   revision: Nat,
   repair: Bool,
   original: Workload.Emission,
-  supplied_outcome: Maybe<&2, Canonical.RequestOutcome>
+  supplied_outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
 ) -> T.State:
   +lifetime = Engine.activity_lifetime(core(state), partition)
   generated_edit(
@@ -5104,7 +5115,7 @@ def arrival_kind(
   repair: Bool,
   recurring: Bool,
   original: Workload.Emission,
-  supplied_outcome: Maybe<&2, Canonical.RequestOutcome>
+  supplied_outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
 ) -> T.State:
   match kind:
     case 0: recurring_next(state, p, recurring)
@@ -5127,7 +5138,7 @@ def valid_arrival(
   state: T.State,
   +emission: Workload.Emission,
   activity: Nat,
-  supplied_outcome: Maybe<&2, Canonical.RequestOutcome>
+  supplied_outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
 ) -> T.State:
   match valid emission:
     case False{} _: state
@@ -5150,7 +5161,7 @@ def arrival(
   +state: T.State,
   emission: Workload.Emission,
   +activity: Nat,
-  supplied_outcome: Maybe<&2, Canonical.RequestOutcome>
+  supplied_outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
 ) -> T.State:
   match emission:
     case Workload.Emission{
@@ -5958,7 +5969,7 @@ def captured_finish(valid: Bool, state: T.State, partition: Nat, recurring: Bool
     case False{}: T.Step{state, None{}, []}
 
 def completion_request_matches(
-  values: List<&2, T.IssuedRequest>,
+  values: List<&2, T.IssuedReviewServiceRequest>,
   +p: Nat,
   +l: Nat,
   +r: Nat,
@@ -5967,9 +5978,9 @@ def completion_request_matches(
 ) -> Bool:
   match values:
     case Nil{}: False{}
-    case T.IssuedRequest{
+    case T.IssuedReviewServiceRequest{
       key,
-      Canonical.EventEstablished{Canonical.JevRequestIssued{vp, vl, vr, vo, vrequest}}
+      Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{vp, vl, vr, vo, vrequest}}
     } <> tail:
       (Nat.is_eq(key, request) && Nat.is_eq(vrequest, request) && Nat.is_eq(vp, p) && Nat.is_eq(
         vl,
@@ -5986,7 +5997,7 @@ def completion_request_matches(
 
 def completion_matches(state: T.State, event: Canonical.CanonicalEvent) -> Bool:
   match state event:
-    case T.State{_, _, _, _, _, _, _, _, _, _, T.HostFacts{requests, _, _, _, _, pending}} Canonical.JevRequestSettled{
+    case T.State{_, _, _, _, _, _, _, _, _, _, T.HostFacts{requests, _, _, _, _, pending}} Canonical.ReviewServiceRequestSettled{
       p,
       l,
       r,

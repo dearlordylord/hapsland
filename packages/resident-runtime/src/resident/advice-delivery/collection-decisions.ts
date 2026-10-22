@@ -27,7 +27,7 @@ export const collectionOrdering = (command: string | undefined): number => {
 
 export const finalCollectionFits = (result: {
   readonly rejection?: unknown
-  readonly outputs: ReadonlyArray<{ readonly category: "request" | "event" | "decision"; readonly kind: string }>
+  readonly outputs: ReadonlyArray<{ readonly category: "action" | "event" | "decision"; readonly kind: string }>
 }): boolean => {
   if (result.rejection !== undefined || result.outputs.length !== 1 || result.outputs[0]?.category !== "decision")
     throw new Error("canonical final response fit refused")

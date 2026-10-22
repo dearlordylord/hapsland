@@ -116,7 +116,7 @@ def queued(payload: Payload, job: Edge.Job) -> Edge.Job:
 def operation_job(command: C.Output) -> Bool:
   match command:
     case C.EventEstablished{C.DispatchStarted{_, _}}: True{}
-    case C.EventEstablished{C.JevRequestIssued{_, _, _, _, _}}: True{}
+    case C.EventEstablished{C.ReviewServiceRequestIssued{_, _, _, _, _}}: True{}
     case _: False{}
 
 def applied(+payload: Payload, +state: Types.State, event: C.CanonicalEvent, command: C.Output,

@@ -101,8 +101,8 @@ const openCodeObservation = (
   candidate: DirectCandidate
 ): DirectObservation => {
   const advicee: DirectAdvicee = Object.freeze({
-    host: "opencode",
-    hostVersion: "1.14.44",
+    agentRuntime: "opencode",
+    agentRuntimeVersion: "1.14.44",
     sessionId: input.sessionID,
     turnId: null,
     toolUseId: input.callID,

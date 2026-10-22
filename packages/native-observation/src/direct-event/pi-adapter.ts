@@ -32,8 +32,8 @@ const identity = (value: unknown) => {
   return {
     event,
     advicee: {
-      host: "pi",
-      hostVersion: "1.0.0",
+      agentRuntime: "pi",
+      agentRuntimeVersion: "1.0.0",
       sessionId: event.session_id,
       turnId: null,
       toolUseId: event.tool_use_id,

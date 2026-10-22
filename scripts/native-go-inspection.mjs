@@ -325,7 +325,7 @@ export function createGoInspectionProfile({
           repairedOpenInterface: true,
           sourceCompiles: true
         },
-        maximumJevRequests: 0,
+        maximumReviewServiceRequests: 0,
         nativeColdStartupValidated: false,
         browserValidated: false,
         rawHostStreamRetained: false,

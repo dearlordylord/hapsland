@@ -2,7 +2,7 @@ import type { makeResidentInspection } from "../inspection/observer.ts"
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import type { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice, AdviceContent } from "../state/advice-records.ts"
+import type { PendingAdviceHandle, AdviceContent } from "../state/advice-records.ts"
 import type { PendingNoticeSnapshot as PendingNotice } from "../state/notice-records.ts"
 import type { RoundWork, RoundRecord } from "../state/round-records.ts"
 import type { JoinedReviewOutcome } from "../state/joined-reviews.ts"
@@ -14,13 +14,13 @@ import {
 } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { randomUUID } from "node:crypto"
-import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import { type ResidentUnavailableReason } from "@hapsland/resident-transport/resident/protocol"
-import { type Dispatcher } from "../state/dispatch.ts"
+import { type ReviewWorkScheduler } from "../state/dispatch.ts"
 import type { ComposedDelivery } from "../state/delivery/operations.ts"
 import { type FindingSelectionFacts, type OperationalNoticeKind } from "../state/collection-facts.ts"
-import { type ResidentLedger, type UnitJob, type Job } from "./jobs.ts"
-import { recipientPartition, addressableAdvicee } from "../recipient/identity.ts"
+import { type ResidentLedger, type ReviewUnitJob, type Job } from "./jobs.ts"
+import { adviceeScopeKey, addressableAdvicee } from "../recipient/identity.ts"
 
 type Dependencies = {
   readonly residentNotices: ReturnType<ResidentLedger["notices"]>
@@ -29,26 +29,26 @@ type Dependencies = {
   readonly residentComposedDelivery: ReturnType<ResidentLedger["delivery"]>
   readonly residentJoined: ReturnType<ResidentLedger["joinedReviews"]>
   readonly lifetime: string
-  readonly residentAdvice: () => Effect.Effect<readonly Advice[], never, never>
+  readonly residentAdvice: () => Effect.Effect<readonly PendingAdviceHandle[], never, never>
   readonly residentAdviceExpired: (
-    advice: Pick<Advice, "pendingAt">,
+    advice: Pick<PendingAdviceHandle, "pendingAt">,
     now: number
   ) => Effect.Effect<boolean, never, never>
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
-  readonly residentDispatcher: Dispatcher<string, Job>
-  readonly residentLifetimeController: AbortController
+  readonly residentDispatcher: ReviewWorkScheduler<string, Job>
+  readonly residentInstanceIdController: AbortController
   readonly residentRoundSnapshot: (round: RoundWork) => Effect.Effect<RoundRecord, never, never>
   readonly residentRecordAnalytics: (
     job: Pick<Job, "dispatch" | "observation"> & { readonly analyticsEnabled?: boolean },
     kind:
       | "submitted"
-      | "request-started"
-      | "request-clear"
-      | "request-findings"
-      | "request-failed"
-      | "request-timeout"
-      | "request-interrupted"
-      | "request-never-sent"
+      | "review-service-request-started"
+      | "review-service-request-clear"
+      | "review-service-request-findings"
+      | "review-service-request-failed"
+      | "review-service-request-timeout"
+      | "review-service-request-interrupted"
+      | "review-service-request-never-sent"
       | "cache-hit"
       | "joined-review"
       | "skipped-candidate"
@@ -100,20 +100,20 @@ const residentRecordOperationalFailure = Effect.fn("ResidentRuntime.recordOperat
     !addressableAdvicee(observation.advicee)
   )
     return
-  yield* deps.residentNotices.record(recipientPartition(observation.advicee), kind, now ?? deps.residentNow())
+  yield* deps.residentNotices.record(adviceeScopeKey(observation.advicee), kind, now ?? deps.residentNow())
 })
 const residentAdviceCollectionReady = (
-  advice: Advice,
+  advice: PendingAdviceHandle,
   content: AdviceContent,
   composed: boolean,
   generation: number
 ): boolean => {
   if (!content.collectionEligible) return false
-  return composed && advice.round !== undefined ? advice.round.generation === generation : true
+  return composed && advice.round !== undefined ? advice.round.admissionRoundId === generation : true
 }
 const residentFindingSelectionFacts = Effect.fn("ResidentRuntime.findingSelectionFacts")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   partition: string,
   credentialGeneration: number | null,
   now: number,
@@ -122,13 +122,13 @@ const residentFindingSelectionFacts = Effect.fn("ResidentRuntime.findingSelectio
   const partitionId = yield* deps.residentLedger.knownPartitionId(partition)
   if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity")
   const content = yield* deps.residentLedger.advice.current(advice)
-  const generation = composed ? yield* deps.residentComposedDelivery.generation(partition) : 0
+  const generation = composed ? yield* deps.residentComposedDelivery.readAdmissionRoundId(partition) : 0
   return {
     partition: partitionId,
     round: generation,
-    unit: advice.revision.generation,
-    snapshot: advice.revision.generation,
-    currentSnapshot: yield* deps.residentLedger.revision.generation(advice.revision.subject),
+    unit: advice.revision.revisionGeneration,
+    snapshot: advice.revision.revisionGeneration,
+    currentSnapshot: yield* deps.residentLedger.revision.readRevisionGeneration(advice.revision.subject),
     credential: advice.credentialGeneration ?? 0,
     currentCredential: credentialGeneration ?? 0,
     ageMs: Math.floor(Math.max(0, now - advice.pendingAt)),
@@ -138,7 +138,7 @@ const residentFindingSelectionFacts = Effect.fn("ResidentRuntime.findingSelectio
 const residentRegisterRevision = Effect.fn("ResidentRuntime.registerRevision")(function* (
   deps: Dependencies,
   partition: string,
-  prepared: PreparedUnit,
+  prepared: PreparedReviewUnit,
   addMember: boolean
 ): Effect.fn.Return<WorkRevision> {
   const { revision, replaced } = yield* deps.residentLedger.revision.register(
@@ -147,11 +147,11 @@ const residentRegisterRevision = Effect.fn("ResidentRuntime.registerRevision")(f
     addMember,
     randomUUID()
   )
-  if (replaced) yield* residentRetireSuperseded(deps, revision.subject, revision.generation, addMember)
+  if (replaced) yield* residentRetireSuperseded(deps, revision.subject, revision.revisionGeneration, addMember)
   return revision
 }, Effect.uninterruptible)
 const residentRegisterCurrentWork = Effect.fn("ResidentRuntime.registerCurrentWork")(
-  (deps: Dependencies, partition: string, prepared: PreparedUnit) =>
+  (deps: Dependencies, partition: string, prepared: PreparedReviewUnit) =>
     residentRegisterRevision(deps, partition, prepared, true)
 )
 const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (
@@ -161,7 +161,7 @@ const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(f
   includeJoined: boolean
 ) {
   const superseded = (revision: WorkRevision) => deps.residentLedger.revision.superseded(subject, revision)
-  if ((yield* deps.residentLedger.revision.generation(subject)) !== generation)
+  if ((yield* deps.residentLedger.revision.readRevisionGeneration(subject)) !== generation)
     throw new Error("canonical revision changed")
   if (includeJoined) {
     for (const review of yield* deps.residentJoined.retireSuperseded(subject)) {
@@ -181,11 +181,11 @@ const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(f
   }
 })
 const residentRestoreCurrentWork = Effect.fn("ResidentRuntime.restoreCurrentWork")(
-  (deps: Dependencies, partition: string, prepared: PreparedUnit) =>
+  (deps: Dependencies, partition: string, prepared: PreparedReviewUnit) =>
     residentRegisterRevision(deps, partition, prepared, false)
 )
 const residentIsCurrentWork = Effect.fn("ResidentRuntime.isCurrentWork")(
-  (deps: Dependencies, revision: WorkRevision, prepared: PreparedUnit) =>
+  (deps: Dependencies, revision: WorkRevision, prepared: PreparedReviewUnit) =>
     deps.residentLedger.revision.current(revision, prepared)
 )
 const residentReleaseCurrentWork = Effect.fn("ResidentRuntime.releaseCurrentWork")(
@@ -193,7 +193,7 @@ const residentReleaseCurrentWork = Effect.fn("ResidentRuntime.releaseCurrentWork
 )
 const residentReleaseUnit = Effect.fn("ResidentRuntime.releaseUnit")(function* (
   deps: Dependencies,
-  job: Pick<UnitJob, "reservation" | "revision" | "released">
+  job: Pick<ReviewUnitJob, "reservation" | "revision" | "released">
 ) {
   if (job.released) return
   job.released = true
@@ -263,7 +263,8 @@ const residentRoundActive = Effect.fn("ResidentRuntime.roundActive")(function* (
 ): Effect.fn.Return<boolean> {
   return (
     round === undefined ||
-    (!round.controller.signal.aborted && (yield* deps.residentComposedDelivery.isActive(round.group, round.generation)))
+    (!round.controller.signal.aborted &&
+      (yield* deps.residentComposedDelivery.isActive(round.adviceeScopeKey, round.admissionRoundId)))
   )
 })
 const residentAllowFinish = Effect.fn("ResidentRuntime.allowFinish")(function* (
@@ -282,7 +283,7 @@ const residentJobActive = Effect.fn("ResidentRuntime.jobActive")(function* (
 ): Effect.fn.Return<boolean> {
   return (
     (yield* deps.residentLedger.runtime.snapshot()).lifecycle === "active" &&
-    !deps.residentLifetimeController.signal.aborted &&
+    !deps.residentInstanceIdController.signal.aborted &&
     !job.work?.controller.signal.aborted &&
     (yield* residentRoundActive(deps, job.round))
   )
@@ -333,14 +334,14 @@ const residentDiscardJob = Effect.fn("ResidentRuntime.discardJob")(function* (de
       job.partition,
       job.canonicalObservationId,
       "interruptObservation",
-      job.canonicalRound
+      job.canonicalRoundId
     )
   }
   if (job.kind === "unit") {
     yield* residentSettleJoined(deps, job.evaluationKey, "unavailable", "lost")
     yield* residentReleaseReuseClaim(deps, job.evaluationKey)
     // An issued Jev permit remains reserved until its native Effect settles.
-    if (job.requestId === undefined) yield* residentReleaseUnit(deps, job)
+    if (job.reviewServiceRequestId === undefined) yield* residentReleaseUnit(deps, job)
   } else yield* deps.residentLedger.release(job.reservation)
   recordActivity({
     statePath: job.dispatch.activityPath,
@@ -376,7 +377,7 @@ const residentCloseRound = Effect.fn("ResidentRuntime.closeRound")(function* (
         root: activity.root,
         advicee: activity.advicee,
         lifetime: deps.lifetime,
-        roundIdentity: `${group}:${round?.canonicalRound ?? generation}`,
+        roundIdentity: `${group}:${round?.canonicalRoundId ?? generation}`,
         reason,
         reservedContinuations,
         discarded: {
@@ -391,7 +392,7 @@ const residentCloseRound = Effect.fn("ResidentRuntime.closeRound")(function* (
       })
   })
   yield* reportRoundClosure()
-  if (round === undefined || round.generation !== generation) return
+  if (round === undefined || round.admissionRoundId !== generation) return
   // The admission/output fence is already published. Abort Effect fibers and
   // their provider connections before releasing all retained round resources.
   if (snapshot === undefined) throw new Error("native round closure lost its snapshot")
@@ -404,9 +405,9 @@ const residentCloseRound = Effect.fn("ResidentRuntime.closeRound")(function* (
       if (advice.round === round)
         yield* residentRemoveAdvice(deps, advice.id, undefined, { fate: "discarded", reason: "round-closed" })
     for (const [key, notice] of yield* deps.residentNotices.entries()) {
-      if (notice.partition === round.group) yield* residentReleaseNoticeCooldown(deps, key)
+      if (notice.partition === round.adviceeScopeKey) yield* residentReleaseNoticeCooldown(deps, key)
     }
-    yield* deps.residentReuse.discardPartition(round.group)
+    yield* deps.residentReuse.discardPartition(round.adviceeScopeKey)
     yield* deps.residentLedger.rounds.retire(round)
   })
   yield* retireRoundResources()
@@ -461,7 +462,7 @@ const residentRecordJoinedOutcomes = Effect.fn("ResidentRuntime.recordJoinedOutc
 })
 const residentRetireCachedUnit = Effect.fn("ResidentRuntime.retireCachedUnit")(function* (
   deps: Dependencies,
-  unit: UnitJob,
+  unit: ReviewUnitJob,
   round: RoundWork | undefined,
   id: number | undefined
 ) {

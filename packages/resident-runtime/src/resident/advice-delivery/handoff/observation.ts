@@ -2,7 +2,7 @@ import { type DirectObservation } from "@hapsland/native-observation/direct-even
 import { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { MAX_INSPECTION_MESSAGE_BYTES } from "@hapsland/inspection-records/inspection/contract"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice, AdviceContent } from "../../state/advice-records.ts"
+import type { PendingAdviceHandle, AdviceContent } from "../../state/advice-records.ts"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import { type HandoffRequest } from "../authority.ts"
 import { type Dependencies } from "./context.ts"
@@ -10,7 +10,7 @@ import { type Dependencies } from "./context.ts"
 const inspectionMessageOwner = (
   deps: Pick<Dependencies, "inspection">,
   request: HandoffRequest,
-  handoff: ReadonlyArray<Advice>
+  handoff: ReadonlyArray<PendingAdviceHandle>
 ): { root: string; advicee: DirectObservation["advicee"] } | undefined => {
   const owner = handoff[0]?.observation ?? (request.operation === "admit-and-collect" ? request.observation : request)
   if (!("root" in owner) || !("advicee" in owner) || !deps.inspection.isEnabled(owner.root)) return undefined
@@ -23,7 +23,7 @@ export const inspectionObserveHandoffMessage = (
   finalResponse: ResidentResponse,
   findings: ReadonlyArray<Finding>,
   finalContents: ReadonlyArray<AdviceContent>,
-  handoff: ReadonlyArray<Advice>
+  handoff: ReadonlyArray<PendingAdviceHandle>
 ): void => {
   if (finalResponse.status !== "advice") return
   const messageOwner = inspectionMessageOwner(deps, request, handoff)
@@ -37,8 +37,8 @@ export const inspectionObserveHandoffMessage = (
     deps.inspection.offer(
       {
         root: messageOwner.root,
-        runtime: messageOwner.advicee.host,
-        runtimeVersion: messageOwner.advicee.hostVersion,
+        runtime: messageOwner.advicee.agentRuntime,
+        runtimeVersion: messageOwner.advicee.agentRuntimeVersion,
         sessionId: messageOwner.advicee.sessionId,
         subagentId: messageOwner.advicee.subagentId
       },

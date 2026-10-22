@@ -1055,7 +1055,7 @@ def ghost(+world: M.World, +preview: Preview.Preview, rest: List<&2, F.Rect>) ->
   )
 
 # Family identity survives operation retirement/fan-out and small room sprites.
-def status_found(+world: M.World, found: Maybe<&2, C.Work>) -> String:
+def status_found(+world: M.World, found: Maybe<&2, C.ReviewWorkRecord>) -> String:
   match found:
     case None{}: ""
     case Some{+work}:

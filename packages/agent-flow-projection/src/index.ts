@@ -18,7 +18,7 @@ export const FLOW_STAGES = [
   "round"
 ] as const
 export type FlowStage = (typeof FLOW_STAGES)[number]
-export type EvidenceSource = "state" | "request" | "event" | "decision" | "native fact" | "external fact"
+export type EvidenceSource = "state" | "action" | "event" | "decision" | "native fact" | "external fact"
 /** A semantic transition or decision, with its evidence boundary and a readable account. */
 export type FlowEvidence = Readonly<{
   from: FlowStage
@@ -76,9 +76,9 @@ export const numberRecords = (steps: readonly NumberingStep[]): RecordNumbers =>
       const kind = createdWorkKind(item.kind)
       if (kind !== undefined) assign(kind, item.operation)
     }
-    const priorRequests = new Set(step.before.dispatch.requests.map((item) => item.request))
-    for (const item of step.after.dispatch.requests)
-      if (!priorRequests.has(item.request)) assign("request", item.request)
+    const priorRequests = new Set(step.before.dispatch.reviewServiceRequests.map((item) => item.reviewServiceRequestId))
+    for (const item of step.after.dispatch.reviewServiceRequests)
+      if (!priorRequests.has(item.reviewServiceRequestId)) assign("request", item.reviewServiceRequestId)
     const priorFindings = new Set(step.before.pendingFindings.map((item) => item.operation))
     for (const item of step.after.pendingFindings)
       if (!priorFindings.has(item.operation)) assign("advice", item.operation)
@@ -177,13 +177,17 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
         state.charges.filter((item) => item.purpose === "reviewUnit").length
       ]
     case "authorization":
-      return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request)
+      return state.dispatch.reviewServiceRequests
+        .filter((item) => !item.started)
+        .map((item) => item.reviewServiceRequestId)
     case "effect":
-      return state.dispatch.requests.filter((item) => item.started).map((item) => [item.request, item.interrupted])
+      return state.dispatch.reviewServiceRequests
+        .filter((item) => item.started)
+        .map((item) => [item.reviewServiceRequestId, item.interrupted])
     case "jev":
       return [
-        state.work.filter((item) => item.kind === "atJev").map((item) => item.operation),
-        state.dispatch.requests.map((item) => item.request)
+        state.work.filter((item) => item.kind === "reviewServiceRequestOutstanding").map((item) => item.operation),
+        state.dispatch.reviewServiceRequests.map((item) => item.reviewServiceRequestId)
       ]
     case "outcomes":
       return [state.work.filter((item) => item.kind === "pendingFinding"), state.pendingFindings]
@@ -203,21 +207,21 @@ export const locateFlow = (state: CanonicalProjection, numbers?: RecordNumbers):
   ...locatedDispatch(state, ["queued", "running"], "scheduling", numbers),
   ...locatedWork(state, ["sourceReading", "preparing"], "preparation", numbers),
   ...locatedWork(state, ["reviewing"], "units", numbers),
-  ...state.dispatch.requests
+  ...state.dispatch.reviewServiceRequests
     .filter((item) => !item.started)
     .map((item) => ({
-      key: `request:${item.request}`,
+      key: `request:${item.reviewServiceRequestId}`,
       stage: "authorization" as const,
-      description: `${recordLabel("request", item.request, numbers)} (issued)`
+      description: `${recordLabel("request", item.reviewServiceRequestId, numbers)} (issued)`
     })),
-  ...state.dispatch.requests
+  ...state.dispatch.reviewServiceRequests
     .filter((item) => item.started)
     .map((item) => ({
-      key: `request:${item.request}`,
+      key: `request:${item.reviewServiceRequestId}`,
       stage: "effect" as const,
-      description: `${recordLabel("request", item.request, numbers)} (${item.interrupted ? "interrupted" : "started"})`
+      description: `${recordLabel("request", item.reviewServiceRequestId, numbers)} (${item.interrupted ? "interrupted" : "started"})`
     })),
-  ...locatedWork(state, ["atJev"], "jev", numbers),
+  ...locatedWork(state, ["reviewServiceRequestOutstanding"], "jev", numbers),
   ...locatedWork(state, ["pendingFinding"], "outcomes", numbers),
   ...state.collection.ready.map((id) => ({
     key: `ready-advice:${id}`,
@@ -292,35 +296,35 @@ const FACT_RULES: readonly Rule[] = [
     to: "authorization",
     source: "native fact",
     description: "Jev readiness facts supplied",
-    events: ["jevRequestReady"]
+    events: ["reviewServiceRequestReady"]
   },
   {
     from: "authorization",
     to: "effect",
     source: "output",
     description: "request permitted; native attempt not yet observed",
-    outputs: ["jevRequestIssued"]
+    outputs: ["reviewServiceRequestIssued"]
   },
   {
     from: "authorization",
     to: "outcomes",
     source: "output",
     description: "request unavailable or refused",
-    outputs: ["jevRequestUnavailable"]
+    outputs: ["reviewServiceRequestUnavailable"]
   },
   {
     from: "effect",
     to: "jev",
     source: "native fact",
     description: "request start observed",
-    outputs: ["jevRequestStartRecorded"]
+    outputs: ["reviewServiceRequestStartRecorded"]
   },
   {
     from: "effect",
     to: "outcomes",
     source: "native fact",
     description: "request interruption recorded",
-    outputs: ["jevInterruptionRecorded"]
+    outputs: ["reviewServiceRequestInterruptionRecorded"]
   },
   {
     from: "outcomes",
@@ -545,13 +549,13 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
       }
   const kinds = outputKinds(step.outputs)
   const clearedReview =
-    event.kind === "jevRequestSettled" &&
+    event.kind === "reviewServiceRequestSettled" &&
     event.outcome === "clear" &&
     step.outputs.some((command) => command.kind === "reviewRecorded" && command.outcome === "clear") &&
     step.before.work.some(
       (work) =>
         work.operation === event.operation &&
-        work.kind === "atJev" &&
+        work.kind === "reviewServiceRequestOutstanding" &&
         work.partition === event.partition &&
         work.lifetime === event.lifetime &&
         work.round === event.round
@@ -593,7 +597,9 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
                 work.partition === event.partition &&
                 work.lifetime === event.lifetime &&
                 work.round === event.round &&
-                (work.kind === "reviewing" || work.kind === "atJev" || work.kind === "pendingFinding")
+                (work.kind === "reviewing" ||
+                  work.kind === "reviewServiceRequestOutstanding" ||
+                  work.kind === "pendingFinding")
             )
             .map((work) => ({ operation: work.operation, kind: work.kind })),
           jobRunning: step.after.dispatch.running.some(
@@ -635,7 +641,7 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
   }
   // Result facts identify the outcome after request tracking disappears. A missing
   // request alone cannot distinguish response, failure, timeout, or cancellation.
-  if (step.event.kind === "jevRequestSettled") {
+  if (step.event.kind === "reviewServiceRequestSettled") {
     const outcome = step.event.outcome
     const from =
       outcome === "neverSent" ? "authorization" : outcome === "finding" || outcome === "clear" ? "jev" : "effect"

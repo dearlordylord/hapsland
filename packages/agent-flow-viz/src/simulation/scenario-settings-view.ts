@@ -5,7 +5,7 @@ import { noticeControls } from "../notice-controls"
 import { callbackControls } from "../callback-controls"
 import { adviceeLifecycleControls } from "../advicee-lifecycle-controls"
 import { permitControls } from "../permit-controls"
-import { jevFaultControls } from "../jev-fault-controls"
+import { reviewServiceFaultControls } from "../review-service-fault-controls"
 import { graphLimitControls } from "../graph-limit-controls"
 import { JEV_OUTCOME_ORDER } from "@hapsland/monkey-business"
 import { type SimulationViewContext } from "./context"
@@ -167,7 +167,7 @@ export const scenarioSettingsView = <Message>(
         : []),
       ...(run ? [callbackControls(h, observed!.callbackTargets, observed!.callbackReports, action, replaying)] : []),
       ...(run ? [outputAttemptControls(h, observed!.outputAttempts, observed!.outputReports, action, replaying)] : []),
-      ...(run ? [jevFaultControls(h, run.projection, run.interventions, action, replaying)] : []),
+      ...(run ? [reviewServiceFaultControls(h, run.projection, run.interventions, action, replaying)] : []),
       controlForm("graphLimits", [
         graphLimitControls(h, graphDrafts(model), (field, value) => changed(graphFields[field], value)),
         submit("Apply graph limits")

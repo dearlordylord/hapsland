@@ -1115,7 +1115,7 @@ def lifecycle_cleanup(
   +events: List<&2, Workload.Emission>,
   bytes: Nat,
   units: List<&2, Nat>,
-  outcome: Maybe<&2, C.RequestOutcome>
+  outcome: Maybe<&2, C.ReviewServiceRequestOutcome>
 ) -> Trace:
   match cleanup:
     case Cleanup.CleanupPlan{actions, _, _}:
@@ -1193,7 +1193,7 @@ def lifecycle_published(
   action: Lifecycle.Action,
   bytes: Nat,
   units: List<&2, Nat>,
-  outcome: Maybe<&2, C.RequestOutcome>
+  outcome: Maybe<&2, C.ReviewServiceRequestOutcome>
 ) -> Trace:
   match value:
     case Engine.LifecycleTransition{+state, +changed, +cleanup, +events}:

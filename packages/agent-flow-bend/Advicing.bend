@@ -4,14 +4,14 @@ import Base
 # Jeview: the part where Jev evaluates them and returns findings.
 # There is no stored Jev-result state between Jeview and pending advice.
 type Jeview is Data:
-  AtJev{item: Nat}
+  ReviewServiceRequestOutstanding{item: Nat}
 
 type PendingAdvice is Data:
   AdvicePending{item: Nat}
 
 def receive_finding(jeview: Jeview) -> PendingAdvice:
   match jeview:
-    case AtJev{item}:
+    case ReviewServiceRequestOutstanding{item}:
       AdvicePending{item}
 
 # The second value is carried through unchanged when the first gets a finding.

@@ -39,20 +39,20 @@ it.each([
 ])("waits for the original response or cutoff with Jev delay $delay", ({ delay, decision }) => {
   const run = createRun(config(delay))
   run.advance({ untilTime: 3, maxEvents: 100 })
-  const started = run.observations.find((frame) => frame.event.kind === "jevRequestStarted")!
+  const started = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestStarted")!
   expect(started.time).toBe(2)
   const issued = started.event
-  if (issued.kind !== "jevRequestStarted") throw new Error("missing genuine started request")
+  if (issued.kind !== "reviewServiceRequestStarted") throw new Error("missing genuine started request")
   const originalRequest = {
     partition: 1,
     lifetime: 1,
     round: 1,
     operation: issued.operation,
-    request: issued.request,
+    reviewServiceRequestId: issued.reviewServiceRequestId,
     started: true,
     interrupted: false
   }
-  expect(started.after.dispatch.requests).toContainEqual(originalRequest)
+  expect(started.after.dispatch.reviewServiceRequests).toContainEqual(originalRequest)
   expect(issued).toMatchObject({ partition: 1, lifetime: 1, round: 1 })
   const waiting = run.observations.find((frame) => frame.event.kind === "stopPolled")!
   expect(waiting.time).toBe(3)
@@ -74,42 +74,46 @@ it.each([
   expect(run.observations.some((frame) => frame.event.kind === "stopGroupEnded" && frame.time === decision)).toBe(true)
   const lateTarget = run
     .observe()
-    .callbackTargets.find((target) => target.effect.kind === "jevSettled" && target.effect.request === issued.request)
+    .callbackTargets.find(
+      (target) =>
+        target.effect.kind === "reviewServiceRequestSettled" &&
+        target.effect.reviewServiceRequestId === issued.reviewServiceRequestId
+    )
   if (delay === 10) {
     expect(ready.outputs.some((command) => command.kind === "cancelWork")).toBe(true)
-    expect(run.observations.some((frame) => frame.event.kind === "jevRequestSettled")).toBe(false)
+    expect(run.observations.some((frame) => frame.event.kind === "reviewServiceRequestSettled")).toBe(false)
     expect(ready.before.work.some((work) => work.operation === issued.operation)).toBe(true)
     expect(
       ready.after.work.some(
         (work) => work.partition === 1 && work.lifetime === 1 && work.round === 1 && work.operation === issued.operation
       )
     ).toBe(false)
-    expect(ready.before.dispatch.requests).toContainEqual(originalRequest)
-    expect(ready.after.dispatch.requests).toEqual(ready.before.dispatch.requests)
+    expect(ready.before.dispatch.reviewServiceRequests).toContainEqual(originalRequest)
+    expect(ready.after.dispatch.reviewServiceRequests).toEqual(ready.before.dispatch.reviewServiceRequests)
     expect(ready.after.global).toEqual({ items: 0, bytes: 0 })
     expect(lateTarget).toBeDefined()
   } else {
-    const settled = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
+    const settled = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestSettled")!
     expect(settled.time).toBe(2 + delay)
     // Equal-time settlement was enqueued at2 before the Stop cutoff poll at3.
     expect(settled.sequence).toBeLessThan(ready.sequence)
   }
   run.advance({ untilTime: 20, maxEvents: 100 })
-  const callback = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
+  const callback = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestSettled")!
   expect(callback.time).toBe(2 + delay)
   expect(callback.event).toMatchObject({
     partition: 1,
     lifetime: 1,
     round: 1,
     operation: "operation" in issued ? issued.operation : 0,
-    request: "request" in issued ? issued.request : 0,
+    reviewServiceRequestId: "reviewServiceRequestId" in issued ? issued.reviewServiceRequestId : 0,
     currentWork: true
   })
   if (delay === 10) {
-    expect(callback.before.dispatch.requests).toContainEqual(originalRequest)
-    expect(callback.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
+    expect(callback.before.dispatch.reviewServiceRequests).toContainEqual(originalRequest)
+    expect(callback.outputs.map((command) => command.kind)).toEqual(["reviewServiceRequestObservationIgnored"])
     expect(callback.rejection).toBeUndefined()
-    expect(callback.after.dispatch.requests).toEqual([])
+    expect(callback.after.dispatch.reviewServiceRequests).toEqual([])
     expect(callback.after.work).toEqual(callback.before.work)
     expect(callback.after.pendingFindings).toEqual([])
     expect(callback.after.global).toEqual({ items: 0, bytes: 0 })
@@ -128,13 +132,13 @@ it.each([
       target: lateTarget
     })
     run.advance({ untilTime: 20, maxEvents: 100 })
-    const duplicate = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")[1]
+    const duplicate = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")[1]
     expect(duplicate?.event).toEqual(callback.event)
     expect(duplicate?.rejection).toBe("StaleOperation")
     expect(duplicate?.outputs).toEqual([])
     expect(duplicate?.after).toEqual(duplicate?.before)
   }
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
@@ -156,7 +160,7 @@ it("keeps a pending preparation callback in its original scope after a Stop cuto
   run.advance({ untilTime: 3, maxEvents: 100 })
   expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "cancelWork"))).toBe(true)
   expect(run.observations.some((frame) => frame.event.kind === "preparationCompleted")).toBe(false)
-  expect(run.observations.some((frame) => frame.event.kind === "jevRequestStarted")).toBe(false)
+  expect(run.observations.some((frame) => frame.event.kind === "reviewServiceRequestStarted")).toBe(false)
   replay(run)
   run.advance({ untilTime: 20, maxEvents: 100 })
   const callback = run.observations.find((frame) => frame.event.kind === "preparationCompleted")!
@@ -170,7 +174,7 @@ it("keeps a pending preparation callback in its original scope after a Stop cuto
   expect(physical?.event).toEqual({ kind: "dispatchSettled", partition: 1, lifetime: 1, round: 1, operation: 1 })
   expect(physical?.time).toBe(12)
   expect(physical?.rejection).toBeUndefined()
-  expect(run.observations.some((frame) => frame.event.kind === "jevRequestStarted")).toBe(false)
+  expect(run.observations.some((frame) => frame.event.kind === "reviewServiceRequestStarted")).toBe(false)
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   replay(run)
@@ -243,11 +247,11 @@ it.each(["certain", "uncertain"] as const)(
       const authorized = run.observations.find((frame) => frame.event.kind === "finishAuthorize")!
       expect(authorized.time).toBe(16)
       expect(authorized.event).toMatchObject({ group: 1, round: 1 })
-      expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+      expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
     }
     run.advance({ untilTime: 40, maxEvents: 100 })
     expect(run.projection.collection.leases).toEqual([])
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     replay(run)
   }
 )

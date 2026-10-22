@@ -82,7 +82,7 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
   advance(run, 2)
   expect(run.now).toBe(2)
   expect(run.projection.global).toEqual({ items: 2, bytes: 12 })
-  const captured = run.projection.dispatch.requests.map((request) => ({ ...request }))
+  const captured = run.projection.dispatch.reviewServiceRequests.map((request) => ({ ...request }))
   expect(captured).toHaveLength(2)
   expect(captured.every((request) => request.started)).toBe(true)
   const old = captured.find((request) => request.partition === 1)!
@@ -98,11 +98,11 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
   const retirement = run.observations.find((frame) => frame.event.kind === "retirePartition")!
   expect(retirement.event).toEqual({ kind: "retirePartition", partition: 1, lifetime: 1, round: 1 })
   expect(retirement.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
-    { category: "request", kind: "cancelWork", operation: old.operation }
+    { category: "action", kind: "cancelWork", operation: old.operation }
   ])
   expect(run.projection.global).toEqual({ items: 1, bytes: 7 })
   // Cancel intent releases logical authority, not a fabricated physical result.
-  expect(run.projection.dispatch.requests).toEqual(captured)
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual(captured)
   expect(run.projection.dispatch.running.find((work) => work.operation === old.operation)).toMatchObject({
     cancelled: true
   })
@@ -130,23 +130,31 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
     { partition: 2, lifetime: 1, status: "active" }
   ])
   const oldCallback = run.observations.find(
-    (frame) => frame.event.kind === "jevRequestSettled" && frame.event.request === old.request
+    (frame) =>
+      frame.event.kind === "reviewServiceRequestSettled" &&
+      frame.event.reviewServiceRequestId === old.reviewServiceRequestId
   )!
   expect(oldCallback.event).toMatchObject({
     partition: 1,
     lifetime: 1,
     round: 1,
     operation: old.operation,
-    request: old.request,
+    reviewServiceRequestId: old.reviewServiceRequestId,
     outcome: "finding"
   })
-  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
+  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "reviewServiceRequestObservationIgnored" }])
   expect(oldCallback.partition).toBe(1)
   expect(oldCallback.time).toBe(delay + 2)
   const newRequest = run.observations
     .flatMap((frame) => frame.outputs)
-    .find((command) => command.kind === "jevRequestIssued" && command.lifetime === 2)!
-  expect(newRequest).toMatchObject({ category: "event", kind: "jevRequestIssued", partition: 1, lifetime: 2, round: 3 })
+    .find((command) => command.kind === "reviewServiceRequestIssued" && command.lifetime === 2)!
+  expect(newRequest).toMatchObject({
+    category: "event",
+    kind: "reviewServiceRequestIssued",
+    partition: 1,
+    lifetime: 2,
+    round: 3
+  })
   const outputs = run.observations.filter((frame) => frame.event.kind === "submissionTerminal")
   expect(outputs.map((frame) => [frame.time, frame.partition])).toEqual([
     [delay + 2, 2],
@@ -169,7 +177,7 @@ function departAndResume(action: "disconnect" | "remove", seed = 7, delay = 20) 
     [1, 1, 5],
     [2, 1, 7]
   ])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -200,17 +208,21 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
     { partition: 1, lifetime: 2, status: "active" },
     { partition: 2, lifetime: 1, status: "active" }
   ])
-  const old = run.projection.dispatch.requests.find((request) => request.partition === 1)!
+  const old = run.projection.dispatch.reviewServiceRequests.find((request) => request.partition === 1)!
   expect(old).toMatchObject({ partition: 1, lifetime: 2, round: 1, started: true })
   run.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "disconnect" })
   advance(run, 2, 32)
   expect(run.observe().adviceeLifecycles[0]).toEqual({ partition: 1, lifetime: 2, status: "departed" })
   expect(run.projection.global).toEqual({ items: 1, bytes: 7 })
-  expect(run.projection.dispatch.requests.find((request) => request.request === old.request)).toEqual(old)
+  expect(
+    run.projection.dispatch.reviewServiceRequests.find(
+      (request) => request.reviewServiceRequestId === old.reviewServiceRequestId
+    )
+  ).toEqual(old)
   const retirement = run.observations.find((frame) => frame.event.kind === "retirePartition")!
   expect(retirement.event).toEqual({ kind: "retirePartition", partition: 1, lifetime: 2, round: 1 })
   expect(retirement.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
-    { category: "request", kind: "cancelWork", operation: old.operation }
+    { category: "action", kind: "cancelWork", operation: old.operation }
   ])
   const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
   expect(restored.observe()).toEqual(run.observe())
@@ -232,20 +244,24 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
   }
   expect(restored.observe()).toEqual(run.observe())
   const oldCallback = run.observations.find(
-    (frame) => frame.event.kind === "jevRequestSettled" && frame.event.request === old.request
+    (frame) =>
+      frame.event.kind === "reviewServiceRequestSettled" &&
+      frame.event.reviewServiceRequestId === old.reviewServiceRequestId
   )!
   expect(oldCallback.event).toMatchObject({
     partition: 1,
     lifetime: 2,
     round: 1,
     operation: old.operation,
-    request: old.request,
+    reviewServiceRequestId: old.reviewServiceRequestId,
     outcome: "finding"
   })
-  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
+  expect(oldCallback.outputs).toEqual([{ category: "decision", kind: "reviewServiceRequestObservationIgnored" }])
   expect(oldCallback.partition).toBe(1)
   expect(
-    run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "jevRequestIssued")
+    run.observations
+      .flatMap((frame) => frame.outputs)
+      .filter((command) => command.kind === "reviewServiceRequestIssued")
   ).toContainEqual(expect.objectContaining({ partition: 1, lifetime: 3, round: 3 }))
   expect(run.observations.some((frame) => frame.workload?.revision === 90)).toBe(false)
   expect(
@@ -257,7 +273,7 @@ it("resumes after an accepted explicit lifetime without reparenting prequeued ac
     [25, 1]
   ])
   expect(run.projection.global).toEqual({ items: 2, bytes: 12 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 })
@@ -288,7 +304,7 @@ it.each([1, 2] as const)(
     // At 20 the task has issued review and entered Finish while the physical
     // callback remains due at 32. Departure must not invent its completion.
     advance(run, 20, 240)
-    const old = run.projection.dispatch.requests.find((request) => request.partition === 1)!
+    const old = run.projection.dispatch.reviewServiceRequests.find((request) => request.partition === 1)!
     expect(old).toMatchObject({ partition: 1, lifetime: previousLifetime, started: true })
     expect(
       run.observations.some(
@@ -298,7 +314,11 @@ it.each([1, 2] as const)(
     ).toBe(true)
     run.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "disconnect" })
     advance(run, 20, 64)
-    expect(run.projection.dispatch.requests.find((request) => request.request === old.request)).toEqual(old)
+    expect(
+      run.projection.dispatch.reviewServiceRequests.find(
+        (request) => request.reviewServiceRequestId === old.reviewServiceRequestId
+      )
+    ).toEqual(old)
     const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
     expect(restored.observe()).toEqual(run.observe())
     const nextLifetime = previousLifetime + 1
@@ -330,7 +350,8 @@ it.each([1, 2] as const)(
     expect(completedRounds.size).toBeGreaterThanOrEqual(2)
     expect(
       run.observations.some(
-        (frame) => frame.event.kind === "jevRequestSettled" && frame.event.partition === 2 && frame.event.currentWork
+        (frame) =>
+          frame.event.kind === "reviewServiceRequestSettled" && frame.event.partition === 2 && frame.event.currentWork
       )
     ).toBe(true)
     expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -410,7 +431,7 @@ function preparationDeparture(): Run {
     ])
     expect(candidate.projection.global).toEqual({ items: 2, bytes: 12 })
     expect(candidate.projection.dispatch.running).toEqual([])
-    expect(candidate.projection.dispatch.requests).toEqual([])
+    expect(candidate.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(candidate.projection.collection.leases).toEqual([])
   }
   expect(restored.observe()).toEqual(run.observe())
@@ -431,9 +452,9 @@ const lifecycleEventCodes: Record<string, number> = {
   completeObservation: 7,
   dispatchSettled: 8,
   startReview: 9,
-  jevRequestReady: 10,
-  jevRequestStarted: 11,
-  jevRequestSettled: 12,
+  reviewServiceRequestReady: 10,
+  reviewServiceRequestStarted: 11,
+  reviewServiceRequestSettled: 12,
   collectionReady: 13,
   finalCandidateCheck: 14,
   submissionSuppressCheck: 15,
@@ -445,7 +466,7 @@ const lifecycleEventCodes: Record<string, number> = {
   collectionRetireAdvice: 22,
   submissionForget: 23,
   retireReview: 24,
-  jevRequestInterrupted: 25,
+  reviewServiceRequestInterrupted: 25,
   stopPolled: 26,
   retirePartition: 27,
   discardDispatch: 28,
@@ -459,7 +480,7 @@ const lifecycleCommandCodes: Record<string, number> = {
   dispatchStarted: 3,
   prepare: 4,
   unitAdmitted: 5,
-  jevRequestIssued: 6,
+  reviewServiceRequestIssued: 6,
   findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
@@ -471,8 +492,8 @@ const lifecycleCommandCodes: Record<string, number> = {
   preparationReleased: 15,
   observationCompleted: 16,
   reviewStarted: 17,
-  jevRequestStartRecorded: 18,
-  jevRequestOutcomeRecorded: 19,
+  reviewServiceRequestStartRecorded: 18,
+  reviewServiceRequestOutcomeRecorded: 19,
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
@@ -482,9 +503,9 @@ const lifecycleCommandCodes: Record<string, number> = {
   releaseCandidate: 26,
   collectionAdviceRetired: 27,
   submissionForgotten: 28,
-  jevRequestUnavailable: 29,
-  jevInterruptionRecorded: 30,
-  jevObservationIgnored: 31,
+  reviewServiceRequestUnavailable: 29,
+  reviewServiceRequestInterruptionRecorded: 30,
+  reviewServiceRequestObservationIgnored: 31,
   finishReady: 32,
   cancelWork: 33,
   partitionRetired: 34,
@@ -511,7 +532,7 @@ function lifecycleRow(frame: Observation): number[] {
       return [usage?.items ?? 0, usage?.bytes ?? 0]
     }),
     p.dispatch.running.filter((item) => item.preparation).length,
-    p.dispatch.requests.length
+    p.dispatch.reviewServiceRequests.length
   ]
   if (frame.preparation) {
     const { after, command, event } = frame.preparation
@@ -530,18 +551,19 @@ function lifecycleRow(frame: Observation): number[] {
     ]
   }
   const event = frame.event as unknown as Record<string, unknown>
-  const identity = ["partition", "lifetime", "round", "operation", "request", "advice", "token"].map((key) =>
-    Number(
-      event[key] ??
-        (key === "operation"
-          ? event.observation
-          : key === "partition"
-            ? event.group
-            : key === "token"
-              ? event.fingerprint
-              : undefined) ??
-        0
-    )
+  const identity = ["partition", "lifetime", "round", "operation", "reviewServiceRequestId", "advice", "token"].map(
+    (key) =>
+      Number(
+        event[key] ??
+          (key === "operation"
+            ? event.observation
+            : key === "partition"
+              ? event.group
+              : key === "token"
+                ? event.fingerprint
+                : undefined) ??
+          0
+      )
   )
   const facts =
     event.kind === "stopPolled"
@@ -575,7 +597,7 @@ function lifecycleRow(frame: Observation): number[] {
                   0,
                   0
                 ]
-              : event.kind === "jevRequestReady"
+              : event.kind === "reviewServiceRequestReady"
                 ? [
                     event.rootValid,
                     event.configurationValid,
@@ -584,7 +606,7 @@ function lifecycleRow(frame: Observation): number[] {
                     event.currentWork,
                     event.physicalAvailable
                   ].map(Number)
-                : event.kind === "jevRequestSettled"
+                : event.kind === "reviewServiceRequestSettled"
                   ? [
                       Number(event.currentWork),
                       { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[
@@ -608,8 +630,8 @@ function lifecycleRow(frame: Observation): number[] {
       ? value.id
       : ["dispatchStarted", "prepare", "unitAdmitted", "cancelWork", "dispatchDiscarded"].includes(command.kind)
         ? value.operation
-        : command.kind === "jevRequestIssued"
-          ? value.request
+        : command.kind === "reviewServiceRequestIssued"
+          ? value.reviewServiceRequestId
           : ["permitRoundClosed", "partitionRetired"].includes(command.kind)
             ? value.round
             : 0

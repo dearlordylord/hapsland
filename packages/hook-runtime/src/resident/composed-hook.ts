@@ -9,18 +9,18 @@ import * as Layer from "effect/Layer"
 import { HookOutput } from "./hook-output.ts"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import { adaptComposedHookIdentity } from "@hapsland/native-observation/direct-event/adapter"
-import type { CodexHostVersion } from "@hapsland/native-observation/direct-event/observation"
+import type { CodexAgentRuntimeVersion } from "@hapsland/native-observation/direct-event/observation"
 import type { ResidentControlledOptions } from "@hapsland/resident-transport/resident/protocol"
 import {
   type AdviceeCollectionOutcome,
-  acknowledgeAdviceEffect,
+  recordAdviceSubmissionAndFinalizeEffect,
   ResidentStartup,
   registerComposedEditEffect,
   composedStopBoundaryEffect,
   beginComposedSubmissionEffect,
   claimComposedBackgroundEffect,
   collectAdviceeOutcomeEffect,
-  makeResidentDispatchContextEffect,
+  makeResidentReviewExecutionContextEffect,
   markComposedUserPromptEffect,
   releaseComposedSubmissionEffect,
   resolveComposedRootEffect,
@@ -41,13 +41,13 @@ export class ComposedHookRuntime extends Context.Service<
     readonly identity: typeof adaptComposedHookIdentity
     readonly client: {
       readonly resolveComposedRootEffect: BoundClient<typeof resolveComposedRootEffect>
-      readonly acknowledgeAdviceEffect: BoundClient<typeof acknowledgeAdviceEffect>
+      readonly recordAdviceSubmissionAndFinalizeEffect: BoundClient<typeof recordAdviceSubmissionAndFinalizeEffect>
       readonly registerComposedEditEffect: BoundClient<typeof registerComposedEditEffect>
       readonly composedStopBoundaryEffect: BoundClient<typeof composedStopBoundaryEffect>
       readonly beginComposedSubmissionEffect: BoundClient<typeof beginComposedSubmissionEffect>
       readonly claimComposedBackgroundEffect: BoundClient<typeof claimComposedBackgroundEffect>
       readonly collectAdviceeOutcomeEffect: BoundClient<typeof collectAdviceeOutcomeEffect>
-      readonly makeResidentDispatchContextEffect: BoundClient<typeof makeResidentDispatchContextEffect>
+      readonly makeResidentReviewExecutionContextEffect: BoundClient<typeof makeResidentReviewExecutionContextEffect>
       readonly markComposedUserPromptEffect: BoundClient<typeof markComposedUserPromptEffect>
       readonly releaseComposedSubmissionEffect: BoundClient<typeof releaseComposedSubmissionEffect>
       readonly releaseComposedBackgroundEffect: BoundClient<typeof releaseComposedBackgroundEffect>
@@ -65,7 +65,7 @@ export const composedHookRuntimeLayer = Layer.effect(
       identity: adaptComposedHookIdentity,
       client: {
         resolveComposedRootEffect,
-        acknowledgeAdviceEffect,
+        recordAdviceSubmissionAndFinalizeEffect,
         registerComposedEditEffect: (...args) =>
           registerComposedEditEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
         composedStopBoundaryEffect,
@@ -73,7 +73,7 @@ export const composedHookRuntimeLayer = Layer.effect(
         claimComposedBackgroundEffect: (...args) =>
           claimComposedBackgroundEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
         collectAdviceeOutcomeEffect,
-        makeResidentDispatchContextEffect,
+        makeResidentReviewExecutionContextEffect,
         markComposedUserPromptEffect: (...args) =>
           markComposedUserPromptEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
         releaseComposedSubmissionEffect,
@@ -106,13 +106,13 @@ const claudePromptMarker = Effect.fn("ComposedHook.claudePromptMarker")(function
 })
 const promptMarker = Effect.fn("ComposedHook.promptMarker")(function* (
   event: Readonly<Record<string, unknown>>,
-  host: ComposedHookHost
+  agentRuntime: ComposedHookHost
 ): Effect.fn.Return<string | undefined> {
   if (typeof event.prompt !== "string") return undefined
-  if (host === "codex-cli") return codexPromptMarker(event.turn_id)
+  if (agentRuntime === "codex-cli") return codexPromptMarker(event.turn_id)
   return yield* claudePromptMarker(event)
 })
-const admissionGrace = (host: ComposedHookHost): number => (host === "claude-code" ? 5_000 : 2_000)
+const admissionGrace = (agentRuntime: ComposedHookHost): number => (agentRuntime === "claude-code" ? 5_000 : 2_000)
 const hookDuration = (kind: ComposedHookKind): number => {
   if (kind === "background") return 20_000
   return kind === "stop" ? 4_200 : 2_500
@@ -125,20 +125,20 @@ const hookEventName = (kind: ComposedHookKind, event: Readonly<Record<string, un
 }
 const submissionOutput = (
   advice: Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"],
-  host: ComposedHookHost,
+  agentRuntime: ComposedHookHost,
   kind: ComposedHookKind
 ) => {
   const message = advice.output.hookSpecificOutput.additionalContext
-  if (host === "claude-code") return claudeStopHostOutput(advice.output, advice.findingCount)
+  if (agentRuntime === "claude-code") return claudeStopHostOutput(advice.output, advice.findingCount)
   if (kind === "background") return advice.output
   return advice.findingCount > 0 ? { decision: "block", reason: message } : { systemMessage: message }
 }
 
 export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (input: {
   readonly kind: ComposedHookKind
-  readonly host: ComposedHookHost
+  readonly agentRuntime: ComposedHookHost
   readonly event: unknown
-  readonly codexVersion?: CodexHostVersion
+  readonly codexVersion?: CodexAgentRuntimeVersion
   readonly claudeVersion?: string
   readonly statePath: string
   readonly activityPath: string
@@ -148,13 +148,13 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   const runtime = yield* ComposedHookRuntime
   const {
     resolveComposedRootEffect,
-    acknowledgeAdviceEffect,
+    recordAdviceSubmissionAndFinalizeEffect,
     registerComposedEditEffect,
     composedStopBoundaryEffect,
     beginComposedSubmissionEffect,
     claimComposedBackgroundEffect,
     collectAdviceeOutcomeEffect,
-    makeResidentDispatchContextEffect,
+    makeResidentReviewExecutionContextEffect,
     markComposedUserPromptEffect,
     releaseComposedSubmissionEffect,
     releaseComposedBackgroundEffect
@@ -168,13 +168,13 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       yield* beforeQuiet()
       if (input.kind !== "background") yield* writeJson({}, deadlineAt)
     })
-  if (input.host === "claude-code" && input.kind === "background") return
+  if (input.agentRuntime === "claude-code" && input.kind === "background") return
   const resolveIdentity = Effect.fn("ComposedHook.resolveIdentity")(function* () {
     const event = record(input.event)
     if (event === undefined) return undefined
     const eventName = hookEventName(input.kind, event)
     const identity = yield* runtime
-      .identity(event, input.host, eventName, input.codexVersion, input.claudeVersion)
+      .identity(event, input.agentRuntime, eventName, input.codexVersion, input.claudeVersion)
       .pipe(Effect.catch(() => Effect.succeed(undefined)))
     if (identity === undefined) return undefined
     return { event, eventName, ...identity }
@@ -200,7 +200,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       return true
     }
     if (input.kind === "prompt") {
-      const marker = yield* promptMarker(event, input.host)
+      const marker = yield* promptMarker(event, input.agentRuntime)
       if (marker !== undefined) {
         const promptDigest = digest(String(event.prompt))
         yield* markComposedUserPromptEffect(root, advicee, marker, paths, promptDigest).pipe(
@@ -222,7 +222,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       yield* markComposedUserPromptEffect(
         root,
         advicee,
-        digest(`subagent:${input.host}:${advicee.sessionId}:${advicee.subagentId}`),
+        digest(`subagent:${input.agentRuntime}:${advicee.sessionId}:${advicee.subagentId}`),
         paths,
         undefined,
         true
@@ -237,7 +237,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     const runtimeTurnId = event.turn_id
     if (
       input.kind === "stop" &&
-      input.host === "codex-cli" &&
+      input.agentRuntime === "codex-cli" &&
       typeof runtimeTurnId === "string" &&
       runtimeTurnId.length > 0
     ) {
@@ -253,7 +253,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   })
   yield* initializeChildRound()
   yield* initializeCodexStop()
-  const sourceDispatch = yield* makeResidentDispatchContextEffect(
+  const sourceDispatch = yield* makeResidentReviewExecutionContextEffect(
     root,
     input.statePath,
     input.activityPath,
@@ -315,7 +315,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       if (!acquired) return yield* quiet()
     }
 
-    const admissionGraceAt = Math.min(deadlineAt, (yield* runtime.now) + admissionGrace(input.host))
+    const admissionGraceAt = Math.min(deadlineAt, (yield* runtime.now) + admissionGrace(input.agentRuntime))
     const recordSubmission = Effect.fn("ComposedHook.recordSubmission")(function* (
       advice: Extract<AdviceeCollectionOutcome, { status: "advice" }>["advice"],
       written: "written" | "failed" | "uncertain"
@@ -329,7 +329,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
           stage: "submitted",
           submittedFindings: advice.findingCount
         })
-        yield* acknowledgeAdviceEffect(advice).pipe(Effect.catch(() => Effect.succeed(false)))
+        yield* recordAdviceSubmissionAndFinalizeEffect(advice).pipe(Effect.catch(() => Effect.succeed(false)))
       } else if (written === "failed")
         yield* releaseComposedSubmissionEffect(advice).pipe(Effect.catch(() => Effect.succeed(false)))
     })
@@ -358,7 +358,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
           return true
         }
       }
-      const output = submissionOutput(advice, input.host, collectorKind)
+      const output = submissionOutput(advice, input.agentRuntime, collectorKind)
       yield* prepareStopOutput(advice)
       const written = yield* writeJson(output, deadlineAt)
       if (written === "failed") {

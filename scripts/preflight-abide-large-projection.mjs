@@ -100,7 +100,11 @@ for (const fixture of cases) {
       const request =
         providerInput === undefined
           ? undefined
-          : probabilityRequest(item.prepared.input.providerIdentity.model, providerInput, item.prepared.input.rules)
+          : probabilityRequest(
+              item.prepared.input.reviewServiceIdentity.model,
+              providerInput,
+              item.prepared.input.rules
+            )
       return {
         declaration: item.prepared.input.declaration.name,
         providerInputRendered: providerInput !== undefined,
@@ -109,7 +113,7 @@ for (const fixture of cases) {
         violation:
           providerInput === undefined
             ? "renderer-rejected"
-            : (requestLimitViolation(item.prepared.input.providerIdentity.model, request) ?? null),
+            : (requestLimitViolation(item.prepared.input.reviewServiceIdentity.model, request) ?? null),
         completeness: item.prepared.input.completeness,
         ruleIds: item.prepared.input.rules.map((r) => r.id)
       }

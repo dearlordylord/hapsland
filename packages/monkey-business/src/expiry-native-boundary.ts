@@ -251,7 +251,7 @@ function compareExpirySnapshot(value: unknown, source: RunRuntimeSnapshot, capsu
   exact(snapshot.time, readRecord(readRecord(source.engine).scheduler).now, `${field} actual clock`)
   exact(snapshot.next_order, source.order, `${field} original queued identity`)
   exact(snapshot.jobs, source.jobs.length, `${field} retained job count`)
-  exact(source.issuedRequests, [], `${field} suspended request ownership`)
+  exact(source.issuedReviewServiceRequestIds, [], `${field} suspended request ownership`)
   exact(source.retainedCallbacks, [], `${field} suspended callback ownership`)
   const entries = fullList(snapshot.pending).map(readRecord),
     scopes = fullList(capsules).map(readRecord)

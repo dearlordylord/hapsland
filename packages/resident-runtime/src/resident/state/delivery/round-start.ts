@@ -1,5 +1,5 @@
 import type { CapacityLedger } from "../capacity/operations.ts"
-import { type DeliveryDraft, type Round } from "./model.ts"
+import { type DeliveryDraft, type VirtualRoundSettings } from "./model.ts"
 import { type DeliveryPorts } from "./ports.ts"
 
 export const deliveryRoundStart = (
@@ -24,8 +24,8 @@ export const deliveryRoundStart = (
     return true
   }
 
-  function startRound(partition: string, quietMs: number): Round {
-    const round: Round = { quietMs }
+  function startRound(partition: string, quietMs: number): VirtualRoundSettings {
+    const round: VirtualRoundSettings = { quietMs }
     state.rounds.set(partition, round)
     return round
   }

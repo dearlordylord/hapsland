@@ -2,7 +2,7 @@ import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Effect } from "effect"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
-const revision = Object.freeze({ subject: "fixture", token: "fixture", generation: 1 })
+const revision = Object.freeze({ subject: "fixture", revisionToken: "fixture", revisionGeneration: 1 })
 
 it.effect("retains retired capture capacity until physical settlement and fences duplicate completion", () =>
   Effect.gen(function* () {

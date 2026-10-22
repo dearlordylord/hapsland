@@ -1,5 +1,5 @@
-import { type stepCanonical, type JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
-import { type CapacityDraft, type CapacityReservation } from "./model.ts"
+import { type stepCanonical, type ReviewServiceRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
+import { type CapacityDraft, type ReviewCapacityReservationHandle } from "./model.ts"
 import { transition } from "./canonical.ts"
 import { partitionId } from "./identities.ts"
 import { setReservationMetadata } from "./reservations.ts"
@@ -14,11 +14,11 @@ export function startReview(draft: CapacityDraft, partition: string, operation: 
   })
   return result.rejection === undefined && result.outputs[0]?.kind === "reviewStarted"
 }
-export function readyJevRequest(
+export function readyReviewServiceRequest(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   facts: {
     readonly rootValid: boolean
     readonly configurationValid: boolean
@@ -29,12 +29,12 @@ export function readyJevRequest(
   },
   round: number
 ):
-  | { readonly status: "issued"; readonly request: number; readonly round: number }
+  | { readonly status: "issued"; readonly reviewServiceRequestId: number; readonly round: number }
   | { readonly status: "unavailable"; readonly round: number }
   | { readonly status: "stale" } {
   if (draft.reservations.get(reservation.id)?.capability !== reservation) return { status: "stale" }
   const result = transition(draft, {
-    kind: "jevRequestReady",
+    kind: "reviewServiceRequestReady",
     partition: partitionId(draft, partition),
     lifetime: 1,
     round,
@@ -43,44 +43,50 @@ export function readyJevRequest(
   })
   if (result.rejection !== undefined) return { status: "stale" }
   const issued = result.outputs[0]
-  if (issued?.kind === "jevRequestIssued") {
-    draft.requestRounds.set(issued.request, { partition, round })
-    return { status: "issued", request: issued.request, round }
+  if (issued?.kind === "reviewServiceRequestIssued") {
+    draft.reviewServiceRequestRounds.set(issued.reviewServiceRequestId, { partition, round })
+    return { status: "issued", reviewServiceRequestId: issued.reviewServiceRequestId, round }
   }
-  if (result.outputs.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness")
+  if (result.outputs.at(-1)?.kind !== "reviewServiceRequestUnavailable")
+    throw new Error("invalid canonical reviewServiceRequestId readiness")
   draft.reservations.delete(reservation.id)
   return { status: "unavailable", round }
 }
-export function startJevRequest(draft: CapacityDraft, partition: string, operation: number, request: number): boolean {
-  const identity = draft.requestRounds.get(request)
-  if (identity?.partition !== partition) return false
-  const result = transition(draft, {
-    kind: "jevRequestStarted",
-    partition: partitionId(draft, partition),
-    lifetime: 1,
-    round: identity.round,
-    operation,
-    request
-  })
-  return result.rejection === undefined && result.outputs[0]?.kind === "jevRequestStartRecorded"
-}
-export function interruptJevRequest(
+export function startReviewServiceRequest(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  request: number
+  reviewServiceRequestId: number
 ): boolean {
-  const identity = draft.requestRounds.get(request)
+  const identity = draft.reviewServiceRequestRounds.get(reviewServiceRequestId)
   if (identity?.partition !== partition) return false
   const result = transition(draft, {
-    kind: "jevRequestInterrupted",
+    kind: "reviewServiceRequestStarted",
     partition: partitionId(draft, partition),
     lifetime: 1,
     round: identity.round,
     operation,
-    request
+    reviewServiceRequestId
   })
-  return result.rejection === undefined && result.outputs[0]?.kind === "jevInterruptionRecorded"
+  return result.rejection === undefined && result.outputs[0]?.kind === "reviewServiceRequestStartRecorded"
+}
+export function interruptReviewServiceRequest(
+  draft: CapacityDraft,
+  partition: string,
+  operation: number,
+  reviewServiceRequestId: number
+): boolean {
+  const identity = draft.reviewServiceRequestRounds.get(reviewServiceRequestId)
+  if (identity?.partition !== partition) return false
+  const result = transition(draft, {
+    kind: "reviewServiceRequestInterrupted",
+    partition: partitionId(draft, partition),
+    lifetime: 1,
+    round: identity.round,
+    operation,
+    reviewServiceRequestId
+  })
+  return result.rejection === undefined && result.outputs[0]?.kind === "reviewServiceRequestInterruptionRecorded"
 }
 type ReviewDisposition = "findingRetained" | "clearSettled" | "staleClearSettled" | "staleFindingRetired"
 function isReviewDisposition(kind: string | undefined): kind is ReviewDisposition {
@@ -93,7 +99,7 @@ function isReviewDisposition(kind: string | undefined): kind is ReviewDispositio
 }
 function applySettledReservation(
   draft: CapacityDraft,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   choice: string | undefined
 ): void {
   if (draft.reservations.get(reservation.id)?.capability !== reservation) return
@@ -102,22 +108,22 @@ function applySettledReservation(
 }
 function settledRequestChoice(
   draft: CapacityDraft,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   result: ReturnType<typeof stepCanonical>
 ): ReviewDisposition | "unavailable" {
   const choice = result.outputs.at(-2)?.kind
   applySettledReservation(draft, reservation, choice)
   if (isReviewDisposition(choice)) return choice
   if (result.outputs.some((command) => command.kind === "reviewRecorded")) return "unavailable"
-  throw new Error("invalid canonical request outcome")
+  throw new Error("invalid canonical reviewServiceRequestId outcome")
 }
-export function settleJevRequest(
+export function settleReviewServiceRequest(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  request: number,
-  reservation: CapacityReservation,
-  outcome: JevRequestOutcome,
+  reviewServiceRequestId: number,
+  reservation: ReviewCapacityReservationHandle,
+  outcome: ReviewServiceRequestOutcome,
   currentWork: boolean
 ):
   | "findingRetained"
@@ -127,30 +133,31 @@ export function settleJevRequest(
   | "unavailable"
   | "ignored"
   | "stale" {
-  const identity = draft.requestRounds.get(request)
+  const identity = draft.reviewServiceRequestRounds.get(reviewServiceRequestId)
   if (identity?.partition !== partition) return "stale"
   const result = transition(draft, {
-    kind: "jevRequestSettled",
+    kind: "reviewServiceRequestSettled",
     partition: partitionId(draft, partition),
     lifetime: 1,
     round: identity.round,
     operation,
-    request,
+    reviewServiceRequestId,
     outcome,
     currentWork
   })
   if (result.rejection !== undefined) return "stale"
-  draft.requestRounds.delete(request)
+  draft.reviewServiceRequestRounds.delete(reviewServiceRequestId)
   const disposition = result.outputs.at(-1)?.kind
-  if (disposition === "jevObservationIgnored") return "ignored"
-  if (disposition !== "jevRequestOutcomeRecorded") throw new Error("invalid canonical request settlement")
+  if (disposition === "reviewServiceRequestObservationIgnored") return "ignored"
+  if (disposition !== "reviewServiceRequestOutcomeRecorded")
+    throw new Error("invalid canonical reviewServiceRequestId settlement")
   return settledRequestChoice(draft, reservation, result)
 }
 export function completeReview(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded",
   round: number
 ): boolean {
@@ -172,7 +179,7 @@ export function observeReview(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   outcome: "finding" | "clear",
   currentWork: boolean,
   round: number

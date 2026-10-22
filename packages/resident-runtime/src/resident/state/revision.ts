@@ -1,8 +1,17 @@
-import { canonicalValue, type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { canonicalValue, type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import type { CapacityLedger } from "./capacity/operations.ts"
 
-export type WorkRevision = { readonly subject: string; readonly token: string; readonly generation: number }
-type CurrentWork = { readonly token: string; readonly generation: number; readonly inputIdentity: number }
+/** Identifies a source subject's registered revision; generation and token checks reject stale callbacks. */
+export type WorkRevision = {
+  readonly subject: string
+  readonly revisionToken: string
+  readonly revisionGeneration: number
+}
+type CurrentWork = {
+  readonly revisionToken: string
+  readonly revisionGeneration: number
+  readonly inputIdentity: number
+}
 export type RevisionState = {
   readonly identities: ReadonlyMap<string, number>
   readonly current: ReadonlyMap<string, CurrentWork>
@@ -15,7 +24,7 @@ export const draftRevision = (state: RevisionState): RevisionDraft => ({
   identities: new Map(state.identities),
   current: new Map(state.current)
 })
-export const workSubject = (partition: string, prepared: PreparedUnit): string =>
+export const workSubject = (partition: string, prepared: PreparedReviewUnit): string =>
   canonicalValue({ partition, path: prepared.input.path, declaration: prepared.input.declaration.name })
 
 /** Bend revision decisions and native identity changes within one state draft. */
@@ -30,7 +39,7 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
     return id
   }
   const subjectId = (subject: string, retain = false) => identity(`subject:${subject}`, retain)
-  const inputId = (prepared: PreparedUnit, retain = false) =>
+  const inputId = (prepared: PreparedReviewUnit, retain = false) =>
     identity(`input:${canonicalValue(prepared.input)}`, retain)
   const prune = () => {
     const active = new Set(
@@ -50,9 +59,9 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
   }
   const register = (
     partition: string,
-    prepared: PreparedUnit,
+    prepared: PreparedReviewUnit,
     addMember: boolean,
-    token: string
+    revisionToken: string
   ): { readonly revision: WorkRevision; readonly replaced: boolean } => {
     const subject = workSubject(partition, prepared)
     const inputIdentity = inputId(prepared, true)
@@ -65,49 +74,59 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
     prune()
     if (command?.kind === "revisionReused") {
       const retained = state.current.get(subject)
-      if (retained === undefined || retained.generation !== command.generation) {
+      if (retained === undefined || retained.revisionGeneration !== command.generation) {
         throw new Error("canonical revision reuse lost its native payload")
       }
       return {
-        revision: Object.freeze({ subject, token: retained.token, generation: command.generation }),
+        revision: Object.freeze({
+          subject,
+          revisionToken: retained.revisionToken,
+          revisionGeneration: command.generation
+        }),
         replaced: false
       }
     }
     if (command?.kind !== "revisionReplaced") throw new Error("canonical revision registration refused")
-    state.current.set(subject, Object.freeze({ token, generation: command.generation, inputIdentity }))
-    return { revision: Object.freeze({ subject, token, generation: command.generation }), replaced: true }
+    state.current.set(subject, Object.freeze({ revisionToken, revisionGeneration: command.generation, inputIdentity }))
+    return {
+      revision: Object.freeze({ subject, revisionToken, revisionGeneration: command.generation }),
+      replaced: true
+    }
   }
   const superseded = (subject: string, revision: WorkRevision): boolean => {
     const command = owner.transition({
       kind: "revisionSupersededCheck",
       subject: subjectId(subject),
       candidateSubject: subjectId(revision.subject),
-      generation: revision.generation
+      generation: revision.revisionGeneration
     }).outputs[0]
     if (command?.kind !== "revisionSuperseded" && command?.kind !== "revisionNotSuperseded") {
       throw new Error("canonical supersession check refused")
     }
     return command.kind === "revisionSuperseded"
   }
-  const current = (revision: WorkRevision, prepared: PreparedUnit): boolean => {
+  const current = (revision: WorkRevision, prepared: PreparedReviewUnit): boolean => {
     const command = owner.transition({
       kind: "revisionCurrentCheck",
       subject: subjectId(revision.subject),
       input: inputId(prepared),
-      generation: revision.generation
+      generation: revision.revisionGeneration
     }).outputs[0]
     if (command?.kind !== "revisionCurrent" && command?.kind !== "revisionStale") {
       throw new Error("canonical current revision check refused")
     }
-    return command.kind === "revisionCurrent" && state.current.get(revision.subject)?.token === revision.token
+    return (
+      command.kind === "revisionCurrent" &&
+      state.current.get(revision.subject)?.revisionToken === revision.revisionToken
+    )
   }
   const release = (revision: WorkRevision): void => {
     const retained = state.current.get(revision.subject)
-    if (retained?.token !== revision.token) return
+    if (retained?.revisionToken !== revision.revisionToken) return
     const command = owner.transition({
       kind: "revisionRelease",
       subject: subjectId(revision.subject),
-      generation: revision.generation
+      generation: revision.revisionGeneration
     }).outputs[0]
     if (command?.kind !== "revisionReleased") throw new Error("canonical revision release refused")
     if (generation(revision.subject) === 0) state.current.delete(revision.subject)
@@ -123,13 +142,13 @@ export const revisionOperations = (state: RevisionDraft, owner: CapacityLedger) 
             (entry) =>
               entry.subject === state.identities.get(`subject:${subject}`) &&
               entry.input === work.inputIdentity &&
-              entry.generation === work.generation
+              entry.generation === work.revisionGeneration
           )
       )
     ) {
       throw new Error("native revision handles differ from canonical state")
     }
   }
-  return { count, generation, register, superseded, current, release, assert }
+  return { count, readRevisionGeneration: generation, register, superseded, current, release, assert }
 }
 export type RevisionOperations = ReturnType<typeof revisionOperations>

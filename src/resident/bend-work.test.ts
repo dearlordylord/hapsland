@@ -64,7 +64,7 @@ describe("canonical work projection", () => {
     expect(view().startUnit(unit.operation)).toBe(true)
     expect(Effect.runSync(ledger.startReview("agent", unit.operation, round))).toBe(true)
     const ready = Effect.runSync(
-      ledger.readyJevRequest(
+      ledger.readyReviewServiceRequest(
         "agent",
         unit.operation,
         unit.reservation,
@@ -81,10 +81,21 @@ describe("canonical work projection", () => {
     )
     expect(ready.status).toBe("issued")
     if (ready.status !== "issued") return
-    expect(Effect.runSync(ledger.startJevRequest("agent", unit.operation, ready.request))).toBe(true)
+    expect(
+      Effect.runSync(ledger.startReviewServiceRequest("agent", unit.operation, ready.reviewServiceRequestId))
+    ).toBe(true)
     expect(view().outcome(unit.operation, { $: "Finding" })).toBe(true)
     expect(
-      Effect.runSync(ledger.settleJevRequest("agent", unit.operation, ready.request, unit.reservation, "finding", true))
+      Effect.runSync(
+        ledger.settleReviewServiceRequest(
+          "agent",
+          unit.operation,
+          ready.reviewServiceRequestId,
+          unit.reservation,
+          "finding",
+          true
+        )
+      )
     ).toBe("findingRetained")
     expect(view().cachedFinding(source, 2, 20, unit.operation)).toBe(unit.operation)
     expect(view().cachedFinding(source + 1, 2, 20, unit.operation)).toBeUndefined()

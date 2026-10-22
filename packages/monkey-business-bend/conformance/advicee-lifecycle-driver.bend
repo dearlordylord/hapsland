@@ -31,7 +31,7 @@ type Job is Data:
     lifetime: Nat,
     bytes: Nat,
     units: List<&2, Nat>,
-    outcome: Maybe<&2, Canonical.RequestOutcome>
+    outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
   }
   NoJob{partition: Nat, lifetime: Nat}
   Unbound{source: Driver.SourceJob}
@@ -50,7 +50,7 @@ type Input is Data:
     activity: Nat,
     bytes: Nat,
     units: List<&2, Nat>,
-    outcome: Maybe<&2, Canonical.RequestOutcome>
+    outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
   }
   Finish{input: StopScenario.Input}
   FinishIntent{partition: Nat, started: Nat, cutoff: Nat, recurring: Bool}
@@ -124,14 +124,14 @@ def forget_job(jobs: List<&2, Stored>, +operation: Nat) -> List<&2, Stored>:
     case Stored{+id, job} <> tail:
       forget_job_entry(Nat.is_eq(id, operation), Stored{id, job}, forget_job(tail, operation))
 
-def preparation_parent(work: Maybe<&2, Canonical.Work>) -> Nat:
+def preparation_parent(work: Maybe<&2, Canonical.ReviewWorkRecord>) -> Nat:
   match work:
-    case Some{Canonical.Work{_, _, _, _, _, _, parent}}: parent
+    case Some{Canonical.ReviewWorkRecord{_, _, _, _, _, _, parent}}: parent
     case None{}: 0n
 
-def retained_finding(work: Maybe<&2, Canonical.Work>) -> Bool:
+def retained_finding(work: Maybe<&2, Canonical.ReviewWorkRecord>) -> Bool:
   match work:
-    case Some{Canonical.Work{_, _, _, _, _, Canonical.PendingFinding{_}, _}}: True{}
+    case Some{Canonical.ReviewWorkRecord{_, _, _, _, _, Canonical.PendingFinding{_}, _}}: True{}
     case _: False{}
 
 def settled_jobs(retained: Bool, jobs: List<&2, Stored>, operation: Nat) -> List<&2, Stored>:
@@ -147,7 +147,7 @@ def event_jobs(event: Canonical.CanonicalEvent, before: Canonical.State, after: 
         forget_job(jobs, operation),
         preparation_parent(Driver.find_operation(Driver.work_list(before), operation))
       )
-    case Canonical.JevRequestSettled{_, _, _, +operation, _, _, _}:
+    case Canonical.ReviewServiceRequestSettled{_, _, _, +operation, _, _, _}:
       settled_jobs(
         retained_finding(Driver.find_operation(Driver.work_list(after), operation)),
         jobs,
@@ -199,7 +199,11 @@ def remember(command: Canonical.Output, jobs: List<&2, Stored>, job: Job) -> Lis
       operation,
       job
     )
-    case Canonical.ActionRequested{Canonical.Prepare{+operation, _}}: put_job(jobs, operation, job)
+    case Canonical.ResidentActionRequested{Canonical.Prepare{+operation, _}}: put_job(
+      jobs,
+      operation,
+      job
+    )
     case Canonical.EventEstablished{Canonical.UnitAdmitted{+operation, _, _, _, _}}: put_job(
       jobs,
       operation,
@@ -240,10 +244,25 @@ def state_counts(state: Canonical.State) -> List<&2, Nat>:
       _,
       _
     }:
-      List.append(&2, Nat, Minimal.usage_counts(Ledger.total(charges)),
-        List.append(&2, Nat, Minimal.usage_counts(Ledger.partition_usage(charges, 1n)),
-          List.append(&2, Nat, Minimal.usage_counts(Ledger.partition_usage(charges, 2n)),
-            [Dispatch.preparation_count(running), List.length(&2, Dispatch.Request, requests)])))
+      List.append(
+        &2,
+        Nat,
+        Minimal.usage_counts(Ledger.total(charges)),
+        List.append(
+          &2,
+          Nat,
+          Minimal.usage_counts(Ledger.partition_usage(charges, 1n)),
+          List.append(
+            &2,
+            Nat,
+            Minimal.usage_counts(Ledger.partition_usage(charges, 2n)),
+            [
+              Dispatch.preparation_count(running),
+              List.length(&2, Dispatch.ReviewServiceRequestRecord, requests)
+            ]
+          )
+        )
+      )
 
 def event_code(event: Canonical.CanonicalEvent) -> Nat:
   match event:
@@ -252,7 +271,7 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.ClosePermitRound{_, _, _, _}: 29n
     case Canonical.ForgetAdmission{_, _}: 30n
     case Canonical.StopPolled{_, _, _, _}: 26n
-    case Canonical.JevRequestInterrupted{_, _, _, _, _}: 25n
+    case Canonical.ReviewServiceRequestInterrupted{_, _, _, _, _}: 25n
     case event: Minimal.event_code(event)
 
 def identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
@@ -262,7 +281,15 @@ def identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.ClosePermitRound{p, l, r, _}: [p, l, r, 0n, 0n, 0n, 0n]
     case Canonical.ForgetAdmission{p, l}: [p, l, 0n, 0n, 0n, 0n, 0n]
     case Canonical.StopPolled{p, l, r, _}: [p, l, r, 0n, 0n, 0n, 0n]
-    case Canonical.JevRequestInterrupted{p, l, r, o, request}: [p, l, r, o, request, 0n, 0n]
+    case Canonical.ReviewServiceRequestInterrupted{p, l, r, o, request}: [
+      p,
+      l,
+      r,
+      o,
+      request,
+      0n,
+      0n
+    ]
     case event: Minimal.event_identity(event)
 
 def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
@@ -284,11 +311,11 @@ def command_code(command: Canonical.Output) -> Nat:
     case Canonical.EventEstablished{Canonical.PermitRoundClosed{_}}: 36n
     case Canonical.EventEstablished{Canonical.PermitReleased{}}: 37n
     case Canonical.EventEstablished{Canonical.AdmissionForgotten{}}: 38n
-    case Canonical.PolicyDecided{Canonical.JevObservationIgnored{}}: 31n
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestObservationIgnored{}}: 31n
     case Canonical.EventEstablished{Canonical.FinishReady{}}: 32n
-    case Canonical.ActionRequested{Canonical.CancelWork{_}}: 33n
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: 29n
-    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: 30n
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{_}}: 33n
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}}: 29n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestInterruptionRecorded{}}: 30n
     case command: Minimal.command_code(command)
 
 def command_id(command: Canonical.Output) -> Nat:
@@ -297,13 +324,13 @@ def command_id(command: Canonical.Output) -> Nat:
     case Canonical.EventEstablished{Canonical.PartitionRetired{id}}: id
     case Canonical.EventEstablished{Canonical.DispatchDiscarded{id, _}}: id
     case Canonical.EventEstablished{Canonical.PermitRoundClosed{id}}: id
-    case Canonical.ActionRequested{Canonical.CancelWork{id}}: id
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{id}}: id
     case Canonical.EventEstablished{Canonical.RoundStarted{id}}: id
     case Canonical.EventEstablished{Canonical.ObservationAdmitted{id}}: id
     case Canonical.EventEstablished{Canonical.DispatchStarted{id, _}}: id
-    case Canonical.ActionRequested{Canonical.Prepare{id, _}}: id
+    case Canonical.ResidentActionRequested{Canonical.Prepare{id, _}}: id
     case Canonical.EventEstablished{Canonical.UnitAdmitted{id, _, _, _, _}}: id
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, _, id}}: id
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, _, id}}: id
     case Canonical.EventEstablished{Canonical.PreparationReleased{id, _}}: id
     case Canonical.EventEstablished{Canonical.ReservationReleased{id}}: id
     case _: 0n
@@ -551,7 +578,7 @@ def command_job(command: Canonical.Output, jobs: List<&2, Stored>, fallback: Job
       operation,
       fallback
     )
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, operation, _}}: lookup_job(
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, operation, _}}: lookup_job(
       jobs,
       operation,
       fallback
@@ -586,7 +613,9 @@ def outcome_weights() -> List<&2, Numeric.Words>:
   [Numeric.Words{0n, 0n}, Numeric.Words{1078525952n, 0n}, Numeric.Words{1078525952n, 0n},
     Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n}, Numeric.Words{0n, 0n}]
 
-def outcome_environment(outcome: Maybe<&2, Canonical.RequestOutcome>) -> Driver.OutcomeEnvironment:
+def outcome_environment(
+  outcome: Maybe<&2, Canonical.ReviewServiceRequestOutcome>
+) -> Driver.OutcomeEnvironment:
   Driver.OutcomeEnvironment{outcome, outcome_weights()}
 
 def default_environment() -> Environment:
@@ -925,7 +954,7 @@ def interpreted_with(result: Driver.Handled, environment: Environment, value: Ca
       _,
       _,
       _
-    } Canonical.ActionRequested{Canonical.Prepare{+operation, _}}:
+    } Canonical.ResidentActionRequested{Canonical.Prepare{+operation, _}}:
       Runtime{
         state,
         generated_with(
@@ -2363,7 +2392,7 @@ def snapshot_after(before: List<&2, Types.State>, after: List<&2, Types.State>,
 def stop_wake_event(event: Canonical.CanonicalEvent) -> Bool:
   match event:
     case Canonical.PreparationCompleted{_, _, _, _, _}: True{}
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: True{}
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}: True{}
     case Canonical.SubmissionTerminal{_, _, _}: True{}
     case Canonical.CollectionReleaseLease{_, _}: True{}
     case _: False{}

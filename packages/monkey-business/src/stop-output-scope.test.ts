@@ -50,7 +50,7 @@ it("another advicee's genuine authorized output does not hold this Stop open", (
     run.observations.filter((frame) => frame.event.kind === "submissionTerminal").map((frame) => frame.time)
   ).toEqual([16])
   expect(run.projection.collection.leases).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 })
 

@@ -102,7 +102,7 @@ type Emission is Data:
     activity: Nat,
     bytes: Nat,
     units: List<&2, Nat>,
-    outcome: Maybe<&2, C.RequestOutcome>
+    outcome: Maybe<&2, C.ReviewServiceRequestOutcome>
   }
   FinishInput{time: Nat, order: Nat, input: Stop.Input}
   FinishIntent{time: Nat, order: Nat, partition: Nat, started: Nat, cutoff: Nat, recurring: Bool}

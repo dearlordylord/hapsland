@@ -4,12 +4,12 @@ import { type DeliveryPorts } from "./ports.ts"
 
 export const deliveryBackground = (
   state: DeliveryDraft,
-  canonicalOwner: Pick<CapacityLedger, "collectionTokenId" | "transition" | "partitionId">,
+  canonicalOwner: Pick<CapacityLedger, "internAdviceHandoffIdentity" | "transition" | "partitionId">,
   { expire, isActive, markUncertain }: Pick<DeliveryPorts, "expire" | "isActive" | "markUncertain">
 ) => {
   function claimBackground(partition: string, token: string, now: number): boolean {
     expire(now)
-    const id = canonicalOwner.collectionTokenId(token)
+    const id = canonicalOwner.internAdviceHandoffIdentity(token)
     const claimed = canonicalOwner.transition({
       kind: "collectionClaimBackground",
       group: canonicalOwner.partitionId(partition),
@@ -28,7 +28,7 @@ export const deliveryBackground = (
     const release = canonicalOwner.transition({
       kind: "collectionReleaseBackground",
       group: canonicalOwner.partitionId(partition),
-      token: canonicalOwner.collectionTokenId(token)
+      token: canonicalOwner.internAdviceHandoffIdentity(token)
     })
     if (release.rejection !== undefined || release.outputs[0]?.kind !== "collectionBackgroundReleased") return
     state.backgroundWaiters.delete(partition)

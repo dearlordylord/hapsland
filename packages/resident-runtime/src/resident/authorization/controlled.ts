@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema"
 import { type ControlledDecisionModelOptions } from "@hapsland/review-execution/review-execution/controlled-decision-model"
-import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { type ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(
@@ -35,7 +35,7 @@ const ResidentControlledOptions = Schema.Struct({
 })
 
 export const decodeControlledOptions = (
-  value: ResidentDispatchContext["controlled"]
+  value: ResidentReviewExecutionContext["controlled"]
 ): ControlledDecisionModelOptions | undefined => {
   if (value === null) return undefined
   try {

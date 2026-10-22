@@ -26,12 +26,12 @@ function events(result: GameResult, name: string, established?: string) {
   return found
 }
 export function summarizeGameResult(result: GameResult) {
-  const settle = events(result, "JevRequestSettled", "JevRequestOutcomeRecorded")
+  const settle = events(result, "ReviewServiceRequestSettled", "ReviewServiceRequestOutcomeRecorded")
   const output = events(result, "SubmissionTerminal", "SubmissionRecorded")
   const finish = events(result, "FinishTerminal", "FinishRecorded")
   return {
     physicalCallbacks: {
-      settlements:events(result,"JevRequestSettled"),submissions:events(result,"SubmissionTerminal"),finishes:events(result,"FinishTerminal")
+      settlements:events(result,"ReviewServiceRequestSettled"),submissions:events(result,"SubmissionTerminal"),finishes:events(result,"FinishTerminal")
     },
     game: result.game, termination: result.termination, businessTime: result.business.now,
     shots: result.actions.filter(a => a.automatic).map(a => ({tick:a.action.atTick,target:a.target})),
@@ -119,7 +119,7 @@ export function checkGameExampleStudy(study:ReturnType<typeof runGameExampleStud
   const clear=find("clear","courier"),none=find("clear","none")
   if(clear&&none&&(clear.shots.length!==0||clear.ledgerByteTicks!==none.ledgerByteTicks)) failures.push("Clear courier should be a dead investment")
   for(const row of study) {
-    const shots=row.metrics.shots.filter(s=>s.target?.effect.kind==="jevSettled")
+    const shots=row.metrics.shots.filter(s=>s.target?.effect.kind==="reviewServiceRequestSettled")
     for(const shot of shots) {
       const owner=shot.target!.owner
       const accepted=row.metrics.settlements.find(e=>e.partition===owner.partition&&e.lifetime===owner.lifetime&&e.round===owner.round&&e.operation===owner.operation)

@@ -21,7 +21,7 @@ import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
 import "@hapsland/resident-transport/resident/hook-clock"
 import "@hapsland/resident-runtime/resident/collection"
-import type { ResidentDispatchContext, ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext, ResidentRequest } from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = async () => {
   const root = await makeGitFixture()
@@ -39,7 +39,7 @@ const fixture = async () => {
     })
   )
   if (observation === undefined) throw new Error("fixture not adapted")
-  const dispatch = (probability: number, failure?: string): ResidentDispatchContext => ({
+  const dispatch = (probability: number, failure?: string): ResidentReviewExecutionContext => ({
     statePath,
     userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
     credential: null,
@@ -54,7 +54,7 @@ const fixture = async () => {
 const collect = (
   server: ResidentRuntime,
   data: Awaited<ReturnType<typeof fixture>>,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   advicee = data.observation.advicee
 ) =>
   Effect.runPromise(

@@ -50,7 +50,7 @@ it("evaluation identities join pending and use cache without extra Jev calls", (
     evaluationInputs: ["exact-prepared-input"]
   }))
   const run = complete({ inputs, outcome: "clear", lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } } })
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(1)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(1)
   expect(
     run.observations.some((o) =>
       o.outputs.some((c) => c.kind === "reusePendingJoined" || c.kind === "reuseClaimedJoined")
@@ -97,7 +97,9 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   }))
   const run = complete({ inputs, outcome: "finding", lifecycles: { reuse: { entryLimit: 1, byteLimit: 10 } } })
   const frames = run.observations
-  const issued = frames.flatMap((frame) => frame.outputs.filter((command) => command.kind === "jevRequestIssued"))
+  const issued = frames.flatMap((frame) =>
+    frame.outputs.filter((command) => command.kind === "reviewServiceRequestIssued")
+  )
   expect(issued).toHaveLength(2)
   const original = issued[0]!,
     changed = issued[1]!
@@ -106,21 +108,21 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   // advice ID gives a member findings, not another physical finding record.
   expect(findings.map((frame) => frame.event)).toEqual([
     expect.objectContaining({
-      kind: "jevRequestSettled",
+      kind: "reviewServiceRequestSettled",
       operation: original.operation,
-      request: original.request,
+      reviewServiceRequestId: original.reviewServiceRequestId,
       outcome: "finding"
     }),
     expect.objectContaining({
-      kind: "jevRequestSettled",
+      kind: "reviewServiceRequestSettled",
       operation: changed.operation,
-      request: changed.request,
+      reviewServiceRequestId: changed.reviewServiceRequestId,
       outcome: "finding"
     })
   ])
   expect(findings.map((frame) => frame.time)).toEqual([0 + 2 + 5, 40 + 2 + 5])
   expect(changed.operation).not.toBe(original.operation)
-  expect(changed.request).not.toBe(original.request)
+  expect(changed.reviewServiceRequestId).not.toBe(original.reviewServiceRequestId)
   const firstRoute = frames.find(
     (frame) => frame.time === 2 && frame.outputs.some((command) => command.kind === "reuseOwned")
   )!
@@ -158,7 +160,9 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
       .some((frame) =>
         frame.outputs.some(
           (command) =>
-            command.kind === "jevRequestIssued" || command.kind === "unitAdmitted" || command.kind === "findingRetained"
+            command.kind === "reviewServiceRequestIssued" ||
+            command.kind === "unitAdmitted" ||
+            command.kind === "findingRetained"
         )
       )
   ).toBe(false)
@@ -220,7 +224,7 @@ it("finding reuse supplies retained advice and eviction releases cached charges"
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   expect(run.projection.work).toEqual([])
   expect(run.projection.pendingFindings).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(frames.filter((frame) => frame.rejection)).toEqual([])
   const replay = restoreReplay(run.exportReplay())
   expect(replay.observations).toEqual(frames)
@@ -253,7 +257,7 @@ it("suppressed cancellation drains without late callback", () => {
   const run = complete({ inputs: [edits[0]!], outcome: "interrupted", lifecycles: { cancellation: "suppressed" } })
   expect(run.observations.some((o) => o.effects.some((e) => e.kind === "jev" && e.phase === "supplied"))).toBe(false)
   expect(run.projection.dispatch.running).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection)
 })
 it("configured session generators produce identical and changed evaluation fixtures", () => {
@@ -453,7 +457,7 @@ it("identical evaluation labels remain isolated by resident partition", () => {
   ])
   run.applyControl({ kind: "suspendArrivals", suspended: true })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(2)
   expect(new Set(run.projection.reuse.cache.map((c) => c.partition))).toEqual(new Set([1, 2]))
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
@@ -477,7 +481,7 @@ it("changed import profiles generate distinct complete evaluation identities", (
   expect(second?.event.kind).toBe("reuseRoute")
   if (first?.event.kind === "reuseRoute" && second?.event.kind === "reuseRoute")
     expect(second.event.id).not.toBe(first.event.id)
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(2)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("a superseded joined member cannot retain the current owner's finding", () => {
@@ -538,7 +542,7 @@ it("a superseded joined member cannot retain the current owner's finding", () =>
   })
   expect(staleMember[0]!.outputs.some((c) => c.kind === "reuseSetMemberFinding")).toBe(false)
   expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "findingRetained"))).toHaveLength(2)
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(2)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("a refused changed revision cannot supersede an accepted active evaluation", () => {
@@ -609,7 +613,7 @@ it("checked cache clear releases every cached ledger charge and permits fresh ev
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
   run.schedule({ at: run.now, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: ["first"] })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(3)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(3)
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })
 it("concurrent cache commits release a reservation refused by the shared one-entry ceiling", () => {
@@ -626,7 +630,7 @@ it("concurrent cache commits release a reservation refused by the shared one-ent
     outcome: "clear",
     lifecycles: { reuse: { entryLimit: 1, byteLimit: 20 } }
   })
-  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "jevRequestIssued"))).toHaveLength(2)
+  expect(run.observations.filter((o) => o.outputs.some((c) => c.kind === "reviewServiceRequestIssued"))).toHaveLength(2)
   const refused = run.observations.find(
     (o) => o.event.kind === "cacheCommit" && o.outputs.some((c) => c.kind === "reuseRefused")
   )
@@ -742,7 +746,7 @@ it("the original two-agent late-join case drains with the default history retent
   expect(run.projection.dispatch.queued).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.reuse.claims).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.observations.filter((observation) => observation.rejection)).toEqual([])
   const retained = run.projection.charges.filter((charge) => charge.purpose === "storedResult")
   expect(retained.map((charge) => charge.id).sort()).toEqual(
@@ -765,7 +769,7 @@ it("unavailable owner results terminate joined work without leaving a fulfilled 
   ).toBe(true)
   expect(run.projection.work).toEqual([])
   expect(run.projection.reuse.claims).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.charges).toEqual([])
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations)
 })

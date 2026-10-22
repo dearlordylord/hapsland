@@ -5,35 +5,57 @@ import ../Canonical.bend as Canonical
 
 # Proof drivers call the production transitions. They assume matching native
 # responses, not successful IO. No clocks, promises or agent receipt live here.
-def resolved(result: Dispatch.RequestResult,
-    next: Dispatch.State -> Dispatch.RequestResult) -> Dispatch.RequestResult:
+def resolved(
+  result: Dispatch.ReviewServiceRequestResult,
+  next: Dispatch.State -> Dispatch.ReviewServiceRequestResult
+) -> Dispatch.ReviewServiceRequestResult:
   match result:
-    case Dispatch.RequestAccepted{state}: next(state)
-    case Dispatch.RequestDenied{state}: Dispatch.RequestDenied{state}
+    case Dispatch.ReviewServiceRequestAccepted{state}: next(state)
+    case Dispatch.ReviewServiceRequestDenied{state}: Dispatch.ReviewServiceRequestDenied{state}
 
 # The response list is a finite cohort, with one matching settlement per entry.
 # Closure is preserved: shutdown cannot silently reopen through resolution.
-def resolve_requests(remaining: List<&2, Dispatch.Request>,
-    state: Dispatch.State) -> Dispatch.RequestResult:
+def resolve_requests(remaining: List<&2, Dispatch.ReviewServiceRequestRecord>,
+    state: Dispatch.State) -> Dispatch.ReviewServiceRequestResult:
   match remaining:
-    case Nil{}: Dispatch.RequestAccepted{state}
-    case Dispatch.Request{+partition, +lifetime, +round, +operation, +request, _, _} <> rest:
+    case Nil{}: Dispatch.ReviewServiceRequestAccepted{state}
+    case Dispatch.ReviewServiceRequestRecord{
+      +partition,
+      +lifetime,
+      +round,
+      +operation,
+      +request,
+      _,
+      _
+    } <> rest:
       resolved(Dispatch.request_update(state, partition, lifetime, round,
         operation, request, False{}, False{}, True{}),
         next => resolve_requests(rest, next))
 
 # A settled failure cohort cannot poison admission of a fresh request. All
 # dispatch metadata and running jobs are preserved; only request permits drain.
-def recover_result(partition: Nat, lifetime: Nat, round: Nat,
-    operation: Nat, request: Nat, result: Dispatch.RequestResult) -> Dispatch.RequestResult:
+def recover_result(
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  operation: Nat,
+  request: Nat,
+  result: Dispatch.ReviewServiceRequestResult
+) -> Dispatch.ReviewServiceRequestResult:
   match result:
-    case Dispatch.RequestAccepted{state}:
+    case Dispatch.ReviewServiceRequestAccepted{state}:
       Dispatch.reserve_request(state, partition, lifetime, round, operation, request)
-    case Dispatch.RequestDenied{state}: Dispatch.RequestDenied{state}
+    case Dispatch.ReviewServiceRequestDenied{state}: Dispatch.ReviewServiceRequestDenied{state}
 
-def recover_requests(remaining: List<&2, Dispatch.Request>, state: Dispatch.State,
-    partition: Nat, lifetime: Nat, round: Nat, operation: Nat,
-    request: Nat) -> Dispatch.RequestResult:
+def recover_requests(
+  remaining: List<&2, Dispatch.ReviewServiceRequestRecord>,
+  state: Dispatch.State,
+  partition: Nat,
+  lifetime: Nat,
+  round: Nat,
+  operation: Nat,
+  request: Nat
+) -> Dispatch.ReviewServiceRequestResult:
   recover_result(partition, lifetime, round, operation, request,
     resolve_requests(remaining, state))
 
@@ -56,12 +78,12 @@ def deliver(+lease: Handoff.Lease, +token: Nat, surface: Handoff.Surface) -> Han
       authorize(Handoff.lease.offer(lease, round, token, surface, True{}), round, token)
 
 # Synthetic callback phase facts must satisfy Canonical's production predicate.
-def request_started(outcome: Canonical.RequestOutcome) -> Bool:
+def request_started(outcome: Canonical.ReviewServiceRequestOutcome) -> Bool:
   match outcome:
     case Canonical.NeverSent{}: False{}
     case _: True{}
 
-def request_interrupted(outcome: Canonical.RequestOutcome) -> Bool:
+def request_interrupted(outcome: Canonical.ReviewServiceRequestOutcome) -> Bool:
   match outcome:
     case Canonical.RequestInterrupted{}: True{}
     case _: False{}
@@ -100,10 +122,12 @@ def handoff_complete(result: Handoff.LeaseResult) -> Bool:
 
 # Arbitrary completion order for a fixed finite cohort. The law's Responsive
 # premise checks every identity against the then-current request pool.
-def scheduled_requests(responses: List<&2, Dispatch.Request>,
-    requests: List<&2, Dispatch.Request>) -> List<&2, Dispatch.Request>:
+def scheduled_requests(
+  responses: List<&2, Dispatch.ReviewServiceRequestRecord>,
+  requests: List<&2, Dispatch.ReviewServiceRequestRecord>
+) -> List<&2, Dispatch.ReviewServiceRequestRecord>:
   match responses:
     case Nil{}: requests
-    case Dispatch.Request{partition, lifetime, round, operation, request, _, _} <> rest:
+    case Dispatch.ReviewServiceRequestRecord{partition, lifetime, round, operation, request, _, _} <> rest:
       scheduled_requests(rest, Dispatch.request_remove(requests, partition,
         lifetime, round, operation, request))

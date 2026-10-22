@@ -1,6 +1,6 @@
 import Shared from "../../monkey-business-bend/engine.mjs"
 import { doubleWords } from "./numeric-codec.ts"
-import type { JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
+import type { ReviewServiceRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 /** Stable cumulative-distribution order, recorded with replay configuration. */
 export const JEV_OUTCOME_ORDER = [
@@ -10,9 +10,9 @@ export const JEV_OUTCOME_ORDER = [
   "backendFailure",
   "timeout",
   "interrupted"
-] as const satisfies readonly JevRequestOutcome[]
-export type OutcomeWeights = Readonly<Record<JevRequestOutcome, number>>
-export type OutcomeProbabilities = Readonly<Record<JevRequestOutcome, number>>
+] as const satisfies readonly ReviewServiceRequestOutcome[]
+export type OutcomeWeights = Readonly<Record<ReviewServiceRequestOutcome, number>>
+export type OutcomeProbabilities = Readonly<Record<ReviewServiceRequestOutcome, number>>
 export const DEFAULT_OUTCOME_WEIGHTS: OutcomeWeights = Object.freeze({
   neverSent: 0,
   finding: 50,
@@ -31,7 +31,7 @@ export const validateOutcomeWeights = (weights: OutcomeWeights): OutcomeWeights 
   for (const key of Object.keys(weights))
     if (!(JEV_OUTCOME_ORDER as readonly string[]).includes(key))
       throw new RangeError(`Unknown Jev outcome weight: ${key}`)
-  const result = {} as Record<JevRequestOutcome, number>
+  const result = {} as Record<ReviewServiceRequestOutcome, number>
   let enabled = false
   for (const outcome of JEV_OUTCOME_ORDER) {
     const value = weights[outcome]
@@ -49,7 +49,7 @@ export const normalizeOutcomeWeights = (weights: OutcomeWeights): OutcomeProbabi
   const validated = validateOutcomeWeights(weights)
   const total = JEV_OUTCOME_ORDER.reduce((sum, outcome) => sum + validated[outcome], 0)
   return Object.fromEntries(JEV_OUTCOME_ORDER.map((outcome) => [outcome, validated[outcome] / total])) as Record<
-    JevRequestOutcome,
+    ReviewServiceRequestOutcome,
     number
   >
 }
@@ -66,7 +66,7 @@ export class SeededOutcomeSampler {
       throw new RangeError("outcome seed must be an integer in [0, 281474976710655]")
     this.state = Shared.random_initial(BigInt(seed))
   }
-  sample(weights: OutcomeWeights): JevRequestOutcome {
+  sample(weights: OutcomeWeights): ReviewServiceRequestOutcome {
     const validated = validateOutcomeWeights(weights)
     const encoded = JEV_OUTCOME_ORDER.map((outcome) => doubleWords(validated[outcome])).reduceRight<unknown>(
       (tail, head) => ({ $: "Con", head, tail }),

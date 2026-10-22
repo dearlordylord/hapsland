@@ -13,29 +13,30 @@ export const deliverySubmission = (
   state: DeliveryDraft,
   canonicalOwner: Pick<
     CapacityLedger,
-    "collectionTokenId" | "canonicalProjection" | "transition" | "partitionId" | "roundId"
+    "internAdviceHandoffIdentity" | "canonicalProjection" | "transition" | "partitionId" | "roundId"
   >,
-  ports: Pick<DeliveryPorts, "readGeneration" | "isActive" | "canonicalCommandAccepted">
+  ports: Pick<DeliveryPorts, "readAdmissionRoundId" | "isActive" | "canonicalCommandAccepted">
 ) => {
-  const { readGeneration, isActive } = ports
+  const { readAdmissionRoundId, isActive } = ports
   function submissionTokenId(token: string): number {
-    return canonicalOwner.collectionTokenId(token)
+    return canonicalOwner.internAdviceHandoffIdentity(token)
   }
 
   function submissionAdviceId(adviceId: string): number {
-    return canonicalOwner.collectionTokenId(`submission-advice\0${adviceId}`)
+    return canonicalOwner.internAdviceHandoffIdentity(`submission-advice\0${adviceId}`)
   }
 
   function fingerprintId(adviceId: string, digest: string): number {
-    return canonicalOwner.collectionTokenId(`submission-finding\0${adviceId}\0${digest}`)
+    return canonicalOwner.internAdviceHandoffIdentity(`submission-finding\0${adviceId}\0${digest}`)
   }
 
   function currentSubmissionBatches(
     existing: Submission | undefined,
     partition: string,
-    generation: number
+    admissionRoundId: number
   ): Map<string, SubmissionBatch> {
-    if (existing?.partition === partition && existing.generation === generation) return new Map(existing.batches)
+    if (existing?.partition === partition && existing.admissionRoundId === admissionRoundId)
+      return new Map(existing.batches)
     return new Map()
   }
 
@@ -63,10 +64,10 @@ export const deliverySubmission = (
     status: "reserved" | "authorized",
     unit?: number
   ): Submission | undefined {
-    const generation = readGeneration(partition)
-    if (generation === 0 || !isActive(partition, generation)) return undefined
+    const admissionRoundId = readAdmissionRoundId(partition)
+    if (admissionRoundId === 0 || !isActive(partition, admissionRoundId)) return undefined
     const existing = state.submissions.get(adviceId)
-    const batches = currentSubmissionBatches(existing, partition, generation)
+    const batches = currentSubmissionBatches(existing, partition, admissionRoundId)
     if (batches.has(token)) return undefined
     const fingerprints = new Set(findings.map(fingerprint))
     if (fingerprints.size === 0) return undefined
@@ -87,7 +88,7 @@ export const deliverySubmission = (
     }
     assertSubmissionAuthorization(adviceId, id, status)
     batches.set(token, { id, surface, at: now, fingerprints, status })
-    return { partition, generation, batches }
+    return { partition, admissionRoundId, batches }
   }
 
   function beginSubmission(

@@ -6,7 +6,7 @@ import {
   collectReadyEffect,
   beginComposedSubmissionEffect,
   releaseComposedSubmissionEffect,
-  acknowledgeAdviceEffect
+  recordAdviceSubmissionAndFinalizeEffect
 } from "@hapsland/resident-transport/resident/client"
 import { Writable } from "node:stream"
 import { submitDirectHookOutput, DirectHookSubmission } from "@hapsland/hook-runtime/resident/direct-hook-output"
@@ -269,7 +269,7 @@ it("exposes exceptional provider failure without a clear result, duplicate outco
   const settled: string[] = []
   const privateBody = "PRIVATE_PROVIDER_ERROR_BODY"
   const resident = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-    jevRequestObserver: (item) => {
+    reviewServiceRequestObserver: (item) => {
       if (item.stage === "settled") settled.push(item.outcome ?? "missing")
     },
     inspectionPersistence: {
@@ -548,7 +548,7 @@ it.each([true, false])(
             writeCodex: () => Effect.die("unexpected synchronous write"),
             record: () => Effect.void,
             acknowledge: (advice) =>
-              acknowledgeAdviceEffect(advice).pipe(
+              recordAdviceSubmissionAndFinalizeEffect(advice).pipe(
                 Effect.tap((result) => Effect.sync(() => expect(result).toBe(acknowledged)))
               )
           })
@@ -702,7 +702,7 @@ it.each([
         operation: "register-edit",
         lifetime: resident.lifetime,
         root,
-        advicee: advicee({ hostVersion: "0.160.1" }),
+        advicee: advicee({ agentRuntimeVersion: "0.160.1" }),
         startedAt: monotonicNow(),
         userConfigPath: join(root, "absent-user")
       })

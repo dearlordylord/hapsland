@@ -100,7 +100,7 @@ def damage(+world: M.World) -> M.World:
       }
 
 def drained(+world: M.World) -> Bool:
-  Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n) &&
+  Nat.is_eq(List.length(&2, C.ReviewWorkRecord, M.work(M.core(world))), 0n) &&
     U32.is_eq(P.requests(world), 0) && U32.is_eq(P.writes(world), 0) && U32.is_eq(
       P.leases(world),
       0
@@ -168,7 +168,7 @@ def frame_counts(outputs: List<&2, C.Output>, +kind: U32) -> U32:
     case C.EventEstablished{C.FinishRecorded{C.Acknowledged{}}} <> rest: (Bool.to_u32(
       U32.is_eq(kind, 0)
     ) + frame_counts(rest, kind) : U32)
-    case C.EventEstablished{C.JevRequestOutcomeRecorded{C.RequestClear{}}} <> rest:
+    case C.EventEstablished{C.ReviewServiceRequestOutcomeRecorded{C.RequestClear{}}} <> rest:
       (Bool.to_u32(U32.is_eq(kind, 2)) + frame_counts(rest, kind) : U32)
     case C.PolicyDecided{C.CapacityRefused{_, _}} <> rest: (Bool.to_u32(U32.is_eq(kind, 3)) + frame_counts(
       rest,
@@ -426,7 +426,7 @@ def map_free(+world: M.World) -> Bool:
     Bool.and(
       Nat.is_eq(List.length(&2, M.Tower, M.towers(world)), 0n),
       Bool.and(
-        Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n),
+        Nat.is_eq(List.length(&2, C.ReviewWorkRecord, M.work(M.core(world))), 0n),
         U32.is_eq(P.writes(world), 0)
       )
     )

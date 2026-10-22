@@ -20,8 +20,8 @@
   {
     "law": "findings_do_not_block_collection",
     "file": "../Canonical.bend",
-    "from": "case Work{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      unfinished_for_observation(rest, partition, lifetime, round, observation)",
-    "to": "case Work{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      True{}"
+    "from": "case ReviewWorkRecord{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      unfinished_for_observation(rest, partition, lifetime, round, observation)",
+    "to": "case ReviewWorkRecord{_, _, _, _, _, PendingFinding{_}, _} <> rest:\n      True{}"
   },
   {
     "law": "completed_edit_becomes_collectible",
@@ -85,8 +85,71 @@
   {
     "law": "admitted_edit_reaches_resolution_and_submission",
     "file": "../Canonical.bend",
-    "from": "ActionRequested{Prepare{next_operation, charge}} <> Nil{}",
+    "from": "ResidentActionRequested{Prepare{next_operation, charge}} <> Nil{}",
     "to": "Nil{}",
     "location": "journey_begin"
+  },
+  {
+    "law": "physical_settlement_preserves_other_requests",
+    "file": "../Dispatch.bend",
+    "from": "rest,\n        item <> request_remove(\n          rest,\n          partition,\n          lifetime,\n          round,\n          operation,\n          review_service_request_id\n        )\n      )",
+    "to": "rest, request_remove(rest, partition, lifetime, round, operation, review_service_request_id))",
+    "location": "request_head_remove"
+  },
+  {
+    "law": "interruption_keeps_physical_permit",
+    "file": "../Dispatch.bend",
+    "from": "request_interrupted(\n                  review_service_requests,\n                  partition,\n                  lifetime,\n                  round,\n                  operation,\n                  review_service_request_id\n                )\n              )\n            )\n          }\n        }\n      )",
+    "to": "review_service_requests))}})"
+  },
+  {
+    "law": "absent_request_terminal_preserves_entire_state",
+    "file": "../Canonical.bend",
+    "from": "    case _ _: Rejected{state, StaleOperation{}}\n\ndef request_settled(",
+    "to": "    case _ _: Advanced{state, PolicyDecided{ReviewServiceRequestObservationIgnored{}} <> Nil{}}\n\ndef request_settled("
+  },
+  {
+    "law": "dispatch_cancellation_keeps_physical_requests",
+    "file": "../Dispatch.bend",
+    "from": "Advanced{State{waiting, executing, next_sequence, closed, review_service_requests},",
+    "to": "Advanced{State{waiting, executing, next_sequence, closed, Nil{}},",
+    "location": "discard_requests_kept"
+  },
+  {
+    "law": "removal_preserves_all_other_work",
+    "file": "../Canonical.bend",
+    "from": "remove_work_pick(item, remove_work(operation, rest), Nat.is_eq(op, operation))",
+    "to": "remove_work_pick(item, remove_work(operation, rest), True{})"
+  },
+  {
+    "law": "stage_change_preserves_all_other_work",
+    "file": "../Canonical.bend",
+    "from": "replace_work_kind(operation, kind, rest), Nat.is_eq(current, operation))",
+    "to": "replace_work_kind(operation, kind, rest), True{})"
+  },
+  {
+    "law": "accepted_observation_is_recorded_without_losing_work",
+    "file": "../Canonical.bend",
+    "from": "ReviewWorkRecord{\n              partition,\n              lifetime,\n              round,\n              next_operation,\n              0n,\n              AwaitingSourceRead{},\n              0n\n            } <> work,",
+    "to": "ReviewWorkRecord{partition, lifetime, round, next_operation, 0n, AwaitingSourceRead{}, 0n} <> Nil{},"
+  },
+  {
+    "law": "old_revision_release_preserves_new_registry",
+    "file": "../RevisionState.bend",
+    "from": "State{without(subject, entries), next_generation}), state)",
+    "to": "State{without(subject, entries), next_generation}), State{without(subject, entries), next_generation})"
+  },
+  {
+    "law": "old_generation_cannot_become_current_again",
+    "file": "../RevisionState.bend",
+    "from": "Bool.and(Nat.is_eq(input, retained_input), Nat.is_eq(generation, retained_generation))",
+    "to": "Nat.is_eq(input, retained_input)"
+  },
+  {
+    "law": "review_observation_preserves_other_findings",
+    "file": "../Canonical.bend",
+    "from": "updated,\n          rounds,\n          remove_work(operation, work),\n          next_round,\n          next_operation,\n          admissions,\n          dispatch,\n          collection,\n          history\n        },\n        EventEstablished{\n          ReservationReleased{charge}",
+    "to": "updated,\n          rounds,\n          Nil{},\n          next_round,\n          next_operation,\n          admissions,\n          dispatch,\n          collection,\n          history\n        },\n        EventEstablished{\n          ReservationReleased{charge}",
+    "location": "stale_preserve_released"
   }
 ]

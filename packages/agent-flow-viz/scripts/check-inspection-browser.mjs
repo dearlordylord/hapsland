@@ -189,7 +189,7 @@ try {
     await page.locator("#requests button").nth(index).focus()
     await page.keyboard.press("Enter")
     const metadata = JSON.parse(await page.locator("#request-metadata").textContent())
-    assert.ok(metadata.unitId && metadata.requestId && metadata.evaluationId)
+    assert.ok(metadata.unitId && metadata.reviewServiceRequestId && metadata.evaluationId)
     assert.ok(["OrderCount", "ShipmentCount"].includes(metadata.declaration))
     requestDeclarations.push(metadata.declaration)
     requestReferences.push({ sourceId: metadata.sourceId, sequence: metadata.sequence })

@@ -45,7 +45,7 @@ This prevents reuse of a charged request slot before the old effect ends.
 The [provider layer](../packages/review-execution/src/review-providers/live.ts) selects Jev, Cloudflare or OpenAI
 through Effect's `DecisionModel` integration. All three use the shared resident
 request lifecycle; selecting Cloudflare does not create another eight-slot
-pool. Internal `jevRequest` event names refer to that shared lifecycle.
+pool. Internal `reviewServiceRequest` event names refer to that shared lifecycle.
 
 These are **per-resident** bounds, shared by its advicees. Sessions and worktrees
 using the same resident connection directory share them. Separate resident
@@ -166,7 +166,7 @@ memory-only work and advice rather than recovering a durable review queue.
 ## Evidence and changing a bound
 
 Use the [testing matrix](testing-matrix.md) to select affected checks.
-[Request scenarios](../src/resident/jev-request.test.ts) exercise saturation,
+[Request scenarios](../src/resident/review-service-request.test.ts) exercise saturation,
 interruption, and permit reuse with controlled effects.
 [Capacity scenarios](../src/resident/capacity.test.ts) check reservation and
 release. [Graph scenarios](../src/direct-event/graph-resolver.test.ts),

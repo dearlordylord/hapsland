@@ -576,7 +576,7 @@ export const interveneSharedRequest = (
     readonly lifetime: number
     readonly round: number
     readonly operation: number
-    readonly request: number
+    readonly reviewServiceRequestId: number
   },
   outcome: unknown,
   delay: number
@@ -588,7 +588,7 @@ export const interveneSharedRequest = (
     lifetime: readNat(target.lifetime),
     round: readNat(target.round),
     operation: readNat(target.operation),
-    request: readNat(target.request)
+    request: readNat(target.reviewServiceRequestId)
   }
   return decodeSharedValue(
     SharedEngine.intervene_request(
@@ -665,12 +665,19 @@ export const sharedCallbackMatches = (
     readonly lifetime: number
     readonly round: number
     readonly operation: number
-    readonly request: number
+    readonly reviewServiceRequestId: number
   }
 ): boolean =>
   SharedEngine.callback_matches(
     encodeSharedValue(encodeCanonicalEvent(event)),
-    encodeSharedValue({ $: "FaultTargets.Target", ...target })
+    encodeSharedValue({
+      $: "FaultTargets.Target",
+      partition: target.partition,
+      lifetime: target.lifetime,
+      round: target.round,
+      operation: target.operation,
+      request: target.reviewServiceRequestId
+    })
   )
 
 export const sharedPreparationActive = (

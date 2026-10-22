@@ -34,7 +34,7 @@ test('ordinary moving monsters are the actual visible targets on every map',()=>
  }
 });
 test('a hit preserves position, changes only the exact recipient and speeds subsequent motion',()=>{
- const w=wait(w=>list(G.mobs(w)).filter(m=>phase(m,'JevSettled')).length===2);
+ const w=wait(w=>list(G.mobs(w)).filter(m=>phase(m,'ReviewServiceRequestSettled')).length===2);
  const mobs=list(G.mobs(w)),recipient=mobs[0],placement=site(w,recipient,3);
  const shot=G.shot(w,placement.t,recipient.target.owner.operation),after=list(G.mobs(shot));
  assert.deepEqual(after.map(m=>[m.x,m.y]),mobs.map(m=>[m.x,m.y]),'no teleport at hit');
@@ -49,7 +49,7 @@ test('shortening never delays a near-complete monster',()=>{
  for(let n=0n;n<1000n;n++){assert.ok(G.shortened(n)<=n);if(n<=100n)assert.equal(G.shortened(n),n);else assert.ok(G.shortened(n)<n);}
 });
 test('pause retains exact moving-target preview before and after construction',()=>{
- for(const [effect,kind] of [['JevSettled',3],['OutputTerminal',4]]){
+ for(const [effect,kind] of [['ReviewServiceRequestSettled',3],['OutputTerminal',4]]){
   const w=wait(w=>list(G.mobs(w)).some(m=>phase(m,effect))),m=list(G.mobs(w)).find(m=>phase(m,effect)),s=site(w,m,kind);
   const paused=G.pause(w),aimed=G.aim(paused,s.x,s.y,kind),p=G.preview(aimed);
   assert.ok(p.before>0);assert.ok(p.delta>0&&p.delta<p.before);
@@ -66,7 +66,7 @@ test('ordinary accepted completions produce visible result markers, not silent d
 });
 
 test('stacked shots retain every frozen hit beam and the updated numeric quote',()=>{
- const w=wait(w=>list(G.mobs(w)).filter(m=>phase(m,'JevSettled')).length===2);
+ const w=wait(w=>list(G.mobs(w)).filter(m=>phase(m,'ReviewServiceRequestSettled')).length===2);
  const m=list(G.mobs(w))[0],s=site(w,m,3);
  const first=G.shot(w,s.t,m.target.owner.operation),second=G.shot(first,{...s.t,x:s.t.x+8},m.target.owner.operation);
  const hit=list(G.mobs(second)).find(v=>key(v.target)===key(m.target)),beams=list(hit.beams);
@@ -77,7 +77,7 @@ test('stacked shots retain every frozen hit beam and the updated numeric quote',
  const pixels=list(G.scene(second));for(const b of beams)assert.ok(pixels.some(p=>p.x===b.fromX&&p.y===b.fromY&&p.color===16768133));
 });
 test('ordinary automatic tower fires without a manual command and cannot shoot outside range',()=>{
- const w=wait(w=>list(G.mobs(w)).some(m=>phase(m,'JevSettled'))),m=list(G.mobs(w)).find(m=>phase(m,'JevSettled')),s=site(w,m,3);
+ const w=wait(w=>list(G.mobs(w)).some(m=>phase(m,'ReviewServiceRequestSettled'))),m=list(G.mobs(w)).find(m=>phase(m,'ReviewServiceRequestSettled')),s=site(w,m,3);
  const built=G.build(w,s.x,s.y,3),next=G.tick(built);assert.ok(list(G.mobs(next)).some(v=>list(v.beams).length>0));
  const far=G.tower(24,640,3);assert.equal(list(G.targets(w,far)).length,0);assert.deepEqual(G.shot(w,far,0n),w);
 });

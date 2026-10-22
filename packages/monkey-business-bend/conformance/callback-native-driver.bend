@@ -239,7 +239,7 @@ def command(
   +context: Driver.Context
 ) -> Types.State & Minimal.Queue:
   match command:
-    case Canonical.ActionRequested{Canonical.Prepare{+op, _}}:
+    case Canonical.ResidentActionRequested{Canonical.Prepare{+op, _}}:
       (
         state,
         generated(Engine.generate_tree(17n, op, 0n, tree_profile(), graph_limits()), queue, op, now)
@@ -492,8 +492,8 @@ def step(runtime: Runtime) -> Runtime:
 
 def target_kind(target: Callbacks.Target) -> Nat:
   match target:
-    case Callbacks.Target{_, Callbacks.JevStarted{_}, _}: 1n
-    case Callbacks.Target{_, Callbacks.JevSettled{_}, _}: 2n
+    case Callbacks.Target{_, Callbacks.ReviewServiceRequestStarted{_}, _}: 1n
+    case Callbacks.Target{_, Callbacks.ReviewServiceRequestSettled{_}, _}: 2n
     case Callbacks.Target{_, Callbacks.PreparationCompleted{}, _}: 3n
     case _: 0n
 

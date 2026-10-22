@@ -156,7 +156,7 @@ it("preserves mixed output order and rejects payloads in the wrong semantic cate
   const state = initialCanonical(limits)
   const facts = [
     { $: "Canonical.EventEstablished", event: { $: "Canonical.RoundStarted", id: 1 } },
-    { $: "Canonical.ActionRequested", request: { $: "Canonical.Prepare", operation: 1, reservation: 1 } },
+    { $: "Canonical.ResidentActionRequested", command: { $: "Canonical.Prepare", operation: 1, reservation: 1 } },
     { $: "Canonical.PolicyDecided", decision: { $: "Canonical.CompletedEditAbsent" } }
   ]
   const evaluate = (values: readonly unknown[]) => {
@@ -169,12 +169,12 @@ it("preserves mixed output order and rejects payloads in the wrong semantic cate
   }
   expect(evaluate(facts)).toEqual([
     { category: "event", kind: "roundStarted", id: 1 },
-    { category: "request", kind: "prepare", operation: 1, reservation: 1 },
+    { category: "action", kind: "prepare", operation: 1, reservation: 1 },
     { category: "decision", kind: "completedEditAbsent" }
   ])
   const wrappers = [
     { tag: "Canonical.EventEstablished", field: "event" },
-    { tag: "Canonical.ActionRequested", field: "request" },
+    { tag: "Canonical.ResidentActionRequested", field: "command" },
     { tag: "Canonical.PolicyDecided", field: "decision" }
   ]
   for (const [index, original] of facts.entries()) {
@@ -491,23 +491,23 @@ it("rejects capacity snapshots exceeding each declared ledger limit", () => {
 it("rejects duplicate request identities and interrupted requests that never started", () => {
   const original = initialCanonical(limits)
   const request = {
-    $: "Dispatch.Request",
+    $: "Dispatch.ReviewServiceRequestRecord",
     partition: 1,
     lifetime: 1,
     round: 1,
     operation: 1,
-    request: 1,
+    review_service_request_id: 1,
     started: false,
     interrupted: false
   }
   const lists = [
     linked(1, { ...request, interrupted: true }),
     { $: "Con", head: request, tail: linked(1, { ...request, operation: 2 }) },
-    { $: "Con", head: request, tail: linked(1, { ...request, request: 2 }) }
+    { $: "Con", head: request, tail: linked(1, { ...request, review_service_request_id: 2 }) }
   ]
   for (const requests of lists) {
-    const malformed = structuredClone(original) as { dispatch: { requests: unknown } }
-    malformed.dispatch.requests = requests
+    const malformed = structuredClone(original) as { dispatch: { review_service_requests: unknown } }
+    malformed.dispatch.review_service_requests = requests
     injected.canonical = () => ({ $: "Canonical.Advanced", state: malformed, outputs: { $: "Nil" } })
     expect(() => stepCanonical(original, { kind: "checkCompletedEdit", tool: 1 })).toThrow(
       "inconsistent canonical dispatch state"

@@ -13,8 +13,8 @@ const advice: CollectedAdvice = {
   paths: residentPaths("/fixture/resident"),
   root: "/fixture",
   advicee: {
-    host: "claude-code",
-    hostVersion: "2.1.218",
+    agentRuntime: "claude-code",
+    agentRuntimeVersion: "2.1.218",
     sessionId: "session",
     turnId: null,
     toolUseId: "edit",

@@ -3,14 +3,14 @@ import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-obs
 import type { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
 import { collectionOrdering } from "./collection-decisions.ts"
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
-import type { Advice } from "../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../state/advice-records.ts"
 import { type WorkRevision } from "../state/revision.ts"
 import * as Effect from "effect/Effect"
 import { randomUUID } from "node:crypto"
-import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import {
   DELIVERY_LEASE_MS,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentResponse,
   type CollectionMode
 } from "@hapsland/resident-transport/resident/protocol"
@@ -35,12 +35,12 @@ import { type ResidentLedger } from "../work-ownership/jobs.ts"
 import { ResidentAdapterError } from "../adapter-error.ts"
 import { type ResponseAuthority } from "./authority.ts"
 import { residentResponse, findingAtDeliveryRoot } from "./findings.ts"
-import { recipientPartition } from "../recipient/identity.ts"
+import { adviceeScopeKey } from "../recipient/identity.ts"
 
 type CollectionFrame = {
   readonly callerRoot: string
   readonly partition: string
-  readonly dispatch: ResidentDispatchContext
+  readonly dispatch: ResidentReviewExecutionContext
   readonly composed: boolean
   readonly authority: ResponseAuthority | undefined
   readonly claudeSurface: "stop" | undefined
@@ -74,11 +74,11 @@ type Dependencies = {
     now: number,
     exceptKey?: string | undefined
   ) => Effect.Effect<void, never, never>
-  readonly residentAdvice: () => Effect.Effect<readonly Advice[], never, never>
+  readonly residentAdvice: () => Effect.Effect<readonly PendingAdviceHandle[], never, never>
   readonly residentJoined: ReturnType<ResidentLedger["joinedReviews"]>
   readonly residentCollectionFindingOffer: CanonicalFindingOffer
   readonly residentFindingSelectionFacts: (
-    advice: Advice,
+    advice: PendingAdviceHandle,
     partition: string,
     credentialGeneration: number | null,
     now: number,
@@ -92,7 +92,7 @@ type Dependencies = {
   readonly residentReviewControls: ReviewControls
   readonly residentIsCurrentWork: (
     revision: WorkRevision,
-    prepared: PreparedUnit
+    prepared: PreparedReviewUnit
   ) => Effect.Effect<boolean, never, never>
   readonly releaseDelivery: (token: string) => Effect.Effect<void>
 }
@@ -112,7 +112,7 @@ const residentPendingCanonicalFindings = Effect.fn("ResidentRuntime.pendingCanon
 })
 const residentAdviceExpired = Effect.fn("ResidentRuntime.adviceExpired")(function* (
   deps: Dependencies,
-  advice: Pick<Advice, "pendingAt">,
+  advice: Pick<PendingAdviceHandle, "pendingAt">,
   now: number
 ) {
   const result = yield* deps.residentLedger.transition({
@@ -128,8 +128,8 @@ const residentAdviceExpired = Effect.fn("ResidentRuntime.adviceExpired")(functio
 })
 const residentCollectionOrder = Effect.fn("ResidentRuntime.collectionOrder")(function* (
   deps: Dependencies,
-  left: Pick<Advice, "sequence">,
-  right: Pick<Advice, "sequence">
+  left: Pick<PendingAdviceHandle, "sequence">,
+  right: Pick<PendingAdviceHandle, "sequence">
 ) {
   const result = yield* deps.residentLedger.transition({
     kind: "collectionOrderCheck",
@@ -140,14 +140,15 @@ const residentCollectionOrder = Effect.fn("ResidentRuntime.collectionOrder")(fun
   return collectionOrdering(result.outputs[0]?.kind)
 })
 const residentReserveAdviceLease = Effect.fn("ResidentRuntime.reserveAdviceLease")(
-  (deps: Dependencies, advice: Advice, token: string) => deps.residentLedger.advice.reserveLease(advice, token)
+  (deps: Dependencies, advice: PendingAdviceHandle, token: string) =>
+    deps.residentLedger.advice.reserveLease(advice, token)
 )
 const residentReleaseAdviceLease = Effect.fn("ResidentRuntime.releaseAdviceLease")(
-  (deps: Dependencies, advice: Advice) => deps.residentLedger.advice.releaseLease(advice)
+  (deps: Dependencies, advice: PendingAdviceHandle) => deps.residentLedger.advice.releaseLease(advice)
 )
 const residentCheckAdviceLease = Effect.fn("ResidentRuntime.checkAdviceLease")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   now: number,
   stopCollector: boolean,
   sameGroup: boolean
@@ -166,13 +167,13 @@ const residentCheckAdviceLease = Effect.fn("ResidentRuntime.checkAdviceLease")(f
 }, Effect.uninterruptible)
 const residentUnsuppressedFindings = Effect.fn("ResidentRuntime.unsuppressedFindings")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   findings: ReadonlyArray<Finding>,
   stopCollector: boolean,
   firstOnly = false
 ) {
   const retained: Array<Finding> = []
-  const partition = recipientPartition(advice.observation.advicee)
+  const partition = adviceeScopeKey(advice.observation.advicee)
   for (const finding of findings) {
     if (
       yield* deps.residentComposedDelivery.suppresses(advice.id, partition, finding, stopCollector ? "stop" : undefined)
@@ -191,7 +192,9 @@ const residentClaudeCollectionSurface = (
   authority: ResponseAuthority | undefined,
   composed: boolean
 ): "stop" | undefined =>
-  composed && authority === undefined && advicee.host === "claude-code" && mode === "turn-end" ? "stop" : undefined
+  composed && authority === undefined && advicee.agentRuntime === "claude-code" && mode === "turn-end"
+    ? "stop"
+    : undefined
 const residentCollectionBlocked = Effect.fn("ResidentRuntime.collectionBlocked")(function* (
   deps: Dependencies,
   partition: string,
@@ -212,12 +215,12 @@ const residentCollectionFrame = Effect.fn("ResidentRuntime.collectionFrame")(fun
   deps: Dependencies,
   root: string,
   advicee: DirectAdvicee,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   mode: CollectionMode,
   authority: ResponseAuthority | undefined,
   composed: boolean
 ) {
-  const partition = recipientPartition(advicee)
+  const partition = adviceeScopeKey(advicee)
   const claudeSurface = residentClaudeCollectionSurface(advicee, mode, authority, composed)
   const now = deps.residentNow()
   if (yield* residentCollectionBlocked(deps, partition, mode, composed)) return undefined
@@ -233,14 +236,14 @@ const residentCollectionFrame = Effect.fn("ResidentRuntime.collectionFrame")(fun
     stopCollector
   } satisfies Omit<CollectionFrame, "credentialGeneration">
 })
-const residentCollectionSameScope = (frame: CollectionFrame, advice: Advice): boolean =>
+const residentCollectionSameScope = (frame: CollectionFrame, advice: PendingAdviceHandle): boolean =>
   frame.composed
-    ? recipientPartition(advice.observation.advicee) === frame.partition
+    ? adviceeScopeKey(advice.observation.advicee) === frame.partition
     : advice.partition === frame.partition
 const residentCollectionCredentialCheck = Effect.fn("ResidentRuntime.collectionCredentialCheck")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice
+  advice: PendingAdviceHandle
 ) {
   const result = yield* deps.residentLedger.transition({
     kind: "collectionCredentialCheck",
@@ -264,7 +267,7 @@ const residentCollectionPrelude = Effect.fn("ResidentRuntime.collectionPrelude")
     yield* residentCollectionCredentialCheck(deps, frame, advice)
   // Stop reoffers an uncertain background write only after its writer terminated.
   for (const { capability: advice, content } of yield* deps.residentLedger.advice.snapshots()) {
-    const sameGroup = recipientPartition(advice.observation.advicee) === frame.partition
+    const sameGroup = adviceeScopeKey(advice.observation.advicee) === frame.partition
     if (content.delivery !== undefined)
       yield* residentCheckAdviceLease(deps, advice, frame.now, frame.stopCollector, sameGroup)
   }
@@ -282,7 +285,7 @@ const residentCollectionCandidateResult = (
 const residentCollectionCandidate = Effect.fn("ResidentRuntime.collectionCandidate")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   content: Effect.Success<ReturnType<typeof deps.residentLedger.advice.current>>
 ) {
   const samePartition = residentCollectionSameScope(frame, advice)
@@ -301,14 +304,14 @@ const residentCollectionCandidate = Effect.fn("ResidentRuntime.collectionCandida
   })
   return residentCollectionCandidateResult(deps, result)
 })
-const residentCollectionAdviceAt = (advice: ReadonlyArray<Advice>, index: number): Advice => {
+const residentCollectionAdviceAt = (advice: ReadonlyArray<PendingAdviceHandle>, index: number): PendingAdviceHandle => {
   const item = advice[index]
   if (item === undefined) throw new Error("eligible advice disappeared during ordering")
   return item
 }
 const residentOrderCollectionAdvice = Effect.fn("ResidentRuntime.orderCollectionAdvice")(function* (
   deps: Dependencies,
-  eligible: Array<Advice>
+  eligible: Array<PendingAdviceHandle>
 ) {
   for (let index = 1; index < eligible.length; index++) {
     const item = residentCollectionAdviceAt(eligible, index)
@@ -326,12 +329,15 @@ const residentEligibleCollectionAdvice = Effect.fn("ResidentRuntime.eligibleColl
   deps: Dependencies,
   frame: CollectionFrame
 ) {
-  const available: Array<Advice> = []
+  const available: Array<PendingAdviceHandle> = []
   for (const { capability: advice, content } of yield* deps.residentLedger.advice.snapshots()) {
     if (yield* residentCollectionCandidate(deps, frame, advice, content)) available.push(advice)
   }
   for (const advice of available)
-    yield* deps.residentLedger.advice.eligible(advice, yield* deps.residentJoined.hasAdmission(advice.admissionId))
+    yield* deps.residentLedger.advice.eligible(
+      advice,
+      yield* deps.residentJoined.hasAdmission(advice.canonicalObservationId)
+    )
   const eligible = (yield* Effect.forEach(
     available,
     Effect.fn("ResidentRuntime.eligibleAdvice")(function* (item) {
@@ -368,7 +374,7 @@ const residentFittingCollectionFindings = Effect.fn("ResidentRuntime.fittingColl
   frame: CollectionFrame,
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
-  advice: Advice
+  advice: PendingAdviceHandle
 ) {
   const facts = yield* deps.residentFindingSelectionFacts(
     advice,
@@ -387,7 +393,7 @@ const residentFittingCollectionFindings = Effect.fn("ResidentRuntime.fittingColl
 }, Effect.uninterruptible)
 const residentDisposeCollectionCandidate = Effect.fn("ResidentRuntime.disposeCollectionCandidate")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string,
   route: string
 ) {
@@ -396,7 +402,7 @@ const residentDisposeCollectionCandidate = Effect.fn("ResidentRuntime.disposeCol
 })
 const residentCollectionBarrier = Effect.fn("ResidentRuntime.collectionBarrier")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   final: boolean
 ) {
   const barrier = final
@@ -413,7 +419,7 @@ const residentCollectionBarrier = Effect.fn("ResidentRuntime.collectionBarrier")
 })
 const residentCollectionPostCheck = Effect.fn("ResidentRuntime.collectionPostCheck")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string,
   event: Extract<CanonicalEvent, { kind: "postValidationCheck" }>
 ) {
@@ -424,7 +430,7 @@ const residentCollectionPostCheck = Effect.fn("ResidentRuntime.collectionPostChe
 })
 const residentCollectionPassAdvice = Effect.fn("ResidentRuntime.collectionPassAdvice")(function* (
   deps: Dependencies,
-  candidate: Advice,
+  candidate: PendingAdviceHandle,
   token: string,
   final: boolean
 ) {
@@ -438,7 +444,7 @@ const residentCollectionPassAdvice = Effect.fn("ResidentRuntime.collectionPassAd
 const residentCollectionPassFindings = Effect.fn("ResidentRuntime.collectionPassFindings")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string,
   retained: ReadonlyArray<Finding>,
   final: boolean
@@ -471,10 +477,10 @@ const residentCollectionPass = Effect.fn("ResidentRuntime.collectionPass")(funct
   deps: Dependencies,
   frame: CollectionFrame,
   token: string,
-  candidates: ReadonlyArray<Advice>,
+  candidates: ReadonlyArray<PendingAdviceHandle>,
   final: boolean
 ) {
-  const selected: Array<Advice> = []
+  const selected: Array<PendingAdviceHandle> = []
   let findings: Array<Finding> = []
   for (const candidate of candidates) {
     const advice = yield* residentCollectionPassAdvice(deps, candidate, token, final)
@@ -493,7 +499,7 @@ const residentCollectionCredentialStateValid = (
 ): boolean => state !== undefined && state.generation === generation && (environmentOnly || !state.savedUseSuspended)
 const residentHandoffCredentialAuthorized = (
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   ownerCurrent: boolean,
   generationValid: boolean
 ): boolean => {
@@ -509,7 +515,7 @@ const residentHandoffCredentialAuthorized = (
 const residentCollectionHandoffFacts = Effect.fn("ResidentRuntime.collectionHandoffFacts")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string
 ) {
   const retained = (yield* deps.residentAdvice()).find((item) => item.id === advice.id)
@@ -527,7 +533,7 @@ const residentCollectionHandoffFacts = Effect.fn("ResidentRuntime.collectionHand
 })
 const residentCollectionFinalRoute = Effect.fn("ResidentRuntime.collectionFinalRoute")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   facts: CollectionHandoffFacts,
   now: number
 ) {
@@ -545,7 +551,7 @@ const residentRetainableHandoff = (route: string, facts: CollectionHandoffFacts)
   route === "retainCandidate" && facts.delivery !== undefined
 const residentRetainHandoffAdvice = Effect.fn("ResidentRuntime.retainHandoffAdvice")(function* (
   deps: Dependencies,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string,
   now: number,
   route: string,
@@ -566,7 +572,7 @@ const residentRetainHandoffAdvice = Effect.fn("ResidentRuntime.retainHandoffAdvi
 const residentCollectHandoffAdvice = Effect.fn("ResidentRuntime.collectHandoffAdvice")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   token: string,
   now: number
 ) {
@@ -577,11 +583,11 @@ const residentCollectHandoffAdvice = Effect.fn("ResidentRuntime.collectHandoffAd
 const residentCollectHandoff = Effect.fn("ResidentRuntime.collectHandoff")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  final: ReadonlyArray<Advice>,
+  final: ReadonlyArray<PendingAdviceHandle>,
   token: string,
   now: number
 ) {
-  const handoff: Array<Advice> = []
+  const handoff: Array<PendingAdviceHandle> = []
   for (const advice of final)
     if (yield* residentCollectHandoffAdvice(deps, frame, advice, token, now)) handoff.push(advice)
   return handoff
@@ -595,7 +601,7 @@ const residentCollectionSurface = (frame: CollectionFrame) =>
 const residentHandoffOffers = Effect.fn("ResidentRuntime.handoffOffers")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  advice: Advice,
+  advice: PendingAdviceHandle,
   now: number
 ) {
   const facts = yield* deps.residentFindingSelectionFacts(
@@ -615,7 +621,7 @@ const residentHandoffOffers = Effect.fn("ResidentRuntime.handoffOffers")(functio
 const residentSelectHandoffFindings = Effect.fn("ResidentRuntime.selectHandoffFindings")(function* (
   deps: Dependencies,
   frame: CollectionFrame,
-  handoff: ReadonlyArray<Advice>,
+  handoff: ReadonlyArray<PendingAdviceHandle>,
   token: string,
   now: number
 ) {
@@ -674,7 +680,7 @@ const residentCollect = Effect.fn("ResidentRuntime.collect")(
     deps: Dependencies,
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode = "ordinary",
     authority?: ResponseAuthority,
     composed = false

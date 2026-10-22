@@ -39,7 +39,7 @@ export const sharedResidentView = <Message>(
               [h.AriaLabel("Shared resident resources")],
               [
                 `Preparation ${projection.dispatch.running.filter((item) => item.preparation).length}/8 · `,
-                `Jev ${projection.dispatch.requests.length}/8 · Queued work ${projection.dispatch.queued.length} · `,
+                `Jev ${projection.dispatch.reviewServiceRequests.length}/8 · Queued work ${projection.dispatch.queued.length} · `,
                 `Reserved ${projection.global.items} items, ${projection.global.bytes} bytes`
               ]
             )

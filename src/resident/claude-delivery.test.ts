@@ -20,7 +20,7 @@ import {
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import {
   encodeCurrentResidentRequest,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest,
   type ResidentResponse
 } from "@hapsland/resident-transport/resident/protocol"
@@ -54,7 +54,7 @@ const fixture = async () => {
     if (value === undefined) throw new Error("expected observation")
     return value
   }
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath: join(root, "consent"),
     userConfigPath,
     credential: null,
@@ -105,7 +105,7 @@ const collectorObservation = (observation: DirectObservation): DirectObservation
 const admitReady = async (
   server: ResidentServer,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ) => {
   await permit(server, observation)
   expect((await Effect.runPromise(server.admit(observation, dispatch, true, true))).status).toBe("accepted")
@@ -114,7 +114,7 @@ const admitReady = async (
 const request = (
   server: ResidentServer,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   waitMs = 1_200
 ): Extract<ResidentRequest, { operation: "admit-and-collect" }> => ({
   requestRoute: "edit",
@@ -129,10 +129,10 @@ const request = (
 const send = (
   server: ResidentServer,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   waitMs = 1_200
 ) => runClient(residentRequest(server.paths, request(server, observation, dispatch, waitMs), 2_500))
-const ordinary = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext) =>
+const ordinary = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentReviewExecutionContext) =>
   Effect.runPromise(
     server.handle({
       requestRoute: "shared",
@@ -385,7 +385,7 @@ describe("registry-free Claude edit response", () => {
       if (change === "revoke" || change === "project-narrowing") data.feedback("block-current-findings")
       const statePath = join(data.root, "credential-state.json")
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }))
-      const dispatch: ResidentDispatchContext =
+      const dispatch: ResidentReviewExecutionContext =
         change === "rotate" || change === "suspend"
           ? {
               ...data.dispatch,
@@ -480,7 +480,7 @@ describe("registry-free Claude edit response", () => {
     const data = await fixture()
     const first = await data.observation()
     const second = collectorObservation(await data.observation("second"))
-    const credential = (name: string): ResidentDispatchContext => {
+    const credential = (name: string): ResidentReviewExecutionContext => {
       const statePath = join(data.root, `${name}-credentials.json`)
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }))
       return {
@@ -755,7 +755,7 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen())
     try {
       await permit(server, observation)
-      if (observation.advicee.host !== "claude-code") throw new Error("expected Claude observation")
+      if (observation.advicee.agentRuntime !== "claude-code") throw new Error("expected Claude observation")
       const { nativeMetadata: _nativeMetadata, ...synthetic } = observation
       for (const mismatched of [
         { ...synthetic, advicee: { ...observation.advicee, toolUseId: "wrong" } },

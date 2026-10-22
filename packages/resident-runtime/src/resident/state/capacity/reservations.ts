@@ -8,7 +8,7 @@ import {
 } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   type CapacityDraft,
-  type CapacityReservation,
+  type ReviewCapacityReservationHandle,
   type CapacityResize,
   type CapacityState,
   type CapacitySnapshot
@@ -27,14 +27,14 @@ export function registerReservation(
   partition: string,
   bytes: number,
   purpose: CapacityPurpose
-): CapacityReservation {
-  const capability: CapacityReservation = Object.freeze({ id, partition })
+): ReviewCapacityReservationHandle {
+  const capability: ReviewCapacityReservationHandle = Object.freeze({ id, partition })
   draft.reservations.set(id, { capability, bytes, purpose })
   return capability
 }
 export function setReservationMetadata(
   draft: CapacityDraft,
-  capability: CapacityReservation,
+  capability: ReviewCapacityReservationHandle,
   bytes: number | undefined,
   purpose: CapacityPurpose
 ): void {
@@ -58,7 +58,7 @@ function isPreparationRelease(
 }
 function validateReplacementResult(
   result: ReturnType<typeof stepCanonical>,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   count: number
 ): void {
   if (
@@ -79,7 +79,7 @@ export function reserve(
   partition: string,
   bytes: number,
   purpose: CapacityPurpose
-): CapacityReservation | undefined {
+): ReviewCapacityReservationHandle | undefined {
   if (!validCapacityBytes(bytes, 1)) return undefined
   const identity = partitionId(draft, partition)
   const result = stepCanonical(draft.canonical, { kind: "reserveCapacity", partition: identity, bytes, purpose })
@@ -94,7 +94,7 @@ export function reserve(
 }
 export function resize(
   draft: CapacityDraft,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   bytes: number,
   purpose?: CapacityPurpose
 ): CapacityResize {
@@ -118,9 +118,9 @@ export function resize(
 }
 export function replace(
   draft: CapacityDraft,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   bytes: ReadonlyArray<number>
-): ReadonlyArray<CapacityReservation | undefined> | { readonly invalidMeasurement: true } {
+): ReadonlyArray<ReviewCapacityReservationHandle | undefined> | { readonly invalidMeasurement: true } {
   if (draft.reservations.get(reservation.id)?.capability !== reservation) return bytes.map(() => undefined)
   if (bytes.length > CANONICAL_MAX_UNITS || bytes.some((size) => !validCapacityBytes(size, 1))) {
     release(draft, reservation)
@@ -155,7 +155,7 @@ export function replace(
 }
 function releaseWorkTransition(
   draft: CapacityDraft,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   work: ReturnType<typeof projectCanonical>["work"][number]
 ) {
   const common = {
@@ -173,7 +173,7 @@ function releaseWorkTransition(
       return transition(draft, { kind: "reviewCompleted", ...common, outcome: "discarded" })
   }
 }
-export function release(draft: CapacityDraft, reservation: CapacityReservation): boolean {
+export function release(draft: CapacityDraft, reservation: ReviewCapacityReservationHandle): boolean {
   const retained = draft.reservations.get(reservation.id)
   if (retained?.capability !== reservation) return false
   const work = canonicalProjection(draft).work.find((item) => item.reservation === reservation.id)
@@ -206,8 +206,8 @@ export function clear(draft: CapacityDraft): void {
   draft.partitionIds.clear()
   draft.partitionIdentityBytes = 0
   draft.roundIds.clear()
-  draft.requestRounds.clear()
-  draft.collectionTokens.clear()
+  draft.reviewServiceRequestRounds.clear()
+  draft.adviceHandoffIdentities.clear()
   draft.nextCollectionToken = 1
   draft.nextPartitionId = 1
   draft.minimumFreshStart = 0

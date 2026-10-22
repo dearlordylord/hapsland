@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema"
 import {
-  BackendIdentity,
-  type BackendIdentity as BackendIdentityType,
+  ReviewServiceIdentity,
+  type ReviewServiceIdentity as ReviewServiceIdentityType,
   EvaluationPlan,
   type EvaluationPlan as EvaluationPlanType,
   EvaluationRun,
@@ -122,11 +122,11 @@ export const enforceCallBudget = (plan: EvaluationPlanType, observedRequests: nu
   return { permitted: plan.permitted && !exceeded, observedRequests: boundedObserved, remainingRequests, exceeded }
 }
 
-export const makeBackendIdentity = (input: {
+export const makeReviewServiceIdentity = (input: {
   readonly id: string
   readonly version: string
-  readonly mode: BackendIdentityType["mode"]
-}): BackendIdentityType => decode(BackendIdentity, input)
+  readonly mode: ReviewServiceIdentityType["mode"]
+}): ReviewServiceIdentityType => decode(ReviewServiceIdentity, input)
 
 export const makeInputContractIdentity = (input: {
   readonly id: string
@@ -149,7 +149,7 @@ export interface ScenarioInput {
   readonly ruleDefinitions: ReadonlyArray<RuleDefinition>
   readonly configurationCaseId: string
   readonly effectiveConfigurationDigest: string
-  readonly backend: BackendIdentityType
+  readonly backend: ReviewServiceIdentityType
   readonly inputContract: InputContractIdentityType
   readonly rendererAdapter: RendererAdapterIdentityType
   readonly eventSequence?: EvaluationScenarioType["eventSequence"]
@@ -184,7 +184,7 @@ export interface RunInput {
   readonly fixtures?: ReadonlyArray<Fixture>
   readonly ruleDefinitions?: ReadonlyArray<RuleDefinition>
   readonly expectations?: ReadonlyArray<Expectation>
-  readonly backend: BackendIdentityType
+  readonly backend: ReviewServiceIdentityType
   readonly inputContract: InputContractIdentityType
   readonly rendererAdapter: RendererAdapterIdentityType
   readonly repetitions: number

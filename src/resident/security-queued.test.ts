@@ -15,7 +15,7 @@ import {
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 
 // Regresses edit-owned configuration across waits. The
 // controlled provider writes one line per DecisionModel call.
@@ -34,7 +34,7 @@ const setup = async (initiallyExcluded: boolean) => {
   const capturePath = join(root, "provider-attempts")
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
   if (observation === undefined) throw new Error("synthetic event adaptation failed")
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath,
     userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
     credential: null,
@@ -125,7 +125,7 @@ it("keeps the admitted credential reference when configuration changes after res
   const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
     dispatchControls: controls.layer
   })
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     ...fixture.dispatch,
     credential: {
       name: "TYPESAFE_API_KEY",

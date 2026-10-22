@@ -11,11 +11,11 @@ import {
   JEV_API_BASE,
   JEV_BACKEND,
   JEV_DESTINATION,
-  type BackendId,
+  type ReviewServiceId,
   type Destination
 } from "@hapsland/runtime-environment/runtime/backend"
 
-import { providerIdentity, providerApiBase, type ProviderIdentity } from "../review-providers/catalog.ts"
+import { reviewServiceIdentity, providerApiBase, type ReviewServiceIdentity } from "../review-providers/catalog.ts"
 
 export const DEFAULT_BACKEND = JEV_BACKEND
 export const DEFAULT_API_BASE = JEV_API_BASE
@@ -23,9 +23,9 @@ export const DEFAULT_DESTINATION = JEV_DESTINATION
 export { DEFAULT_CREDENTIAL_ENV_VAR }
 
 export interface ReviewSettings {
-  readonly backend: BackendId
+  readonly backend: ReviewServiceId
   readonly apiBase: string
-  readonly providerIdentity: ProviderIdentity
+  readonly reviewServiceIdentity: ReviewServiceIdentity
   readonly destination: Destination
   readonly credentialEnvVar: string
   /** Captured once for the event and shared by explanation and runtime selection. */
@@ -42,10 +42,10 @@ const defaultCapture = (root: string): ConfigurationCapture => {
 
 const settingsFrom = (capture: ConfigurationCapture, rules: ReadonlyArray<CompiledRule> = []): ReviewSettings => {
   const policy = capture.policy
-  const identity = providerIdentity(effectiveReviewBackend(policy))
+  const identity = reviewServiceIdentity(effectiveReviewBackend(policy))
   return {
     backend: identity.provider,
-    providerIdentity: identity,
+    reviewServiceIdentity: identity,
     apiBase: providerApiBase(identity),
     destination: identity.destination,
     credentialEnvVar: policy.credentialEnvVar.value,

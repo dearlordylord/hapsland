@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Deferred, Effect, Exit, Fiber, Queue } from "effect"
-import { makeDispatcher } from "@hapsland/resident-runtime/resident/dispatch"
+import { makeReviewWorkScheduler } from "@hapsland/resident-runtime/resident/dispatch"
 import {
   initialCanonical,
   projectCanonical,
@@ -16,7 +16,7 @@ const makeFixture = (
   Effect.gen(function* () {
     const ledger = yield* makeResidentState<never, string, number>()
     const ids = new Map<number, { operation: number; round: number }>()
-    const dispatch = yield* makeDispatcher<string, number>(
+    const dispatch = yield* makeReviewWorkScheduler<string, number>(
       ledger,
       (value) => {
         const identity = ids.get(value)
@@ -44,7 +44,7 @@ it.effect("uses the queued job's originating round after a successor opens", () 
     const round = Effect.runSync(ledger.roundId("agent"))
     const operation = Effect.runSync(ledger.admitObservation("agent", round))
     const seen: number[] = []
-    const dispatch = yield* makeDispatcher<string, { operation: number; round: number }>(
+    const dispatch = yield* makeReviewWorkScheduler<string, { operation: number; round: number }>(
       ledger,
       (job) => job,
       ({ value }) =>
@@ -194,7 +194,7 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
       )
       expect(yield* dispatcher.ledger.canonicalProjection()).toEqual(before)
       expect(yield* dispatcher.ledger.dispatch.read).toBe(native)
-      const duplicate = yield* makeDispatcher<string, number>(
+      const duplicate = yield* makeReviewWorkScheduler<string, number>(
         dispatcher.ledger,
         () => ({ operation: 1, round: 1 }),
         () => Effect.void
@@ -207,7 +207,7 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
     }
     yield* dispatcher.ledger.clear()
     expect((yield* dispatcher.ledger.dispatch.read).entries.size).toBe(0)
-    const duplicateAfterClear = yield* makeDispatcher<string, number>(
+    const duplicateAfterClear = yield* makeReviewWorkScheduler<string, number>(
       dispatcher.ledger,
       () => ({ operation: 1, round: 1 }),
       () => Effect.void
@@ -335,7 +335,7 @@ it.effect("matches direct Bend outputs and projections across saturation and ter
     }
     const hold = yield* Deferred.make<void>()
     const started: Array<{ operation: number; sequence: number }> = []
-    const dispatch = yield* makeDispatcher<string, { operation: number; round: number }>(
+    const dispatch = yield* makeReviewWorkScheduler<string, { operation: number; round: number }>(
       ledger,
       (job) => job,
       ({ value, sequence }) =>

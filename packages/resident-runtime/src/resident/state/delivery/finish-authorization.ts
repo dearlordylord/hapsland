@@ -5,7 +5,7 @@ export const deliveryFinishAuthorization = (
   state: DeliveryDraft,
   canonicalOwner: Pick<
     CapacityLedger,
-    "canonicalProjection" | "partitionId" | "roundId" | "transition" | "collectionTokenId"
+    "canonicalProjection" | "partitionId" | "roundId" | "transition" | "internAdviceHandoffIdentity"
   >,
   {
     submissionAdviceId,
@@ -83,7 +83,7 @@ export const deliveryFinishAuthorization = (
     permit: FinishPermit,
     stop: StopRecord | undefined
   ): stop is StopRecord {
-    if (permit.partition !== partition || !isActive(partition, permit.generation) || permit.revoked) return false
+    if (permit.partition !== partition || !isActive(partition, permit.admissionRoundId) || permit.revoked) return false
     return stop?.token === permit.attempt && stop.outputToken === token
   }
 
@@ -108,7 +108,7 @@ export const deliveryFinishAuthorization = (
       group: canonicalOwner.partitionId(partition),
       round: canonicalOwner.roundId(partition),
       attempt: stop.id,
-      token: canonicalOwner.collectionTokenId(token),
+      token: canonicalOwner.internAdviceHandoffIdentity(token),
       selected: permit.selected
     })
     if (authorization.rejection !== undefined || authorization.outputs[0]?.kind !== "finishAuthorized") {

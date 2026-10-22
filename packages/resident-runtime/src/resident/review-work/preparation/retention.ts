@@ -3,18 +3,18 @@ import type { JoinedReview } from "../../state/joined-reviews.ts"
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
 import { type PreparedObservation } from "@hapsland/review-execution/direct-event/pipeline"
-import { type CapacityReservation } from "../../state/resident/state.ts"
-import { type UnitJob } from "../../work-ownership/jobs.ts"
+import { type ReviewCapacityReservationHandle } from "../../state/resident/state.ts"
+import { type ReviewUnitJob } from "../../work-ownership/jobs.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
-import { sourcePartition } from "../../recipient/identity.ts"
+import { sourceScopeKey } from "../../recipient/identity.ts"
 import { logicalBytes } from "../../state/encoded-size.ts"
 import {
   type PreparationContext,
   type PlannedPreparationItem,
   type RetainedPreparationItem,
   type PreparationReservation,
-  type PreparedUnitFacts
+  type PreparedReviewUnitFacts
 } from "./context.ts"
 
 export const observePlannedEvaluation = (
@@ -70,7 +70,7 @@ export const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObse
 ) {
   if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
     const revision = yield* context.deps.residentRegisterCurrentWork(
-      sourcePartition(context.job.observation.root, context.job.observation.advicee),
+      sourceScopeKey(context.job.observation.root, context.job.observation.advicee),
       item.outcome.prepared
     )
     yield* context.deps.residentReleaseCurrentWork(revision)
@@ -130,7 +130,7 @@ export const recordReuseObservation = Effect.fn("ResidentRuntime.recordReuseObse
   }
 })
 
-export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit")(function* (
+export const retainPreparedReviewUnit = Effect.fn("ResidentRuntime.retainPreparedReviewUnit")(function* (
   context: PreparationContext<
     | "lifetime"
     | "residentDispatcher"
@@ -156,7 +156,7 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
   item: RetainedPreparationItem
 ) {
   const releaseRemainingReservation = Effect.fn("ResidentRuntime.releaseRemainingReservation")(function* (
-    reservation: CapacityReservation | undefined
+    reservation: ReviewCapacityReservationHandle | undefined
   ) {
     if (reservation !== undefined) yield* context.deps.residentLedger.release(reservation)
   })
@@ -165,16 +165,18 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
   ) {
     if (item?.kind === "owner") yield* context.deps.residentReleaseReuseClaim(item.evaluationKey)
   })
-  const discardRemainingPreparedUnits = Effect.fn("ResidentRuntime.discardRemainingPreparedUnits")(function* () {
-    for (let remaining = index; remaining < retained.length; remaining++) {
-      const admitted = reservations[remaining]
-      yield* releaseRemainingReservation(admitted?.reservation)
-      const pending = retained[remaining]
-      yield* releaseRemainingClaim(pending)
+  const discardRemainingPreparedReviewUnits = Effect.fn("ResidentRuntime.discardRemainingPreparedReviewUnits")(
+    function* () {
+      for (let remaining = index; remaining < retained.length; remaining++) {
+        const admitted = reservations[remaining]
+        yield* releaseRemainingReservation(admitted?.reservation)
+        const pending = retained[remaining]
+        yield* releaseRemainingClaim(pending)
+      }
     }
-  })
+  )
   if (!(yield* context.deps.residentJobActive(context.job))) {
-    yield* discardRemainingPreparedUnits()
+    yield* discardRemainingPreparedReviewUnits()
     return false
   }
   const admitted = reservations[index]
@@ -197,7 +199,7 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
   }
   const reservation = admitted.reservation
   const revision = yield* context.deps.residentRegisterCurrentWork(
-    sourcePartition(context.job.observation.root, context.job.observation.advicee),
+    sourceScopeKey(context.job.observation.root, context.job.observation.advicee),
     item.outcome.prepared
   )
   const registerPreparedWork = Effect.fn("ResidentRuntime.registerPreparedWork")(function* () {
@@ -229,7 +231,7 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
   const sourceHash = prepared.observation.outcomes.flatMap((outcome) =>
     outcome.status === "observed" && outcome.path === item.outcome.path ? [outcome.snapshot.sourceHash] : []
   )[0]
-  const unit = makePreparedUnit(context, {
+  const unit = makePreparedReviewUnit(context, {
     item,
     admitted,
     pathObservation,
@@ -238,7 +240,7 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
     revision,
     workUnitId
   })
-  context.deps.residentInspection.observePreparedUnit(unit)
+  context.deps.residentInspection.observePreparedReviewUnit(unit)
   if (item.kind === "cached") {
     return yield* settleCachedUnit(context, unit, item)
   }
@@ -246,7 +248,7 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
     throw new Error("canonical evaluation attachment refused")
   }
   context.unassignedClaims.delete(item.evaluationKey)
-  const enqueuePreparedUnit = Effect.fn("ResidentRuntime.enqueuePreparedUnit")(function* () {
+  const enqueuePreparedReviewUnit = Effect.fn("ResidentRuntime.enqueuePreparedReviewUnit")(function* () {
     if (!(yield* context.deps.residentDispatcher.enqueue(context.job.partition, unit))) {
       yield* context.deps.residentReleaseReuseClaim(item.evaluationKey, "capacity")
       yield* context.deps.residentReleaseUnit(unit)
@@ -263,11 +265,14 @@ export const retainPreparedUnit = Effect.fn("ResidentRuntime.retainPreparedUnit"
       })
     }
   })
-  yield* enqueuePreparedUnit()
+  yield* enqueuePreparedReviewUnit()
   return true
 })
 
-const makePreparedUnit = (context: PreparationContext<"residentInspection">, facts: PreparedUnitFacts): UnitJob => {
+const makePreparedReviewUnit = (
+  context: PreparationContext<"residentInspection">,
+  facts: PreparedReviewUnitFacts
+): ReviewUnitJob => {
   const { item, admitted, pathObservation, analyticsEnabled, sourceHash, revision, workUnitId } = facts
   const reservation = admitted.reservation
   const inspectionEvaluationId = context.deps.residentInspection.evaluationId(item.evaluationKey)
@@ -276,10 +281,10 @@ const makePreparedUnit = (context: PreparationContext<"residentInspection">, fac
     ...(inspectionEvaluationId === undefined ? {} : { inspectionEvaluationId }),
     ...(context.job.inspectionReceipt === undefined ? {} : { inspectionReceipt: context.job.inspectionReceipt }),
     settings: context.job.settings,
-    canonicalRound: context.job.canonicalRound,
+    canonicalRoundId: context.job.canonicalRoundId,
     ...(context.job.round === undefined ? {} : { round: context.job.round, work: context.job.work }),
     ...(workUnitId === undefined ? {} : { workUnitId }),
-    admissionId: context.job.canonicalObservationId,
+    canonicalObservationId: context.job.canonicalObservationId,
     canonicalOperationId: admitted.operation,
     observation: pathObservation,
     partition: context.job.partition,
@@ -295,7 +300,7 @@ const makePreparedUnit = (context: PreparationContext<"residentInspection">, fac
 
 const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function* (
   context: PreparationContext<"lifetime" | "residentLedger" | "residentRetainAdvice" | "residentRetireCachedUnit">,
-  unit: UnitJob,
+  unit: ReviewUnitJob,
   item: Extract<PlannedPreparationItem, { kind: "cached" }>
 ) {
   const admitted = { operation: unit.canonicalOperationId }
@@ -305,14 +310,14 @@ const settleCachedUnit = Effect.fn("ResidentRuntime.settleCachedUnit")(function*
     !(yield* context.deps.residentLedger.startReview(
       context.job.partition,
       admitted.operation,
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     )) ||
     !(yield* context.deps.residentLedger.completeReview(
       context.job.partition,
       admitted.operation,
       reservation,
       "finding",
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     ))
   ) {
     throw new Error("canonical cached review settlement refused")
@@ -369,7 +374,7 @@ export const completeSourcePreparation = Effect.fn("ResidentRuntime.completeSour
       context.job.partition,
       context.job.canonicalObservationId,
       "completeObservation",
-      context.job.canonicalRound
+      context.job.canonicalRoundId
     ))
   ) {
     throw new Error("canonical observation completion refused")

@@ -1,6 +1,6 @@
 import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import type { PathEligibilityReason } from "@hapsland/native-observation/direct-event/selection"
-import type { ProviderIdentity } from "../review-providers/catalog.ts"
+import type { ReviewServiceIdentity } from "../review-providers/catalog.ts"
 import { createHash } from "node:crypto"
 import { reviewTargetForInput, type CompiledRule } from "../rules/compiler.ts"
 import type { ReviewTarget } from "../rules/targets.ts"
@@ -114,7 +114,7 @@ export type FrozenRule = {
 }
 
 export type ReviewInput = {
-  readonly providerIdentity: ProviderIdentity
+  readonly reviewServiceIdentity: ReviewServiceIdentity
   readonly contract: string
   readonly graphLimits?: GraphLimits
   /** Complete graph projection uses the type/function renderer. */
@@ -135,7 +135,8 @@ export type ReviewInput = {
   readonly interpretation: "probability-strictly-greater-than-threshold"
 }
 
-export type PreparedUnit = {
+/** One review unit with its frozen input and intended agent, ready for evaluation. */
+export type PreparedReviewUnit = {
   readonly root: string
   readonly advicee: DirectAdvicee
   readonly input: ReviewInput

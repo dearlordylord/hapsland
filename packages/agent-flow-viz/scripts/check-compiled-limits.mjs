@@ -32,9 +32,9 @@ try {
   const stock = await import(pathToFileURL(stockGenerated))
   const compiled = await import(pathToFileURL(alternateGenerated))
   assert.equal(stock.bendPreparationLimit(), 8)
-  assert.equal(stock.bendJevRequestLimit(), 8)
+  assert.equal(stock.bendReviewServiceRequestLimit(), 8)
   assert.equal(compiled.bendPreparationLimit(), 3)
-  assert.equal(compiled.bendJevRequestLimit(), 5)
+  assert.equal(compiled.bendReviewServiceRequestLimit(), 5)
 
   server = await createServer({
     root: resolve(root, "packages/agent-flow-viz"),
@@ -43,7 +43,7 @@ try {
   })
   const canonical = await server.ssrLoadModule("/src/canonical-replay.ts")
   const projection = canonical.replayCanonical([], 0).projection
-  assert.deepEqual(projection.executionLimits, { preparation: 3, jevRequests: 5 })
+  assert.deepEqual(projection.executionLimits, { preparation: 3, reviewServiceRequests: 5 })
   await server.listen()
   const url = server.resolvedUrls?.local[0]
   assert.ok(url)
@@ -54,7 +54,7 @@ try {
   assert.ok((await topology.innerText()).includes(`Preparation running: 0/${projection.executionLimits.preparation}`))
   assert.ok(
     (await topology.innerText()).includes(
-      `Jev in-flight: 0/${projection.executionLimits.jevRequests} · no Jev wait queue`
+      `Jev in-flight: 0/${projection.executionLimits.reviewServiceRequests} · no Jev wait queue`
     )
   )
   assert.doesNotMatch(await topology.innerText(), /Preparation running: 0\/8|Jev in-flight: 0\/8/)
@@ -81,11 +81,11 @@ try {
     6,
     clear.limits
   ).projection
-  assert.equal(occupied.dispatch.requests.length, 1)
+  assert.equal(occupied.dispatch.reviewServiceRequests.length, 1)
   assert.deepEqual(occupied.executionLimits, projection.executionLimits)
   assert.ok(
     (await topology.innerText()).includes(
-      `Jev in-flight: ${occupied.dispatch.requests.length}/${occupied.executionLimits.jevRequests} · no Jev wait queue`
+      `Jev in-flight: ${occupied.dispatch.reviewServiceRequests.length}/${occupied.executionLimits.reviewServiceRequests} · no Jev wait queue`
     )
   )
   console.log(

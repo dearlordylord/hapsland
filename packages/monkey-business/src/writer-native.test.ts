@@ -413,7 +413,7 @@ function publicCase(mode: number) {
           expect.objectContaining({ members: boundary.endpoint === 2 ? 2 : 1 })
         ])
         expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
-        expect(run.projection.dispatch.requests).toHaveLength(1)
+        expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
         expect(run.projection.collection.leases).toEqual([])
         expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
       }
@@ -430,7 +430,7 @@ function publicCase(mode: number) {
       }
       if (source.seeded && boundary.endpoint === source.preparation) {
         expect(run.observations.filter((frame) => frame.event.kind === "preparationCompleted")).toHaveLength(2)
-        expect(run.projection.dispatch.requests).toHaveLength(2)
+        expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(2)
         expect(run.projection.pendingFindings).toEqual([])
       }
       if (
@@ -439,7 +439,7 @@ function publicCase(mode: number) {
         (source.seeded || (!source.seeded && boundary.endpoint === 7))
       ) {
         expect(run.projection.pendingFindings).toHaveLength(source.seeded ? 2 : 1)
-        expect(run.projection.dispatch.requests).toEqual([])
+        expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
         expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
       }
     } else {
@@ -489,7 +489,7 @@ function publicCase(mode: number) {
     expect(run.projection.collection.claims.some((claim) => claim.group === 2 && claim.owner === 61)).toBe(true)
   }
   expect(run.projection.collection.leases).toEqual([])
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(
     source.seeded ? 2 : 1
   )
   expect(

@@ -36,7 +36,7 @@ def add(+world: M.World, cue: M.Cue) -> M.World:
     world,
     List.append(&2, M.Cue, take(select(items, True{}), 32n), take(select(items, False{}), 2n))
   )
-def positioned(cue: M.Cue, found: Maybe<&2, C.Work>, world: M.World, ttl: U32) -> M.Cue:
+def positioned(cue: M.Cue, found: Maybe<&2, C.ReviewWorkRecord>, world: M.World, ttl: U32) -> M.Cue:
   match cue found:
     case M.Cue{kind, id, family, x, y, _} None{}: M.Cue{kind, id, family, x, y, ttl}
     case M.Cue{+kind, id, family, x, y, _} Some{work}:
@@ -70,7 +70,7 @@ def denied(outputs: List<&2, C.Output>) -> Bool:
     case Nil{}: False{}
     case C.PolicyDecided{C.PreparationRefused{}} <> _: True{}
     case _ <> rest: denied(rest)
-def refusal(+world: M.World, id: Nat, found: Maybe<&2, C.Work>) -> M.World:
+def refusal(+world: M.World, id: Nat, found: Maybe<&2, C.ReviewWorkRecord>) -> M.World:
   match found:
     case None{}: world
     case Some{+work}:

@@ -516,7 +516,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058admission$(
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
   if (_allowed_0) {
-    return {$: "../../packages/agent-flow-bend/Ledger.Granted", "state": {$: "../../packages/agent-flow-bend/Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
+    return {$: "../../packages/agent-flow-bend/Ledger.Granted", "state": {$: "../../packages/agent-flow-bend/Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
   } else {
     return {$: "../../packages/agent-flow-bend/Ledger.Rejected", "state": {$: "../../packages/agent-flow-bend/Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
   }
@@ -551,7 +551,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058find$(_id_0
     const __1 = _t_0["bytes"];
     const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058find$pick$({$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058find$pick$({$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -573,7 +573,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058remove$(_id
     const __1 = _t_0["bytes"];
     const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058remove$pick$({$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058remove$pick$({$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -613,7 +613,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$(_i
     const _old_bytes_0 = _t_0["bytes"];
     const _purpose_0 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -627,7 +627,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace_for
     const __0 = _t_0["bytes"];
     const __1 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "../../packages/agent-flow-bend/Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1143,7 +1143,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$(_ev
     return {$: "../../packages/agent-flow-bend/Flow.DataRoute", "from": {$: "../../packages/agent-flow-bend/Flow.PreparationNode"}, "to": {$: "../../packages/agent-flow-bend/Flow.ReviewQueueNode"}, "input": {$: "../../packages/agent-flow-bend/Flow.CaptureJob"}, "output": {$: "../../packages/agent-flow-bend/Flow.ReviewWorkItem"}, "copy": false};
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.UnitDispatched") {
     return {$: "../../packages/agent-flow-bend/Flow.DataRoute", "from": {$: "../../packages/agent-flow-bend/Flow.ReviewQueueNode"}, "to": {$: "../../packages/agent-flow-bend/Flow.JevDispatchNode"}, "input": {$: "../../packages/agent-flow-bend/Flow.ReviewWorkItem"}, "output": {$: "../../packages/agent-flow-bend/Flow.DecisionRequest"}, "copy": false};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.JevRequestSent") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent") {
     return {$: "../../packages/agent-flow-bend/Flow.DataRoute", "from": {$: "../../packages/agent-flow-bend/Flow.JevDispatchNode"}, "to": {$: "../../packages/agent-flow-bend/Flow.JevNode"}, "input": {$: "../../packages/agent-flow-bend/Flow.DecisionRequest"}, "output": {$: "../../packages/agent-flow-bend/Flow.NetworkRequest"}, "copy": false};
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.JevFindingReceived") {
     return {$: "../../packages/agent-flow-bend/Flow.DataRoute", "from": {$: "../../packages/agent-flow-bend/Flow.JevNode"}, "to": {$: "../../packages/agent-flow-bend/Flow.AdviceStoreNode"}, "input": {$: "../../packages/agent-flow-bend/Flow.NetworkRequest"}, "output": {$: "../../packages/agent-flow-bend/Flow.Advice"}, "copy": false};
@@ -2118,7 +2118,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058step$(_flow_0
     return $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "../../packages/agent-flow-bend/Flow.InternalEvent"});
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.UnitDispatched") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "../../packages/agent-flow-bend/Flow.InternalEvent"});
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.JevRequestSent") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "../../packages/agent-flow-bend/Flow.InternalEvent"});
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Flow.BackgroundWaitStarted") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "../../packages/agent-flow-bend/Flow.InternalEvent"});
@@ -2277,7 +2277,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058selected_is$(
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Flow$058schedule_review$pick$(_id_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Flow.Transition", "event": {$: "../../packages/agent-flow-bend/Flow.UnitDispatched"}, "route": ($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$({$: "../../packages/agent-flow-bend/Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Flow.Transition", "event": {$: "../../packages/agent-flow-bend/Flow.JevRequestSent"}, "route": ($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$({$: "../../packages/agent-flow-bend/Flow.JevRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
+    return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Flow.Transition", "event": {$: "../../packages/agent-flow-bend/Flow.UnitDispatched"}, "route": ($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$({$: "../../packages/agent-flow-bend/Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Flow.Transition", "event": {$: "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent"}, "route": ($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058route_of$({$: "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
   } else {
     return _tail_0;
   }
@@ -2475,7 +2475,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058is_source_rea
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058is_at_jev$(_stage_0) {
-  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -2485,7 +2485,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058is_at_jev$(_s
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058is_unit_unfinished$(_stage_0) {
   if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewQueued") {
     return true;
-  } else if (_stage_0.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+  } else if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -2609,7 +2609,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058fill_review$(
       const _bytes_0 = _t_0["bytes"];
       const _rest_0 = _units_0["tail"];
       const _room_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Flow$058has_room$(_occupied_0, _capacity_0));
-      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "../../packages/agent-flow-bend/Work.AtJev"}, {$: "../../packages/agent-flow-bend/Work.ReviewQueued"}));
+      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding"}, {$: "../../packages/agent-flow-bend/Work.ReviewQueued"}));
       const _x_0 = ($Bool$pick$(_room_0, 1, 0));
       return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _next_stage_0, "findings": _findings_0, "bytes": _bytes_0}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058fill_review$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
     } else {
@@ -2910,16 +2910,16 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$apply$(_work_0, _id_0, _observation_0) {
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "../../packages/agent-flow-bend/Work.AtJev"}, "findings": 0, "bytes": 0});
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding"}, "findings": 0, "bytes": 0});
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
   if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewQueued") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058start_unit$apply$(_work_0, _id_0, _observation_0);
-  } else if (_stage_0.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+  } else if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
     return {$: "../../packages/agent-flow-bend/Work.Accepted", "state": _work_0, "admitted": {$: "Nil"}};
   } else {
-    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotAtJev"}};
+    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -2965,10 +2965,10 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$kind$
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0) {
-  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
   } else {
-    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotAtJev"}};
+    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3005,7 +3005,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_findin
   if (_stage_0.$ === "../../packages/agent-flow-bend/Work.PendingFinding") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
   } else {
-    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotAtJev"}};
+    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3031,12 +3031,12 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058revise_findin
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
-  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+  if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "../../packages/agent-flow-bend/Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else if (_stage_0.$ === "../../packages/agent-flow-bend/Work.ReviewQueued") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "../../packages/agent-flow-bend/Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "../../packages/agent-flow-bend/Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else {
-    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotAtJev"}};
+    return {$: "../../packages/agent-flow-bend/Work.Rejected", "state": _work_0, "reason": {$: "../../packages/agent-flow-bend/Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3295,7 +3295,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058unfinished_un
         if (_t_1.$ === "../../packages/agent-flow-bend/Work.ReviewQueued") {
           const _rest_0 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058unfinished_unit_ids$(_rest_0))};
-        } else if (_t_1.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+        } else if (_t_1.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
           const _rest_1 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058unfinished_unit_ids$(_rest_1))};
         } else {
@@ -3351,7 +3351,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058jev_cancel_id
         const _t_0 = _units_0["head"];
         const _id_0 = _t_0["id"];
         const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "../../packages/agent-flow-bend/Work.AtJev") {
+        if (_t_1.$ === "../../packages/agent-flow-bend/Work.ReviewServiceRequestOutstanding") {
           const _rest_0 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Work$058jev_cancel_ids$(_rest_0))};
         } else {
@@ -3402,7 +3402,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Work$058main$() {
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058initial$() {
-  return {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
+  return {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "review_service_requests": {$: "Nil"}};
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_running$() {
@@ -3488,22 +3488,22 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058prepend_w
     const _running_0 = _t_0["running"];
     const _next_sequence_0 = _t_0["next_sequence"];
     const _closed_0 = _t_0["closed"];
-    const _requests_0 = _t_0["requests"];
+    const _review_service_requests_0 = _t_0["review_service_requests"];
     const _commands_0 = _result_0["commands"];
-    return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
+    return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": _commands_0};
   } else {
     const _state_0 = _result_0["state"];
     return {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": _state_0};
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0) {
   if (_queued_0.$ === "Nil") {
-    return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+    return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": {$: "Nil"}};
   } else {
     const _entry_0 = _queued_0["head"];
     const _rest_0 = _queued_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058can_start$(_entry_0, _running_0)), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058prepend_waiting$(_entry_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058can_start$(_entry_0, _running_0)), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": {$: "Con", "head": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058prepend_waiting$(_entry_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0)))));
   }
 }
 
@@ -3512,8 +3512,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_one$
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0);
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_next_result$(_first_0, _commands_0, _result_0) {
@@ -3553,9 +3553,9 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_rema
       const _running_0 = _t_0["running"];
       const __0 = _t_0["next_sequence"];
       const __1 = _t_0["closed"];
-      const __2 = _t_0["requests"];
+      const __2 = _t_0["review_service_requests"];
       const _commands_0 = _result_0["commands"];
-      return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058may_pump$(_queued_0, _running_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_remaining$(_rest_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_next$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
+      return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058may_pump$(_queued_0, _running_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_remaining$(_rest_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_next$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, _commands_0)))), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, "commands": _commands_0});
     } else {
       const _state_0 = _result_0["state"];
       return {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": _state_0};
@@ -3568,8 +3568,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_avai
   const __0 = _state_0["running"];
   const __1 = _state_0["next_sequence"];
   const __2 = _state_0["closed"];
-  const __3 = _state_0["requests"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_remaining$(($List$length$(_queued_0)), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
+  const __3 = _state_0["review_service_requests"];
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_remaining$(($List$length$(_queued_0)), {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "review_service_requests": __3}, "commands": {$: "Nil"}});
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
@@ -3577,9 +3577,9 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058enqueue$(
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058known$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058known$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "review_service_requests": _review_service_requests_0})));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
@@ -3597,8 +3597,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058settle$(_
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0})), {$: "../../packages/agent-flow-bend/Dispatch.Denied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}});
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0) {
@@ -3643,7 +3643,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_qu
     const __4 = _t_0["cancelled"];
     const __5 = _t_0["preparation"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued_one$({$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued$(_rest_0, _ids_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued_one$({$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued$(_rest_0, _ids_0)));
   }
 }
 
@@ -3654,7 +3654,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058cancelled
   const _operation_0 = _entry_0["operation"];
   const _sequence_0 = _entry_0["sequence"];
   const _preparation_0 = _entry_0["preparation"];
-  return {$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
+  return {$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running_hit$(_entry_0, _hit_0, _tail_0) {
@@ -3680,10 +3680,10 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_ru
     const __5 = _entry_0["preparation"];
     const _entries_0 = _tail_0["entries"];
     const _commands_0 = _tail_0["commands"];
-    return {$: "../../packages/agent-flow-bend/Dispatch.Filtered", "entries": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
+    return {$: "../../packages/agent-flow-bend/Dispatch.Filtered", "entries": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
   } else {
     const __6 = _entry_0["preparation"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running_hit$({$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running_hit$({$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
   }
 }
 
@@ -3700,19 +3700,19 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_ru
     const __4 = _t_0["cancelled"];
     const __5 = _t_0["preparation"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running_one$({$: "../../packages/agent-flow-bend/Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running$(_rest_0, _ids_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running_one$({$: "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running$(_rest_0, _ids_0)));
   }
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discarded_result$(_state_0, _queued_0, _running_0) {
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
+  const _review_service_requests_0 = _state_0["review_service_requests"];
   const _waiting_0 = _queued_0["entries"];
   const _waiting_commands_0 = _queued_0["commands"];
   const _executing_0 = _running_0["entries"];
   const _executing_commands_0 = _running_0["commands"];
-  return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
+  return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discard$(_state_0, _ids_0) {
@@ -3720,8 +3720,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discard$(
   const _running_0 = _state_0["running"];
   const __0 = _state_0["next_sequence"];
   const __1 = _state_0["closed"];
-  const __2 = _state_0["requests"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discarded_result$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued$(_queued_0, _ids_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running$(_running_0, _ids_0)));
+  const __2 = _state_0["review_service_requests"];
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discarded_result$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_queued$(_queued_0, _ids_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058filter_running$(_running_0, _ids_0)));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discard_all$(_items_0) {
@@ -3738,27 +3738,27 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058close$(_s
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
-  const _requests_0 = _state_0["requests"];
-  return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discard_all$(_queued_0))};
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return {$: "../../packages/agent-flow-bend/Dispatch.Advanced", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "review_service_requests": _review_service_requests_0}, "commands": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058discard_all$(_queued_0))};
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const _owner_0 = _item_0["partition"];
   const _generation_0 = _item_0["lifetime"];
   const _current_0 = _item_0["round"];
   const _work_0 = _item_0["operation"];
-  const _id_0 = _item_0["request"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
+  const _id_0 = _item_0["review_service_request_id"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _review_service_request_id_0)))))))));
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return false;
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0));
+    const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0));
     return (_x_0 || _x_1);
   }
 }
@@ -3776,21 +3776,21 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_f
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($List$length$(_requests_0));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  const _x_0 = ($List$length$(_review_service_requests_0));
   const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058max_requests$());
-  const _x_2 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_for_work$(_requests_0, _operation_0));
+  const _x_2 = ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_for_work$(_review_service_requests_0, _operation_0));
   const _x_3 = ($Bool$not$((_x_0 < _x_1)));
   const _x_4 = (_x_2 || _x_3);
-  return $Bool$pick$((_closed_0 || _x_4), {$: "../../packages/agent-flow-bend/Dispatch.RequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "../../packages/agent-flow-bend/Dispatch.RequestAccepted", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
+  return $Bool$pick$((_closed_0 || _x_4), {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "review_service_request_id": _review_service_request_id_0, "started": false, "interrupted": false}, "tail": _review_service_requests_0}}});
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -3799,15 +3799,15 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_s
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
     const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const __0 = _t_0["started"];
     const _interrupted_0 = _t_0["interrupted"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -3816,42 +3816,42 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_i
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
     const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const _started_0 = _t_0["started"];
     const __0 = _t_0["interrupted"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "None"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Some", "value": _item_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0, _found_0) {
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
+  const _review_service_requests_0 = _state_0["review_service_requests"];
   if (_found_0.$ === "None") {
-    return {$: "../../packages/agent-flow-bend/Dispatch.RequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
+    return {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}};
   } else {
     const _t_0 = _found_0["value"];
     const _started_0 = _t_0["started"];
@@ -3860,17 +3860,17 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_u
     const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
     const _x_2 = ($Bool$and$(_start_0, _started_0));
     const _x_3 = (_x_0 || _x_1);
-    return $Bool$pick$((_x_2 || _x_3), {$: "../../packages/agent-flow-bend/Dispatch.RequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "../../packages/agent-flow-bend/Dispatch.RequestAccepted", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
+    return $Bool$pick$((_x_2 || _x_3), {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, {$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted", "state": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": ($Bool$pick$(_settle_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_remove$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), ($Bool$pick$(_start_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_started$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))))))}});
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0) {
   const __0 = _state_0["queued"];
   const __1 = _state_0["running"];
   const __2 = _state_0["next_sequence"];
   const __3 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update_found$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update_found$({$: "../../packages/agent-flow-bend/Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "review_service_requests": _review_service_requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Retention$058cleanup_gate$(_facts_0) {
@@ -4054,7 +4054,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058select$(_s
   const __11 = _advice_0["collection_ready"];
   const _x_0 = ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _selected_0));
   const _x_1 = ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _retained_0));
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058select$duplicate$({$: "../../packages/agent-flow-bend/Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "../../packages/agent-flow-bend/Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058current$({$: "../../packages/agent-flow-bend/Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058select$duplicate$({$: "../../packages/agent-flow-bend/Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "../../packages/agent-flow-bend/Handoff.FindingCandidate", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058current$({$: "../../packages/agent-flow-bend/Handoff.FindingCandidate", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058finish$initial$(_round_0) {
@@ -8021,7 +8021,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058remove_w
     const __4 = _t_0["kind"];
     const __5 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058remove_work_pick$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4, "parent": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058remove_work_pick$({$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4, "parent": __5}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
   }
 }
 
@@ -8135,7 +8135,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058quiet_ro
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ActionRequested", "request": {$: "../../packages/agent-flow-bend/Canonical.CancelWork", "operation": _operation_0}}, "tail": _tail_0};
+    return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ResidentActionRequested", "command": {$: "../../packages/agent-flow-bend/Canonical.CancelWork", "operation": _operation_0}}, "tail": _tail_0};
   } else {
     return _tail_0;
   }
@@ -8278,7 +8278,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_o
     const __2 = _t_0["kind"];
     const __3 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2, "parent": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2, "parent": __3}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
   }
 }
 
@@ -8295,7 +8295,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_a
     const _kind_0 = _t_0["kind"];
     const __2 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))));
   }
 }
 
@@ -8401,7 +8401,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058admit_ob
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "../../packages/agent-flow-bend/Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ObservationAdmitted", "id": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "../../packages/agent-flow-bend/Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ObservationAdmitted", "id": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleRound"}});
   } else {
     return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleRound"}};
   }
@@ -8441,7 +8441,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_
     const __0 = _t_0["kind"];
     const _parent_0 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind_pick$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": __0, "parent": _parent_0}, {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": _kind_0, "parent": _parent_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, _kind_0, _rest_0)), ($Nat$is_eq$(_current_0, _operation_0)));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind_pick$({$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": __0, "parent": _parent_0}, {$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": _kind_0, "parent": _parent_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, _kind_0, _rest_0)), ($Nat$is_eq$(_current_0, _operation_0)));
   }
 }
 
@@ -8583,7 +8583,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058begin_re
   if (_result_0.$ === "../../packages/agent-flow-bend/Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _charge_0 = _result_0["id"];
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "../../packages/agent-flow-bend/Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ActionRequested", "request": {$: "../../packages/agent-flow-bend/Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}}, "tail": {$: "Nil"}}};
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "../../packages/agent-flow-bend/Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ResidentActionRequested", "command": {$: "../../packages/agent-flow-bend/Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}}, "tail": {$: "Nil"}}};
   } else {
     return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.PreparationRefused"}}, "tail": {$: "Nil"}}};
   }
@@ -8670,7 +8670,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058admit_on
   if (_result_0.$ === "../../packages/agent-flow-bend/Ledger.Granted") {
     const _granted_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "../../packages/agent-flow-bend/Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "../../packages/agent-flow-bend/Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}}, "tail": {$: "Nil"}}))};
+    return {$: "../../packages/agent-flow-bend/Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "../../packages/agent-flow-bend/Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}}, "tail": {$: "Nil"}}))};
   } else {
     const _unchanged_0 = _result_0["state"];
     return {$: "../../packages/agent-flow-bend/Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058capacity_view$(_unchanged_0, _partition_0))}}, "tail": {$: "Nil"}}))};
@@ -8931,7 +8931,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
       const _parent_0 = _t_0["parent"];
       return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_0, _outcome_0);
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
       const _parent_1 = _t_0["parent"];
       return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_1, _outcome_0);
     } else {
@@ -9056,7 +9056,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
       return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Finding"}, _charge_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
       return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Finding"}, _charge_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
     } else {
       return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleOperation"}};
@@ -9115,13 +9115,13 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0) {
   if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.RequestFinding") {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Finding"}, _current_work_0)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestFinding"}}});
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Finding"}, _current_work_0)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestFinding"}}});
   } else if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Clear"}, _current_work_0)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestClear"}}});
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Clear"}, _current_work_0)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestClear"}}});
   } else if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.RequestInterrupted") {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Interrupted"})), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}}});
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Interrupted"})), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}}});
   } else {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded", "outcome": _outcome_0}});
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": _outcome_0}});
   }
 }
 
@@ -9129,13 +9129,13 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+    if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
       return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0);
     } else {
-      return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
+      return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored"}}, "tail": {$: "Nil"}}};
     }
   } else {
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9149,7 +9149,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.RequestAccepted") {
+  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_work$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
   } else {
@@ -9157,7 +9157,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0, _found_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0, _found_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9171,13 +9171,13 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
     const _t_0 = _found_0["value"];
     const _started_0 = _t_0["started"];
     const _interrupted_0 = _t_0["interrupted"];
-    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_outcome_0, _started_0, _interrupted_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, false, true)))), {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.WrongStage"}});
+    return $Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_outcome_0, _started_0, _interrupted_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, false, false, true)))), {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.WrongStage"}});
   } else {
     return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleOperation"}};
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9189,17 +9189,17 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const __7 = _t_0["running"];
   const __8 = _t_0["next_sequence"];
   const __9 = _t_0["closed"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const __10 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_found$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": __6, "running": __7, "next_sequence": __8, "closed": __9, "requests": _requests_0}, "collection": __10, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled_found$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": {$: "../../packages/agent-flow-bend/Dispatch.State", "queued": __6, "running": __7, "next_sequence": __8, "closed": __9, "review_service_requests": _requests_0}, "collection": __10, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_facts_ready$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0, _current_work_0, _physical_available_0) {
   return $Bool$and$(_root_valid_0, ($Bool$and$(_configuration_valid_0, ($Bool$and$(_credential_ready_0, ($Bool$and$(_selected_0, ($Bool$and$(_current_work_0, _physical_available_0)))))))));
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _result_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _result_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
@@ -9209,11 +9209,11 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.RequestAccepted") {
+  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "../../packages/agent-flow-bend/Canonical.AtJev"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0}}, "tail": {$: "Nil"}}};
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "review_service_request_id": _review_service_request_id_0}}, "tail": {$: "Nil"}}};
   } else {
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable"}});
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable"}});
   }
 }
 
@@ -9231,7 +9231,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
-      return $Bool$pick$(_ready_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable"}})));
+      return $Bool$pick$(_ready_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058reviewed$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "../../packages/agent-flow-bend/Canonical.Unavailable"})), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable"}})));
     } else {
       return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, "reason": {$: "../../packages/agent-flow-bend/Canonical.WrongStage"}};
     }
@@ -9263,7 +9263,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.RequestAccepted") {
+  if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
     return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
   } else {
@@ -9271,7 +9271,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   }
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9281,10 +9281,10 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, true, false, false)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded"}});
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, true, false, false)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded"}});
 }
 
-function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9294,7 +9294,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, true, false)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded"}});
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, false, true, false)), {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded"}});
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058prepared_offer_result$(_state_0, _decision_0) {
@@ -9506,7 +9506,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_s
     const _kind_0 = _t_0["kind"];
     const __2 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.Work", "partition": _partition_0, "lifetime": _generation_0, "round": _round_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_rest_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058scope_contains$(_scopes_0, _partition_0, _round_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))))));
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _generation_0, "round": _round_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_rest_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058scope_contains$(_scopes_0, _partition_0, _round_0)), ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))))));
   }
 }
 
@@ -10218,7 +10218,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cancel_r
   if (_result_0.$ === "../../packages/agent-flow-bend/Dispatch.Advanced") {
     const _dispatch_0 = _result_0["state"];
     const _outputs_0 = _result_0["commands"];
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ActionRequested", "request": {$: "../../packages/agent-flow-bend/Canonical.CancelWork", "operation": _operation_0}}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))}}};
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ResidentActionRequested", "command": {$: "../../packages/agent-flow-bend/Canonical.CancelWork", "operation": _operation_0}}, "tail": ($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))}}};
   } else {
     return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": _original_0, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleOperation"}};
   }
@@ -10254,7 +10254,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cancel_r
   const __7 = _state_0["history"];
   if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cancel_review_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _operation_0, _charge_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
-  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cancel_review_released$({$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _operation_0, _charge_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
   } else {
     return {$: "../../packages/agent-flow-bend/Canonical.Rejected", "state": {$: "../../packages/agent-flow-bend/Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, "reason": {$: "../../packages/agent-flow-bend/Canonical.StaleOperation"}};
@@ -10563,7 +10563,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058collecti
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_0, _round_0, _snapshot_0, _current_snapshot_0, _credential_0, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0) {
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058collection_finding_result$(_state_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058current$({$: "../../packages/agent-flow-bend/Handoff.Advice", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 10240)), ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058collection_finding_result$(_state_0, ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058current$({$: "../../packages/agent-flow-bend/Handoff.FindingCandidate", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 10240)), ($$$$047$$$047packages$047agent$045flow$045bend$047Handoff$058fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
 }
 
 function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058collection_notice_result$(_state_0, _result_0) {
@@ -11108,7 +11108,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cleanup_
         if (_t_4.$ === "Nil") {
           const _t_5 = _t_2["closed"];
           if (!_t_5) {
-            const _t_6 = _t_2["requests"];
+            const _t_6 = _t_2["review_service_requests"];
             if (_t_6.$ === "Nil") {
               const _t_7 = _state_0["collection"];
               const _t_8 = _t_7["ready"];
@@ -11427,7 +11427,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058notice_a
   } else if (_result_0.$ === "../../packages/agent-flow-bend/NoticeState.RejectedFull") {
     return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.NoticeRejectedFull"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "../../packages/agent-flow-bend/NoticeState.CreateKey") {
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ActionRequested", "request": {$: "../../packages/agent-flow-bend/Canonical.CreateNoticeKey"}}, "tail": {$: "Nil"}}};
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.ResidentActionRequested", "command": {$: "../../packages/agent-flow-bend/Canonical.CreateNoticeKey"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "../../packages/agent-flow-bend/NoticeState.CreatePending") {
     const _replacement_1 = _result_0["state"];
     const _count_1 = _result_0["count"];
@@ -11635,7 +11635,7 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058step_unc
     const _round_11 = _event_0["round"];
     const _operation_2 = _event_0["operation"];
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058start_review$(_state_0, _partition_17, _lifetime_16, _round_11, _operation_2);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _partition_18 = _event_0["partition"];
     const _lifetime_17 = _event_0["lifetime"];
     const _round_12 = _event_0["round"];
@@ -11647,29 +11647,29 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058step_unc
     const _current_work_0 = _event_0["current_work"];
     const _physical_available_0 = _event_0["physical_available"];
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_ready$(_state_0, _partition_18, _lifetime_17, _round_12, _operation_3, _root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0, _current_work_0, _physical_available_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _partition_19 = _event_0["partition"];
     const _lifetime_18 = _event_0["lifetime"];
     const _round_13 = _event_0["round"];
     const _operation_4 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_4, _request_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+    const _review_service_request_id_0 = _event_0["review_service_request_id"];
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_4, _review_service_request_id_0);
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _partition_20 = _event_0["partition"];
     const _lifetime_19 = _event_0["lifetime"];
     const _round_14 = _event_0["round"];
     const _operation_5 = _event_0["operation"];
-    const _request_1 = _event_0["request"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_5, _request_1);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+    const _review_service_request_id_1 = _event_0["review_service_request_id"];
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_5, _review_service_request_id_1);
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _partition_21 = _event_0["partition"];
     const _lifetime_20 = _event_0["lifetime"];
     const _round_15 = _event_0["round"];
     const _operation_6 = _event_0["operation"];
-    const _request_2 = _event_0["request"];
+    const _review_service_request_id_2 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
     const _current_work_1 = _event_0["current_work"];
-    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_6, _request_2, _outcome_0, _current_work_1);
+    return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_6, _review_service_request_id_2, _outcome_0, _current_work_1);
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewCompleted") {
     const _partition_22 = _event_0["partition"];
     const _lifetime_21 = _event_0["lifetime"];
@@ -11977,8 +11977,8 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058step_unc
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.CleanupCommit") {
     return $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058cleanup_commit$(_state_0);
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.DeliveryReleaseCheck") {
-    const _acknowledged_0 = _event_0["acknowledged"];
-    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_acknowledged_0)), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged"}}, {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged"}})), "tail": {$: "Nil"}}};
+    const _submission_recorded_0 = _event_0["submission_recorded"];
+    return {$: "../../packages/agent-flow-bend/Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047$$$047packages$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_submission_recorded_0)), {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged"}}, {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": {$: "../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.DeliveryAcknowledgeCheck") {
     const _items_2 = _event_0["items"];
     const _any_expired_0 = _event_0["any_expired"];
@@ -12308,11 +12308,11 @@ function $$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058main$() 
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047JevEffects$058issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0) {
   if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.NeverSent") {
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}};
   } else if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.RequestInterrupted") {
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
   } else {
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -12325,15 +12325,15 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047JevEffects$058st
     }
   } else if (_outcome_0.$ === "../../packages/agent-flow-bend/Canonical.RequestInterrupted") {
     if (!_interrupted_0) {
-      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
+      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
     } else {
-      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": {$: "../../packages/agent-flow-bend/Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
   } else {
     if (_interrupted_0) {
       return {$: "../../packages/monkey-business-bend/JevEffects.RefusedInterrupted"};
     } else {
-      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+      return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": {$: "Con", "head": {$: "../../packages/monkey-business-bend/JevEffects.ScheduledFact", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
   }
 }
@@ -12347,7 +12347,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047JevEffects$058in
     const _l_0 = _t_0["lifetime"];
     const _r_0 = _t_0["round"];
     const _o_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const _t_1 = _t_0["started"];
     if (!_t_1) {
       return {$: "../../packages/monkey-business-bend/JevEffects.Applied", "facts": ($$$$047$$$047packages$047monkey$045business$045bend$047JevEffects$058issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _delay_0))};
@@ -12599,22 +12599,22 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058contex
     const _lifetime_11 = _event_0["lifetime"];
     const _round_11 = _event_0["round"];
     return {$: "../../packages/monkey-business-bend/Driver.ContextScope", "partition": _partition_11, "lifetime": _lifetime_11, "round": _round_11};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _partition_12 = _event_0["partition"];
     const _lifetime_12 = _event_0["lifetime"];
     const _round_12 = _event_0["round"];
     return {$: "../../packages/monkey-business-bend/Driver.ContextScope", "partition": _partition_12, "lifetime": _lifetime_12, "round": _round_12};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _partition_13 = _event_0["partition"];
     const _lifetime_13 = _event_0["lifetime"];
     const _round_13 = _event_0["round"];
     return {$: "../../packages/monkey-business-bend/Driver.ContextScope", "partition": _partition_13, "lifetime": _lifetime_13, "round": _round_13};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _partition_14 = _event_0["partition"];
     const _lifetime_14 = _event_0["lifetime"];
     const _round_14 = _event_0["round"];
     return {$: "../../packages/monkey-business-bend/Driver.ContextScope", "partition": _partition_14, "lifetime": _lifetime_14, "round": _round_14};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _partition_15 = _event_0["partition"];
     const _lifetime_15 = _event_0["lifetime"];
     const _round_15 = _event_0["round"];
@@ -12778,7 +12778,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058dispat
     } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
       const _current_0 = _context_0["current_work"];
       const _credential_0 = _context_0["credential_ready"];
-      return {$: "../../packages/monkey-business-bend/Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058immediate$({$: "../../packages/agent-flow-bend/Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058immediate$({$: "../../packages/agent-flow-bend/Canonical.JevRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
+      return {$: "../../packages/monkey-business-bend/Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058immediate$({$: "../../packages/agent-flow-bend/Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058immediate$({$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
     } else {
       return {$: "../../packages/monkey-business-bend/Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
@@ -12880,7 +12880,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058work_l
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058retained$(_event_0, _lifetime_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _operation_0 = _event_0["operation"];
     return {$: "../../packages/monkey-business-bend/Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "../../packages/monkey-business-bend/Driver.Action", "event": {$: "../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_0}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewCompleted") {
@@ -12974,7 +12974,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058releas
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058unavailable$(_state_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -13002,7 +13002,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058handle
     const _t_0 = _command_0["decision"];
     if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationRefused") {
       return $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058refused_preparation$(_event_0);
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable") {
       return $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058unavailable$(_state_0, _event_0);
     } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.RetireCandidate") {
       const _candidate_0 = _context_0["candidate"];
@@ -13076,12 +13076,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058handle
       } else {
         return {$: "../../packages/monkey-business-bend/Driver.Handled", "handled": false, "actions": {$: "Nil"}};
       }
-    } else if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    } else if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _p_3 = _t_2["partition"];
       const _l_3 = _t_2["lifetime"];
       const _r_3 = _t_2["round"];
       const _o_0 = _t_2["operation"];
-      const _request_0 = _t_2["request"];
+      const _request_0 = _t_2["review_service_request_id"];
       const _delay_0 = _context_0["jev_delay"];
       const _t_6 = _context_0["outcome"];
       if (_t_6.$ === "Some") {
@@ -13203,21 +13203,21 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058candid
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058fence$(_state_0, _event_0, _generated_0, _context_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
     const __0 = _event_0["current_work"];
     if (_generated_0) {
       const _current_0 = _context_0["current_work"];
-      return {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": _current_0};
+      return {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": _current_0};
     } else {
-      return {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": __0};
+      return {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": __0};
     }
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -13231,9 +13231,9 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Driver$058fence$
     if (_generated_0) {
       const _current_1 = _context_0["current_work"];
       const _credential_0 = _context_0["credential_ready"];
-      return {$: "../../packages/agent-flow-bend/Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
+      return {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
     } else {
-      return {$: "../../packages/agent-flow-bend/Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
+      return {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
     }
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.FinalCandidateCheck") {
     const __42 = _event_0["owner_current"];
@@ -13336,26 +13336,26 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058own
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058effect_equal$(_a_0, _b_0) {
-  if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.JevStarted") {
-    const _r_0 = _a_0["request"];
-    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.JevStarted") {
-      const _other_0 = _b_0["request"];
+  if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted") {
+    const _r_0 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted") {
+      const _other_0 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_0, _other_0);
     } else {
       return false;
     }
-  } else if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.JevInterrupted") {
-    const _r_1 = _a_0["request"];
-    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.JevInterrupted") {
-      const _other_1 = _b_0["request"];
+  } else if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted") {
+    const _r_1 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted") {
+      const _other_1 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_1, _other_1);
     } else {
       return false;
     }
-  } else if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.JevSettled") {
-    const _r_2 = _a_0["request"];
-    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.JevSettled") {
-      const _other_2 = _b_0["request"];
+  } else if (_a_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled") {
+    const _r_2 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled") {
+      const _other_2 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_2, _other_2);
     } else {
       return false;
@@ -13422,27 +13422,27 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058tar
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058fact_target$(_owner_0, _order_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
-    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.JevStarted", "request": _request_0}, "original_order": _order_0}}, {$: "None"});
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+    const _request_0 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted", "review_service_request_id": _request_0}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
-    const _request_1 = _event_0["request"];
-    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.JevInterrupted", "request": _request_1}, "original_order": _order_0}}, {$: "None"});
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+    const _request_1 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted", "review_service_request_id": _request_1}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
     const _o_2 = _event_0["operation"];
-    const _request_2 = _event_0["request"];
-    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.JevSettled", "request": _request_2}, "original_order": _order_0}}, {$: "None"});
+    const _request_2 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058owner_equal$(_owner_0, {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Target", "owner": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}, "effect": {$: "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled", "review_service_request_id": _request_2}, "original_order": _order_0}}, {$: "None"});
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationCompleted") {
     const _p_3 = _event_0["partition"];
     const _l_3 = _event_0["lifetime"];
@@ -13809,29 +13809,29 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058fin
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058physical_owned$(_effect_0, _owner_0, _dispatch_0, _collection_0) {
-  if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.JevStarted") {
-    const _request_0 = _effect_0["request"];
+  if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted") {
+    const _request_0 = _effect_0["review_service_request_id"];
     const _p_0 = _owner_0["partition"];
     const _l_0 = _owner_0["lifetime"];
     const _r_0 = _owner_0["round"];
     const _o_0 = _owner_0["operation"];
-    const _requests_0 = _dispatch_0["requests"];
+    const _requests_0 = _dispatch_0["review_service_requests"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058request_owned$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
-  } else if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.JevInterrupted") {
-    const _request_1 = _effect_0["request"];
+  } else if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted") {
+    const _request_1 = _effect_0["review_service_request_id"];
     const _p_1 = _owner_0["partition"];
     const _l_1 = _owner_0["lifetime"];
     const _r_1 = _owner_0["round"];
     const _o_1 = _owner_0["operation"];
-    const _requests_1 = _dispatch_0["requests"];
+    const _requests_1 = _dispatch_0["review_service_requests"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058request_owned$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_1, _p_1, _l_1, _r_1, _o_1, _request_1)));
-  } else if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.JevSettled") {
-    const _request_2 = _effect_0["request"];
+  } else if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled") {
+    const _request_2 = _effect_0["review_service_request_id"];
     const _p_2 = _owner_0["partition"];
     const _l_2 = _owner_0["lifetime"];
     const _r_2 = _owner_0["round"];
     const _o_2 = _owner_0["operation"];
-    const _requests_2 = _dispatch_0["requests"];
+    const _requests_2 = _dispatch_0["review_service_requests"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047Callbacks$058request_owned$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_2, _p_2, _l_2, _r_2, _o_2, _request_2)));
   } else if (_effect_0.$ === "../../packages/monkey-business-bend/Callbacks.PreparationCompleted") {
     const _p_3 = _owner_0["partition"];
@@ -19288,7 +19288,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessScenari
 function $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessScenario$058live$(_canonical_0, _scope_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _p_0 = _scope_0["partition"];
   const _l_0 = _scope_0["lifetime"];
   const _r_0 = _scope_0["round"];
@@ -19371,8 +19371,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessScenari
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _parent_0 = _event_0["observation"];
-    if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ActionRequested") {
-      const _t_0 = _command_0["request"];
+    if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ResidentActionRequested") {
+      const _t_0 = _command_0["command"];
       if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Prepare") {
         const _child_0 = _t_0["operation"];
         return $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessScenario$058preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0);
@@ -19834,12 +19834,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$
   const _l_0 = _left_0["lifetime"];
   const _r_0 = _left_0["round"];
   const _op_0 = _left_0["operation"];
-  const _request_0 = _left_0["request"];
+  const _request_0 = _left_0["review_service_request_id"];
   const _owner_0 = _right_0["partition"];
   const _generation_0 = _right_0["lifetime"];
   const _round_0 = _right_0["round"];
   const _operation_0 = _right_0["operation"];
-  const _id_0 = _right_0["request"];
+  const _id_0 = _right_0["review_service_request_id"];
   return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_op_0, _operation_0)))), ($Nat$is_eq$(_request_0, _id_0)));
 }
 
@@ -21260,7 +21260,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
     return {$: "../../packages/monkey-business-bend/SharingRuntime.CaptureStep", "state": _state_0, "route": {$: "None"}, "valid": false};
   } else {
     const _evaluation_0 = _t_0["value"];
-    return {$: "../../packages/monkey-business-bend/SharingRuntime.CaptureStep", "state": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058append_unit$(($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058with_sharing$(_state_0, __0)), _scope_0, _member_0, {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit", "position": _position_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _evaluation_0, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.Awaiting"}})), "route": {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.Route", "preparation": _scope_0, "member": _member_0, "position": _position_0, "evaluation": _evaluation_0}}, "valid": true};
+    return {$: "../../packages/monkey-business-bend/SharingRuntime.CaptureStep", "state": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058append_unit$(($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058with_sharing$(_state_0, __0)), _scope_0, _member_0, {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit", "position": _position_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _evaluation_0, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.Awaiting"}})), "route": {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.Route", "preparation": _scope_0, "member": _member_0, "position": _position_0, "evaluation": _evaluation_0}}, "valid": true};
   }
 }
 
@@ -21412,7 +21412,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
     const _id_0 = _t_0["evaluation"];
     const _previous_0 = _t_0["disposition"];
     const _tail_0 = _units_0["tail"];
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit", "position": _p_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), _next_0, _previous_0))}, "tail": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058unit_route$(_tail_0, _position_0, _evaluation_0, _next_0))};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit", "position": _p_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), _next_0, _previous_0))}, "tail": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058unit_route$(_tail_0, _position_0, _evaluation_0, _next_0))};
   }
 }
 
@@ -21539,10 +21539,10 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
         const _t_1 = _t_0["disposition"];
         if (_t_1.$ === "../../packages/monkey-business-bend/SharingRuntime.Owned") {
           const _tail_0 = _units_0["tail"];
-          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.Owned"}}}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058own_at$(_tail_0, (_index_0 < 1 ? 0 : _index_0 - 1))));
+          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.Owned"}}}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058own_at$(_tail_0, (_index_0 < 1 ? 0 : _index_0 - 1))));
         } else if (_t_1.$ === "../../packages/monkey-business-bend/SharingRuntime.CachedFinding") {
           const _tail_1 = _units_0["tail"];
-          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.CachedFinding"}}}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058own_at$(_tail_1, (_index_0 < 1 ? 0 : _index_0 - 1))));
+          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "../../packages/monkey-business-bend/SharingRuntime.CachedFinding"}}}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058own_at$(_tail_1, (_index_0 < 1 ? 0 : _index_0 - 1))));
         } else {
           const _tail_2 = _units_0["tail"];
           $0 = _tail_2;
@@ -21648,13 +21648,13 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058issued$(_state_0, _command_0) {
   if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
       const _o_0 = _t_0["operation"];
-      const _request_0 = _t_0["request"];
-      return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058issued_found$(_state_0, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+      const _request_0 = _t_0["review_service_request_id"];
+      return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058issued_found$(_state_0, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
     } else {
       return _state_0;
     }
@@ -21700,7 +21700,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PolicyDecided") {
           const _t_1 = _t_0["decision"];
-          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevObservationIgnored") {
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored") {
             return true;
           } else {
             const __1 = _outputs_0["tail"];
@@ -21709,7 +21709,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
           }
         } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
           const _t_2 = _t_0["event"];
-          if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded") {
+          if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded") {
             return true;
           } else {
             const __4 = _outputs_0["tail"];
@@ -21777,7 +21777,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.PolicyDecided") {
           const _t_1 = _t_0["decision"];
-          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable") {
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable") {
             return true;
           } else {
             const __1 = _outputs_0["tail"];
@@ -21806,15 +21806,15 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058terminal$(_state_0, _event_0, _outputs_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058terminal_found$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, _outputs_0, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+    return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058terminal_found$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, _outcome_0, _outputs_0, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_state_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -21885,7 +21885,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058authority$(_canonical_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _t_1 = _canonical_0["collection"];
   const _t_2 = _t_1["reuse"];
   const _claims_0 = _t_2["claims"];
@@ -21945,7 +21945,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
     const _l_0 = _t_0["lifetime"];
     const _r_0 = _t_0["round"];
     const _o_0 = _t_0["operation"];
-    const _request_0 = _t_0["request"];
+    const _request_0 = _t_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058request_live$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
   } else {
     return false;
@@ -22381,7 +22381,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058fanout$(_before_0, _after_0, _canonical_0, _freshness_0, _event_0, _outputs_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -22519,15 +22519,15 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058postprocess$(_before_0, _after_0, _previous_0, _canonical_0, _freshness_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_before_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+    return $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, {$: "../../packages/monkey-business-bend/SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, _outcome_0, ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058lookup_binding$(_before_0, {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -22562,7 +22562,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
       return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.CancelReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
       return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.CancelReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
     } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.PendingFinding") {
       return {$: "Con", "head": {$: "../../packages/agent-flow-bend/Canonical.RetireReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
@@ -22721,7 +22721,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058cache_offer$(_state_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -22753,7 +22753,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$0
     const _id_0 = _t_0["evaluation"];
     const _previous_0 = _t_0["disposition"];
     const _tail_0 = _units_0["tail"];
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit", "position": _p_0, "bytes": _size_0, "key": _original_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058same_key$(_original_0, _key_0)))), ($Nat$is_eq$(_size_0, _bytes_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058cached_disposition$(_outcome_0)), _previous_0))}, "tail": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058cached_units$(_tail_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0))};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit", "position": _p_0, "bytes": _size_0, "key": _original_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047SharingScenario$058same_key$(_original_0, _key_0)))), ($Nat$is_eq$(_size_0, _bytes_0)))), ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058cached_disposition$(_outcome_0)), _previous_0))}, "tail": ($$$$047$$$047packages$047monkey$045business$045bend$047SharingRuntime$058cached_units$(_tail_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0))};
   }
 }
 
@@ -23193,8 +23193,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NoticeScenario$0
         return false;
       } else {
         const _t_0 = _outputs_0["head"];
-        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ActionRequested") {
-          const _t_1 = _t_0["request"];
+        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ResidentActionRequested") {
+          const _t_1 = _t_0["command"];
           if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.CreateNoticeKey") {
             return true;
           } else {
@@ -25008,7 +25008,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047QuietScenario$05
   const _t_0 = _canonical_0["dispatch"];
   const _queued_0 = _t_0["queued"];
   const _running_0 = _t_0["running"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _t_1 = _canonical_0["collection"];
   const _leases_0 = _t_1["leases"];
   const _claims_0 = _t_1["claims"];
@@ -25082,7 +25082,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047QuietScenario$05
 function $$$$047$$$047packages$047monkey$045business$045bend$047QuietScenario$058refresh$(_event_0) {
   if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.CompleteObservation") {
     return true;
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     return true;
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.SubmissionTerminal") {
     return true;
@@ -25201,13 +25201,13 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessContext
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047FreshnessContext$058scope$(_state_0, _event_0, _value_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return {$: "Some", "value": {$: "../../packages/monkey-business-bend/FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -25763,16 +25763,16 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContex
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058event_generation$(_state_0, _event_0, _supplied_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _operation_0 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058operation_generation$(_state_0, _operation_0, _supplied_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _operation_1 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058operation_generation$(_state_0, _operation_1, _supplied_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _operation_2 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058operation_generation$(_state_0, _operation_2, _supplied_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _operation_3 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047CredentialContext$058operation_generation$(_state_0, _operation_3, _supplied_0);
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.CollectionReady") {
@@ -26005,7 +26005,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058
 function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058dispatch_owner$(_dispatch_0, _operation_0) {
   const _queued_0 = _dispatch_0["queued"];
   const _running_0 = _dispatch_0["running"];
-  const _requests_0 = _dispatch_0["requests"];
+  const _requests_0 = _dispatch_0["review_service_requests"];
   return $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058first$(($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058entry_owner$(_queued_0, _operation_0)), ($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058first$(($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058entry_owner$(_running_0, _operation_0)), ($$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058request_owner$(_requests_0, _operation_0)))));
 }
 
@@ -26202,16 +26202,16 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058
   } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.StartReview") {
     const _partition_18 = _value_0["partition"];
     return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_18};
-  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
     const _partition_19 = _value_0["partition"];
     return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_19};
-  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _partition_20 = _value_0["partition"];
     return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_20};
-  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _partition_21 = _value_0["partition"];
     return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_21};
-  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _partition_22 = _value_0["partition"];
     return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_22};
   } else if (_value_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewCompleted") {
@@ -26536,14 +26536,14 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Reservation", "reservation": _id_4};
     } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewStarted") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _partition_0 = _t_0["partition"];
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Direct", "partition": _partition_0};
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
     } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReservationReleased") {
       const _id_5 = _t_0["id"];
@@ -26684,9 +26684,9 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
     } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.UnitRefused") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevObservationIgnored") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
     } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.PreparedSkipped") {
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
@@ -26932,7 +26932,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047AdviceeScope$058
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Context"};
     }
   } else {
-    const _t_2 = _value_0["request"];
+    const _t_2 = _value_0["command"];
     if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.Prepare") {
       const _operation_4 = _t_2["operation"];
       return {$: "../../packages/monkey-business-bend/AdviceeScope.Operation", "operation": _operation_4};
@@ -27056,7 +27056,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047PreparationScena
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058request$(_state_0, _target_0) {
   const _t_0 = _state_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _p_0 = _target_0["partition"];
   const _l_0 = _target_0["lifetime"];
   const _r_0 = _target_0["round"];
@@ -27071,30 +27071,30 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058
   const _tr_0 = _target_0["round"];
   const _to_0 = _target_0["operation"];
   const _tid_0 = _target_0["request"];
-  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.Request", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "started": false, "interrupted": false}, _tp_0, _tl_0, _tr_0, _to_0, _tid_0);
+  return $$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "started": false, "interrupted": false}, _tp_0, _tl_0, _tr_0, _to_0, _tid_0);
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058callback$(_event_0, _target_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _id_0 = _event_0["request"];
+    const _id_0 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058identity$(_p_0, _l_0, _r_0, _o_0, _id_0, _target_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
-    const _id_1 = _event_0["request"];
+    const _id_1 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058identity$(_p_1, _l_1, _r_1, _o_1, _id_1, _target_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
     const _o_2 = _event_0["operation"];
-    const _id_2 = _event_0["request"];
+    const _id_2 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058identity$(_p_2, _l_2, _r_2, _o_2, _id_2, _target_0);
   } else {
     return false;
@@ -27304,7 +27304,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Postprocess$058r
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047Postprocess$058preparation_parent$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058find_work$(_p_0, _l_0, _r_0, _o_0, ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058work_list$(_before_0)))));
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -27363,7 +27363,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Postprocess$058r
 function $$$$047$$$047packages$047monkey$045business$045bend$047Postprocess$058refresh$(_event_0) {
   if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.CompleteObservation") {
     return true;
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     return true;
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewCompleted") {
     return true;
@@ -27405,7 +27405,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058captur
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
           const _t_1 = _t_0["event"];
-          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
             const _operation_0 = _t_1["operation"];
             const _tail_0 = _outputs_0["tail"];
             $0 = _tail_0;
@@ -27457,7 +27457,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058captur
 function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058captured_authority_present$(_operation_0, _canonical_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _x_0 = ($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058captured_work_present$(_operation_0, _work_0));
   const _x_1 = ($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058captured_request_present$(_operation_0, _requests_0));
   return (_x_0 || _x_1);
@@ -27589,8 +27589,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cancel
         return _items_0;
       } else {
         const _t_0 = _outputs_0["head"];
-        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ActionRequested") {
-          const _t_1 = _t_0["request"];
+        if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ResidentActionRequested") {
+          const _t_1 = _t_0["command"];
           if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.CancelWork") {
             const _operation_0 = _t_1["operation"];
             const _tail_0 = _outputs_0["tail"];
@@ -27984,12 +27984,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058source
 function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepared_outcome$(_state_0, _command_0, _job_0, _selected_0, _source_0, _before_0, _after_0, _context_0) {
   if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
       const _o_0 = _t_0["operation"];
-      const _request_0 = _t_0["request"];
+      const _request_0 = _t_0["review_service_request_id"];
       if (_selected_0.$ === "Some") {
         const _outcome_0 = _selected_0["value"];
         return {$: "../../packages/monkey-business-bend/Engine.PreparedCommandContext", "state": _state_0, "context": ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058with_outcome$(_context_0, {$: "Some", "value": _outcome_0})), "receipt": {$: "Some", "value": {$: "../../packages/monkey-business-bend/Driver.OutcomeReceipt", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "source": _source_0, "job": _job_0, "stream_before": _before_0, "stream_after": _after_0}}};
@@ -28033,13 +28033,13 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepar
 function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepare_command_context$(_state_0, _command_0, _source_job_0, _environment_0, _context_0) {
   if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const __0 = _t_0["partition"];
       const __1 = _t_0["lifetime"];
       const __2 = _t_0["round"];
       const __3 = _t_0["operation"];
-      const __4 = _t_0["request"];
-      return $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepared_source$(($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4}}, _source_job_0, _context_0);
+      const __4 = _t_0["review_service_request_id"];
+      return $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058prepared_source$(($$$$047$$$047packages$047monkey$045business$045bend$047Engine$058source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "review_service_request_id": __4}}, _source_job_0, _context_0);
     } else {
       return {$: "../../packages/monkey-business-bend/Engine.PreparedCommandContext", "state": _state_0, "context": _context_0, "receipt": {$: "None"}};
     }
@@ -28807,19 +28807,19 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058callba
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058callback_owner$(_state_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestStarted") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
     return {$: "Some", "value": {$: "../../packages/monkey-business-bend/Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}};
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
@@ -29306,7 +29306,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058record
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
           const _t_1 = _t_0["event"];
-          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded") {
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded") {
             return true;
           } else {
             const __2 = _outputs_0["tail"];
@@ -29374,12 +29374,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cache_
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cache_original_request$(_state_0, _event_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047Engine$058cache_original_found$(($$$$047$$$047packages$047monkey$045business$045bend$047FaultTargets$058request$(_state_0, {$: "../../packages/monkey-business-bend/FaultTargets.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0})));
   } else {
     return false;
@@ -30610,8 +30610,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058fin
 }
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058command_operation$(_command_0) {
-  if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ActionRequested") {
-    const _t_0 = _command_0["request"];
+  if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ResidentActionRequested") {
+    const _t_0 = _command_0["command"];
     if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Prepare") {
       const _operation_0 = _t_0["operation"];
       return {$: "Some", "value": _operation_0};
@@ -30626,7 +30626,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058com
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.UnitAdmitted") {
       const _operation_2 = _t_1["operation"];
       return {$: "Some", "value": _operation_2};
-    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _operation_3 = _t_1["operation"];
       return {$: "Some", "value": _operation_3};
     } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.DispatchStarted") {
@@ -30730,8 +30730,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058rem
     } else {
       return _state_0;
     }
-  } else if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ActionRequested") {
-    const _t_1 = _command_0["request"];
+  } else if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.ResidentActionRequested") {
+    const _t_1 = _command_0["command"];
     if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.Prepare") {
       const _operation_2 = _t_1["operation"];
       return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remember_job$(_state_0, _operation_2, _job_0);
@@ -30842,8 +30842,8 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ref
       } else {
         return _state_0;
       }
-    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable") {
-      if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestReady") {
+    } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable") {
+      if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady") {
         const _operation_1 = _event_0["operation"];
         return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058refused_job$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058running_before$(_before_0, _operation_1)), _state_0, _operation_1);
       } else {
@@ -30892,10 +30892,10 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058rem
     return {$: "Nil"};
   } else {
     const _t_0 = _values_0["head"];
-    const _key_0 = _t_0["request"];
+    const _key_0 = _t_0["review_service_request_id"];
     const _command_0 = _t_0["output"];
     const _tail_0 = _values_0["tail"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_kept$(($Nat$is_eq$(_key_0, _request_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest", "request": _key_0, "output": _command_0}, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remove_request$(_tail_0, _request_0)));
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_kept$(($Nat$is_eq$(_key_0, _request_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest", "review_service_request_id": _key_0, "output": _command_0}, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058remove_request$(_tail_0, _request_0)));
   }
 }
 
@@ -30927,9 +30927,9 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058eve
     const _r_0 = _event_0["round"];
     const _operation_0 = _event_0["operation"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058drop_parent$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058drop_job$(_state_0, _operation_0)), ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058preparation_parent$(($$$$047$$$047packages$047agent$045flow$045bend$047Canonical$058find_work$(_p_0, _l_0, _r_0, _operation_0, ($$$$047$$$047packages$047monkey$045business$045bend$047Driver$058work_list$(_before_0)))))));
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _operation_1 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058settled_job$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_settled$(_state_0, _request_0)), _operation_1);
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewObserved") {
     const _operation_2 = _event_0["operation"];
@@ -31894,12 +31894,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058fre
   } else {
     const _t_0 = _actions_0["head"];
     const _t_1 = _t_0["event"];
-    if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+    if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
       const __0 = _t_1["partition"];
       const __1 = _t_1["lifetime"];
       const __2 = _t_1["round"];
       const __3 = _t_1["operation"];
-      const __4 = _t_1["request"];
+      const __4 = _t_1["review_service_request_id"];
       const __5 = _t_1["outcome"];
       const __6 = _t_1["current_work"];
       const _delay_0 = _t_0["delay"];
@@ -31907,7 +31907,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058fre
       const __8 = _t_0["job"];
       const __9 = _t_0["expiry_advice"];
       const _tail_0 = _actions_0["tail"];
-      return $List$append$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058freshness_delayed$(_checks_0, _delay_0)), {$: "Con", "head": {$: "../../packages/monkey-business-bend/Driver.Action", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestSettled", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4, "outcome": __5, "current_work": __6}, "delay": _delay_0, "candidate": __7, "job": __8, "expiry_advice": __9}, "tail": _tail_0});
+      return $List$append$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058freshness_delayed$(_checks_0, _delay_0)), {$: "Con", "head": {$: "../../packages/monkey-business-bend/Driver.Action", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "review_service_request_id": __4, "outcome": __5, "current_work": __6}, "delay": _delay_0, "candidate": __7, "job": __8, "expiry_advice": __9}, "tail": _tail_0});
     } else {
       const _delay_1 = _t_0["delay"];
       const __10 = _t_0["candidate"];
@@ -31922,7 +31922,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058fre
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058freshness_driven$(_state_0, _command_0, _result_0) {
   if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
@@ -32520,12 +32520,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058ord
       return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058handle_prepared$(_state_0, _action_0, _job_0, {$: "../../packages/agent-flow-bend/Canonical.PolicyDecided", "decision": _t_1}, _prepared_0, _receipt_0, _source_jobs_0);
     }
   } else {
-    const _t_2 = _command_0["request"];
+    const _t_2 = _command_0["command"];
     if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.Prepare") {
       const _operation_0 = _t_2["operation"];
       return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058prepare_job$(_state_0, _job_0, _operation_0);
     } else {
-      return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058handle_prepared$(_state_0, _action_0, _job_0, {$: "../../packages/agent-flow-bend/Canonical.ActionRequested", "request": _t_2}, _prepared_0, _receipt_0, _source_jobs_0);
+      return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058handle_prepared$(_state_0, _action_0, _job_0, {$: "../../packages/agent-flow-bend/Canonical.ResidentActionRequested", "command": _t_2}, _prepared_0, _receipt_0, _source_jobs_0);
     }
   }
 }
@@ -32771,7 +32771,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058com
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_put_selected$(_equal_0, _original_0, _tail_0, _request_0, _command_0, _next_0) {
   if (_equal_0) {
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest", "request": _request_0, "output": _command_0}, "tail": _tail_0};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest", "review_service_request_id": _request_0, "output": _command_0}, "tail": _tail_0};
   } else {
     return {$: "Con", "head": _original_0, "tail": _next_0};
   }
@@ -32779,13 +32779,13 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058req
 
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_request$(_values_0, _request_0, _command_0) {
   if (_values_0.$ === "Nil") {
-    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest", "request": _request_0, "output": _command_0}, "tail": {$: "Nil"}};
+    return {$: "Con", "head": {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest", "review_service_request_id": _request_0, "output": _command_0}, "tail": {$: "Nil"}};
   } else {
     const _t_0 = _values_0["head"];
-    const _key_0 = _t_0["request"];
+    const _key_0 = _t_0["review_service_request_id"];
     const _original_0 = _t_0["output"];
     const _tail_0 = _values_0["tail"];
-    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_put_selected$(($Nat$is_eq$(_key_0, _request_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest", "request": _key_0, "output": _original_0}, _tail_0, _request_0, _command_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_request$(_tail_0, _request_0, _command_0)));
+    return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_put_selected$(($Nat$is_eq$(_key_0, _request_0)), {$: "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest", "review_service_request_id": _key_0, "output": _original_0}, _tail_0, _request_0, _command_0, ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058put_request$(_tail_0, _request_0, _command_0)));
   }
 }
 
@@ -32813,13 +32813,13 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058req
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058issued_command$(_state_0, _command_0) {
   if (_command_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+    if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
       const _operation_0 = _t_0["operation"];
-      const _request_0 = _t_0["request"];
-      return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_issued$(_state_0, _request_0, {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.JevRequestIssued", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0, "request": _request_0}});
+      const _request_0 = _t_0["review_service_request_id"];
+      return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058request_issued$(_state_0, _request_0, {$: "../../packages/agent-flow-bend/Canonical.EventEstablished", "event": {$: "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _operation_0, "review_service_request_id": _request_0}});
     } else {
       return _state_0;
     }
@@ -33343,7 +33343,7 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058wak
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058wake_event$(_state_0, _event_0) {
   if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.PreparationCompleted") {
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058wake_finishes$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_scopes$(_state_0)), _state_0);
-  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058wake_finishes$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_scopes$(_state_0)), _state_0);
   } else if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.SubmissionTerminal") {
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058wake_finishes$(($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058finish_scopes$(_state_0)), _state_0);
@@ -35195,16 +35195,16 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058com
         return false;
       } else {
         const _t_0 = _values_0["head"];
-        const _key_0 = _t_0["request"];
+        const _key_0 = _t_0["review_service_request_id"];
         const _t_1 = _t_0["output"];
         if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
           const _t_2 = _t_1["event"];
-          if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.JevRequestIssued") {
+          if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued") {
             const _vp_0 = _t_2["partition"];
             const _vl_0 = _t_2["lifetime"];
             const _vr_0 = _t_2["round"];
             const _vo_0 = _t_2["operation"];
-            const _vrequest_0 = _t_2["request"];
+            const _vrequest_0 = _t_2["review_service_request_id"];
             const _tail_0 = _values_0["tail"];
             const _x_0 = ($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_key_0, _request_0)), ($Nat$is_eq$(_vrequest_0, _request_0)))), ($Nat$is_eq$(_vp_0, _p_0)))), ($Nat$is_eq$(_vl_0, _l_0)))), ($Nat$is_eq$(_vr_0, _r_0)))), ($Nat$is_eq$(_vo_0, _operation_0))));
             const _x_1 = ($$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058completion_request_matches$(_tail_0, _p_0, _l_0, _r_0, _operation_0, _request_0));
@@ -35237,12 +35237,12 @@ function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058com
 function $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058completion_matches$(_state_0, _event_0) {
   const _t_0 = _state_0["host"];
   const _requests_0 = _t_0["issued_requests"];
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _operation_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     return $$$$047$$$047packages$047monkey$045business$045bend$047NativeRun$058completion_request_matches$(_requests_0, _p_0, _l_0, _r_0, _operation_0, _request_0);
   } else {
     return true;
@@ -37528,7 +37528,7 @@ function $DefenseModel$058phase$(_kind_0) {
     return 2;
   } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
     return 3;
-  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+  } else if (_kind_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
     return 4;
   } else {
     return 5;
@@ -40986,7 +40986,7 @@ function $DefenseMotion$058phase$(_work_0) {
     return 2;
   } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.Reviewing") {
     return 3;
-  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.AtJev") {
+  } else if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding") {
     return 4;
   } else {
     return 5;
@@ -41304,7 +41304,7 @@ function $DefenseMotion$058submission_recorded$($0) {
 }
 
 function $DefenseMotion$058witnessed$(_event_0, _outputs_0, _actor_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -42088,7 +42088,7 @@ function $DefenseRules$058finding_count$(_found_0) {
 }
 
 function $DefenseRules$058count_event$(_event_0, _state_0) {
-  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.JevRequestSettled") {
+  if (_event_0.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -43085,7 +43085,7 @@ function $DefenseLiveMotion$058outcome$($0) {
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "../../packages/agent-flow-bend/Canonical.EventEstablished") {
           const _t_1 = _t_0["event"];
-          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded") {
+          if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded") {
             const _t_2 = _t_1["outcome"];
             if (_t_2.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
               return 10;
@@ -43448,7 +43448,7 @@ function $DefenseProjection$058running$(_world_0) {
 
 function $DefenseProjection$058requests_core$(_core_0) {
   const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["requests"];
+  const _items_0 = _t_0["review_service_requests"];
   return $DefenseModel$058number$(($List$length$(_items_0)));
 }
 
@@ -43623,7 +43623,7 @@ function $DefenseProjection$058backend_started_items$(_items_0) {
 
 function $DefenseProjection$058backend_started_core$(_core_0) {
   const _t_0 = _core_0["dispatch"];
-  const _items_0 = _t_0["requests"];
+  const _items_0 = _t_0["review_service_requests"];
   return $DefenseProjection$058backend_started_items$(_items_0);
 }
 
@@ -43745,7 +43745,7 @@ function $DefenseEffects$058running$(_state_0) {
 }
 
 function $DefenseEffects$058requests$(_state_0) {
-  const _items_0 = _state_0["requests"];
+  const _items_0 = _state_0["review_service_requests"];
   return _items_0;
 }
 
@@ -44386,7 +44386,7 @@ function $DefenseTowerFire$058callback_phase$(_target_0) {
   const _t_0 = _target_0["effect"];
   if (_t_0.$ === "../../packages/monkey-business-bend/Callbacks.PreparationCompleted") {
     return 2;
-  } else if (_t_0.$ === "../../packages/monkey-business-bend/Callbacks.JevSettled") {
+  } else if (_t_0.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled") {
     return 4;
   } else if (_t_0.$ === "../../packages/monkey-business-bend/Callbacks.OutputTerminal") {
     return 5;
@@ -44442,9 +44442,9 @@ function $DefenseTowerFire$058started$(_target_0, _dispatch_0) {
   const _r_0 = _t_0["round"];
   const _o_0 = _t_0["operation"];
   const _t_1 = _target_0["effect"];
-  if (_t_1.$ === "../../packages/monkey-business-bend/Callbacks.JevSettled") {
-    const _request_0 = _t_1["request"];
-    const _requests_0 = _dispatch_0["requests"];
+  if (_t_1.$ === "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled") {
+    const _request_0 = _t_1["review_service_request_id"];
+    const _requests_0 = _dispatch_0["review_service_requests"];
     return $DefenseTowerFire$058request_started$(($$$$047$$$047packages$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
   } else {
     return true;
@@ -45510,7 +45510,7 @@ function $DefenseHost$058frame_counts$($0, $1) {
               $1 = _kind_0;
               continue;
             }
-          } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded") {
+          } else if (_t_1.$ === "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded") {
             const _t_3 = _t_1["outcome"];
             if (_t_3.$ === "../../packages/agent-flow-bend/Canonical.RequestClear") {
               const _rest_2 = _outputs_0["tail"];
@@ -47018,8 +47018,8 @@ function $0m12(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Ledger.Charge": at = at[key] = {...v, "id": BigInt(v["id"]), "partition": BigInt(v["partition"]), "bytes": BigInt(v["bytes"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Ledger.Charge has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Ledger.Charge); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord": at = at[key] = {...v, "id": BigInt(v["id"]), "partition": BigInt(v["partition"]), "bytes": BigInt(v["bytes"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -47079,8 +47079,8 @@ function $0m16(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Ledger.Charge": at = at[key] = {...v, "id": nat_host(v["id"]), "partition": nat_host(v["partition"]), "bytes": nat_host(v["bytes"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Ledger.Charge has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Ledger.Charge); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord": at = at[key] = {...v, "id": nat_host(v["id"]), "partition": nat_host(v["partition"]), "bytes": nat_host(v["bytes"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Ledger.ReviewCapacityReservationRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -47504,11 +47504,11 @@ function $0m47(v) {
       case "../../packages/agent-flow-bend/Flow.ReviewCapacitySet": at = at[key] = {...v, "capacity": $0m45(v["capacity"])}; return top[0];
       case "../../packages/agent-flow-bend/Flow.IngressStarted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.UnitDispatched": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Flow.JevRequestSent": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.BackgroundWaitStarted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.StopAllowed": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.FinishResponseRequested": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Flow.FlowEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Flow.EditObserved, ../../packages/agent-flow-bend/Flow.ReviewUnitPrepared, ../../packages/agent-flow-bend/Flow.JevFindingReceived, ../../packages/agent-flow-bend/Flow.JevClearReceived, ../../packages/agent-flow-bend/Flow.JevUnavailable, ../../packages/agent-flow-bend/Flow.StopHookFired, ../../packages/agent-flow-bend/Flow.FinishDecisionDeadlineReached, ../../packages/agent-flow-bend/Flow.FinishDecisionAllWorkSettled, ../../packages/agent-flow-bend/Flow.FinishDecisionBudgetExhausted, ../../packages/agent-flow-bend/Flow.AdviceLeasedByBackground, ../../packages/agent-flow-bend/Flow.AdviceLeasedByStop, ../../packages/agent-flow-bend/Flow.AdviceReofferedAtStop, ../../packages/agent-flow-bend/Flow.HostOutputSubmitted, ../../packages/agent-flow-bend/Flow.SourceCapacitySet, ../../packages/agent-flow-bend/Flow.ReviewCapacitySet, ../../packages/agent-flow-bend/Flow.IngressStarted, ../../packages/agent-flow-bend/Flow.UnitDispatched, ../../packages/agent-flow-bend/Flow.JevRequestSent, ../../packages/agent-flow-bend/Flow.BackgroundWaitStarted, ../../packages/agent-flow-bend/Flow.StopAllowed, ../../packages/agent-flow-bend/Flow.FinishResponseRequested); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Flow.FlowEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Flow.EditObserved, ../../packages/agent-flow-bend/Flow.ReviewUnitPrepared, ../../packages/agent-flow-bend/Flow.JevFindingReceived, ../../packages/agent-flow-bend/Flow.JevClearReceived, ../../packages/agent-flow-bend/Flow.JevUnavailable, ../../packages/agent-flow-bend/Flow.StopHookFired, ../../packages/agent-flow-bend/Flow.FinishDecisionDeadlineReached, ../../packages/agent-flow-bend/Flow.FinishDecisionAllWorkSettled, ../../packages/agent-flow-bend/Flow.FinishDecisionBudgetExhausted, ../../packages/agent-flow-bend/Flow.AdviceLeasedByBackground, ../../packages/agent-flow-bend/Flow.AdviceLeasedByStop, ../../packages/agent-flow-bend/Flow.AdviceReofferedAtStop, ../../packages/agent-flow-bend/Flow.HostOutputSubmitted, ../../packages/agent-flow-bend/Flow.SourceCapacitySet, ../../packages/agent-flow-bend/Flow.ReviewCapacitySet, ../../packages/agent-flow-bend/Flow.IngressStarted, ../../packages/agent-flow-bend/Flow.UnitDispatched, ../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent, ../../packages/agent-flow-bend/Flow.BackgroundWaitStarted, ../../packages/agent-flow-bend/Flow.StopAllowed, ../../packages/agent-flow-bend/Flow.FinishResponseRequested); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -47536,11 +47536,11 @@ function $0m48(v) {
       case "../../packages/agent-flow-bend/Flow.ReviewCapacitySet": at = at[key] = {...v, "capacity": $0m46(v["capacity"])}; return top[0];
       case "../../packages/agent-flow-bend/Flow.IngressStarted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.UnitDispatched": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Flow.JevRequestSent": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.BackgroundWaitStarted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.StopAllowed": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Flow.FinishResponseRequested": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Flow.FlowEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Flow.EditObserved, ../../packages/agent-flow-bend/Flow.ReviewUnitPrepared, ../../packages/agent-flow-bend/Flow.JevFindingReceived, ../../packages/agent-flow-bend/Flow.JevClearReceived, ../../packages/agent-flow-bend/Flow.JevUnavailable, ../../packages/agent-flow-bend/Flow.StopHookFired, ../../packages/agent-flow-bend/Flow.FinishDecisionDeadlineReached, ../../packages/agent-flow-bend/Flow.FinishDecisionAllWorkSettled, ../../packages/agent-flow-bend/Flow.FinishDecisionBudgetExhausted, ../../packages/agent-flow-bend/Flow.AdviceLeasedByBackground, ../../packages/agent-flow-bend/Flow.AdviceLeasedByStop, ../../packages/agent-flow-bend/Flow.AdviceReofferedAtStop, ../../packages/agent-flow-bend/Flow.HostOutputSubmitted, ../../packages/agent-flow-bend/Flow.SourceCapacitySet, ../../packages/agent-flow-bend/Flow.ReviewCapacitySet, ../../packages/agent-flow-bend/Flow.IngressStarted, ../../packages/agent-flow-bend/Flow.UnitDispatched, ../../packages/agent-flow-bend/Flow.JevRequestSent, ../../packages/agent-flow-bend/Flow.BackgroundWaitStarted, ../../packages/agent-flow-bend/Flow.StopAllowed, ../../packages/agent-flow-bend/Flow.FinishResponseRequested); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Flow.FlowEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Flow.EditObserved, ../../packages/agent-flow-bend/Flow.ReviewUnitPrepared, ../../packages/agent-flow-bend/Flow.JevFindingReceived, ../../packages/agent-flow-bend/Flow.JevClearReceived, ../../packages/agent-flow-bend/Flow.JevUnavailable, ../../packages/agent-flow-bend/Flow.StopHookFired, ../../packages/agent-flow-bend/Flow.FinishDecisionDeadlineReached, ../../packages/agent-flow-bend/Flow.FinishDecisionAllWorkSettled, ../../packages/agent-flow-bend/Flow.FinishDecisionBudgetExhausted, ../../packages/agent-flow-bend/Flow.AdviceLeasedByBackground, ../../packages/agent-flow-bend/Flow.AdviceLeasedByStop, ../../packages/agent-flow-bend/Flow.AdviceReofferedAtStop, ../../packages/agent-flow-bend/Flow.HostOutputSubmitted, ../../packages/agent-flow-bend/Flow.SourceCapacitySet, ../../packages/agent-flow-bend/Flow.ReviewCapacitySet, ../../packages/agent-flow-bend/Flow.IngressStarted, ../../packages/agent-flow-bend/Flow.UnitDispatched, ../../packages/agent-flow-bend/Flow.ReviewServiceRequestSent, ../../packages/agent-flow-bend/Flow.BackgroundWaitStarted, ../../packages/agent-flow-bend/Flow.StopAllowed, ../../packages/agent-flow-bend/Flow.FinishResponseRequested); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48006,8 +48006,8 @@ function $0m86(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.Entry": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.Entry has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.Entry); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48031,8 +48031,8 @@ function $0m88(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.Request": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.Request has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.Request); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48056,7 +48056,7 @@ function $0m84(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.State": at = at[key] = {...v, "queued": $0m85(v["queued"]), "running": $0m85(v["running"]), "next_sequence": BigInt(v["next_sequence"]), "requests": $0m87(v["requests"])}; return top[0];
+      case "../../packages/agent-flow-bend/Dispatch.State": at = at[key] = {...v, "queued": $0m85(v["queued"]), "running": $0m85(v["running"]), "next_sequence": BigInt(v["next_sequence"]), "review_service_requests": $0m87(v["review_service_requests"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/Dispatch.State has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.State); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -48068,8 +48068,8 @@ function $0m90(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.Entry": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "sequence": nat_host(v["sequence"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.Entry has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.Entry); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "sequence": nat_host(v["sequence"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ScheduledReviewWork); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48093,8 +48093,8 @@ function $0m93(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.Request": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.Request has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.Request); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48118,7 +48118,7 @@ function $0m91(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.State": at = at[key] = {...v, "queued": $0m89(v["queued"]), "running": $0m89(v["running"]), "next_sequence": nat_host(v["next_sequence"]), "requests": $0m92(v["requests"])}; return top[0];
+      case "../../packages/agent-flow-bend/Dispatch.State": at = at[key] = {...v, "queued": $0m89(v["queued"]), "running": $0m89(v["running"]), "next_sequence": nat_host(v["next_sequence"]), "review_service_requests": $0m92(v["review_service_requests"])}; return top[0];
       default: throw "bend: ../../packages/agent-flow-bend/Dispatch.State has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.State); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -48232,9 +48232,9 @@ function $0m102(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.RequestAccepted": at = at[key] = {...v, "state": $0m84(v["state"])}; return top[0];
-      case "../../packages/agent-flow-bend/Dispatch.RequestDenied": at = at[key] = {...v, "state": $0m84(v["state"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.RequestResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.RequestAccepted, ../../packages/agent-flow-bend/Dispatch.RequestDenied); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted": at = at[key] = {...v, "state": $0m84(v["state"])}; return top[0];
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied": at = at[key] = {...v, "state": $0m84(v["state"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted, ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48283,8 +48283,8 @@ function $0m106(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Handoff.Advice": at = at[key] = {...v, "id": nat_host(v["id"]), "unit": nat_host(v["unit"]), "partition": nat_host(v["partition"]), "round": nat_host(v["round"]), "snapshot": nat_host(v["snapshot"]), "current_snapshot": nat_host(v["current_snapshot"]), "credential": nat_host(v["credential"]), "current_credential": nat_host(v["current_credential"]), "age_ms": nat_host(v["age_ms"]), "solo_bytes": nat_host(v["solo_bytes"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Handoff.Advice has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.Advice); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Handoff.FindingCandidate": at = at[key] = {...v, "id": nat_host(v["id"]), "unit": nat_host(v["unit"]), "partition": nat_host(v["partition"]), "round": nat_host(v["round"]), "snapshot": nat_host(v["snapshot"]), "current_snapshot": nat_host(v["current_snapshot"]), "credential": nat_host(v["credential"]), "current_credential": nat_host(v["current_credential"]), "age_ms": nat_host(v["age_ms"]), "solo_bytes": nat_host(v["solo_bytes"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Handoff.FindingCandidate has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.FindingCandidate); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -48295,8 +48295,8 @@ function $0m107(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Handoff.Advice": at = at[key] = {...v, "id": BigInt(v["id"]), "unit": BigInt(v["unit"]), "partition": BigInt(v["partition"]), "round": BigInt(v["round"]), "snapshot": BigInt(v["snapshot"]), "current_snapshot": BigInt(v["current_snapshot"]), "credential": BigInt(v["credential"]), "current_credential": BigInt(v["current_credential"]), "age_ms": BigInt(v["age_ms"]), "solo_bytes": BigInt(v["solo_bytes"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Handoff.Advice has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.Advice); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Handoff.FindingCandidate": at = at[key] = {...v, "id": BigInt(v["id"]), "unit": BigInt(v["unit"]), "partition": BigInt(v["partition"]), "round": BigInt(v["round"]), "snapshot": BigInt(v["snapshot"]), "current_snapshot": BigInt(v["current_snapshot"]), "credential": BigInt(v["credential"]), "current_credential": BigInt(v["current_credential"]), "age_ms": BigInt(v["age_ms"]), "solo_bytes": BigInt(v["solo_bytes"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Handoff.FindingCandidate has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Handoff.FindingCandidate); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49696,9 +49696,9 @@ function $0m219(v) {
       case "../../packages/agent-flow-bend/Canonical.SourceReading": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.Preparing": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.Reviewing": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.AtJev": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PendingFinding": at = at[key] = {...v, "count": BigInt(v["count"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.WorkKind has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.AwaitingSourceRead, ../../packages/agent-flow-bend/Canonical.SourceReading, ../../packages/agent-flow-bend/Canonical.Preparing, ../../packages/agent-flow-bend/Canonical.Reviewing, ../../packages/agent-flow-bend/Canonical.AtJev, ../../packages/agent-flow-bend/Canonical.PendingFinding); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ReviewWorkPhase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.AwaitingSourceRead, ../../packages/agent-flow-bend/Canonical.SourceReading, ../../packages/agent-flow-bend/Canonical.Preparing, ../../packages/agent-flow-bend/Canonical.Reviewing, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding, ../../packages/agent-flow-bend/Canonical.PendingFinding); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49709,8 +49709,8 @@ function $0m218(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Canonical.Work": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "charge": BigInt(v["charge"]), "kind": $0m219(v["kind"]), "parent": BigInt(v["parent"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Work has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Work); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "charge": BigInt(v["charge"]), "kind": $0m219(v["kind"]), "parent": BigInt(v["parent"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ReviewWorkRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReviewWorkRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49788,9 +49788,9 @@ function $0m226(v) {
       case "../../packages/agent-flow-bend/Canonical.SourceReading": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.Preparing": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.Reviewing": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.AtJev": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PendingFinding": at = at[key] = {...v, "count": nat_host(v["count"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.WorkKind has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.AwaitingSourceRead, ../../packages/agent-flow-bend/Canonical.SourceReading, ../../packages/agent-flow-bend/Canonical.Preparing, ../../packages/agent-flow-bend/Canonical.Reviewing, ../../packages/agent-flow-bend/Canonical.AtJev, ../../packages/agent-flow-bend/Canonical.PendingFinding); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ReviewWorkPhase has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.AwaitingSourceRead, ../../packages/agent-flow-bend/Canonical.SourceReading, ../../packages/agent-flow-bend/Canonical.Preparing, ../../packages/agent-flow-bend/Canonical.Reviewing, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutstanding, ../../packages/agent-flow-bend/Canonical.PendingFinding); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49801,8 +49801,8 @@ function $0m225(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Canonical.Work": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "charge": nat_host(v["charge"]), "kind": $0m226(v["kind"]), "parent": nat_host(v["parent"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Work has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Work); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Canonical.ReviewWorkRecord": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "charge": nat_host(v["charge"]), "kind": $0m226(v["kind"]), "parent": nat_host(v["parent"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ReviewWorkRecord has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReviewWorkRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49854,7 +49854,7 @@ function $0m231(v) {
       case "../../packages/agent-flow-bend/Canonical.Prepare": at = at[key] = {...v, "operation": BigInt(v["operation"]), "reservation": BigInt(v["reservation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CancelWork": at = at[key] = {...v, "operation": BigInt(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CreateNoticeKey": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ActionRequest has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Prepare, ../../packages/agent-flow-bend/Canonical.CancelWork, ../../packages/agent-flow-bend/Canonical.CreateNoticeKey); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ResidentActionCommand has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Prepare, ../../packages/agent-flow-bend/Canonical.CancelWork, ../../packages/agent-flow-bend/Canonical.CreateNoticeKey); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49898,10 +49898,10 @@ function $0m232(v) {
       case "../../packages/agent-flow-bend/Canonical.UnitAdmitted": at = at[key] = {...v, "operation": BigInt(v["operation"]), "reservation": BigInt(v["reservation"]), "position": BigInt(v["position"]), "bytes": BigInt(v["bytes"]), "after": $0m233(v["after"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationReleased": at = at[key] = {...v, "id": BigInt(v["id"]), "after": $0m233(v["after"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewStarted": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestIssued": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReservationReleased": at = at[key] = {...v, "id": BigInt(v["id"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewRecorded": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.FindingRetained": at[key] = v; return top[0];
@@ -49961,7 +49961,7 @@ function $0m232(v) {
       case "../../packages/agent-flow-bend/Canonical.ReofferAtStop": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PartitionRetired": at = at[key] = {...v, "round": BigInt(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.AdmissionForgotten": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.DomainEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityGranted, ../../packages/agent-flow-bend/Canonical.CapacityResized, ../../packages/agent-flow-bend/Canonical.CapacityUnitAdmitted, ../../packages/agent-flow-bend/Canonical.PermitIssued, ../../packages/agent-flow-bend/Canonical.CompletedEditSeen, ../../packages/agent-flow-bend/Canonical.CompletedEditRemembered, ../../packages/agent-flow-bend/Canonical.QuietRoundBusy, ../../packages/agent-flow-bend/Canonical.QuietRoundWaiting, ../../packages/agent-flow-bend/Canonical.QuietRoundResetRecorded, ../../packages/agent-flow-bend/Canonical.PermitConsumed, ../../packages/agent-flow-bend/Canonical.PermitReleased, ../../packages/agent-flow-bend/Canonical.PermitExpired, ../../packages/agent-flow-bend/Canonical.PermitRoundClosed, ../../packages/agent-flow-bend/Canonical.RoundStarted, ../../packages/agent-flow-bend/Canonical.ObservationAdmitted, ../../packages/agent-flow-bend/Canonical.ObservationStarted, ../../packages/agent-flow-bend/Canonical.ObservationCompleted, ../../packages/agent-flow-bend/Canonical.ObservationInterrupted, ../../packages/agent-flow-bend/Canonical.UnitAdmitted, ../../packages/agent-flow-bend/Canonical.PreparationReleased, ../../packages/agent-flow-bend/Canonical.ReviewStarted, ../../packages/agent-flow-bend/Canonical.JevRequestIssued, ../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded, ../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded, ../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded, ../../packages/agent-flow-bend/Canonical.ReservationReleased, ../../packages/agent-flow-bend/Canonical.ReviewRecorded, ../../packages/agent-flow-bend/Canonical.FindingRetained, ../../packages/agent-flow-bend/Canonical.FindingCountRecorded, ../../packages/agent-flow-bend/Canonical.ClearSettled, ../../packages/agent-flow-bend/Canonical.StaleClearSettled, ../../packages/agent-flow-bend/Canonical.StaleFindingRetired, ../../packages/agent-flow-bend/Canonical.DispatchStarted, ../../packages/agent-flow-bend/Canonical.DispatchDiscarded, ../../packages/agent-flow-bend/Canonical.WaitForWork, ../../packages/agent-flow-bend/Canonical.FinishReady, ../../packages/agent-flow-bend/Canonical.FinishLimit, ../../packages/agent-flow-bend/Canonical.StopEnded, ../../packages/agent-flow-bend/Canonical.CollectionEligible, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased, ../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundClaimed, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundReleased, ../../packages/agent-flow-bend/Canonical.FinishReserved, ../../packages/agent-flow-bend/Canonical.FinishReleased, ../../packages/agent-flow-bend/Canonical.FinishAuthorized, ../../packages/agent-flow-bend/Canonical.FinishRecorded, ../../packages/agent-flow-bend/Canonical.FinishEnded, ../../packages/agent-flow-bend/Canonical.ContinuationConsumed, ../../packages/agent-flow-bend/Canonical.SubmissionBegun, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorized, ../../packages/agent-flow-bend/Canonical.SubmissionRecorded, ../../packages/agent-flow-bend/Canonical.SubmissionReleased, ../../packages/agent-flow-bend/Canonical.SubmissionForgotten, ../../packages/agent-flow-bend/Canonical.RevisionReused, ../../packages/agent-flow-bend/Canonical.RevisionReplaced, ../../packages/agent-flow-bend/Canonical.RevisionReleased, ../../packages/agent-flow-bend/Canonical.CleanupCommitted, ../../packages/agent-flow-bend/Canonical.ReuseAdviceJoined, ../../packages/agent-flow-bend/Canonical.ReusePendingJoined, ../../packages/agent-flow-bend/Canonical.ReuseClaimedJoined, ../../packages/agent-flow-bend/Canonical.ReuseCacheHit, ../../packages/agent-flow-bend/Canonical.ReuseOwned, ../../packages/agent-flow-bend/Canonical.ReuseClaimed, ../../packages/agent-flow-bend/Canonical.ReuseAttached, ../../packages/agent-flow-bend/Canonical.ReuseReleased, ../../packages/agent-flow-bend/Canonical.CachePrepared, ../../packages/agent-flow-bend/Canonical.CacheCommitted, ../../packages/agent-flow-bend/Canonical.CacheDiscarded, ../../packages/agent-flow-bend/Canonical.NoticeSuppressed, ../../packages/agent-flow-bend/Canonical.NoticePendingCreated, ../../packages/agent-flow-bend/Canonical.NoticePendingMerged, ../../packages/agent-flow-bend/Canonical.NoticeLeaseKept, ../../packages/agent-flow-bend/Canonical.NoticeCommitted, ../../packages/agent-flow-bend/Canonical.NoticePruned, ../../packages/agent-flow-bend/Canonical.NoticeDropped, ../../packages/agent-flow-bend/Canonical.NoticeLeased, ../../packages/agent-flow-bend/Canonical.NoticePendingCleared, ../../packages/agent-flow-bend/Canonical.WriteAuthorized, ../../packages/agent-flow-bend/Canonical.WriteRecorded, ../../packages/agent-flow-bend/Canonical.ReofferAtStop, ../../packages/agent-flow-bend/Canonical.PartitionRetired, ../../packages/agent-flow-bend/Canonical.AdmissionForgotten); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.DomainEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityGranted, ../../packages/agent-flow-bend/Canonical.CapacityResized, ../../packages/agent-flow-bend/Canonical.CapacityUnitAdmitted, ../../packages/agent-flow-bend/Canonical.PermitIssued, ../../packages/agent-flow-bend/Canonical.CompletedEditSeen, ../../packages/agent-flow-bend/Canonical.CompletedEditRemembered, ../../packages/agent-flow-bend/Canonical.QuietRoundBusy, ../../packages/agent-flow-bend/Canonical.QuietRoundWaiting, ../../packages/agent-flow-bend/Canonical.QuietRoundResetRecorded, ../../packages/agent-flow-bend/Canonical.PermitConsumed, ../../packages/agent-flow-bend/Canonical.PermitReleased, ../../packages/agent-flow-bend/Canonical.PermitExpired, ../../packages/agent-flow-bend/Canonical.PermitRoundClosed, ../../packages/agent-flow-bend/Canonical.RoundStarted, ../../packages/agent-flow-bend/Canonical.ObservationAdmitted, ../../packages/agent-flow-bend/Canonical.ObservationStarted, ../../packages/agent-flow-bend/Canonical.ObservationCompleted, ../../packages/agent-flow-bend/Canonical.ObservationInterrupted, ../../packages/agent-flow-bend/Canonical.UnitAdmitted, ../../packages/agent-flow-bend/Canonical.PreparationReleased, ../../packages/agent-flow-bend/Canonical.ReviewStarted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded, ../../packages/agent-flow-bend/Canonical.ReservationReleased, ../../packages/agent-flow-bend/Canonical.ReviewRecorded, ../../packages/agent-flow-bend/Canonical.FindingRetained, ../../packages/agent-flow-bend/Canonical.FindingCountRecorded, ../../packages/agent-flow-bend/Canonical.ClearSettled, ../../packages/agent-flow-bend/Canonical.StaleClearSettled, ../../packages/agent-flow-bend/Canonical.StaleFindingRetired, ../../packages/agent-flow-bend/Canonical.DispatchStarted, ../../packages/agent-flow-bend/Canonical.DispatchDiscarded, ../../packages/agent-flow-bend/Canonical.WaitForWork, ../../packages/agent-flow-bend/Canonical.FinishReady, ../../packages/agent-flow-bend/Canonical.FinishLimit, ../../packages/agent-flow-bend/Canonical.StopEnded, ../../packages/agent-flow-bend/Canonical.CollectionEligible, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased, ../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundClaimed, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundReleased, ../../packages/agent-flow-bend/Canonical.FinishReserved, ../../packages/agent-flow-bend/Canonical.FinishReleased, ../../packages/agent-flow-bend/Canonical.FinishAuthorized, ../../packages/agent-flow-bend/Canonical.FinishRecorded, ../../packages/agent-flow-bend/Canonical.FinishEnded, ../../packages/agent-flow-bend/Canonical.ContinuationConsumed, ../../packages/agent-flow-bend/Canonical.SubmissionBegun, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorized, ../../packages/agent-flow-bend/Canonical.SubmissionRecorded, ../../packages/agent-flow-bend/Canonical.SubmissionReleased, ../../packages/agent-flow-bend/Canonical.SubmissionForgotten, ../../packages/agent-flow-bend/Canonical.RevisionReused, ../../packages/agent-flow-bend/Canonical.RevisionReplaced, ../../packages/agent-flow-bend/Canonical.RevisionReleased, ../../packages/agent-flow-bend/Canonical.CleanupCommitted, ../../packages/agent-flow-bend/Canonical.ReuseAdviceJoined, ../../packages/agent-flow-bend/Canonical.ReusePendingJoined, ../../packages/agent-flow-bend/Canonical.ReuseClaimedJoined, ../../packages/agent-flow-bend/Canonical.ReuseCacheHit, ../../packages/agent-flow-bend/Canonical.ReuseOwned, ../../packages/agent-flow-bend/Canonical.ReuseClaimed, ../../packages/agent-flow-bend/Canonical.ReuseAttached, ../../packages/agent-flow-bend/Canonical.ReuseReleased, ../../packages/agent-flow-bend/Canonical.CachePrepared, ../../packages/agent-flow-bend/Canonical.CacheCommitted, ../../packages/agent-flow-bend/Canonical.CacheDiscarded, ../../packages/agent-flow-bend/Canonical.NoticeSuppressed, ../../packages/agent-flow-bend/Canonical.NoticePendingCreated, ../../packages/agent-flow-bend/Canonical.NoticePendingMerged, ../../packages/agent-flow-bend/Canonical.NoticeLeaseKept, ../../packages/agent-flow-bend/Canonical.NoticeCommitted, ../../packages/agent-flow-bend/Canonical.NoticePruned, ../../packages/agent-flow-bend/Canonical.NoticeDropped, ../../packages/agent-flow-bend/Canonical.NoticeLeased, ../../packages/agent-flow-bend/Canonical.NoticePendingCleared, ../../packages/agent-flow-bend/Canonical.WriteAuthorized, ../../packages/agent-flow-bend/Canonical.WriteRecorded, ../../packages/agent-flow-bend/Canonical.ReofferAtStop, ../../packages/agent-flow-bend/Canonical.PartitionRetired, ../../packages/agent-flow-bend/Canonical.AdmissionForgotten); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -49979,8 +49979,8 @@ function $0m234(v) {
       case "../../packages/agent-flow-bend/Canonical.PermitKept": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationRefused": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.UnitRefused": at = at[key] = {...v, "position": BigInt(v["position"]), "bytes": BigInt(v["bytes"]), "after": $0m233(v["after"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevObservationIgnored": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedSkipped": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedAdmitted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused": at[key] = v; return top[0];
@@ -50102,7 +50102,7 @@ function $0m234(v) {
       case "../../packages/agent-flow-bend/Canonical.RuleGate": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RuleOrder": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.WaitForOutput": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.PolicyDecision has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityRefused, ../../packages/agent-flow-bend/Canonical.CapacityUnitRefused, ../../packages/agent-flow-bend/Canonical.CompletedEditAbsent, ../../packages/agent-flow-bend/Canonical.QuietRoundExpired, ../../packages/agent-flow-bend/Canonical.PermitKept, ../../packages/agent-flow-bend/Canonical.PreparationRefused, ../../packages/agent-flow-bend/Canonical.UnitRefused, ../../packages/agent-flow-bend/Canonical.JevRequestUnavailable, ../../packages/agent-flow-bend/Canonical.JevObservationIgnored, ../../packages/agent-flow-bend/Canonical.PreparedSkipped, ../../packages/agent-flow-bend/Canonical.PreparedAdmitted, ../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused, ../../packages/agent-flow-bend/Canonical.EmptyLost, ../../packages/agent-flow-bend/Canonical.EmptyAccepted, ../../packages/agent-flow-bend/Canonical.FailureBackend, ../../packages/agent-flow-bend/Canonical.FailureCredential, ../../packages/agent-flow-bend/Canonical.FailureLost, ../../packages/agent-flow-bend/Canonical.FailureNone, ../../packages/agent-flow-bend/Canonical.DiscardNamedOnly, ../../packages/agent-flow-bend/Canonical.DiscardAllUnfinished, ../../packages/agent-flow-bend/Canonical.CollectionWaiting, ../../packages/agent-flow-bend/Canonical.CollectionRetireCredential, ../../packages/agent-flow-bend/Canonical.CollectionRetainCredential, ../../packages/agent-flow-bend/Canonical.CollectionCandidate, ../../packages/agent-flow-bend/Canonical.CollectionSkip, ../../packages/agent-flow-bend/Canonical.CollectionBefore, ../../packages/agent-flow-bend/Canonical.CollectionEqual, ../../packages/agent-flow-bend/Canonical.CollectionAfter, ../../packages/agent-flow-bend/Canonical.CollectionExpired, ../../packages/agent-flow-bend/Canonical.CollectionCurrent, ../../packages/agent-flow-bend/Canonical.CollectionFits, ../../packages/agent-flow-bend/Canonical.CollectionLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingSelected, ../../packages/agent-flow-bend/Canonical.CollectionFindingRetained, ../../packages/agent-flow-bend/Canonical.CollectionFindingLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingExpired, ../../packages/agent-flow-bend/Canonical.CollectionNoticeIncluded, ../../packages/agent-flow-bend/Canonical.CollectionNoticeSkipped, ../../packages/agent-flow-bend/Canonical.CollectionNoticeStopped, ../../packages/agent-flow-bend/Canonical.CollectionLeaseRefused, ../../packages/agent-flow-bend/Canonical.CollectionLeaseKept, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundRefused, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundKept, ../../packages/agent-flow-bend/Canonical.FinishNotices, ../../packages/agent-flow-bend/Canonical.FinishAllowedNoAdvice, ../../packages/agent-flow-bend/Canonical.FinishAllowedDeadline, ../../packages/agent-flow-bend/Canonical.FinishAllowedUnavailable, ../../packages/agent-flow-bend/Canonical.FinishRefused, ../../packages/agent-flow-bend/Canonical.ContinuationRefused, ../../packages/agent-flow-bend/Canonical.SubmissionRefused, ../../packages/agent-flow-bend/Canonical.SubmissionSuppresses, ../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed, ../../packages/agent-flow-bend/Canonical.SubmissionReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionNotReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionExpired, ../../packages/agent-flow-bend/Canonical.SubmissionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionStale, ../../packages/agent-flow-bend/Canonical.RevisionSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionNotSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionGeneration, ../../packages/agent-flow-bend/Canonical.RevisionCount, ../../packages/agent-flow-bend/Canonical.CollectorProceed, ../../packages/agent-flow-bend/Canonical.CollectorUnavailable, ../../packages/agent-flow-bend/Canonical.CollectorFinalProceed, ../../packages/agent-flow-bend/Canonical.CollectorFinalRelease, ../../packages/agent-flow-bend/Canonical.ReuseKeepMember, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberClear, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberFinding, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberUnavailable, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberLost, ../../packages/agent-flow-bend/Canonical.CleanupReady, ../../packages/agent-flow-bend/Canonical.CleanupBusy, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryAckReady, ../../packages/agent-flow-bend/Canonical.DeliveryAckExpired, ../../packages/agent-flow-bend/Canonical.DeliveryAckEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryFinalReady, ../../packages/agent-flow-bend/Canonical.DeliveryFinalExpired, ../../packages/agent-flow-bend/Canonical.DeliveryFinalEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryRetireAdvice, ../../packages/agent-flow-bend/Canonical.DeliveryKeepRemaining, ../../packages/agent-flow-bend/Canonical.DeliveryKeepForReoffer, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidate, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionRefused, ../../packages/agent-flow-bend/Canonical.DeliveryBatchProceed, ../../packages/agent-flow-bend/Canonical.DeliveryBatchRelease, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialInvalid, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialValid, ../../packages/agent-flow-bend/Canonical.SourceCacheDrop, ../../packages/agent-flow-bend/Canonical.SourceCacheRetain, ../../packages/agent-flow-bend/Canonical.IgnoreCandidate, ../../packages/agent-flow-bend/Canonical.ReleaseCandidate, ../../packages/agent-flow-bend/Canonical.RetireCandidate, ../../packages/agent-flow-bend/Canonical.ContinueCandidate, ../../packages/agent-flow-bend/Canonical.RetainCandidate, ../../packages/agent-flow-bend/Canonical.RoundStopBegun, ../../packages/agent-flow-bend/Canonical.RoundStopRefused, ../../packages/agent-flow-bend/Canonical.RoundActive, ../../packages/agent-flow-bend/Canonical.RoundInactive, ../../packages/agent-flow-bend/Canonical.RoundBarrierRaised, ../../packages/agent-flow-bend/Canonical.RoundBarrierClear, ../../packages/agent-flow-bend/Canonical.RoundStopOwned, ../../packages/agent-flow-bend/Canonical.RoundStopNotOwned, ../../packages/agent-flow-bend/Canonical.RoundStopTerminal, ../../packages/agent-flow-bend/Canonical.RoundExpireCloses, ../../packages/agent-flow-bend/Canonical.RoundExpireKeeps, ../../packages/agent-flow-bend/Canonical.RoundContinuationAvailable, ../../packages/agent-flow-bend/Canonical.RoundContinuationExhausted, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowed, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionDenied, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenDenied, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopDenied, ../../packages/agent-flow-bend/Canonical.ReuseRefused, ../../packages/agent-flow-bend/Canonical.CacheAlready, ../../packages/agent-flow-bend/Canonical.CacheRejected, ../../packages/agent-flow-bend/Canonical.NoticeRejectedFull, ../../packages/agent-flow-bend/Canonical.NoticeRefused, ../../packages/agent-flow-bend/Canonical.NoticeSelected, ../../packages/agent-flow-bend/Canonical.IncludeChoice, ../../packages/agent-flow-bend/Canonical.FileSelection, ../../packages/agent-flow-bend/Canonical.FileProtection, ../../packages/agent-flow-bend/Canonical.CandidateFile, ../../packages/agent-flow-bend/Canonical.ReviewAdmission, ../../packages/agent-flow-bend/Canonical.RuleGate, ../../packages/agent-flow-bend/Canonical.RuleOrder, ../../packages/agent-flow-bend/Canonical.WaitForOutput); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.PolicyDecision has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityRefused, ../../packages/agent-flow-bend/Canonical.CapacityUnitRefused, ../../packages/agent-flow-bend/Canonical.CompletedEditAbsent, ../../packages/agent-flow-bend/Canonical.QuietRoundExpired, ../../packages/agent-flow-bend/Canonical.PermitKept, ../../packages/agent-flow-bend/Canonical.PreparationRefused, ../../packages/agent-flow-bend/Canonical.UnitRefused, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored, ../../packages/agent-flow-bend/Canonical.PreparedSkipped, ../../packages/agent-flow-bend/Canonical.PreparedAdmitted, ../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused, ../../packages/agent-flow-bend/Canonical.EmptyLost, ../../packages/agent-flow-bend/Canonical.EmptyAccepted, ../../packages/agent-flow-bend/Canonical.FailureBackend, ../../packages/agent-flow-bend/Canonical.FailureCredential, ../../packages/agent-flow-bend/Canonical.FailureLost, ../../packages/agent-flow-bend/Canonical.FailureNone, ../../packages/agent-flow-bend/Canonical.DiscardNamedOnly, ../../packages/agent-flow-bend/Canonical.DiscardAllUnfinished, ../../packages/agent-flow-bend/Canonical.CollectionWaiting, ../../packages/agent-flow-bend/Canonical.CollectionRetireCredential, ../../packages/agent-flow-bend/Canonical.CollectionRetainCredential, ../../packages/agent-flow-bend/Canonical.CollectionCandidate, ../../packages/agent-flow-bend/Canonical.CollectionSkip, ../../packages/agent-flow-bend/Canonical.CollectionBefore, ../../packages/agent-flow-bend/Canonical.CollectionEqual, ../../packages/agent-flow-bend/Canonical.CollectionAfter, ../../packages/agent-flow-bend/Canonical.CollectionExpired, ../../packages/agent-flow-bend/Canonical.CollectionCurrent, ../../packages/agent-flow-bend/Canonical.CollectionFits, ../../packages/agent-flow-bend/Canonical.CollectionLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingSelected, ../../packages/agent-flow-bend/Canonical.CollectionFindingRetained, ../../packages/agent-flow-bend/Canonical.CollectionFindingLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingExpired, ../../packages/agent-flow-bend/Canonical.CollectionNoticeIncluded, ../../packages/agent-flow-bend/Canonical.CollectionNoticeSkipped, ../../packages/agent-flow-bend/Canonical.CollectionNoticeStopped, ../../packages/agent-flow-bend/Canonical.CollectionLeaseRefused, ../../packages/agent-flow-bend/Canonical.CollectionLeaseKept, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundRefused, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundKept, ../../packages/agent-flow-bend/Canonical.FinishNotices, ../../packages/agent-flow-bend/Canonical.FinishAllowedNoAdvice, ../../packages/agent-flow-bend/Canonical.FinishAllowedDeadline, ../../packages/agent-flow-bend/Canonical.FinishAllowedUnavailable, ../../packages/agent-flow-bend/Canonical.FinishRefused, ../../packages/agent-flow-bend/Canonical.ContinuationRefused, ../../packages/agent-flow-bend/Canonical.SubmissionRefused, ../../packages/agent-flow-bend/Canonical.SubmissionSuppresses, ../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed, ../../packages/agent-flow-bend/Canonical.SubmissionReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionNotReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionExpired, ../../packages/agent-flow-bend/Canonical.SubmissionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionStale, ../../packages/agent-flow-bend/Canonical.RevisionSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionNotSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionGeneration, ../../packages/agent-flow-bend/Canonical.RevisionCount, ../../packages/agent-flow-bend/Canonical.CollectorProceed, ../../packages/agent-flow-bend/Canonical.CollectorUnavailable, ../../packages/agent-flow-bend/Canonical.CollectorFinalProceed, ../../packages/agent-flow-bend/Canonical.CollectorFinalRelease, ../../packages/agent-flow-bend/Canonical.ReuseKeepMember, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberClear, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberFinding, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberUnavailable, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberLost, ../../packages/agent-flow-bend/Canonical.CleanupReady, ../../packages/agent-flow-bend/Canonical.CleanupBusy, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryAckReady, ../../packages/agent-flow-bend/Canonical.DeliveryAckExpired, ../../packages/agent-flow-bend/Canonical.DeliveryAckEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryFinalReady, ../../packages/agent-flow-bend/Canonical.DeliveryFinalExpired, ../../packages/agent-flow-bend/Canonical.DeliveryFinalEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryRetireAdvice, ../../packages/agent-flow-bend/Canonical.DeliveryKeepRemaining, ../../packages/agent-flow-bend/Canonical.DeliveryKeepForReoffer, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidate, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionRefused, ../../packages/agent-flow-bend/Canonical.DeliveryBatchProceed, ../../packages/agent-flow-bend/Canonical.DeliveryBatchRelease, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialInvalid, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialValid, ../../packages/agent-flow-bend/Canonical.SourceCacheDrop, ../../packages/agent-flow-bend/Canonical.SourceCacheRetain, ../../packages/agent-flow-bend/Canonical.IgnoreCandidate, ../../packages/agent-flow-bend/Canonical.ReleaseCandidate, ../../packages/agent-flow-bend/Canonical.RetireCandidate, ../../packages/agent-flow-bend/Canonical.ContinueCandidate, ../../packages/agent-flow-bend/Canonical.RetainCandidate, ../../packages/agent-flow-bend/Canonical.RoundStopBegun, ../../packages/agent-flow-bend/Canonical.RoundStopRefused, ../../packages/agent-flow-bend/Canonical.RoundActive, ../../packages/agent-flow-bend/Canonical.RoundInactive, ../../packages/agent-flow-bend/Canonical.RoundBarrierRaised, ../../packages/agent-flow-bend/Canonical.RoundBarrierClear, ../../packages/agent-flow-bend/Canonical.RoundStopOwned, ../../packages/agent-flow-bend/Canonical.RoundStopNotOwned, ../../packages/agent-flow-bend/Canonical.RoundStopTerminal, ../../packages/agent-flow-bend/Canonical.RoundExpireCloses, ../../packages/agent-flow-bend/Canonical.RoundExpireKeeps, ../../packages/agent-flow-bend/Canonical.RoundContinuationAvailable, ../../packages/agent-flow-bend/Canonical.RoundContinuationExhausted, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowed, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionDenied, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenDenied, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopDenied, ../../packages/agent-flow-bend/Canonical.ReuseRefused, ../../packages/agent-flow-bend/Canonical.CacheAlready, ../../packages/agent-flow-bend/Canonical.CacheRejected, ../../packages/agent-flow-bend/Canonical.NoticeRejectedFull, ../../packages/agent-flow-bend/Canonical.NoticeRefused, ../../packages/agent-flow-bend/Canonical.NoticeSelected, ../../packages/agent-flow-bend/Canonical.IncludeChoice, ../../packages/agent-flow-bend/Canonical.FileSelection, ../../packages/agent-flow-bend/Canonical.FileProtection, ../../packages/agent-flow-bend/Canonical.CandidateFile, ../../packages/agent-flow-bend/Canonical.ReviewAdmission, ../../packages/agent-flow-bend/Canonical.RuleGate, ../../packages/agent-flow-bend/Canonical.RuleOrder, ../../packages/agent-flow-bend/Canonical.WaitForOutput); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50113,10 +50113,10 @@ function $0m230(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Canonical.ActionRequested": at = at[key] = {...v, "request": $0m231(v["request"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ResidentActionRequested": at = at[key] = {...v, "command": $0m231(v["command"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.EventEstablished": at = at[key] = {...v, "event": $0m232(v["event"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PolicyDecided": at = at[key] = {...v, "decision": $0m234(v["decision"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Output has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ActionRequested, ../../packages/agent-flow-bend/Canonical.EventEstablished, ../../packages/agent-flow-bend/Canonical.PolicyDecided); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Output has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ResidentActionRequested, ../../packages/agent-flow-bend/Canonical.EventEstablished, ../../packages/agent-flow-bend/Canonical.PolicyDecided); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50207,7 +50207,7 @@ function $0m240(v) {
       case "../../packages/agent-flow-bend/Canonical.Prepare": at = at[key] = {...v, "operation": nat_host(v["operation"]), "reservation": nat_host(v["reservation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CancelWork": at = at[key] = {...v, "operation": nat_host(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CreateNoticeKey": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ActionRequest has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Prepare, ../../packages/agent-flow-bend/Canonical.CancelWork, ../../packages/agent-flow-bend/Canonical.CreateNoticeKey); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.ResidentActionCommand has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.Prepare, ../../packages/agent-flow-bend/Canonical.CancelWork, ../../packages/agent-flow-bend/Canonical.CreateNoticeKey); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50251,10 +50251,10 @@ function $0m241(v) {
       case "../../packages/agent-flow-bend/Canonical.UnitAdmitted": at = at[key] = {...v, "operation": nat_host(v["operation"]), "reservation": nat_host(v["reservation"]), "position": nat_host(v["position"]), "bytes": nat_host(v["bytes"]), "after": $0m242(v["after"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationReleased": at = at[key] = {...v, "id": nat_host(v["id"]), "after": $0m242(v["after"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewStarted": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestIssued": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReservationReleased": at = at[key] = {...v, "id": nat_host(v["id"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewRecorded": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.FindingRetained": at[key] = v; return top[0];
@@ -50314,7 +50314,7 @@ function $0m241(v) {
       case "../../packages/agent-flow-bend/Canonical.ReofferAtStop": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PartitionRetired": at = at[key] = {...v, "round": nat_host(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.AdmissionForgotten": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.DomainEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityGranted, ../../packages/agent-flow-bend/Canonical.CapacityResized, ../../packages/agent-flow-bend/Canonical.CapacityUnitAdmitted, ../../packages/agent-flow-bend/Canonical.PermitIssued, ../../packages/agent-flow-bend/Canonical.CompletedEditSeen, ../../packages/agent-flow-bend/Canonical.CompletedEditRemembered, ../../packages/agent-flow-bend/Canonical.QuietRoundBusy, ../../packages/agent-flow-bend/Canonical.QuietRoundWaiting, ../../packages/agent-flow-bend/Canonical.QuietRoundResetRecorded, ../../packages/agent-flow-bend/Canonical.PermitConsumed, ../../packages/agent-flow-bend/Canonical.PermitReleased, ../../packages/agent-flow-bend/Canonical.PermitExpired, ../../packages/agent-flow-bend/Canonical.PermitRoundClosed, ../../packages/agent-flow-bend/Canonical.RoundStarted, ../../packages/agent-flow-bend/Canonical.ObservationAdmitted, ../../packages/agent-flow-bend/Canonical.ObservationStarted, ../../packages/agent-flow-bend/Canonical.ObservationCompleted, ../../packages/agent-flow-bend/Canonical.ObservationInterrupted, ../../packages/agent-flow-bend/Canonical.UnitAdmitted, ../../packages/agent-flow-bend/Canonical.PreparationReleased, ../../packages/agent-flow-bend/Canonical.ReviewStarted, ../../packages/agent-flow-bend/Canonical.JevRequestIssued, ../../packages/agent-flow-bend/Canonical.JevRequestStartRecorded, ../../packages/agent-flow-bend/Canonical.JevInterruptionRecorded, ../../packages/agent-flow-bend/Canonical.JevRequestOutcomeRecorded, ../../packages/agent-flow-bend/Canonical.ReservationReleased, ../../packages/agent-flow-bend/Canonical.ReviewRecorded, ../../packages/agent-flow-bend/Canonical.FindingRetained, ../../packages/agent-flow-bend/Canonical.FindingCountRecorded, ../../packages/agent-flow-bend/Canonical.ClearSettled, ../../packages/agent-flow-bend/Canonical.StaleClearSettled, ../../packages/agent-flow-bend/Canonical.StaleFindingRetired, ../../packages/agent-flow-bend/Canonical.DispatchStarted, ../../packages/agent-flow-bend/Canonical.DispatchDiscarded, ../../packages/agent-flow-bend/Canonical.WaitForWork, ../../packages/agent-flow-bend/Canonical.FinishReady, ../../packages/agent-flow-bend/Canonical.FinishLimit, ../../packages/agent-flow-bend/Canonical.StopEnded, ../../packages/agent-flow-bend/Canonical.CollectionEligible, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased, ../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundClaimed, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundReleased, ../../packages/agent-flow-bend/Canonical.FinishReserved, ../../packages/agent-flow-bend/Canonical.FinishReleased, ../../packages/agent-flow-bend/Canonical.FinishAuthorized, ../../packages/agent-flow-bend/Canonical.FinishRecorded, ../../packages/agent-flow-bend/Canonical.FinishEnded, ../../packages/agent-flow-bend/Canonical.ContinuationConsumed, ../../packages/agent-flow-bend/Canonical.SubmissionBegun, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorized, ../../packages/agent-flow-bend/Canonical.SubmissionRecorded, ../../packages/agent-flow-bend/Canonical.SubmissionReleased, ../../packages/agent-flow-bend/Canonical.SubmissionForgotten, ../../packages/agent-flow-bend/Canonical.RevisionReused, ../../packages/agent-flow-bend/Canonical.RevisionReplaced, ../../packages/agent-flow-bend/Canonical.RevisionReleased, ../../packages/agent-flow-bend/Canonical.CleanupCommitted, ../../packages/agent-flow-bend/Canonical.ReuseAdviceJoined, ../../packages/agent-flow-bend/Canonical.ReusePendingJoined, ../../packages/agent-flow-bend/Canonical.ReuseClaimedJoined, ../../packages/agent-flow-bend/Canonical.ReuseCacheHit, ../../packages/agent-flow-bend/Canonical.ReuseOwned, ../../packages/agent-flow-bend/Canonical.ReuseClaimed, ../../packages/agent-flow-bend/Canonical.ReuseAttached, ../../packages/agent-flow-bend/Canonical.ReuseReleased, ../../packages/agent-flow-bend/Canonical.CachePrepared, ../../packages/agent-flow-bend/Canonical.CacheCommitted, ../../packages/agent-flow-bend/Canonical.CacheDiscarded, ../../packages/agent-flow-bend/Canonical.NoticeSuppressed, ../../packages/agent-flow-bend/Canonical.NoticePendingCreated, ../../packages/agent-flow-bend/Canonical.NoticePendingMerged, ../../packages/agent-flow-bend/Canonical.NoticeLeaseKept, ../../packages/agent-flow-bend/Canonical.NoticeCommitted, ../../packages/agent-flow-bend/Canonical.NoticePruned, ../../packages/agent-flow-bend/Canonical.NoticeDropped, ../../packages/agent-flow-bend/Canonical.NoticeLeased, ../../packages/agent-flow-bend/Canonical.NoticePendingCleared, ../../packages/agent-flow-bend/Canonical.WriteAuthorized, ../../packages/agent-flow-bend/Canonical.WriteRecorded, ../../packages/agent-flow-bend/Canonical.ReofferAtStop, ../../packages/agent-flow-bend/Canonical.PartitionRetired, ../../packages/agent-flow-bend/Canonical.AdmissionForgotten); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.DomainEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityGranted, ../../packages/agent-flow-bend/Canonical.CapacityResized, ../../packages/agent-flow-bend/Canonical.CapacityUnitAdmitted, ../../packages/agent-flow-bend/Canonical.PermitIssued, ../../packages/agent-flow-bend/Canonical.CompletedEditSeen, ../../packages/agent-flow-bend/Canonical.CompletedEditRemembered, ../../packages/agent-flow-bend/Canonical.QuietRoundBusy, ../../packages/agent-flow-bend/Canonical.QuietRoundWaiting, ../../packages/agent-flow-bend/Canonical.QuietRoundResetRecorded, ../../packages/agent-flow-bend/Canonical.PermitConsumed, ../../packages/agent-flow-bend/Canonical.PermitReleased, ../../packages/agent-flow-bend/Canonical.PermitExpired, ../../packages/agent-flow-bend/Canonical.PermitRoundClosed, ../../packages/agent-flow-bend/Canonical.RoundStarted, ../../packages/agent-flow-bend/Canonical.ObservationAdmitted, ../../packages/agent-flow-bend/Canonical.ObservationStarted, ../../packages/agent-flow-bend/Canonical.ObservationCompleted, ../../packages/agent-flow-bend/Canonical.ObservationInterrupted, ../../packages/agent-flow-bend/Canonical.UnitAdmitted, ../../packages/agent-flow-bend/Canonical.PreparationReleased, ../../packages/agent-flow-bend/Canonical.ReviewStarted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestIssued, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStartRecorded, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterruptionRecorded, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestOutcomeRecorded, ../../packages/agent-flow-bend/Canonical.ReservationReleased, ../../packages/agent-flow-bend/Canonical.ReviewRecorded, ../../packages/agent-flow-bend/Canonical.FindingRetained, ../../packages/agent-flow-bend/Canonical.FindingCountRecorded, ../../packages/agent-flow-bend/Canonical.ClearSettled, ../../packages/agent-flow-bend/Canonical.StaleClearSettled, ../../packages/agent-flow-bend/Canonical.StaleFindingRetired, ../../packages/agent-flow-bend/Canonical.DispatchStarted, ../../packages/agent-flow-bend/Canonical.DispatchDiscarded, ../../packages/agent-flow-bend/Canonical.WaitForWork, ../../packages/agent-flow-bend/Canonical.FinishReady, ../../packages/agent-flow-bend/Canonical.FinishLimit, ../../packages/agent-flow-bend/Canonical.StopEnded, ../../packages/agent-flow-bend/Canonical.CollectionEligible, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReserved, ../../packages/agent-flow-bend/Canonical.CollectionLeaseReleased, ../../packages/agent-flow-bend/Canonical.CollectionAdviceRetired, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundClaimed, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundReleased, ../../packages/agent-flow-bend/Canonical.FinishReserved, ../../packages/agent-flow-bend/Canonical.FinishReleased, ../../packages/agent-flow-bend/Canonical.FinishAuthorized, ../../packages/agent-flow-bend/Canonical.FinishRecorded, ../../packages/agent-flow-bend/Canonical.FinishEnded, ../../packages/agent-flow-bend/Canonical.ContinuationConsumed, ../../packages/agent-flow-bend/Canonical.SubmissionBegun, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorized, ../../packages/agent-flow-bend/Canonical.SubmissionRecorded, ../../packages/agent-flow-bend/Canonical.SubmissionReleased, ../../packages/agent-flow-bend/Canonical.SubmissionForgotten, ../../packages/agent-flow-bend/Canonical.RevisionReused, ../../packages/agent-flow-bend/Canonical.RevisionReplaced, ../../packages/agent-flow-bend/Canonical.RevisionReleased, ../../packages/agent-flow-bend/Canonical.CleanupCommitted, ../../packages/agent-flow-bend/Canonical.ReuseAdviceJoined, ../../packages/agent-flow-bend/Canonical.ReusePendingJoined, ../../packages/agent-flow-bend/Canonical.ReuseClaimedJoined, ../../packages/agent-flow-bend/Canonical.ReuseCacheHit, ../../packages/agent-flow-bend/Canonical.ReuseOwned, ../../packages/agent-flow-bend/Canonical.ReuseClaimed, ../../packages/agent-flow-bend/Canonical.ReuseAttached, ../../packages/agent-flow-bend/Canonical.ReuseReleased, ../../packages/agent-flow-bend/Canonical.CachePrepared, ../../packages/agent-flow-bend/Canonical.CacheCommitted, ../../packages/agent-flow-bend/Canonical.CacheDiscarded, ../../packages/agent-flow-bend/Canonical.NoticeSuppressed, ../../packages/agent-flow-bend/Canonical.NoticePendingCreated, ../../packages/agent-flow-bend/Canonical.NoticePendingMerged, ../../packages/agent-flow-bend/Canonical.NoticeLeaseKept, ../../packages/agent-flow-bend/Canonical.NoticeCommitted, ../../packages/agent-flow-bend/Canonical.NoticePruned, ../../packages/agent-flow-bend/Canonical.NoticeDropped, ../../packages/agent-flow-bend/Canonical.NoticeLeased, ../../packages/agent-flow-bend/Canonical.NoticePendingCleared, ../../packages/agent-flow-bend/Canonical.WriteAuthorized, ../../packages/agent-flow-bend/Canonical.WriteRecorded, ../../packages/agent-flow-bend/Canonical.ReofferAtStop, ../../packages/agent-flow-bend/Canonical.PartitionRetired, ../../packages/agent-flow-bend/Canonical.AdmissionForgotten); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50332,8 +50332,8 @@ function $0m243(v) {
       case "../../packages/agent-flow-bend/Canonical.PermitKept": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationRefused": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.UnitRefused": at = at[key] = {...v, "position": nat_host(v["position"]), "bytes": nat_host(v["bytes"]), "after": $0m242(v["after"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestUnavailable": at[key] = v; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevObservationIgnored": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable": at[key] = v; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedSkipped": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedAdmitted": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused": at[key] = v; return top[0];
@@ -50455,7 +50455,7 @@ function $0m243(v) {
       case "../../packages/agent-flow-bend/Canonical.RuleGate": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RuleOrder": at[key] = v; return top[0];
       case "../../packages/agent-flow-bend/Canonical.WaitForOutput": at[key] = v; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.PolicyDecision has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityRefused, ../../packages/agent-flow-bend/Canonical.CapacityUnitRefused, ../../packages/agent-flow-bend/Canonical.CompletedEditAbsent, ../../packages/agent-flow-bend/Canonical.QuietRoundExpired, ../../packages/agent-flow-bend/Canonical.PermitKept, ../../packages/agent-flow-bend/Canonical.PreparationRefused, ../../packages/agent-flow-bend/Canonical.UnitRefused, ../../packages/agent-flow-bend/Canonical.JevRequestUnavailable, ../../packages/agent-flow-bend/Canonical.JevObservationIgnored, ../../packages/agent-flow-bend/Canonical.PreparedSkipped, ../../packages/agent-flow-bend/Canonical.PreparedAdmitted, ../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused, ../../packages/agent-flow-bend/Canonical.EmptyLost, ../../packages/agent-flow-bend/Canonical.EmptyAccepted, ../../packages/agent-flow-bend/Canonical.FailureBackend, ../../packages/agent-flow-bend/Canonical.FailureCredential, ../../packages/agent-flow-bend/Canonical.FailureLost, ../../packages/agent-flow-bend/Canonical.FailureNone, ../../packages/agent-flow-bend/Canonical.DiscardNamedOnly, ../../packages/agent-flow-bend/Canonical.DiscardAllUnfinished, ../../packages/agent-flow-bend/Canonical.CollectionWaiting, ../../packages/agent-flow-bend/Canonical.CollectionRetireCredential, ../../packages/agent-flow-bend/Canonical.CollectionRetainCredential, ../../packages/agent-flow-bend/Canonical.CollectionCandidate, ../../packages/agent-flow-bend/Canonical.CollectionSkip, ../../packages/agent-flow-bend/Canonical.CollectionBefore, ../../packages/agent-flow-bend/Canonical.CollectionEqual, ../../packages/agent-flow-bend/Canonical.CollectionAfter, ../../packages/agent-flow-bend/Canonical.CollectionExpired, ../../packages/agent-flow-bend/Canonical.CollectionCurrent, ../../packages/agent-flow-bend/Canonical.CollectionFits, ../../packages/agent-flow-bend/Canonical.CollectionLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingSelected, ../../packages/agent-flow-bend/Canonical.CollectionFindingRetained, ../../packages/agent-flow-bend/Canonical.CollectionFindingLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingExpired, ../../packages/agent-flow-bend/Canonical.CollectionNoticeIncluded, ../../packages/agent-flow-bend/Canonical.CollectionNoticeSkipped, ../../packages/agent-flow-bend/Canonical.CollectionNoticeStopped, ../../packages/agent-flow-bend/Canonical.CollectionLeaseRefused, ../../packages/agent-flow-bend/Canonical.CollectionLeaseKept, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundRefused, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundKept, ../../packages/agent-flow-bend/Canonical.FinishNotices, ../../packages/agent-flow-bend/Canonical.FinishAllowedNoAdvice, ../../packages/agent-flow-bend/Canonical.FinishAllowedDeadline, ../../packages/agent-flow-bend/Canonical.FinishAllowedUnavailable, ../../packages/agent-flow-bend/Canonical.FinishRefused, ../../packages/agent-flow-bend/Canonical.ContinuationRefused, ../../packages/agent-flow-bend/Canonical.SubmissionRefused, ../../packages/agent-flow-bend/Canonical.SubmissionSuppresses, ../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed, ../../packages/agent-flow-bend/Canonical.SubmissionReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionNotReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionExpired, ../../packages/agent-flow-bend/Canonical.SubmissionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionStale, ../../packages/agent-flow-bend/Canonical.RevisionSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionNotSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionGeneration, ../../packages/agent-flow-bend/Canonical.RevisionCount, ../../packages/agent-flow-bend/Canonical.CollectorProceed, ../../packages/agent-flow-bend/Canonical.CollectorUnavailable, ../../packages/agent-flow-bend/Canonical.CollectorFinalProceed, ../../packages/agent-flow-bend/Canonical.CollectorFinalRelease, ../../packages/agent-flow-bend/Canonical.ReuseKeepMember, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberClear, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberFinding, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberUnavailable, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberLost, ../../packages/agent-flow-bend/Canonical.CleanupReady, ../../packages/agent-flow-bend/Canonical.CleanupBusy, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryAckReady, ../../packages/agent-flow-bend/Canonical.DeliveryAckExpired, ../../packages/agent-flow-bend/Canonical.DeliveryAckEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryFinalReady, ../../packages/agent-flow-bend/Canonical.DeliveryFinalExpired, ../../packages/agent-flow-bend/Canonical.DeliveryFinalEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryRetireAdvice, ../../packages/agent-flow-bend/Canonical.DeliveryKeepRemaining, ../../packages/agent-flow-bend/Canonical.DeliveryKeepForReoffer, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidate, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionRefused, ../../packages/agent-flow-bend/Canonical.DeliveryBatchProceed, ../../packages/agent-flow-bend/Canonical.DeliveryBatchRelease, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialInvalid, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialValid, ../../packages/agent-flow-bend/Canonical.SourceCacheDrop, ../../packages/agent-flow-bend/Canonical.SourceCacheRetain, ../../packages/agent-flow-bend/Canonical.IgnoreCandidate, ../../packages/agent-flow-bend/Canonical.ReleaseCandidate, ../../packages/agent-flow-bend/Canonical.RetireCandidate, ../../packages/agent-flow-bend/Canonical.ContinueCandidate, ../../packages/agent-flow-bend/Canonical.RetainCandidate, ../../packages/agent-flow-bend/Canonical.RoundStopBegun, ../../packages/agent-flow-bend/Canonical.RoundStopRefused, ../../packages/agent-flow-bend/Canonical.RoundActive, ../../packages/agent-flow-bend/Canonical.RoundInactive, ../../packages/agent-flow-bend/Canonical.RoundBarrierRaised, ../../packages/agent-flow-bend/Canonical.RoundBarrierClear, ../../packages/agent-flow-bend/Canonical.RoundStopOwned, ../../packages/agent-flow-bend/Canonical.RoundStopNotOwned, ../../packages/agent-flow-bend/Canonical.RoundStopTerminal, ../../packages/agent-flow-bend/Canonical.RoundExpireCloses, ../../packages/agent-flow-bend/Canonical.RoundExpireKeeps, ../../packages/agent-flow-bend/Canonical.RoundContinuationAvailable, ../../packages/agent-flow-bend/Canonical.RoundContinuationExhausted, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowed, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionDenied, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenDenied, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopDenied, ../../packages/agent-flow-bend/Canonical.ReuseRefused, ../../packages/agent-flow-bend/Canonical.CacheAlready, ../../packages/agent-flow-bend/Canonical.CacheRejected, ../../packages/agent-flow-bend/Canonical.NoticeRejectedFull, ../../packages/agent-flow-bend/Canonical.NoticeRefused, ../../packages/agent-flow-bend/Canonical.NoticeSelected, ../../packages/agent-flow-bend/Canonical.IncludeChoice, ../../packages/agent-flow-bend/Canonical.FileSelection, ../../packages/agent-flow-bend/Canonical.FileProtection, ../../packages/agent-flow-bend/Canonical.CandidateFile, ../../packages/agent-flow-bend/Canonical.ReviewAdmission, ../../packages/agent-flow-bend/Canonical.RuleGate, ../../packages/agent-flow-bend/Canonical.RuleOrder, ../../packages/agent-flow-bend/Canonical.WaitForOutput); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.PolicyDecision has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.CapacityRefused, ../../packages/agent-flow-bend/Canonical.CapacityUnitRefused, ../../packages/agent-flow-bend/Canonical.CompletedEditAbsent, ../../packages/agent-flow-bend/Canonical.QuietRoundExpired, ../../packages/agent-flow-bend/Canonical.PermitKept, ../../packages/agent-flow-bend/Canonical.PreparationRefused, ../../packages/agent-flow-bend/Canonical.UnitRefused, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestUnavailable, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestObservationIgnored, ../../packages/agent-flow-bend/Canonical.PreparedSkipped, ../../packages/agent-flow-bend/Canonical.PreparedAdmitted, ../../packages/agent-flow-bend/Canonical.PreparedCapacityRefused, ../../packages/agent-flow-bend/Canonical.EmptyLost, ../../packages/agent-flow-bend/Canonical.EmptyAccepted, ../../packages/agent-flow-bend/Canonical.FailureBackend, ../../packages/agent-flow-bend/Canonical.FailureCredential, ../../packages/agent-flow-bend/Canonical.FailureLost, ../../packages/agent-flow-bend/Canonical.FailureNone, ../../packages/agent-flow-bend/Canonical.DiscardNamedOnly, ../../packages/agent-flow-bend/Canonical.DiscardAllUnfinished, ../../packages/agent-flow-bend/Canonical.CollectionWaiting, ../../packages/agent-flow-bend/Canonical.CollectionRetireCredential, ../../packages/agent-flow-bend/Canonical.CollectionRetainCredential, ../../packages/agent-flow-bend/Canonical.CollectionCandidate, ../../packages/agent-flow-bend/Canonical.CollectionSkip, ../../packages/agent-flow-bend/Canonical.CollectionBefore, ../../packages/agent-flow-bend/Canonical.CollectionEqual, ../../packages/agent-flow-bend/Canonical.CollectionAfter, ../../packages/agent-flow-bend/Canonical.CollectionExpired, ../../packages/agent-flow-bend/Canonical.CollectionCurrent, ../../packages/agent-flow-bend/Canonical.CollectionFits, ../../packages/agent-flow-bend/Canonical.CollectionLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingSelected, ../../packages/agent-flow-bend/Canonical.CollectionFindingRetained, ../../packages/agent-flow-bend/Canonical.CollectionFindingLimited, ../../packages/agent-flow-bend/Canonical.CollectionFindingExpired, ../../packages/agent-flow-bend/Canonical.CollectionNoticeIncluded, ../../packages/agent-flow-bend/Canonical.CollectionNoticeSkipped, ../../packages/agent-flow-bend/Canonical.CollectionNoticeStopped, ../../packages/agent-flow-bend/Canonical.CollectionLeaseRefused, ../../packages/agent-flow-bend/Canonical.CollectionLeaseKept, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundRefused, ../../packages/agent-flow-bend/Canonical.CollectionBackgroundKept, ../../packages/agent-flow-bend/Canonical.FinishNotices, ../../packages/agent-flow-bend/Canonical.FinishAllowedNoAdvice, ../../packages/agent-flow-bend/Canonical.FinishAllowedDeadline, ../../packages/agent-flow-bend/Canonical.FinishAllowedUnavailable, ../../packages/agent-flow-bend/Canonical.FinishRefused, ../../packages/agent-flow-bend/Canonical.ContinuationRefused, ../../packages/agent-flow-bend/Canonical.SubmissionRefused, ../../packages/agent-flow-bend/Canonical.SubmissionSuppresses, ../../packages/agent-flow-bend/Canonical.SubmissionUnsuppressed, ../../packages/agent-flow-bend/Canonical.SubmissionReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionNotReofferable, ../../packages/agent-flow-bend/Canonical.SubmissionExpired, ../../packages/agent-flow-bend/Canonical.SubmissionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionCurrent, ../../packages/agent-flow-bend/Canonical.RevisionStale, ../../packages/agent-flow-bend/Canonical.RevisionSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionNotSuperseded, ../../packages/agent-flow-bend/Canonical.RevisionGeneration, ../../packages/agent-flow-bend/Canonical.RevisionCount, ../../packages/agent-flow-bend/Canonical.CollectorProceed, ../../packages/agent-flow-bend/Canonical.CollectorUnavailable, ../../packages/agent-flow-bend/Canonical.CollectorFinalProceed, ../../packages/agent-flow-bend/Canonical.CollectorFinalRelease, ../../packages/agent-flow-bend/Canonical.ReuseKeepMember, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberClear, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberFinding, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberUnavailable, ../../packages/agent-flow-bend/Canonical.ReuseSetMemberLost, ../../packages/agent-flow-bend/Canonical.CleanupReady, ../../packages/agent-flow-bend/Canonical.CleanupBusy, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseUnacknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryKeepAcknowledged, ../../packages/agent-flow-bend/Canonical.DeliveryAckReady, ../../packages/agent-flow-bend/Canonical.DeliveryAckExpired, ../../packages/agent-flow-bend/Canonical.DeliveryAckEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryFinalReady, ../../packages/agent-flow-bend/Canonical.DeliveryFinalExpired, ../../packages/agent-flow-bend/Canonical.DeliveryFinalEmpty, ../../packages/agent-flow-bend/Canonical.DeliveryRetireAdvice, ../../packages/agent-flow-bend/Canonical.DeliveryKeepRemaining, ../../packages/agent-flow-bend/Canonical.DeliveryKeepForReoffer, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidate, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionRefused, ../../packages/agent-flow-bend/Canonical.DeliveryBatchProceed, ../../packages/agent-flow-bend/Canonical.DeliveryBatchRelease, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialInvalid, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialValid, ../../packages/agent-flow-bend/Canonical.SourceCacheDrop, ../../packages/agent-flow-bend/Canonical.SourceCacheRetain, ../../packages/agent-flow-bend/Canonical.IgnoreCandidate, ../../packages/agent-flow-bend/Canonical.ReleaseCandidate, ../../packages/agent-flow-bend/Canonical.RetireCandidate, ../../packages/agent-flow-bend/Canonical.ContinueCandidate, ../../packages/agent-flow-bend/Canonical.RetainCandidate, ../../packages/agent-flow-bend/Canonical.RoundStopBegun, ../../packages/agent-flow-bend/Canonical.RoundStopRefused, ../../packages/agent-flow-bend/Canonical.RoundActive, ../../packages/agent-flow-bend/Canonical.RoundInactive, ../../packages/agent-flow-bend/Canonical.RoundBarrierRaised, ../../packages/agent-flow-bend/Canonical.RoundBarrierClear, ../../packages/agent-flow-bend/Canonical.RoundStopOwned, ../../packages/agent-flow-bend/Canonical.RoundStopNotOwned, ../../packages/agent-flow-bend/Canonical.RoundStopTerminal, ../../packages/agent-flow-bend/Canonical.RoundExpireCloses, ../../packages/agent-flow-bend/Canonical.RoundExpireKeeps, ../../packages/agent-flow-bend/Canonical.RoundContinuationAvailable, ../../packages/agent-flow-bend/Canonical.RoundContinuationExhausted, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowed, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionDenied, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenDenied, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopAllowed, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopDenied, ../../packages/agent-flow-bend/Canonical.ReuseRefused, ../../packages/agent-flow-bend/Canonical.CacheAlready, ../../packages/agent-flow-bend/Canonical.CacheRejected, ../../packages/agent-flow-bend/Canonical.NoticeRejectedFull, ../../packages/agent-flow-bend/Canonical.NoticeRefused, ../../packages/agent-flow-bend/Canonical.NoticeSelected, ../../packages/agent-flow-bend/Canonical.IncludeChoice, ../../packages/agent-flow-bend/Canonical.FileSelection, ../../packages/agent-flow-bend/Canonical.FileProtection, ../../packages/agent-flow-bend/Canonical.CandidateFile, ../../packages/agent-flow-bend/Canonical.ReviewAdmission, ../../packages/agent-flow-bend/Canonical.RuleGate, ../../packages/agent-flow-bend/Canonical.RuleOrder, ../../packages/agent-flow-bend/Canonical.WaitForOutput); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50466,10 +50466,10 @@ function $0m239(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Canonical.ActionRequested": at = at[key] = {...v, "request": $0m240(v["request"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ResidentActionRequested": at = at[key] = {...v, "command": $0m240(v["command"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.EventEstablished": at = at[key] = {...v, "event": $0m241(v["event"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PolicyDecided": at = at[key] = {...v, "decision": $0m243(v["decision"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Output has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ActionRequested, ../../packages/agent-flow-bend/Canonical.EventEstablished, ../../packages/agent-flow-bend/Canonical.PolicyDecided); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.Output has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ResidentActionRequested, ../../packages/agent-flow-bend/Canonical.EventEstablished, ../../packages/agent-flow-bend/Canonical.PolicyDecided); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50622,9 +50622,9 @@ function $0m255(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/agent-flow-bend/Dispatch.RequestAccepted": at = at[key] = {...v, "state": $0m91(v["state"])}; return top[0];
-      case "../../packages/agent-flow-bend/Dispatch.RequestDenied": at = at[key] = {...v, "state": $0m91(v["state"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.RequestResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.RequestAccepted, ../../packages/agent-flow-bend/Dispatch.RequestDenied); a tag names its constructor as the"
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted": at = at[key] = {...v, "state": $0m91(v["state"])}; return top[0];
+      case "../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied": at = at[key] = {...v, "state": $0m91(v["state"])}; return top[0];
+      default: throw "bend: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestResult has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestAccepted, ../../packages/agent-flow-bend/Dispatch.ReviewServiceRequestDenied); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50846,10 +50846,10 @@ function $0m270(v) {
       case "../../packages/agent-flow-bend/Canonical.InterruptPreparation": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationCompleted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "unit_bytes": $0m55(v["unit_bytes"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.StartReview": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestReady": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestStarted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestSettled": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewCompleted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RetireReview": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CancelReview": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
@@ -50959,7 +50959,7 @@ function $0m270(v) {
       case "../../packages/agent-flow-bend/Canonical.OutputStarted": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.OutputTerminal": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RetirePartition": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.CanonicalEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReserveCapacity, ../../packages/agent-flow-bend/Canonical.ResizeCapacity, ../../packages/agent-flow-bend/Canonical.ReleaseCapacity, ../../packages/agent-flow-bend/Canonical.ReplaceCapacity, ../../packages/agent-flow-bend/Canonical.IssuePermit, ../../packages/agent-flow-bend/Canonical.CheckCompletedEdit, ../../packages/agent-flow-bend/Canonical.RememberCompletedEdit, ../../packages/agent-flow-bend/Canonical.QuietRoundTick, ../../packages/agent-flow-bend/Canonical.QuietRoundReset, ../../packages/agent-flow-bend/Canonical.ConsumePermit, ../../packages/agent-flow-bend/Canonical.ReleasePermit, ../../packages/agent-flow-bend/Canonical.ExpirePermit, ../../packages/agent-flow-bend/Canonical.ClosePermitRound, ../../packages/agent-flow-bend/Canonical.ForgetAdmission, ../../packages/agent-flow-bend/Canonical.OpenRound, ../../packages/agent-flow-bend/Canonical.AdmitObservation, ../../packages/agent-flow-bend/Canonical.StartObservation, ../../packages/agent-flow-bend/Canonical.CompleteObservation, ../../packages/agent-flow-bend/Canonical.InterruptObservation, ../../packages/agent-flow-bend/Canonical.BeginPreparation, ../../packages/agent-flow-bend/Canonical.BeginObservedPreparation, ../../packages/agent-flow-bend/Canonical.InterruptPreparation, ../../packages/agent-flow-bend/Canonical.PreparationCompleted, ../../packages/agent-flow-bend/Canonical.StartReview, ../../packages/agent-flow-bend/Canonical.JevRequestReady, ../../packages/agent-flow-bend/Canonical.JevRequestStarted, ../../packages/agent-flow-bend/Canonical.JevRequestInterrupted, ../../packages/agent-flow-bend/Canonical.JevRequestSettled, ../../packages/agent-flow-bend/Canonical.ReviewCompleted, ../../packages/agent-flow-bend/Canonical.RetireReview, ../../packages/agent-flow-bend/Canonical.CancelReview, ../../packages/agent-flow-bend/Canonical.ReviewObserved, ../../packages/agent-flow-bend/Canonical.FindingCountUpdated, ../../packages/agent-flow-bend/Canonical.QueueDispatch, ../../packages/agent-flow-bend/Canonical.DispatchSettled, ../../packages/agent-flow-bend/Canonical.DiscardDispatch, ../../packages/agent-flow-bend/Canonical.DispatchScopeCheck, ../../packages/agent-flow-bend/Canonical.CloseDispatch, ../../packages/agent-flow-bend/Canonical.PreparedOfferCheck, ../../packages/agent-flow-bend/Canonical.EmptyPreparedCheck, ../../packages/agent-flow-bend/Canonical.ReviewFailureCheck, ../../packages/agent-flow-bend/Canonical.StopPolled, ../../packages/agent-flow-bend/Canonical.StopGroupPolled, ../../packages/agent-flow-bend/Canonical.StopGroupEnded, ../../packages/agent-flow-bend/Canonical.CollectionReady, ../../packages/agent-flow-bend/Canonical.CollectionCredentialCheck, ../../packages/agent-flow-bend/Canonical.CollectionCandidateCheck, ../../packages/agent-flow-bend/Canonical.CollectionOrderCheck, ../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck, ../../packages/agent-flow-bend/Canonical.CollectionFitCheck, ../../packages/agent-flow-bend/Canonical.CollectionFindingCheck, ../../packages/agent-flow-bend/Canonical.CollectionNoticeCheck, ../../packages/agent-flow-bend/Canonical.CollectionReserveLease, ../../packages/agent-flow-bend/Canonical.CollectionReleaseLease, ../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck, ../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice, ../../packages/agent-flow-bend/Canonical.CollectionClaimBackground, ../../packages/agent-flow-bend/Canonical.CollectionReleaseBackground, ../../packages/agent-flow-bend/Canonical.CollectionExpireBackground, ../../packages/agent-flow-bend/Canonical.FinishReserve, ../../packages/agent-flow-bend/Canonical.FinishRelease, ../../packages/agent-flow-bend/Canonical.FinishAuthorize, ../../packages/agent-flow-bend/Canonical.FinishTerminal, ../../packages/agent-flow-bend/Canonical.FinishEnd, ../../packages/agent-flow-bend/Canonical.ContinuationConsume, ../../packages/agent-flow-bend/Canonical.SubmissionBegin, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorize, ../../packages/agent-flow-bend/Canonical.SubmissionTerminal, ../../packages/agent-flow-bend/Canonical.SubmissionRelease, ../../packages/agent-flow-bend/Canonical.SubmissionForget, ../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck, ../../packages/agent-flow-bend/Canonical.SubmissionReofferCheck, ../../packages/agent-flow-bend/Canonical.SubmissionExpiryCheck, ../../packages/agent-flow-bend/Canonical.RevisionRegister, ../../packages/agent-flow-bend/Canonical.RevisionRelease, ../../packages/agent-flow-bend/Canonical.RevisionCurrentCheck, ../../packages/agent-flow-bend/Canonical.RevisionSupersededCheck, ../../packages/agent-flow-bend/Canonical.RevisionGenerationCheck, ../../packages/agent-flow-bend/Canonical.RevisionCountCheck, ../../packages/agent-flow-bend/Canonical.CollectorGateCheck, ../../packages/agent-flow-bend/Canonical.CollectorFinalAuthorityCheck, ../../packages/agent-flow-bend/Canonical.ReuseMemberCheck, ../../packages/agent-flow-bend/Canonical.CleanupCheck, ../../packages/agent-flow-bend/Canonical.CleanupCommit, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseCheck, ../../packages/agent-flow-bend/Canonical.DeliveryAcknowledgeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalizeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFindingDispositionCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidateCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionBatchCheck, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialObserveCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalCredentialCheck, ../../packages/agent-flow-bend/Canonical.SourceCacheCheck, ../../packages/agent-flow-bend/Canonical.ValidationRouteCheck, ../../packages/agent-flow-bend/Canonical.PostValidationCheck, ../../packages/agent-flow-bend/Canonical.FinalCandidateCheck, ../../packages/agent-flow-bend/Canonical.RoundBeginStopCheck, ../../packages/agent-flow-bend/Canonical.RoundActivityCheck, ../../packages/agent-flow-bend/Canonical.RoundBarrierCheck, ../../packages/agent-flow-bend/Canonical.RoundOwnsStopCheck, ../../packages/agent-flow-bend/Canonical.RoundStopTerminalCheck, ../../packages/agent-flow-bend/Canonical.RoundExpireCloseCheck, ../../packages/agent-flow-bend/Canonical.RoundContinuationBudgetCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowedCheck, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenCheck, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopCheck, ../../packages/agent-flow-bend/Canonical.IncludeLayerCheck, ../../packages/agent-flow-bend/Canonical.FileSelectionCheck, ../../packages/agent-flow-bend/Canonical.FileProtectionInvalid, ../../packages/agent-flow-bend/Canonical.FileProtectionCheck, ../../packages/agent-flow-bend/Canonical.CandidateFileCheck, ../../packages/agent-flow-bend/Canonical.ReviewAdmissionCheck, ../../packages/agent-flow-bend/Canonical.RuleEnableCheck, ../../packages/agent-flow-bend/Canonical.RuleApplicabilityCheck, ../../packages/agent-flow-bend/Canonical.RuleFindingCheck, ../../packages/agent-flow-bend/Canonical.RuleRankOrderCheck, ../../packages/agent-flow-bend/Canonical.AdviceOrderCheck, ../../packages/agent-flow-bend/Canonical.RuleBudgetCheck, ../../packages/agent-flow-bend/Canonical.ReuseRoute, ../../packages/agent-flow-bend/Canonical.ReuseClaim, ../../packages/agent-flow-bend/Canonical.ReuseAttach, ../../packages/agent-flow-bend/Canonical.ReuseRelease, ../../packages/agent-flow-bend/Canonical.ReuseTouch, ../../packages/agent-flow-bend/Canonical.CachePrepare, ../../packages/agent-flow-bend/Canonical.CacheCommit, ../../packages/agent-flow-bend/Canonical.CacheDiscardPartition, ../../packages/agent-flow-bend/Canonical.CacheClear, ../../packages/agent-flow-bend/Canonical.NoticeAdvance, ../../packages/agent-flow-bend/Canonical.NoticeCommit, ../../packages/agent-flow-bend/Canonical.NoticePrune, ../../packages/agent-flow-bend/Canonical.NoticeDrop, ../../packages/agent-flow-bend/Canonical.NoticeLease, ../../packages/agent-flow-bend/Canonical.NoticeClearPending, ../../packages/agent-flow-bend/Canonical.NoticeSelect, ../../packages/agent-flow-bend/Canonical.OutputStarted, ../../packages/agent-flow-bend/Canonical.OutputTerminal, ../../packages/agent-flow-bend/Canonical.RetirePartition); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.CanonicalEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReserveCapacity, ../../packages/agent-flow-bend/Canonical.ResizeCapacity, ../../packages/agent-flow-bend/Canonical.ReleaseCapacity, ../../packages/agent-flow-bend/Canonical.ReplaceCapacity, ../../packages/agent-flow-bend/Canonical.IssuePermit, ../../packages/agent-flow-bend/Canonical.CheckCompletedEdit, ../../packages/agent-flow-bend/Canonical.RememberCompletedEdit, ../../packages/agent-flow-bend/Canonical.QuietRoundTick, ../../packages/agent-flow-bend/Canonical.QuietRoundReset, ../../packages/agent-flow-bend/Canonical.ConsumePermit, ../../packages/agent-flow-bend/Canonical.ReleasePermit, ../../packages/agent-flow-bend/Canonical.ExpirePermit, ../../packages/agent-flow-bend/Canonical.ClosePermitRound, ../../packages/agent-flow-bend/Canonical.ForgetAdmission, ../../packages/agent-flow-bend/Canonical.OpenRound, ../../packages/agent-flow-bend/Canonical.AdmitObservation, ../../packages/agent-flow-bend/Canonical.StartObservation, ../../packages/agent-flow-bend/Canonical.CompleteObservation, ../../packages/agent-flow-bend/Canonical.InterruptObservation, ../../packages/agent-flow-bend/Canonical.BeginPreparation, ../../packages/agent-flow-bend/Canonical.BeginObservedPreparation, ../../packages/agent-flow-bend/Canonical.InterruptPreparation, ../../packages/agent-flow-bend/Canonical.PreparationCompleted, ../../packages/agent-flow-bend/Canonical.StartReview, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled, ../../packages/agent-flow-bend/Canonical.ReviewCompleted, ../../packages/agent-flow-bend/Canonical.RetireReview, ../../packages/agent-flow-bend/Canonical.CancelReview, ../../packages/agent-flow-bend/Canonical.ReviewObserved, ../../packages/agent-flow-bend/Canonical.FindingCountUpdated, ../../packages/agent-flow-bend/Canonical.QueueDispatch, ../../packages/agent-flow-bend/Canonical.DispatchSettled, ../../packages/agent-flow-bend/Canonical.DiscardDispatch, ../../packages/agent-flow-bend/Canonical.DispatchScopeCheck, ../../packages/agent-flow-bend/Canonical.CloseDispatch, ../../packages/agent-flow-bend/Canonical.PreparedOfferCheck, ../../packages/agent-flow-bend/Canonical.EmptyPreparedCheck, ../../packages/agent-flow-bend/Canonical.ReviewFailureCheck, ../../packages/agent-flow-bend/Canonical.StopPolled, ../../packages/agent-flow-bend/Canonical.StopGroupPolled, ../../packages/agent-flow-bend/Canonical.StopGroupEnded, ../../packages/agent-flow-bend/Canonical.CollectionReady, ../../packages/agent-flow-bend/Canonical.CollectionCredentialCheck, ../../packages/agent-flow-bend/Canonical.CollectionCandidateCheck, ../../packages/agent-flow-bend/Canonical.CollectionOrderCheck, ../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck, ../../packages/agent-flow-bend/Canonical.CollectionFitCheck, ../../packages/agent-flow-bend/Canonical.CollectionFindingCheck, ../../packages/agent-flow-bend/Canonical.CollectionNoticeCheck, ../../packages/agent-flow-bend/Canonical.CollectionReserveLease, ../../packages/agent-flow-bend/Canonical.CollectionReleaseLease, ../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck, ../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice, ../../packages/agent-flow-bend/Canonical.CollectionClaimBackground, ../../packages/agent-flow-bend/Canonical.CollectionReleaseBackground, ../../packages/agent-flow-bend/Canonical.CollectionExpireBackground, ../../packages/agent-flow-bend/Canonical.FinishReserve, ../../packages/agent-flow-bend/Canonical.FinishRelease, ../../packages/agent-flow-bend/Canonical.FinishAuthorize, ../../packages/agent-flow-bend/Canonical.FinishTerminal, ../../packages/agent-flow-bend/Canonical.FinishEnd, ../../packages/agent-flow-bend/Canonical.ContinuationConsume, ../../packages/agent-flow-bend/Canonical.SubmissionBegin, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorize, ../../packages/agent-flow-bend/Canonical.SubmissionTerminal, ../../packages/agent-flow-bend/Canonical.SubmissionRelease, ../../packages/agent-flow-bend/Canonical.SubmissionForget, ../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck, ../../packages/agent-flow-bend/Canonical.SubmissionReofferCheck, ../../packages/agent-flow-bend/Canonical.SubmissionExpiryCheck, ../../packages/agent-flow-bend/Canonical.RevisionRegister, ../../packages/agent-flow-bend/Canonical.RevisionRelease, ../../packages/agent-flow-bend/Canonical.RevisionCurrentCheck, ../../packages/agent-flow-bend/Canonical.RevisionSupersededCheck, ../../packages/agent-flow-bend/Canonical.RevisionGenerationCheck, ../../packages/agent-flow-bend/Canonical.RevisionCountCheck, ../../packages/agent-flow-bend/Canonical.CollectorGateCheck, ../../packages/agent-flow-bend/Canonical.CollectorFinalAuthorityCheck, ../../packages/agent-flow-bend/Canonical.ReuseMemberCheck, ../../packages/agent-flow-bend/Canonical.CleanupCheck, ../../packages/agent-flow-bend/Canonical.CleanupCommit, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseCheck, ../../packages/agent-flow-bend/Canonical.DeliveryAcknowledgeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalizeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFindingDispositionCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidateCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionBatchCheck, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialObserveCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalCredentialCheck, ../../packages/agent-flow-bend/Canonical.SourceCacheCheck, ../../packages/agent-flow-bend/Canonical.ValidationRouteCheck, ../../packages/agent-flow-bend/Canonical.PostValidationCheck, ../../packages/agent-flow-bend/Canonical.FinalCandidateCheck, ../../packages/agent-flow-bend/Canonical.RoundBeginStopCheck, ../../packages/agent-flow-bend/Canonical.RoundActivityCheck, ../../packages/agent-flow-bend/Canonical.RoundBarrierCheck, ../../packages/agent-flow-bend/Canonical.RoundOwnsStopCheck, ../../packages/agent-flow-bend/Canonical.RoundStopTerminalCheck, ../../packages/agent-flow-bend/Canonical.RoundExpireCloseCheck, ../../packages/agent-flow-bend/Canonical.RoundContinuationBudgetCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowedCheck, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenCheck, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopCheck, ../../packages/agent-flow-bend/Canonical.IncludeLayerCheck, ../../packages/agent-flow-bend/Canonical.FileSelectionCheck, ../../packages/agent-flow-bend/Canonical.FileProtectionInvalid, ../../packages/agent-flow-bend/Canonical.FileProtectionCheck, ../../packages/agent-flow-bend/Canonical.CandidateFileCheck, ../../packages/agent-flow-bend/Canonical.ReviewAdmissionCheck, ../../packages/agent-flow-bend/Canonical.RuleEnableCheck, ../../packages/agent-flow-bend/Canonical.RuleApplicabilityCheck, ../../packages/agent-flow-bend/Canonical.RuleFindingCheck, ../../packages/agent-flow-bend/Canonical.RuleRankOrderCheck, ../../packages/agent-flow-bend/Canonical.AdviceOrderCheck, ../../packages/agent-flow-bend/Canonical.RuleBudgetCheck, ../../packages/agent-flow-bend/Canonical.ReuseRoute, ../../packages/agent-flow-bend/Canonical.ReuseClaim, ../../packages/agent-flow-bend/Canonical.ReuseAttach, ../../packages/agent-flow-bend/Canonical.ReuseRelease, ../../packages/agent-flow-bend/Canonical.ReuseTouch, ../../packages/agent-flow-bend/Canonical.CachePrepare, ../../packages/agent-flow-bend/Canonical.CacheCommit, ../../packages/agent-flow-bend/Canonical.CacheDiscardPartition, ../../packages/agent-flow-bend/Canonical.CacheClear, ../../packages/agent-flow-bend/Canonical.NoticeAdvance, ../../packages/agent-flow-bend/Canonical.NoticeCommit, ../../packages/agent-flow-bend/Canonical.NoticePrune, ../../packages/agent-flow-bend/Canonical.NoticeDrop, ../../packages/agent-flow-bend/Canonical.NoticeLease, ../../packages/agent-flow-bend/Canonical.NoticeClearPending, ../../packages/agent-flow-bend/Canonical.NoticeSelect, ../../packages/agent-flow-bend/Canonical.OutputStarted, ../../packages/agent-flow-bend/Canonical.OutputTerminal, ../../packages/agent-flow-bend/Canonical.RetirePartition); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -50994,10 +50994,10 @@ function $0m271(v) {
       case "../../packages/agent-flow-bend/Canonical.InterruptPreparation": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.PreparationCompleted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "unit_bytes": $0m52(v["unit_bytes"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.StartReview": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestReady": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestStarted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestInterrupted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
-      case "../../packages/agent-flow-bend/Canonical.JevRequestSettled": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      case "../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.ReviewCompleted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RetireReview": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.CancelReview": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
@@ -51107,7 +51107,7 @@ function $0m271(v) {
       case "../../packages/agent-flow-bend/Canonical.OutputStarted": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.OutputTerminal": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"])}; return top[0];
       case "../../packages/agent-flow-bend/Canonical.RetirePartition": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"])}; return top[0];
-      default: throw "bend: ../../packages/agent-flow-bend/Canonical.CanonicalEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReserveCapacity, ../../packages/agent-flow-bend/Canonical.ResizeCapacity, ../../packages/agent-flow-bend/Canonical.ReleaseCapacity, ../../packages/agent-flow-bend/Canonical.ReplaceCapacity, ../../packages/agent-flow-bend/Canonical.IssuePermit, ../../packages/agent-flow-bend/Canonical.CheckCompletedEdit, ../../packages/agent-flow-bend/Canonical.RememberCompletedEdit, ../../packages/agent-flow-bend/Canonical.QuietRoundTick, ../../packages/agent-flow-bend/Canonical.QuietRoundReset, ../../packages/agent-flow-bend/Canonical.ConsumePermit, ../../packages/agent-flow-bend/Canonical.ReleasePermit, ../../packages/agent-flow-bend/Canonical.ExpirePermit, ../../packages/agent-flow-bend/Canonical.ClosePermitRound, ../../packages/agent-flow-bend/Canonical.ForgetAdmission, ../../packages/agent-flow-bend/Canonical.OpenRound, ../../packages/agent-flow-bend/Canonical.AdmitObservation, ../../packages/agent-flow-bend/Canonical.StartObservation, ../../packages/agent-flow-bend/Canonical.CompleteObservation, ../../packages/agent-flow-bend/Canonical.InterruptObservation, ../../packages/agent-flow-bend/Canonical.BeginPreparation, ../../packages/agent-flow-bend/Canonical.BeginObservedPreparation, ../../packages/agent-flow-bend/Canonical.InterruptPreparation, ../../packages/agent-flow-bend/Canonical.PreparationCompleted, ../../packages/agent-flow-bend/Canonical.StartReview, ../../packages/agent-flow-bend/Canonical.JevRequestReady, ../../packages/agent-flow-bend/Canonical.JevRequestStarted, ../../packages/agent-flow-bend/Canonical.JevRequestInterrupted, ../../packages/agent-flow-bend/Canonical.JevRequestSettled, ../../packages/agent-flow-bend/Canonical.ReviewCompleted, ../../packages/agent-flow-bend/Canonical.RetireReview, ../../packages/agent-flow-bend/Canonical.CancelReview, ../../packages/agent-flow-bend/Canonical.ReviewObserved, ../../packages/agent-flow-bend/Canonical.FindingCountUpdated, ../../packages/agent-flow-bend/Canonical.QueueDispatch, ../../packages/agent-flow-bend/Canonical.DispatchSettled, ../../packages/agent-flow-bend/Canonical.DiscardDispatch, ../../packages/agent-flow-bend/Canonical.DispatchScopeCheck, ../../packages/agent-flow-bend/Canonical.CloseDispatch, ../../packages/agent-flow-bend/Canonical.PreparedOfferCheck, ../../packages/agent-flow-bend/Canonical.EmptyPreparedCheck, ../../packages/agent-flow-bend/Canonical.ReviewFailureCheck, ../../packages/agent-flow-bend/Canonical.StopPolled, ../../packages/agent-flow-bend/Canonical.StopGroupPolled, ../../packages/agent-flow-bend/Canonical.StopGroupEnded, ../../packages/agent-flow-bend/Canonical.CollectionReady, ../../packages/agent-flow-bend/Canonical.CollectionCredentialCheck, ../../packages/agent-flow-bend/Canonical.CollectionCandidateCheck, ../../packages/agent-flow-bend/Canonical.CollectionOrderCheck, ../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck, ../../packages/agent-flow-bend/Canonical.CollectionFitCheck, ../../packages/agent-flow-bend/Canonical.CollectionFindingCheck, ../../packages/agent-flow-bend/Canonical.CollectionNoticeCheck, ../../packages/agent-flow-bend/Canonical.CollectionReserveLease, ../../packages/agent-flow-bend/Canonical.CollectionReleaseLease, ../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck, ../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice, ../../packages/agent-flow-bend/Canonical.CollectionClaimBackground, ../../packages/agent-flow-bend/Canonical.CollectionReleaseBackground, ../../packages/agent-flow-bend/Canonical.CollectionExpireBackground, ../../packages/agent-flow-bend/Canonical.FinishReserve, ../../packages/agent-flow-bend/Canonical.FinishRelease, ../../packages/agent-flow-bend/Canonical.FinishAuthorize, ../../packages/agent-flow-bend/Canonical.FinishTerminal, ../../packages/agent-flow-bend/Canonical.FinishEnd, ../../packages/agent-flow-bend/Canonical.ContinuationConsume, ../../packages/agent-flow-bend/Canonical.SubmissionBegin, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorize, ../../packages/agent-flow-bend/Canonical.SubmissionTerminal, ../../packages/agent-flow-bend/Canonical.SubmissionRelease, ../../packages/agent-flow-bend/Canonical.SubmissionForget, ../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck, ../../packages/agent-flow-bend/Canonical.SubmissionReofferCheck, ../../packages/agent-flow-bend/Canonical.SubmissionExpiryCheck, ../../packages/agent-flow-bend/Canonical.RevisionRegister, ../../packages/agent-flow-bend/Canonical.RevisionRelease, ../../packages/agent-flow-bend/Canonical.RevisionCurrentCheck, ../../packages/agent-flow-bend/Canonical.RevisionSupersededCheck, ../../packages/agent-flow-bend/Canonical.RevisionGenerationCheck, ../../packages/agent-flow-bend/Canonical.RevisionCountCheck, ../../packages/agent-flow-bend/Canonical.CollectorGateCheck, ../../packages/agent-flow-bend/Canonical.CollectorFinalAuthorityCheck, ../../packages/agent-flow-bend/Canonical.ReuseMemberCheck, ../../packages/agent-flow-bend/Canonical.CleanupCheck, ../../packages/agent-flow-bend/Canonical.CleanupCommit, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseCheck, ../../packages/agent-flow-bend/Canonical.DeliveryAcknowledgeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalizeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFindingDispositionCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidateCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionBatchCheck, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialObserveCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalCredentialCheck, ../../packages/agent-flow-bend/Canonical.SourceCacheCheck, ../../packages/agent-flow-bend/Canonical.ValidationRouteCheck, ../../packages/agent-flow-bend/Canonical.PostValidationCheck, ../../packages/agent-flow-bend/Canonical.FinalCandidateCheck, ../../packages/agent-flow-bend/Canonical.RoundBeginStopCheck, ../../packages/agent-flow-bend/Canonical.RoundActivityCheck, ../../packages/agent-flow-bend/Canonical.RoundBarrierCheck, ../../packages/agent-flow-bend/Canonical.RoundOwnsStopCheck, ../../packages/agent-flow-bend/Canonical.RoundStopTerminalCheck, ../../packages/agent-flow-bend/Canonical.RoundExpireCloseCheck, ../../packages/agent-flow-bend/Canonical.RoundContinuationBudgetCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowedCheck, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenCheck, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopCheck, ../../packages/agent-flow-bend/Canonical.IncludeLayerCheck, ../../packages/agent-flow-bend/Canonical.FileSelectionCheck, ../../packages/agent-flow-bend/Canonical.FileProtectionInvalid, ../../packages/agent-flow-bend/Canonical.FileProtectionCheck, ../../packages/agent-flow-bend/Canonical.CandidateFileCheck, ../../packages/agent-flow-bend/Canonical.ReviewAdmissionCheck, ../../packages/agent-flow-bend/Canonical.RuleEnableCheck, ../../packages/agent-flow-bend/Canonical.RuleApplicabilityCheck, ../../packages/agent-flow-bend/Canonical.RuleFindingCheck, ../../packages/agent-flow-bend/Canonical.RuleRankOrderCheck, ../../packages/agent-flow-bend/Canonical.AdviceOrderCheck, ../../packages/agent-flow-bend/Canonical.RuleBudgetCheck, ../../packages/agent-flow-bend/Canonical.ReuseRoute, ../../packages/agent-flow-bend/Canonical.ReuseClaim, ../../packages/agent-flow-bend/Canonical.ReuseAttach, ../../packages/agent-flow-bend/Canonical.ReuseRelease, ../../packages/agent-flow-bend/Canonical.ReuseTouch, ../../packages/agent-flow-bend/Canonical.CachePrepare, ../../packages/agent-flow-bend/Canonical.CacheCommit, ../../packages/agent-flow-bend/Canonical.CacheDiscardPartition, ../../packages/agent-flow-bend/Canonical.CacheClear, ../../packages/agent-flow-bend/Canonical.NoticeAdvance, ../../packages/agent-flow-bend/Canonical.NoticeCommit, ../../packages/agent-flow-bend/Canonical.NoticePrune, ../../packages/agent-flow-bend/Canonical.NoticeDrop, ../../packages/agent-flow-bend/Canonical.NoticeLease, ../../packages/agent-flow-bend/Canonical.NoticeClearPending, ../../packages/agent-flow-bend/Canonical.NoticeSelect, ../../packages/agent-flow-bend/Canonical.OutputStarted, ../../packages/agent-flow-bend/Canonical.OutputTerminal, ../../packages/agent-flow-bend/Canonical.RetirePartition); a tag names its constructor as the"
+      default: throw "bend: ../../packages/agent-flow-bend/Canonical.CanonicalEvent has no tag " + v?.$ + " (its tags: ../../packages/agent-flow-bend/Canonical.ReserveCapacity, ../../packages/agent-flow-bend/Canonical.ResizeCapacity, ../../packages/agent-flow-bend/Canonical.ReleaseCapacity, ../../packages/agent-flow-bend/Canonical.ReplaceCapacity, ../../packages/agent-flow-bend/Canonical.IssuePermit, ../../packages/agent-flow-bend/Canonical.CheckCompletedEdit, ../../packages/agent-flow-bend/Canonical.RememberCompletedEdit, ../../packages/agent-flow-bend/Canonical.QuietRoundTick, ../../packages/agent-flow-bend/Canonical.QuietRoundReset, ../../packages/agent-flow-bend/Canonical.ConsumePermit, ../../packages/agent-flow-bend/Canonical.ReleasePermit, ../../packages/agent-flow-bend/Canonical.ExpirePermit, ../../packages/agent-flow-bend/Canonical.ClosePermitRound, ../../packages/agent-flow-bend/Canonical.ForgetAdmission, ../../packages/agent-flow-bend/Canonical.OpenRound, ../../packages/agent-flow-bend/Canonical.AdmitObservation, ../../packages/agent-flow-bend/Canonical.StartObservation, ../../packages/agent-flow-bend/Canonical.CompleteObservation, ../../packages/agent-flow-bend/Canonical.InterruptObservation, ../../packages/agent-flow-bend/Canonical.BeginPreparation, ../../packages/agent-flow-bend/Canonical.BeginObservedPreparation, ../../packages/agent-flow-bend/Canonical.InterruptPreparation, ../../packages/agent-flow-bend/Canonical.PreparationCompleted, ../../packages/agent-flow-bend/Canonical.StartReview, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestReady, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestStarted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestInterrupted, ../../packages/agent-flow-bend/Canonical.ReviewServiceRequestSettled, ../../packages/agent-flow-bend/Canonical.ReviewCompleted, ../../packages/agent-flow-bend/Canonical.RetireReview, ../../packages/agent-flow-bend/Canonical.CancelReview, ../../packages/agent-flow-bend/Canonical.ReviewObserved, ../../packages/agent-flow-bend/Canonical.FindingCountUpdated, ../../packages/agent-flow-bend/Canonical.QueueDispatch, ../../packages/agent-flow-bend/Canonical.DispatchSettled, ../../packages/agent-flow-bend/Canonical.DiscardDispatch, ../../packages/agent-flow-bend/Canonical.DispatchScopeCheck, ../../packages/agent-flow-bend/Canonical.CloseDispatch, ../../packages/agent-flow-bend/Canonical.PreparedOfferCheck, ../../packages/agent-flow-bend/Canonical.EmptyPreparedCheck, ../../packages/agent-flow-bend/Canonical.ReviewFailureCheck, ../../packages/agent-flow-bend/Canonical.StopPolled, ../../packages/agent-flow-bend/Canonical.StopGroupPolled, ../../packages/agent-flow-bend/Canonical.StopGroupEnded, ../../packages/agent-flow-bend/Canonical.CollectionReady, ../../packages/agent-flow-bend/Canonical.CollectionCredentialCheck, ../../packages/agent-flow-bend/Canonical.CollectionCandidateCheck, ../../packages/agent-flow-bend/Canonical.CollectionOrderCheck, ../../packages/agent-flow-bend/Canonical.CollectionExpiryCheck, ../../packages/agent-flow-bend/Canonical.CollectionFitCheck, ../../packages/agent-flow-bend/Canonical.CollectionFindingCheck, ../../packages/agent-flow-bend/Canonical.CollectionNoticeCheck, ../../packages/agent-flow-bend/Canonical.CollectionReserveLease, ../../packages/agent-flow-bend/Canonical.CollectionReleaseLease, ../../packages/agent-flow-bend/Canonical.CollectionLeaseCheck, ../../packages/agent-flow-bend/Canonical.CollectionRetireAdvice, ../../packages/agent-flow-bend/Canonical.CollectionClaimBackground, ../../packages/agent-flow-bend/Canonical.CollectionReleaseBackground, ../../packages/agent-flow-bend/Canonical.CollectionExpireBackground, ../../packages/agent-flow-bend/Canonical.FinishReserve, ../../packages/agent-flow-bend/Canonical.FinishRelease, ../../packages/agent-flow-bend/Canonical.FinishAuthorize, ../../packages/agent-flow-bend/Canonical.FinishTerminal, ../../packages/agent-flow-bend/Canonical.FinishEnd, ../../packages/agent-flow-bend/Canonical.ContinuationConsume, ../../packages/agent-flow-bend/Canonical.SubmissionBegin, ../../packages/agent-flow-bend/Canonical.SubmissionAuthorize, ../../packages/agent-flow-bend/Canonical.SubmissionTerminal, ../../packages/agent-flow-bend/Canonical.SubmissionRelease, ../../packages/agent-flow-bend/Canonical.SubmissionForget, ../../packages/agent-flow-bend/Canonical.SubmissionSuppressCheck, ../../packages/agent-flow-bend/Canonical.SubmissionReofferCheck, ../../packages/agent-flow-bend/Canonical.SubmissionExpiryCheck, ../../packages/agent-flow-bend/Canonical.RevisionRegister, ../../packages/agent-flow-bend/Canonical.RevisionRelease, ../../packages/agent-flow-bend/Canonical.RevisionCurrentCheck, ../../packages/agent-flow-bend/Canonical.RevisionSupersededCheck, ../../packages/agent-flow-bend/Canonical.RevisionGenerationCheck, ../../packages/agent-flow-bend/Canonical.RevisionCountCheck, ../../packages/agent-flow-bend/Canonical.CollectorGateCheck, ../../packages/agent-flow-bend/Canonical.CollectorFinalAuthorityCheck, ../../packages/agent-flow-bend/Canonical.ReuseMemberCheck, ../../packages/agent-flow-bend/Canonical.CleanupCheck, ../../packages/agent-flow-bend/Canonical.CleanupCommit, ../../packages/agent-flow-bend/Canonical.DeliveryReleaseCheck, ../../packages/agent-flow-bend/Canonical.DeliveryAcknowledgeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalizeCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFindingDispositionCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionCandidateCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionBatchCheck, ../../packages/agent-flow-bend/Canonical.DeliveryCredentialObserveCheck, ../../packages/agent-flow-bend/Canonical.DeliveryFinalCredentialCheck, ../../packages/agent-flow-bend/Canonical.SourceCacheCheck, ../../packages/agent-flow-bend/Canonical.ValidationRouteCheck, ../../packages/agent-flow-bend/Canonical.PostValidationCheck, ../../packages/agent-flow-bend/Canonical.FinalCandidateCheck, ../../packages/agent-flow-bend/Canonical.RoundBeginStopCheck, ../../packages/agent-flow-bend/Canonical.RoundActivityCheck, ../../packages/agent-flow-bend/Canonical.RoundBarrierCheck, ../../packages/agent-flow-bend/Canonical.RoundOwnsStopCheck, ../../packages/agent-flow-bend/Canonical.RoundStopTerminalCheck, ../../packages/agent-flow-bend/Canonical.RoundExpireCloseCheck, ../../packages/agent-flow-bend/Canonical.RoundContinuationBudgetCheck, ../../packages/agent-flow-bend/Canonical.DeliverySubmissionAllowedCheck, ../../packages/agent-flow-bend/Canonical.DeliveryExistingTokenCheck, ../../packages/agent-flow-bend/Canonical.DeliveryUnreservedStopCheck, ../../packages/agent-flow-bend/Canonical.IncludeLayerCheck, ../../packages/agent-flow-bend/Canonical.FileSelectionCheck, ../../packages/agent-flow-bend/Canonical.FileProtectionInvalid, ../../packages/agent-flow-bend/Canonical.FileProtectionCheck, ../../packages/agent-flow-bend/Canonical.CandidateFileCheck, ../../packages/agent-flow-bend/Canonical.ReviewAdmissionCheck, ../../packages/agent-flow-bend/Canonical.RuleEnableCheck, ../../packages/agent-flow-bend/Canonical.RuleApplicabilityCheck, ../../packages/agent-flow-bend/Canonical.RuleFindingCheck, ../../packages/agent-flow-bend/Canonical.RuleRankOrderCheck, ../../packages/agent-flow-bend/Canonical.AdviceOrderCheck, ../../packages/agent-flow-bend/Canonical.RuleBudgetCheck, ../../packages/agent-flow-bend/Canonical.ReuseRoute, ../../packages/agent-flow-bend/Canonical.ReuseClaim, ../../packages/agent-flow-bend/Canonical.ReuseAttach, ../../packages/agent-flow-bend/Canonical.ReuseRelease, ../../packages/agent-flow-bend/Canonical.ReuseTouch, ../../packages/agent-flow-bend/Canonical.CachePrepare, ../../packages/agent-flow-bend/Canonical.CacheCommit, ../../packages/agent-flow-bend/Canonical.CacheDiscardPartition, ../../packages/agent-flow-bend/Canonical.CacheClear, ../../packages/agent-flow-bend/Canonical.NoticeAdvance, ../../packages/agent-flow-bend/Canonical.NoticeCommit, ../../packages/agent-flow-bend/Canonical.NoticePrune, ../../packages/agent-flow-bend/Canonical.NoticeDrop, ../../packages/agent-flow-bend/Canonical.NoticeLease, ../../packages/agent-flow-bend/Canonical.NoticeClearPending, ../../packages/agent-flow-bend/Canonical.NoticeSelect, ../../packages/agent-flow-bend/Canonical.OutputStarted, ../../packages/agent-flow-bend/Canonical.OutputTerminal, ../../packages/agent-flow-bend/Canonical.RetirePartition); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -51491,14 +51491,14 @@ function $0m302(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Callbacks.JevStarted": at = at[key] = {...v, "request": nat_host(v["request"])}; return top[0];
-      case "../../packages/monkey-business-bend/Callbacks.JevInterrupted": at = at[key] = {...v, "request": nat_host(v["request"])}; return top[0];
-      case "../../packages/monkey-business-bend/Callbacks.JevSettled": at = at[key] = {...v, "request": nat_host(v["request"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted": at = at[key] = {...v, "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted": at = at[key] = {...v, "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled": at = at[key] = {...v, "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.PreparationCompleted": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.OutputTerminal": at = at[key] = {...v, "advice": nat_host(v["advice"]), "token": nat_host(v["token"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.OutputExpiry": at = at[key] = {...v, "advice": nat_host(v["advice"]), "token": nat_host(v["token"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.FinishTerminal": at = at[key] = {...v, "group": nat_host(v["group"]), "round": nat_host(v["round"]), "attempt": nat_host(v["attempt"]), "token": nat_host(v["token"]), "selected": $0m55(v["selected"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/Callbacks.Effect has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Callbacks.JevStarted, ../../packages/monkey-business-bend/Callbacks.JevInterrupted, ../../packages/monkey-business-bend/Callbacks.JevSettled, ../../packages/monkey-business-bend/Callbacks.PreparationCompleted, ../../packages/monkey-business-bend/Callbacks.OutputTerminal, ../../packages/monkey-business-bend/Callbacks.OutputExpiry, ../../packages/monkey-business-bend/Callbacks.FinishTerminal); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/Callbacks.Effect has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted, ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted, ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled, ../../packages/monkey-business-bend/Callbacks.PreparationCompleted, ../../packages/monkey-business-bend/Callbacks.OutputTerminal, ../../packages/monkey-business-bend/Callbacks.OutputExpiry, ../../packages/monkey-business-bend/Callbacks.FinishTerminal); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -51509,14 +51509,14 @@ function $0m303(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/Callbacks.JevStarted": at = at[key] = {...v, "request": BigInt(v["request"])}; return top[0];
-      case "../../packages/monkey-business-bend/Callbacks.JevInterrupted": at = at[key] = {...v, "request": BigInt(v["request"])}; return top[0];
-      case "../../packages/monkey-business-bend/Callbacks.JevSettled": at = at[key] = {...v, "request": BigInt(v["request"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted": at = at[key] = {...v, "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted": at = at[key] = {...v, "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      case "../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled": at = at[key] = {...v, "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.PreparationCompleted": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.OutputTerminal": at = at[key] = {...v, "advice": BigInt(v["advice"]), "token": BigInt(v["token"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.OutputExpiry": at = at[key] = {...v, "advice": BigInt(v["advice"]), "token": BigInt(v["token"])}; return top[0];
       case "../../packages/monkey-business-bend/Callbacks.FinishTerminal": at = at[key] = {...v, "group": BigInt(v["group"]), "round": BigInt(v["round"]), "attempt": BigInt(v["attempt"]), "token": BigInt(v["token"]), "selected": $0m52(v["selected"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/Callbacks.Effect has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Callbacks.JevStarted, ../../packages/monkey-business-bend/Callbacks.JevInterrupted, ../../packages/monkey-business-bend/Callbacks.JevSettled, ../../packages/monkey-business-bend/Callbacks.PreparationCompleted, ../../packages/monkey-business-bend/Callbacks.OutputTerminal, ../../packages/monkey-business-bend/Callbacks.OutputExpiry, ../../packages/monkey-business-bend/Callbacks.FinishTerminal); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/Callbacks.Effect has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestStarted, ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestInterrupted, ../../packages/monkey-business-bend/Callbacks.ReviewServiceRequestSettled, ../../packages/monkey-business-bend/Callbacks.PreparationCompleted, ../../packages/monkey-business-bend/Callbacks.OutputTerminal, ../../packages/monkey-business-bend/Callbacks.OutputExpiry, ../../packages/monkey-business-bend/Callbacks.FinishTerminal); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -54239,7 +54239,7 @@ function $0m523(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/SharingScenario.Physical": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
+      case "../../packages/monkey-business-bend/SharingScenario.Physical": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/SharingScenario.Physical has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingScenario.Physical); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -54351,7 +54351,7 @@ function $0m530(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/SharingScenario.Physical": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "request": nat_host(v["request"])}; return top[0];
+      case "../../packages/monkey-business-bend/SharingScenario.Physical": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"]), "round": nat_host(v["round"]), "operation": nat_host(v["operation"]), "review_service_request_id": nat_host(v["review_service_request_id"])}; return top[0];
       default: throw "bend: ../../packages/monkey-business-bend/SharingScenario.Physical has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingScenario.Physical); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -54883,8 +54883,8 @@ function $0m575(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit": at = at[key] = {...v, "position": BigInt(v["position"]), "bytes": BigInt(v["bytes"]), "key": $0m519(v["key"]), "evaluation": BigInt(v["evaluation"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/SharingRuntime.PreparedUnit has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingRuntime.PreparedUnit); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit": at = at[key] = {...v, "position": BigInt(v["position"]), "bytes": BigInt(v["bytes"]), "key": $0m519(v["key"]), "evaluation": BigInt(v["evaluation"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -54995,8 +54995,8 @@ function $0m584(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/SharingRuntime.PreparedUnit": at = at[key] = {...v, "position": nat_host(v["position"]), "bytes": nat_host(v["bytes"]), "key": $0m525(v["key"]), "evaluation": nat_host(v["evaluation"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/SharingRuntime.PreparedUnit has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingRuntime.PreparedUnit); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit": at = at[key] = {...v, "position": nat_host(v["position"]), "bytes": nat_host(v["bytes"]), "key": $0m525(v["key"]), "evaluation": nat_host(v["evaluation"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/SharingRuntime.PreparedReviewUnit); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -58540,8 +58540,8 @@ function $0m869(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest": at = at[key] = {...v, "request": nat_host(v["request"]), "output": $0m239(v["output"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest": at = at[key] = {...v, "review_service_request_id": nat_host(v["review_service_request_id"]), "output": $0m239(v["output"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -58941,8 +58941,8 @@ function $0m901(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest": at = at[key] = {...v, "request": BigInt(v["request"]), "output": $0m230(v["output"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.IssuedRequest); a tag names its constructor as the"
+      case "../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest": at = at[key] = {...v, "review_service_request_id": BigInt(v["review_service_request_id"]), "output": $0m230(v["output"])}; return top[0];
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.IssuedReviewServiceRequest); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -60480,7 +60480,7 @@ function $0m1015(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl": at = at[key] = {...v, "target": $0m445(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl": at = at[key] = {...v, "target": $0m507(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl": at = at[key] = {...v, "partition": nat_host(v["partition"]), "lifetime": nat_host(v["lifetime"])}; return top[0];
-      case "../../packages/monkey-business-bend/NativeRunTypes.JevRequestControl": at = at[key] = {...v, "target": $0m726(v["target"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceRequestControl": at = at[key] = {...v, "target": $0m726(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl": at = at[key] = {...v, "profile": $0m630(v["profile"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl": at = at[key] = {...v, "duration": nat_host(v["duration"]), "lifetime": nat_host(v["lifetime"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl": at = at[key] = {...v, "advicee": nat_host(v["advicee"]), "resident": nat_host(v["resident"])}; return top[0];
@@ -60489,14 +60489,14 @@ function $0m1015(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.CredentialControl": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl": at = at[key] = {...v, "profile": $0m347(v["profile"]), "identity": nat_host(v["identity"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl": at = at[key] = {...v, "limits": $0m360(v["limits"]), "identity": nat_host(v["identity"])}; return top[0];
-      case "../../packages/monkey-business-bend/NativeRunTypes.JevOutcomeControl": at = at[key] = {...v, "delay": nat_host(v["delay"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceOutcomeControl": at = at[key] = {...v, "delay": nat_host(v["delay"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl": at = at[key] = {...v, "delay": nat_host(v["delay"]), "lease": nat_host(v["lease"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl": at = at[key] = {...v, "identity": nat_host(v["identity"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m44(v["identity"]), "control": $0m692(v["control"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevProfile": at = at[key] = {...v, "delay": nat_host(v["delay"]), "weights": $0m345(v["weights"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl": at = at[key] = {...v, "credential_generation": nat_host(v["credential_generation"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevDelay": at = at[key] = {...v, "delay": nat_host(v["delay"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.NoticeFailureControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeOwnedControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeCollectControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseOpenControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseCloseControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterClaimControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl, ../../packages/monkey-business-bend/NativeRunTypes.JevRequestControl, ../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.CallbackControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.CredentialControl, ../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl, ../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.JevOutcomeControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.NoticeFailureControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeOwnedControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeCollectControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseOpenControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseCloseControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterClaimControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl, ../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceRequestControl, ../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.CallbackControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.CredentialControl, ../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl, ../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceOutcomeControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -60531,7 +60531,7 @@ function $0m1017(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl": at = at[key] = {...v, "target": $0m444(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl": at = at[key] = {...v, "target": $0m505(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"])}; return top[0];
-      case "../../packages/monkey-business-bend/NativeRunTypes.JevRequestControl": at = at[key] = {...v, "target": $0m727(v["target"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceRequestControl": at = at[key] = {...v, "target": $0m727(v["target"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl": at = at[key] = {...v, "profile": $0m631(v["profile"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl": at = at[key] = {...v, "duration": BigInt(v["duration"]), "lifetime": BigInt(v["lifetime"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl": at = at[key] = {...v, "advicee": BigInt(v["advicee"]), "resident": BigInt(v["resident"])}; return top[0];
@@ -60540,14 +60540,14 @@ function $0m1017(v) {
       case "../../packages/monkey-business-bend/NativeRunTypes.CredentialControl": at[key] = v; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl": at = at[key] = {...v, "profile": $0m348(v["profile"]), "identity": BigInt(v["identity"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl": at = at[key] = {...v, "limits": $0m361(v["limits"]), "identity": BigInt(v["identity"])}; return top[0];
-      case "../../packages/monkey-business-bend/NativeRunTypes.JevOutcomeControl": at = at[key] = {...v, "delay": BigInt(v["delay"])}; return top[0];
+      case "../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceOutcomeControl": at = at[key] = {...v, "delay": BigInt(v["delay"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl": at = at[key] = {...v, "delay": BigInt(v["delay"]), "lease": BigInt(v["lease"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl": at = at[key] = {...v, "identity": BigInt(v["identity"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl": at = at[key] = {...v, "identity": $0m31(v["identity"]), "control": $0m693(v["control"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevProfile": at = at[key] = {...v, "delay": BigInt(v["delay"]), "weights": $0m344(v["weights"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl": at = at[key] = {...v, "credential_generation": BigInt(v["credential_generation"])}; return top[0];
       case "../../packages/monkey-business-bend/NativeRunTypes.JevDelay": at = at[key] = {...v, "delay": BigInt(v["delay"])}; return top[0];
-      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.NoticeFailureControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeOwnedControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeCollectControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseOpenControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseCloseControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterClaimControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl, ../../packages/monkey-business-bend/NativeRunTypes.JevRequestControl, ../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.CallbackControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.CredentialControl, ../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl, ../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.JevOutcomeControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
+      default: throw "bend: ../../packages/monkey-business-bend/NativeRunTypes.Control has no tag " + v?.$ + " (its tags: ../../packages/monkey-business-bend/NativeRunTypes.NoticeFailureControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeOwnedControl, ../../packages/monkey-business-bend/NativeRunTypes.NoticeCollectControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseOpenControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.ResponseCloseControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterClaimControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.WriterReleaseControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveControl, ../../packages/monkey-business-bend/NativeRunTypes.SharingLeaveAllControl, ../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceRequestControl, ../../packages/monkey-business-bend/NativeRunTypes.ExpiryProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.PermitLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.CallbackControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputAttemptControl, ../../packages/monkey-business-bend/NativeRunTypes.CredentialControl, ../../packages/monkey-business-bend/NativeRunTypes.FileTreesControl, ../../packages/monkey-business-bend/NativeRunTypes.GraphLimitsControl, ../../packages/monkey-business-bend/NativeRunTypes.ReviewServiceOutcomeControl, ../../packages/monkey-business-bend/NativeRunTypes.OutputProfileControl, ../../packages/monkey-business-bend/NativeRunTypes.AdviceeLifecycleControl, ../../packages/monkey-business-bend/NativeRunTypes.WorkloadControl, ../../packages/monkey-business-bend/NativeRunTypes.JevProfile, ../../packages/monkey-business-bend/NativeRunTypes.EnvironmentControl, ../../packages/monkey-business-bend/NativeRunTypes.JevDelay); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }

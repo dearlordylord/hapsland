@@ -1,6 +1,6 @@
 import { recordActivity } from "@hapsland/activity-observation/activity/status"
 import * as Effect from "effect/Effect"
-import { type UnitJob } from "../../work-ownership/jobs.ts"
+import { type ReviewUnitJob } from "../../work-ownership/jobs.ts"
 import { ResidentAdapterError } from "../../adapter-error.ts"
 import { withinWork } from "../../work-ownership/cancellation.ts"
 import { decodeControlledOptions } from "../../authorization/controlled.ts"
@@ -8,12 +8,12 @@ import { type Dependencies, type EvaluationState, type EvaluationContext } from 
 import { startUnitEvaluation, denyReady } from "./authorization.ts"
 import { evaluateAuthorizedUnit } from "./request.ts"
 import {
-  settleEvaluatedUnit,
+  settleEvaluatedReviewUnit,
   settleFailedEvaluation,
   observeEscapedEvaluation,
   reportInterruption
 } from "./settlement.ts"
-import { observeRequest } from "./observation.ts"
+import { observeReviewServiceRequest } from "./observation.ts"
 import { residentRetainAdvice } from "./retention.ts"
 
 const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
@@ -32,10 +32,10 @@ const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
       | "residentIsCurrentWork"
       | "residentJobActive"
       | "residentLedger"
-      | "residentLifetimeController"
+      | "residentInstanceIdController"
       | "residentNow"
       | "residentObserveDispatchAuthority"
-      | "residentObserveJevRequest"
+      | "residentObserveReviewServiceRequest"
       | "residentOfflineHttpClient"
       | "residentRecordAnalytics"
       | "residentRecordJoinedOutcomes"
@@ -48,18 +48,18 @@ const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
       | "residentSettleJoined"
       | "runtimeConfiguration"
     >,
-    job: UnitJob,
+    job: ReviewUnitJob,
     sequence: number
   ) =>
     Effect.suspend(() => {
       const state: EvaluationState = {
-        requestStarted: false,
-        requestSettled: false,
+        reviewServiceRequestStarted: false,
+        reviewServiceRequestSettled: false,
         interruptionReported: false,
         readyReported: false,
         evaluationOutcomeObserved: false
       }
-      const signal = job.work?.controller.signal ?? deps.residentLifetimeController.signal
+      const signal = job.work?.controller.signal ?? deps.residentInstanceIdController.signal
       const context: EvaluationContext<
         | "inspection"
         | "lifetime"
@@ -73,10 +73,10 @@ const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
         | "residentIsCurrentWork"
         | "residentJobActive"
         | "residentLedger"
-        | "residentLifetimeController"
+        | "residentInstanceIdController"
         | "residentNow"
         | "residentObserveDispatchAuthority"
-        | "residentObserveJevRequest"
+        | "residentObserveReviewServiceRequest"
         | "residentOfflineHttpClient"
         | "residentRecordAnalytics"
         | "residentRecordJoinedOutcomes"
@@ -121,14 +121,14 @@ const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
           return
         }
         const unissuedJobInactive = Effect.fn("ResidentRuntime.unissuedJobInactive")(function* () {
-          return !(yield* deps.residentJobActive(job)) && state.issuedRequest === undefined
+          return !(yield* deps.residentJobActive(job)) && state.issuedReviewServiceRequestId === undefined
         })
         if (yield* unissuedJobInactive()) {
           yield* deps.residentReleaseReuseClaim(job.evaluationKey)
           yield* deps.residentReleaseUnit(job)
           return
         }
-        if (result?.status === "evaluated") return yield* settleEvaluatedUnit(context, controlled, result)
+        if (result?.status === "evaluated") return yield* settleEvaluatedReviewUnit(context, controlled, result)
         yield* settleFailedEvaluation(context, result)
       }).pipe(
         // Observe every failed exit, including interruption, before releasing the
@@ -149,24 +149,24 @@ const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")(
               yield* denyReady(context)
             }
             const settleInterruptedEvaluation = Effect.fn("ResidentRuntime.settleInterruptedEvaluation")(function* () {
-              if (state.issuedRequest !== undefined && !state.requestSettled) {
+              if (state.issuedReviewServiceRequestId !== undefined && !state.reviewServiceRequestSettled) {
                 if (signal?.aborted) yield* reportInterruption(context)
                 const observed =
-                  signal?.aborted && state.requestStarted && state.interruptionReported
+                  signal?.aborted && state.reviewServiceRequestStarted && state.interruptionReported
                     ? "interrupted"
-                    : state.requestStarted
+                    : state.reviewServiceRequestStarted
                       ? "backendFailure"
                       : "neverSent"
-                yield* deps.residentLedger.settleJevRequest(
+                yield* deps.residentLedger.settleReviewServiceRequest(
                   job.partition,
                   job.canonicalOperationId,
-                  state.issuedRequest,
+                  state.issuedReviewServiceRequestId,
                   job.reservation,
                   observed,
                   false
                 )
-                state.requestSettled = true
-                yield* observeRequest(context, "settled", state.issuedRequest, observed)
+                state.reviewServiceRequestSettled = true
+                yield* observeReviewServiceRequest(context, "settled", state.issuedReviewServiceRequestId, observed)
               }
             })
             yield* settleInterruptedEvaluation()
@@ -212,10 +212,10 @@ export const makeResidentEvaluation = (
     | "residentIsCurrentWork"
     | "residentJobActive"
     | "residentLedger"
-    | "residentLifetimeController"
+    | "residentInstanceIdController"
     | "residentNow"
     | "residentObserveDispatchAuthority"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentOfflineHttpClient"
     | "residentRecordAnalytics"
     | "residentRecordJoinedOutcomes"

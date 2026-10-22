@@ -192,8 +192,8 @@ export async function checkRuntimeClock() {
         lifetime: record.lifetime,
         root,
         advicee: {
-          host: "pi",
-          hostVersion: "1.0.0",
+          agentRuntime: "pi",
+          agentRuntimeVersion: "1.0.0",
           sessionId: "clock-diagnostic",
           turnId: null,
           toolUseId: variant.name,
@@ -230,8 +230,8 @@ export async function checkRuntimeClock() {
         lifetime: record.lifetime,
         root,
         advicee: {
-          host: "pi",
-          hostVersion: "1.0.0",
+          agentRuntime: "pi",
+          agentRuntimeVersion: "1.0.0",
           sessionId: "late-clock-compatibility",
           turnId: null,
           toolUseId: `late-${index}`,

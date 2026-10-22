@@ -20,8 +20,10 @@ const reach = (run: Run, condition: () => boolean) => {
   expect(condition()).toBe(true)
 }
 const issued = (run: Run): CallbackTarget => {
-  reach(run, () => callbacks(run).callbackTargets.some((target) => target.effect.kind === "jevSettled"))
-  return callbacks(run).callbackTargets.find((target) => target.effect.kind === "jevSettled")!
+  reach(run, () =>
+    callbacks(run).callbackTargets.some((target) => target.effect.kind === "reviewServiceRequestSettled")
+  )
+  return callbacks(run).callbackTargets.find((target) => target.effect.kind === "reviewServiceRequestSettled")!
 }
 const replay = (run: Run) =>
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
@@ -30,13 +32,13 @@ it("repeats a settled original after the queue drains and reaches the Canonical 
   const run = createRun({ inputs: [edit], jevDelay: 20 })
   const target = issued(run)
   run.advance({ untilTime: 30 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   const settled = run.projection
   apply(run, target, "duplicate")
   run.advance({ untilTime: run.now })
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
-  const duplicate = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
+  const duplicate = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)!
   expect(duplicate.rejection).toBe("StaleOperation")
   expect(duplicate.outputs).toEqual([])
   expect(run.projection).toEqual(settled)
@@ -60,21 +62,21 @@ it("held physical completion survives cancellation, then releases exactly once a
   })
   run.advance({ untilTime: 30 })
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-  expect(run.projection.dispatch.requests).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")).toEqual([])
   apply(run, target, "release")
   run.advance({ untilTime: run.now })
   expect(
     run.observations
-      .filter((frame) => frame.event.kind === "jevRequestSettled")
+      .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
       .at(-1)
       ?.outputs.map((command) => command.kind)
-  ).toEqual(["jevObservationIgnored"])
-  expect(run.projection.dispatch.requests).toEqual([])
+  ).toEqual(["reviewServiceRequestObservationIgnored"])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   const released = run.projection
   apply(run, target, "duplicate")
   run.advance({ untilTime: run.now })
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBe(
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)?.rejection).toBe(
     "StaleOperation"
   )
   expect(run.projection).toEqual(released)
@@ -90,8 +92,8 @@ it("refuses an invented target atomically, and dropping delivery does not fabric
   expect(run.projection).toEqual(before)
   apply(run, target, "drop")
   run.advance({ untilTime: 30 })
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toEqual([])
-  expect(run.projection.dispatch.requests).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   replay(run)
 })
@@ -99,22 +101,24 @@ it("refuses an invented target atomically, and dropping delivery does not fabric
 it("reorders the original completion ahead of a held start, exposes WrongStage, then recovers using the same receipts", () => {
   const run = createRun({ inputs: [edit], jevDelay: 20 })
   const target = issued(run)
-  const started = callbacks(run).callbackTargets.find((value) => value.effect.kind === "jevStarted")!
+  const started = callbacks(run).callbackTargets.find((value) => value.effect.kind === "reviewServiceRequestStarted")!
   expect(started).toBeDefined()
   apply(run, started, "hold")
   apply(run, target, "reorder")
   run.advance({ untilTime: run.now })
-  const early = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
+  const early = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)!
   expect(early.rejection).toBe("WrongStage")
   expect(early.outputs).toEqual([])
-  expect(run.projection.dispatch.requests).toHaveLength(1)
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   apply(run, started, "release")
   run.advance({ untilTime: run.now })
   apply(run, target, "duplicate")
   run.advance({ untilTime: run.now })
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBeUndefined()
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(
+    run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)?.rejection
+  ).toBeUndefined()
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(
     run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reservationReleased"))
@@ -125,20 +129,20 @@ it("reorders the original completion ahead of a held start, exposes WrongStage, 
 it("retires replaced queued provenance after the actual replacement settles while retaining delivered history", () => {
   const run = createRun({ inputs: [edit], jevDelay: 20 })
   const original = issued(run)
-  if (original.effect.kind !== "jevSettled") throw new Error("missing original completion")
-  const started = run.observe().callbackTargets.find((target) => target.effect.kind === "jevStarted")!
+  if (original.effect.kind !== "reviewServiceRequestSettled") throw new Error("missing original completion")
+  const started = run.observe().callbackTargets.find((target) => target.effect.kind === "reviewServiceRequestStarted")!
   run.advance({ untilTime: run.now })
-  const request = { ...original.owner, request: original.effect.request }
-  run.applyControl({ kind: "jevRequest", target: request, outcome: "backendFailure" })
+  const request = { ...original.owner, reviewServiceRequestId: original.effect.reviewServiceRequestId }
+  run.applyControl({ kind: "reviewServiceRequest", target: request, outcome: "backendFailure" })
   expect(run.observe().interventions.at(-1)?.result).toBe("applied")
   // The old receipt remains while its exact physical authority is still live.
   expect(run.observe().callbackTargets).toContainEqual(original)
   run.advance({ untilTime: 30 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(run.observe().callbackTargets).not.toContainEqual(original)
   expect(run.observe().callbackTargets).toContainEqual(started)
-  const replacement = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
+  const replacement = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestSettled")!
   expect(replacement.callbackReceipt).toBeDefined()
   expect(run.observe().callbackTargets).toContainEqual(replacement.callbackReceipt!.target)
   replay(run)
@@ -180,35 +184,41 @@ it.each([false, true])(
   (held) => {
     const run = createRun({ inputs: [edit], jevDelay: 20 })
     const original = issued(run)
-    if (original.effect.kind !== "jevSettled") throw new Error("missing original completion")
+    if (original.effect.kind !== "reviewServiceRequestSettled") throw new Error("missing original completion")
     if (held) apply(run, original, "hold")
     apply(run, original, "duplicate")
     run.applyControl({
-      kind: "jevRequest",
-      target: { ...original.owner, request: original.effect.request },
+      kind: "reviewServiceRequest",
+      target: { ...original.owner, reviewServiceRequestId: original.effect.reviewServiceRequestId },
       outcome: "backendFailure"
     })
     expect(run.observe().interventions.at(-1)?.result).toBe("applied")
     run.advance({ untilTime: 30, maxEvents: 100 })
-    const completed = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")
+    const completed = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
     expect(completed).toHaveLength(1)
     expect(completed[0]!.event).toMatchObject({
       ...original.owner,
-      request: original.effect.request,
+      reviewServiceRequestId: original.effect.reviewServiceRequestId,
       outcome: "backendFailure"
     })
     expect(completed[0]!.rejection).toBeUndefined()
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(run.projection.dispatch.running).toEqual([])
     expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-    expect(run.exportReplay().controls.filter((record) => record.control.kind === "jevRequest")).toHaveLength(1)
+    expect(run.exportReplay().controls.filter((record) => record.control.kind === "reviewServiceRequest")).toHaveLength(
+      1
+    )
     if (held) {
       expect(run.observe().callbackTargets).toContainEqual(original)
       apply(run, original, "release")
       expect(run.observe().callbackReports.at(-1)?.result).toBe("applied")
       run.advance({ untilTime: run.now, maxEvents: 10 })
-      const late = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
-      expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request, outcome: "clear" })
+      const late = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)!
+      expect(late.event).toMatchObject({
+        ...original.owner,
+        reviewServiceRequestId: original.effect.reviewServiceRequestId,
+        outcome: "clear"
+      })
       expect(late.rejection).toBe("StaleOperation")
       expect(late.outputs).toEqual([])
     } else expect(run.observe().callbackTargets).not.toContainEqual(original)
@@ -229,13 +239,13 @@ it("reschedules exact work at explicit elapsed time without inventing an earlier
   expect(run.now).toBe(issuedAt)
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
   run.advance({ untilTime: 419 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(0)
   run.advance({ untilTime: 420 })
-  const settled = run.observations.filter((f) => f.event.kind === "jevRequestSettled")
+  const settled = run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")
   expect(settled).toHaveLength(1)
   expect(settled[0]!.time).toBe(420)
   run.advance({ untilTime: 1100 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(1)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(1)
   replay(run)
 })
 
@@ -251,9 +261,9 @@ it("refuses an explicit callback timestamp in the past without replacing its que
   expect(run.projection).toEqual(before)
   expect(run.runtimeSnapshot()).toEqual(snapshot)
   run.advance({ untilTime: 999 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(0)
   run.advance({ untilTime: 2000 })
-  expect(run.observations.some((f) => f.event.kind === "jevRequestSettled")).toBe(true)
+  expect(run.observations.some((f) => f.event.kind === "reviewServiceRequestSettled")).toBe(true)
   replay(run)
 })
 
@@ -265,9 +275,11 @@ it("repeated rescheduling replaces the replacement order and never duplicates de
     expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
   }
   run.advance({ untilTime: 499 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(0)
   run.advance({ untilTime: 1200 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled").map((f) => f.time)).toEqual([500])
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled").map((f) => f.time)).toEqual([
+    500
+  ])
   replay(run)
 })
 
@@ -280,7 +292,7 @@ it.each(["hold", "drop"] as const)("explicit rescheduling does not revive %s wor
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("notQueued")
   expect(run.runtimeSnapshot()).toEqual(snapshot)
   run.advance({ untilTime: 1200 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(0)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(0)
   replay(run)
 })
 
@@ -291,7 +303,9 @@ it("rescheduling accepts the current instant and refuses delivered or missing or
   run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: now })
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("applied")
   run.advance({ untilTime: now })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled").map((f) => f.time)).toEqual([now])
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled").map((f) => f.time)).toEqual([
+    now
+  ])
   run.applyControl({ kind: "callback", action: "reschedule", target, deliveryAt: now + 100 })
   // Completed authority has already retired this original from the registry.
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("missing")
@@ -303,7 +317,7 @@ it("rescheduling accepts the current instant and refuses delivered or missing or
   })
   expect(callbacks(run).callbackReports.at(-1)?.result).toBe("missing")
   run.advance({ untilTime: 1200 })
-  expect(run.observations.filter((f) => f.event.kind === "jevRequestSettled")).toHaveLength(1)
+  expect(run.observations.filter((f) => f.event.kind === "reviewServiceRequestSettled")).toHaveLength(1)
   replay(run)
 })
 

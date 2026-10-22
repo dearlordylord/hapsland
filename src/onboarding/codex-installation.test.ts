@@ -447,11 +447,11 @@ describe("public Codex installation operations", async () => {
   })
   it.each(["0.156.0", "0.160.0", "0.161.0"])(
     "accepts Codex %s and binds its version into the owned hook",
-    async (hostVersion) => {
+    async (agentRuntimeVersion) => {
       const { root, home, bin } = fixture()
       writeFileSync(
         bin,
-        `#!/bin/sh\nif [ "$1" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli ${hostVersion}\\n'\n`,
+        `#!/bin/sh\nif [ "$1" = features ]; then printf 'hooks stable true\\n'; exit 0; fi\nprintf 'codex-cli ${agentRuntimeVersion}\\n'\n`,
         { mode: 0o700 }
       )
       const entrypoint = localPackage(root, "0.0.0")
@@ -462,7 +462,7 @@ describe("public Codex installation operations", async () => {
         digest: string
         ownedChanges: { hook: { handlers: Array<{ command: string }> } }
       }
-      expect(proposal.ownedChanges.hook.handlers[0]?.command).toContain(`--codex-version=${hostVersion}`)
+      expect(proposal.ownedChanges.hook.handlers[0]?.command).toContain(`--codex-version=${agentRuntimeVersion}`)
       expect(
         (
           await invoke(
@@ -471,7 +471,7 @@ describe("public Codex installation operations", async () => {
           )
         ).status
       ).toBe("installed")
-      expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(`--codex-version=${hostVersion}`)
+      expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain(`--codex-version=${agentRuntimeVersion}`)
     }
   )
   it("refuses a version-only executable without the lifecycle hooks capability", async () => {

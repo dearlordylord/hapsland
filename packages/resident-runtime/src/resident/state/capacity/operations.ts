@@ -1,5 +1,10 @@
 import { dispatchIdentity } from "../capacity/identities.ts"
-import { type CapacityDraft, type CapacityState, type CapacityReservation, type Arguments } from "./model.ts"
+import {
+  type CapacityDraft,
+  type CapacityState,
+  type ReviewCapacityReservationHandle,
+  type Arguments
+} from "./model.ts"
 import { snapshot, reserve, resize, replace, release, clear } from "./reservations.ts"
 import {
   partitionId,
@@ -8,19 +13,19 @@ import {
   partitionIdentityCount,
   partitionIdentityBytes,
   discardUnusedPartition,
-  collectionTokenId,
-  collectionTokenIdentityCount,
-  pruneCollectionTokenIds
+  internAdviceHandoffIdentity,
+  adviceHandoffIdentityCount,
+  pruneAdviceHandoffIdentities
 } from "./identities.ts"
 import { dispatchScope, transition, canonicalProjection } from "./canonical.ts"
 import { acknowledgeStopRelease, consumeEditPermit, roundId, currentRoundId, retireRound } from "./rounds.ts"
 import { admitObservation, observation, beginObservedPreparation, completePreparation } from "./preparation.ts"
 import {
   startReview,
-  readyJevRequest,
-  startJevRequest,
-  interruptJevRequest,
-  settleJevRequest,
+  readyReviewServiceRequest,
+  startReviewServiceRequest,
+  interruptReviewServiceRequest,
+  settleReviewServiceRequest,
   completeReview,
   observeReview,
   preparedOffer,
@@ -31,12 +36,12 @@ import {
 export const capacityOperations = (
   commit: <A>(operation: (draft: CapacityDraft) => A) => A,
   read: <A>(operation: (current: CapacityState) => A) => A,
-  residentLifetime: string
+  residentInstanceId: string
 ) => {
   return {
-    residentLifetime,
-    canonicalLifetime: 1,
-    reservationSnapshot: (capability: CapacityReservation) =>
+    residentInstanceId,
+    canonicalLifetimeId: 1,
+    reservationSnapshot: (capability: ReviewCapacityReservationHandle) =>
       read((snapshot) => {
         const record = snapshot.reservations.get(capability.id)
         return record?.capability === capability
@@ -54,12 +59,12 @@ export const capacityOperations = (
       read((draft) => partitionIdentityBytes(draft, ...args)),
     discardUnusedPartition: (...args: Arguments<typeof discardUnusedPartition>) =>
       commit((draft) => discardUnusedPartition(draft, ...args)),
-    collectionTokenId: (...args: Arguments<typeof collectionTokenId>) =>
-      commit((draft) => collectionTokenId(draft, ...args)),
-    collectionTokenIdentityCount: (...args: Arguments<typeof collectionTokenIdentityCount>) =>
-      read((draft) => collectionTokenIdentityCount(draft, ...args)),
-    pruneCollectionTokenIds: (...args: Arguments<typeof pruneCollectionTokenIds>) =>
-      commit((draft) => pruneCollectionTokenIds(draft, ...args)),
+    internAdviceHandoffIdentity: (...args: Arguments<typeof internAdviceHandoffIdentity>) =>
+      commit((draft) => internAdviceHandoffIdentity(draft, ...args)),
+    adviceHandoffIdentityCount: (...args: Arguments<typeof adviceHandoffIdentityCount>) =>
+      read((draft) => adviceHandoffIdentityCount(draft, ...args)),
+    pruneAdviceHandoffIdentities: (...args: Arguments<typeof pruneAdviceHandoffIdentities>) =>
+      commit((draft) => pruneAdviceHandoffIdentities(draft, ...args)),
     dispatchIdentity: (...args: Arguments<typeof dispatchIdentity>) =>
       commit((draft) => dispatchIdentity(draft, ...args)),
     dispatchScope: (...args: Arguments<typeof dispatchScope>) => commit((draft) => dispatchScope(draft, ...args)),
@@ -80,12 +85,14 @@ export const capacityOperations = (
     completePreparation: (...args: Arguments<typeof completePreparation>) =>
       commit((draft) => completePreparation(draft, ...args)),
     startReview: (...args: Arguments<typeof startReview>) => commit((draft) => startReview(draft, ...args)),
-    readyJevRequest: (...args: Arguments<typeof readyJevRequest>) => commit((draft) => readyJevRequest(draft, ...args)),
-    startJevRequest: (...args: Arguments<typeof startJevRequest>) => commit((draft) => startJevRequest(draft, ...args)),
-    interruptJevRequest: (...args: Arguments<typeof interruptJevRequest>) =>
-      commit((draft) => interruptJevRequest(draft, ...args)),
-    settleJevRequest: (...args: Arguments<typeof settleJevRequest>) =>
-      commit((draft) => settleJevRequest(draft, ...args)),
+    readyReviewServiceRequest: (...args: Arguments<typeof readyReviewServiceRequest>) =>
+      commit((draft) => readyReviewServiceRequest(draft, ...args)),
+    startReviewServiceRequest: (...args: Arguments<typeof startReviewServiceRequest>) =>
+      commit((draft) => startReviewServiceRequest(draft, ...args)),
+    interruptReviewServiceRequest: (...args: Arguments<typeof interruptReviewServiceRequest>) =>
+      commit((draft) => interruptReviewServiceRequest(draft, ...args)),
+    settleReviewServiceRequest: (...args: Arguments<typeof settleReviewServiceRequest>) =>
+      commit((draft) => settleReviewServiceRequest(draft, ...args)),
     completeReview: (...args: Arguments<typeof completeReview>) => commit((draft) => completeReview(draft, ...args)),
     observeReview: (...args: Arguments<typeof observeReview>) => commit((draft) => observeReview(draft, ...args)),
     preparedOffer: (...args: Arguments<typeof preparedOffer>) => commit((draft) => preparedOffer(draft, ...args)),

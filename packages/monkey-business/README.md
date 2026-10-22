@@ -176,7 +176,7 @@ inputs enter one virtual clock, queue and compiled canonical state. `agentScopes
 reports stable agent/partition/seed bindings; observations include `agent` and
 `partition` metadata while their `before`/`after` remain complete resident snapshots.
 Global capacity and the eight Jev request permits are shared across partitions.
-A full permit pool supplies checked `jevRequestUnavailable`; it does not start
+A full permit pool supplies checked `reviewServiceRequestUnavailable`; it does not start
 another request or automatically retry the denied unit. Later fresh work may
 acquire released permits. Preparation dispatch has a separate eight-job bound.
 
@@ -351,7 +351,7 @@ wide clocks, equal-time advicees and raw fractional/subnormal outcome weights.
 Native claims remain limited to the fixtures actually exercised.
 
 
-Live `{kind:"jevRequest",target:{partition,lifetime,round,operation,request},outcome}`
+Live `{kind:"reviewServiceRequest",target:{partition,lifetime,round,operation,request},outcome}`
 controls intervene on one actual issued request. The shared Bend owner checks the
 full identity and its recorded lifecycle: a started request cannot become never
 sent, and an interrupted request cannot settle as a different outcome. Applied

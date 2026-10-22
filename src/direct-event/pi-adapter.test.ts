@@ -43,7 +43,7 @@ it("captures Pi patch coordinates with main-thread identity and current content 
   const result = await Effect.runPromise(adaptPiDirectEvent(event))
   expect(result).toMatchObject({
     root,
-    advicee: { host: "pi", hostVersion: "1.0.0", turnId: null, subagentId: null },
+    advicee: { agentRuntime: "pi", agentRuntimeVersion: "1.0.0", turnId: null, subagentId: null },
     candidates: [{ operation: "update", path: "a.ts", addedLines: ["function revised() {}"] }],
     verifiedPostEditHunks: { hunks: [{ location: { start: { line: 1, column: 1 }, end: { line: 1, column: 22 } } }] }
   })

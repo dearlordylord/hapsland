@@ -66,7 +66,7 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
   const run = createRun(contentionConfig)
   run.advance({ untilTime: 5, maxEvents: 2000 })
   expect(run.agentScopes.map((scope) => scope.agent)).toEqual(opaqueAdvicees)
-  expect(run.projection.dispatch.requests).toHaveLength(8)
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(8)
   expect(run.projection.global).toEqual({ items: 8, bytes: 48 })
   expect(
     run.projection.partitions.map((scope) => [scope.partition, scope.items, scope.bytes]).sort((a, b) => a[0]! - b[0]!)
@@ -75,7 +75,7 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
     [2, 4, 28]
   ])
   const refused = run.observations.filter((frame) =>
-    frame.outputs.some((command) => command.kind === "jevRequestUnavailable")
+    frame.outputs.some((command) => command.kind === "reviewServiceRequestUnavailable")
   )
   expect(refused).toHaveLength(1)
   expect(refused[0]).toMatchObject({ partition: 1, agent: opaqueAdvicees[0], time: 4 })
@@ -83,28 +83,30 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
     Math.max(...run.observations.map((frame) => frame.after.dispatch.running.filter((item) => item.preparation).length))
   ).toBe(8)
   run.advance({ untilTime: 25, maxEvents: 2000 })
-  const interrupted = run.observations.filter((frame) => frame.event.kind === "jevRequestInterrupted")
+  const interrupted = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestInterrupted")
   expect(interrupted).toHaveLength(1)
   expect(interrupted[0]).toMatchObject({ partition: 1, agent: opaqueAdvicees[0], time: 22 })
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   run.applyControl({ kind: "jevProfile", delayMs: 5, outcome: "clear" })
   run.applyControl({ kind: "suspendArrivals", agent: opaqueAdvicees[0], suspended: true })
   const endpoint = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
   expect(endpoint.observe()).toEqual(run.observe())
   expect(endpoint.exportReplay()).toEqual(run.exportReplay())
   for (const candidate of [run, endpoint]) candidate.advance({ untilTime: 40, maxEvents: 1000 })
-  const healthy = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled" && frame.time > 25)
+  const healthy = run.observations.filter(
+    (frame) => frame.event.kind === "reviewServiceRequestSettled" && frame.time > 25
+  )
   expect(healthy.map((frame) => [frame.time, frame.partition])).toEqual([
     [37, 1],
     [37, 2]
   ])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(run.projection.dispatch.running).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(endpoint.observe()).toEqual(run.observe())
   for (const frame of run.observations) {
-    expect(frame.after.dispatch.requests.length).toBeLessThanOrEqual(8)
+    expect(frame.after.dispatch.reviewServiceRequests.length).toBeLessThanOrEqual(8)
     expect(frame.after.global.bytes).toBe(frame.after.partitions.reduce((sum, owner) => sum + owner.bytes, 0))
     const local = projectAgent(frame.after, frame.partition ?? 0)
     expect(local.global).toEqual(frame.after.global)
@@ -122,9 +124,9 @@ const residentEventCodes: Record<string, number> = {
   completeObservation: 7,
   dispatchSettled: 8,
   startReview: 9,
-  jevRequestReady: 10,
-  jevRequestStarted: 11,
-  jevRequestSettled: 12,
+  reviewServiceRequestReady: 10,
+  reviewServiceRequestStarted: 11,
+  reviewServiceRequestSettled: 12,
   collectionReady: 13,
   finalCandidateCheck: 14,
   submissionSuppressCheck: 15,
@@ -136,7 +138,7 @@ const residentEventCodes: Record<string, number> = {
   collectionRetireAdvice: 22,
   submissionForget: 23,
   retireReview: 24,
-  jevRequestInterrupted: 25,
+  reviewServiceRequestInterrupted: 25,
   stopPolled: 26
 }
 const residentCommandCodes: Record<string, number> = {
@@ -145,7 +147,7 @@ const residentCommandCodes: Record<string, number> = {
   dispatchStarted: 3,
   prepare: 4,
   unitAdmitted: 5,
-  jevRequestIssued: 6,
+  reviewServiceRequestIssued: 6,
   findingRetained: 7,
   collectionEligible: 8,
   retainCandidate: 9,
@@ -157,8 +159,8 @@ const residentCommandCodes: Record<string, number> = {
   preparationReleased: 15,
   observationCompleted: 16,
   reviewStarted: 17,
-  jevRequestStartRecorded: 18,
-  jevRequestOutcomeRecorded: 19,
+  reviewServiceRequestStartRecorded: 18,
+  reviewServiceRequestOutcomeRecorded: 19,
   reservationReleased: 20,
   collectionLeaseKept: 21,
   collectionLeaseReleased: 22,
@@ -168,9 +170,9 @@ const residentCommandCodes: Record<string, number> = {
   releaseCandidate: 26,
   collectionAdviceRetired: 27,
   submissionForgotten: 28,
-  jevRequestUnavailable: 29,
-  jevInterruptionRecorded: 30,
-  jevObservationIgnored: 31,
+  reviewServiceRequestUnavailable: 29,
+  reviewServiceRequestInterruptionRecorded: 30,
+  reviewServiceRequestObservationIgnored: 31,
   finishReady: 32,
   cancelWork: 33
 }
@@ -191,7 +193,7 @@ function residentRow(frame: Observation): number[] {
       return [usage?.items ?? 0, usage?.bytes ?? 0]
     }),
     p.dispatch.running.filter((item) => item.preparation).length,
-    p.dispatch.requests.length
+    p.dispatch.reviewServiceRequests.length
   ]
   if (frame.preparation) {
     const { after, command, event } = frame.preparation
@@ -210,18 +212,19 @@ function residentRow(frame: Observation): number[] {
     ]
   }
   const event = frame.event as unknown as Record<string, unknown>
-  const identity = ["partition", "lifetime", "round", "operation", "request", "advice", "token"].map((key) =>
-    Number(
-      event[key] ??
-        (key === "operation"
-          ? event.observation
-          : key === "partition"
-            ? event.group
-            : key === "token"
-              ? event.fingerprint
-              : undefined) ??
-        0
-    )
+  const identity = ["partition", "lifetime", "round", "operation", "reviewServiceRequestId", "advice", "token"].map(
+    (key) =>
+      Number(
+        event[key] ??
+          (key === "operation"
+            ? event.observation
+            : key === "partition"
+              ? event.group
+              : key === "token"
+                ? event.fingerprint
+                : undefined) ??
+          0
+      )
   )
   const facts =
     event.kind === "stopPolled"
@@ -255,7 +258,7 @@ function residentRow(frame: Observation): number[] {
                   0,
                   0
                 ]
-              : event.kind === "jevRequestReady"
+              : event.kind === "reviewServiceRequestReady"
                 ? [
                     event.rootValid,
                     event.configurationValid,
@@ -264,7 +267,7 @@ function residentRow(frame: Observation): number[] {
                     event.currentWork,
                     event.physicalAvailable
                   ].map(Number)
-                : event.kind === "jevRequestSettled"
+                : event.kind === "reviewServiceRequestSettled"
                   ? [
                       Number(event.currentWork),
                       { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[
@@ -288,8 +291,8 @@ function residentRow(frame: Observation): number[] {
       ? value.id
       : ["dispatchStarted", "prepare", "unitAdmitted", "cancelWork"].includes(command.kind)
         ? value.operation
-        : command.kind === "jevRequestIssued"
-          ? value.request
+        : command.kind === "reviewServiceRequestIssued"
+          ? value.reviewServiceRequestId
           : 0
     if (residentCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`)
     return [residentCommandCodes[command.kind]!, frame.outputScopes?.[index] ?? 0, Number(id ?? 0)]
@@ -408,9 +411,9 @@ function originalCancellation(): Run {
   expect(deadline.event).toEqual({ kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true })
   expect(deadline.partition).toBe(1)
   expect(deadline.agent).toBe(opaqueAdvicees[0])
-  const firstRequest = deadline.before.dispatch.requests.find((request) => request.partition === 1)!
+  const firstRequest = deadline.before.dispatch.reviewServiceRequests.find((request) => request.partition === 1)!
   expect(deadline.outputs.filter((command) => command.kind === "cancelWork")).toEqual([
-    { category: "request", kind: "cancelWork", operation: firstRequest.operation }
+    { category: "action", kind: "cancelWork", operation: firstRequest.operation }
   ])
   expect(deadline.after.global).toEqual({ items: 1, bytes: 7 })
   expect(deadline.after.partitions.find((owner) => owner.partition === 1)?.items ?? 0).toBe(0)
@@ -424,16 +427,16 @@ function originalCancellation(): Run {
   advanceResident(cancellationReplay, 40, 64, "cancellation restored settle")
   expect(cancellationReplay.observe()).toEqual(cancellation.observe())
   const ignored = cancellation.observations.filter((frame) =>
-    frame.outputs.some((command) => command.kind === "jevObservationIgnored")
+    frame.outputs.some((command) => command.kind === "reviewServiceRequestObservationIgnored")
   )
   expect(ignored).toHaveLength(1)
   expect(ignored[0]!.event).toMatchObject({
-    kind: "jevRequestSettled",
+    kind: "reviewServiceRequestSettled",
     partition: 1,
     lifetime: 1,
     round: 1,
     operation: firstRequest.operation,
-    request: firstRequest.request
+    reviewServiceRequestId: firstRequest.reviewServiceRequestId
   })
   const ready = cancellation.observations.filter((frame) => frame.event.kind === "collectionReady")
   expect(ready).toHaveLength(1)
@@ -450,7 +453,7 @@ function originalCancellation(): Run {
     bytes: 7
   })
   expect(cancellation.projection.pendingFindings).toHaveLength(1)
-  const unaffectedRequest = deadline.before.dispatch.requests.find((request) => request.partition === 2)!
+  const unaffectedRequest = deadline.before.dispatch.reviewServiceRequests.find((request) => request.partition === 2)!
   expect(cancellation.projection.pendingFindings[0]).toEqual({ operation: unaffectedRequest.operation, count: 1 })
   expect(cancellation.projection.work.find((work) => work.operation === unaffectedRequest.operation)).toMatchObject({
     partition: 2,
@@ -471,7 +474,7 @@ function originalCancellation(): Run {
     units: [unaffectedRequest.operation]
   })
   expect(cancellation.projection.dispatch.running).toEqual([])
-  expect(cancellation.projection.dispatch.requests).toEqual([])
+  expect(cancellation.projection.dispatch.reviewServiceRequests).toEqual([])
 
   return cancellation
 }
@@ -527,7 +530,9 @@ describe("one resident with independent agent generators", () => {
     expect(alpha.global).toEqual(run.projection.global)
     expect(alpha.work.every((item) => item.partition === 1)).toBe(true)
     expect(beta.work.every((item) => item.partition === 2)).toBe(true)
-    expect(alpha.dispatch.requests.length + beta.dispatch.requests.length).toBe(run.projection.dispatch.requests.length)
+    expect(alpha.dispatch.reviewServiceRequests.length + beta.dispatch.reviewServiceRequests.length).toBe(
+      run.projection.dispatch.reviewServiceRequests.length
+    )
     expect(() => run.applyControl({ kind: "burst", count: 1, agent: "missing" })).toThrow("unknown agent")
     expect(() => run.applyControl({ kind: "jevProfile", delayMs: 1, agent: "alpha" })).toThrow("resident controls")
   })

@@ -12,7 +12,7 @@ import {
 } from "@hapsland/delivery-output/direct-event/claude-output"
 import { attemptCodexHostOutput } from "@hapsland/delivery-output/direct-event/writer"
 import {
-  acknowledgeAdviceEffect,
+  recordAdviceSubmissionAndFinalizeEffect,
   beginComposedSubmissionEffect,
   releaseComposedSubmissionEffect,
   type CollectedAdvice
@@ -24,7 +24,7 @@ export class DirectHookSubmission extends Context.Service<
   {
     readonly begin: typeof beginComposedSubmissionEffect
     readonly release: typeof releaseComposedSubmissionEffect
-    readonly acknowledge: typeof acknowledgeAdviceEffect
+    readonly acknowledge: typeof recordAdviceSubmissionAndFinalizeEffect
     readonly writeCodex: (value: ClaudeHostOutput) => Effect.Effect<void>
     readonly record: (advice: CollectedAdvice, value: ClaudeHostOutput) => Effect.Effect<void>
   }
@@ -37,7 +37,7 @@ export const directHookSubmissionLayer = Layer.effect(
     return DirectHookSubmission.of({
       begin: beginComposedSubmissionEffect,
       release: releaseComposedSubmissionEffect,
-      acknowledge: acknowledgeAdviceEffect,
+      acknowledge: recordAdviceSubmissionAndFinalizeEffect,
       writeCodex: Effect.fn("DirectHookSubmission.writeCodex")(function* (value: ClaudeHostOutput) {
         yield* Effect.sync(() => {
           if ("hookSpecificOutput" in value)

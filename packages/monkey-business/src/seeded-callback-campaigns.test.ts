@@ -2,11 +2,15 @@ import { expect, it } from "vitest"
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run } from "./index.ts"
 
 import type { CallbackTarget } from "./callback-controls.ts"
-type Target = CallbackTarget & { readonly effect: Extract<CallbackTarget["effect"], { readonly kind: "jevSettled" }> }
+type Target = CallbackTarget & {
+  readonly effect: Extract<CallbackTarget["effect"], { readonly kind: "reviewServiceRequestSettled" }>
+}
 function target(run: Run): Target | undefined {
   return run
     .observe()
-    .callbackTargets.find((value): value is Target => value.owner.partition === 1 && value.effect.kind === "jevSettled")
+    .callbackTargets.find(
+      (value): value is Target => value.owner.partition === 1 && value.effect.kind === "reviewServiceRequestSettled"
+    )
 }
 function apply(run: Run, original: Target, action: "hold" | "release" | "duplicate") {
   run.applyControl({ kind: "callback", target: original, action })
@@ -70,12 +74,15 @@ it.each([7, 91001, 4294967313])("seed %i preserves held canceled identity while 
   run.schedule({ kind: "edit", at: 30, agent: "healthy", bytes: 10, unitBytes: [5] })
   advance(run, 55, 256)
   // Queue exhaustion cannot certify recovery: one real callback is held.
-  expect(run.projection.dispatch.requests).toHaveLength(1)
-  expect(run.projection.dispatch.requests[0]).toMatchObject({ ...original.owner, request: original.effect.request })
+  expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
+  expect(run.projection.dispatch.reviewServiceRequests[0]).toMatchObject({
+    ...original.owner,
+    reviewServiceRequestId: original.effect.reviewServiceRequestId
+  })
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(
     run.observations
-      .filter((frame) => frame.event.kind === "jevRequestSettled")
+      .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
       .map((frame) => [frame.time, frame.partition])
   ).toEqual([
     [22, 2],
@@ -85,15 +92,20 @@ it.each([7, 91001, 4294967313])("seed %i preserves held canceled identity while 
   for (const candidate of [run, restored]) {
     apply(candidate, original, "release")
     advance(candidate, candidate.now, 64)
-    const late = candidate.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
-    expect(late.event).toMatchObject({ ...original.owner, request: original.effect.request })
-    expect(late.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
-    expect(candidate.projection.dispatch.requests).toEqual([])
+    const late = candidate.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)!
+    expect(late.event).toMatchObject({
+      ...original.owner,
+      reviewServiceRequestId: original.effect.reviewServiceRequestId
+    })
+    expect(late.outputs.map((command) => command.kind)).toEqual(["reviewServiceRequestObservationIgnored"])
+    expect(candidate.projection.dispatch.reviewServiceRequests).toEqual([])
     expect(candidate.projection.global).toEqual({ items: 0, bytes: 0 })
     const released = candidate.projection
     apply(candidate, original, "duplicate")
     advance(candidate, candidate.now, 64)
-    const duplicate = candidate.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)!
+    const duplicate = candidate.observations
+      .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
+      .at(-1)!
     expect(duplicate.rejection).toBe("StaleOperation")
     expect(duplicate.outputs).toEqual([])
     expect(candidate.projection).toEqual(released)

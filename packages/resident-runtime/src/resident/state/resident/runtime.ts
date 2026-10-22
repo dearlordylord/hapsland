@@ -11,14 +11,14 @@ import { validateCleanupResult } from "./cleanup.ts"
 export const residentRuntime = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) => {
   const runtimeCommitEffect = <A>(
     operation: (runtime: ReturnType<typeof runtimeRecordOperations>) => A
   ): Effect.Effect<A> =>
     commitAllEffect((_draft, records) => {
       const runtime = draftRuntimeRecords(records.runtime)
-      const value = operation(runtimeRecordOperations(runtime, residentLifetime))
+      const value = operation(runtimeRecordOperations(runtime, residentInstanceId))
       return [value, { ...records, runtime }]
     })
   return {
@@ -35,8 +35,8 @@ export const residentRuntime = <Pending, DispatchKey, DispatchValue>({
     rejectCapacity: Effect.fn("ResidentState.rejectCapacity")(() =>
       runtimeCommitEffect((operations) => operations.rejectCapacity())
     ),
-    observePreparedUnits: Effect.fn("ResidentState.observePreparedUnits")((units: number) =>
-      runtimeCommitEffect((operations) => operations.observePreparedUnits(units))
+    observePreparedReviewUnits: Effect.fn("ResidentState.observePreparedReviewUnits")((units: number) =>
+      runtimeCommitEffect((operations) => operations.observePreparedReviewUnits(units))
     ),
     nextAuthoritySequence: Effect.fn("ResidentState.nextAuthoritySequence")(() =>
       runtimeCommitEffect((operations) => operations.nextAuthoritySequence())
@@ -52,7 +52,7 @@ export const residentRuntime = <Pending, DispatchKey, DispatchValue>({
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           const reuse = evaluationReuseView(records.reuse, owner).snapshot()
           const capacity = owner.snapshot()
@@ -83,7 +83,7 @@ export const residentRuntime = <Pending, DispatchKey, DispatchValue>({
           }
           if (commit.outputs[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit")
           const runtime = draftRuntimeRecords(records.runtime)
-          runtimeRecordOperations(runtime, residentLifetime).retire()
+          runtimeRecordOperations(runtime, residentInstanceId).retire()
           return ["cleaned", { ...records, runtime, revision, reuse: clearedReuse }]
         })
     )

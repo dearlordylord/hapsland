@@ -2,25 +2,26 @@ import type { CaptureDiagnostic } from "./capture.ts"
 import type { PathEligibilityReason } from "./selection.ts"
 import type { VerifiedPatchHunk } from "./edit-attribution.ts"
 
-import type { CodexHostVersion } from "./codex-version.ts"
-export { isCodexHostVersion, type CodexHostVersion } from "./codex-version.ts"
+import type { CodexAgentRuntimeVersion } from "./codex-version.ts"
+export { isCodexAgentRuntimeVersion, type CodexAgentRuntimeVersion } from "./codex-version.ts"
 
-export type ClaudeHostVersion = string
-export const isClaudeHostVersion = (value: unknown): value is ClaudeHostVersion =>
+export type ClaudeAgentRuntimeVersion = string
+export const isClaudeAgentRuntimeVersion = (value: unknown): value is ClaudeAgentRuntimeVersion =>
   typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value)
 
+/** Identifies the advice recipient and correlates the originating tool call and runtime turn. */
 export type DirectAdvicee =
   | {
-      readonly host: "codex-cli"
-      readonly hostVersion: CodexHostVersion
+      readonly agentRuntime: "codex-cli"
+      readonly agentRuntimeVersion: CodexAgentRuntimeVersion
       readonly sessionId: string
       readonly turnId: string
       readonly toolUseId: string
       readonly subagentId: string | null
     }
   | {
-      readonly host: "claude-code"
-      readonly hostVersion: ClaudeHostVersion
+      readonly agentRuntime: "claude-code"
+      readonly agentRuntimeVersion: ClaudeAgentRuntimeVersion
       readonly sessionId: string
       /** Claude PostToolUse does not provide a turn identifier. */
       readonly turnId: null
@@ -29,16 +30,16 @@ export type DirectAdvicee =
       readonly subagentId: string | null
     }
   | {
-      readonly host: "pi"
-      readonly hostVersion: "1.0.0"
+      readonly agentRuntime: "pi"
+      readonly agentRuntimeVersion: "1.0.0"
       readonly sessionId: string
       readonly turnId: null
       readonly toolUseId: string
       readonly subagentId: null
     }
   | {
-      readonly host: "opencode"
-      readonly hostVersion: "1.14.44"
+      readonly agentRuntime: "opencode"
+      readonly agentRuntimeVersion: "1.14.44"
       readonly sessionId: string
       readonly turnId: null
       readonly toolUseId: string

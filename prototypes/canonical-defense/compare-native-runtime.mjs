@@ -343,17 +343,17 @@ export function compareNativeRuntime(value, original, field) {
   assert.equal(host.$,"NativeRunTypes.HostFacts");
   assert.deepEqual(list(host.generator_partitions),original.generatorPartitions,`${field} original generator registry`);
   const issued = list(host.issued_requests).map(readRecord);
-  assert.equal(issued.length,original.issuedRequests.length,`${field} issued request count`);
+  assert.equal(issued.length,original.issuedReviewServiceRequestIds.length,`${field} issued request count`);
   assert.deepEqual(issued.map(entry => {
     const output = readRecord(entry.output);
     assert.equal(output.$,"Canonical.EventEstablished");
     assert.equal(Object.keys(output).length,2);
     const event = readRecord(output.event);
-    assert.equal(event.$,"Canonical.JevRequestIssued");
-    assert.equal(entry.request,event.request);
-    return [entry.request,{ category:"event",kind:"jevRequestIssued",partition:event.partition,lifetime:event.lifetime,
-      round:event.round,operation:event.operation,request:event.request }];
-  }),original.issuedRequests,`${field} entire original issued requests`);
+    assert.equal(event.$,"Canonical.ReviewServiceRequestIssued");
+    assert.equal(entry.review_service_request_id,event.review_service_request_id);
+    return [entry.review_service_request_id,{ category:"event",kind:"reviewServiceRequestIssued",partition:event.partition,lifetime:event.lifetime,
+      round:event.round,operation:event.operation,reviewServiceRequestId:event.review_service_request_id }];
+  }),original.issuedReviewServiceRequestIds,`${field} entire original issued requests`);
   const retained = list(host.retained_callbacks).map(readRecord);
   assert.equal(retained.length,original.retainedCallbacks.length,`${field} retained callback count`);
   const retainedOrders = new Set();

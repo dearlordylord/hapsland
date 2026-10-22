@@ -1,14 +1,14 @@
 import * as Effect from "effect/Effect"
-import { sourcePartition } from "../../recipient/identity.ts"
-import { evaluationSourcePartition } from "../../work-ownership/identity.ts"
+import { sourceScopeKey } from "../../recipient/identity.ts"
+import { evaluationReuseScopeKey } from "../../work-ownership/identity.ts"
 import { type PreparationContext, type ReadyPreparedOutcome } from "./context.ts"
 
-export const planPreparedUnits = Effect.fn("ResidentRuntime.planPreparedUnits")(function* (
+export const planPreparedReviewUnits = Effect.fn("ResidentRuntime.planPreparedReviewUnits")(function* (
   context: PreparationContext<"residentAdvice" | "residentRestoreCurrentWork" | "residentReuse">,
   deliverable: readonly ReadyPreparedOutcome[]
 ) {
   const preparationGenerationPartition = () => {
-    const generationPartition = evaluationSourcePartition(
+    const generationPartition = evaluationReuseScopeKey(
       context.job.observation,
       context.job.work?.id ?? "standalone",
       context.job.dispatch.credential?.generation ?? "controlled",
@@ -18,7 +18,7 @@ export const planPreparedUnits = Effect.fn("ResidentRuntime.planPreparedUnits")(
   }
   return yield* Effect.forEach(
     deliverable,
-    Effect.fn("ResidentRuntime.planPreparedUnit")(function* (outcome) {
+    Effect.fn("ResidentRuntime.planPreparedReviewUnit")(function* (outcome) {
       const generationPartition = preparationGenerationPartition()
       const evaluationKey = context.deps.residentReuse.key(generationPartition, outcome.prepared)
       const liveAdvice = (yield* context.deps.residentAdvice()).some((advice) => advice.evaluationKey === evaluationKey)
@@ -31,7 +31,7 @@ export const planPreparedUnits = Effect.fn("ResidentRuntime.planPreparedUnits")(
           const pending = yield* context.deps.residentReuse.pending(evaluationKey)
           if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation")
           pending.revision = yield* context.deps.residentRestoreCurrentWork(
-            sourcePartition(context.job.observation.root, context.job.observation.advicee),
+            sourceScopeKey(context.job.observation.root, context.job.observation.advicee),
             outcome.prepared
           )
           return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey }

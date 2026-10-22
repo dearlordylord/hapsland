@@ -91,7 +91,7 @@ it.each(["restore", "rotate"] as const)(
   (mode) => {
     const native = nativeCase(mode === "restore" ? 1 : 2)
     const run = createRun({ ...original, outcome: "finding" })
-    const boundary = mode === "restore" ? "jevRequestSettled" : "jevRequestStarted"
+    const boundary = mode === "restore" ? "reviewServiceRequestSettled" : "reviewServiceRequestStarted"
     for (let count = 0; count < 1000; count++) {
       if (run.step()?.event.kind === boundary) break
     }
@@ -126,7 +126,7 @@ it.each(["restore", "rotate"] as const)(
     run.advance({ untilTime: 19, maxEvents: 1000 })
     expect(nativeRows(native)).toEqual(publicRows(run.observations))
     expect(native.filter((row) => row[0] === 18).map((row) => row[1])).toEqual(mode === "restore" ? [17] : [])
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     if (mode === "rotate") {
       expect(run.projection.pendingFindings).toEqual([])
       expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
@@ -192,7 +192,7 @@ it("captures issued facts before a future raw-subnormal profile control", () => 
   ])
   expect(
     run.observations.flatMap((frame) =>
-      frame.event.kind === "jevRequestSettled" ? [[frame.time, frame.event.outcome]] : []
+      frame.event.kind === "reviewServiceRequestSettled" ? [[frame.time, frame.event.outcome]] : []
     )
   ).toEqual([
     [17, "clear"],
@@ -228,6 +228,6 @@ it("preserves empty future review-unit sizes through actual preparation and repl
   run.applyControl({ kind: "sizes", reservationBytes: 1, reviewUnitBytes: [] })
   run.advance({ untilTime: 30, maxEvents: 1000 })
   expect(nativeRows(native)).toEqual(publicRows(run.observations))
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(0)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(0)
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe())
 }, 30000)

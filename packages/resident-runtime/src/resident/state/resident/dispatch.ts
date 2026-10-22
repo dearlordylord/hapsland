@@ -6,7 +6,7 @@ import { type CapacityLedger, capacityOperations } from "../capacity/operations.
 export const residentDispatch = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) =>
   ({
     read: read.pipe(Effect.map((current) => current.records.dispatch)),
@@ -21,7 +21,7 @@ export const residentDispatch = <Pending, DispatchKey, DispatchValue>({
         const owner = capacityOperations(
           (run) => run(draft),
           (run) => run(draft),
-          residentLifetime
+          residentInstanceId
         )
         const [value, dispatch] = operation(current, owner)
         return [value, { ...records, dispatch }]

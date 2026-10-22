@@ -8,7 +8,7 @@ import { draftCapacity } from "../capacity/model.ts"
 export const residentRevision = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) => {
   const revisionChange =
     <A>(operation: (operations: RevisionOperations) => A): Parameters<typeof commitAllEffect<A>>[0] =>
@@ -17,7 +17,7 @@ export const residentRevision = <Pending, DispatchKey, DispatchValue>({
       const owner = capacityOperations(
         (run) => run(draft),
         (run) => run(draft),
-        residentLifetime
+        residentInstanceId
       )
       const operations = revisionOperations(revision, owner)
       const value = operation(operations)
@@ -25,7 +25,9 @@ export const residentRevision = <Pending, DispatchKey, DispatchValue>({
       return [value, { ...records, revision }]
     }
   const revisionRead = <A>(
-    operation: (operations: Pick<RevisionOperations, "count" | "generation" | "superseded" | "current">) => A
+    operation: (
+      operations: Pick<RevisionOperations, "count" | "readRevisionGeneration" | "superseded" | "current">
+    ) => A
   ): Effect.Effect<A> =>
     read.pipe(
       Effect.map((snapshot) => {
@@ -35,7 +37,7 @@ export const residentRevision = <Pending, DispatchKey, DispatchValue>({
         const owner = capacityOperations(
           (run) => run(draft),
           (run) => run(draft),
-          residentLifetime
+          residentInstanceId
         )
         return operation(revisionOperations(draftRevision(snapshot.records.revision), owner))
       })
@@ -44,8 +46,9 @@ export const residentRevision = <Pending, DispatchKey, DispatchValue>({
     count: Effect.fn("RevisionRecords.count")((...args: Parameters<RevisionOperations["count"]>) =>
       revisionRead((operations) => operations.count(...args))
     ),
-    generation: Effect.fn("RevisionRecords.generation")((...args: Parameters<RevisionOperations["generation"]>) =>
-      revisionRead((operations) => operations.generation(...args))
+    readRevisionGeneration: Effect.fn("RevisionRecords.readRevisionGeneration")(
+      (...args: Parameters<RevisionOperations["readRevisionGeneration"]>) =>
+        revisionRead((operations) => operations.readRevisionGeneration(...args))
     ),
     register: Effect.fn("RevisionRecords.register")((...args: Parameters<RevisionOperations["register"]>) =>
       commitAllEffect(revisionChange((operations) => operations.register(...args)))

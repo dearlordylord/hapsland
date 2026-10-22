@@ -15,7 +15,7 @@ export const residentReuse =
   <Pending, DispatchKey, DispatchValue>({
     read,
     commitAllEffect,
-    residentLifetime
+    residentInstanceId
   }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) =>
   (logicalBytes: (value: unknown) => number) => {
     const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): Effect.Effect<A> =>
@@ -27,7 +27,7 @@ export const residentReuse =
           capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           ),
           logicalBytes
         )
@@ -42,7 +42,7 @@ export const residentReuse =
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           return operation(evaluationReuseView(snapshot.records.reuse, owner))
         })

@@ -220,7 +220,7 @@ def checks() -> Bool:
   edit_selected(
     Engine.prepare_command_context(
       state(),
-      C.EventEstablished{C.JevRequestIssued{1n, 2n, 3n, 4n, 5n}},
+      C.EventEstablished{C.ReviewServiceRequestIssued{1n, 2n, 3n, 4n, 5n}},
       Some{Driver.SourceJob{7n, 9n, 10n, [5n], Some{C.RequestClear{}}}},
       Driver.OutcomeEnvironment{Some{C.RequestFinding{}}, weights()},
       context()
@@ -230,7 +230,7 @@ def checks() -> Bool:
   run_selected(
     Engine.prepare_command_context(
       state(),
-      C.EventEstablished{C.JevRequestIssued{1n, 2n, 3n, 4n, 5n}},
+      C.EventEstablished{C.ReviewServiceRequestIssued{1n, 2n, 3n, 4n, 5n}},
       None{},
       Driver.OutcomeEnvironment{Some{C.RequestClear{}}, weights()},
       context()
@@ -240,7 +240,7 @@ def checks() -> Bool:
   sampled(
     Engine.prepare_command_context(
       state(),
-      C.EventEstablished{C.JevRequestIssued{1n, 2n, 3n, 4n, 5n}},
+      C.EventEstablished{C.ReviewServiceRequestIssued{1n, 2n, 3n, 4n, 5n}},
       None{},
       Driver.OutcomeEnvironment{None{}, weights()},
       context()
@@ -250,15 +250,23 @@ def checks() -> Bool:
   sampled(
     Engine.prepare_command_context(
       state(),
-      C.EventEstablished{C.JevRequestIssued{1n, 2n, 3n, 4n, 5n}},
+      C.EventEstablished{C.ReviewServiceRequestIssued{1n, 2n, 3n, 4n, 5n}},
       None{},
       Driver.OutcomeEnvironment{None{}, weights()},
       manual(context())
     ),
     Engine.outcome_stream(state())
   ) &&
-  untouched(Engine.prepare_command_context(state(), C.ActionRequested{C.Prepare{4n, 10n}}, None{},
-    Driver.OutcomeEnvironment{None{}, weights()}, context()), Engine.outcome_stream(state()))
+  untouched(
+    Engine.prepare_command_context(
+      state(),
+      C.ResidentActionRequested{C.Prepare{4n, 10n}},
+      None{},
+      Driver.OutcomeEnvironment{None{}, weights()},
+      context()
+    ),
+    Engine.outcome_stream(state())
+  )
 
 def main() -> Bool:
   checks()

@@ -24,7 +24,7 @@ const start = (
     ...extra
   })
 const issued = (run: ReturnType<typeof createRun>) =>
-  run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
+  run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
 const replay = (run: ReturnType<typeof createRun>) =>
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 const owners = (run: ReturnType<typeof createRun>) => {
@@ -185,7 +185,7 @@ it("applies an authentic cached finding as a fresh logical review without anothe
   expect(run.projection.work.some((work) => work.operation === advice.operation)).toBe(false)
   expect(run.projection.reuse.cache[0]?.reservation).toBe(stored.reservation)
   expect(run.projection.global).toEqual({ items: 2, bytes: 10 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
   // Eligible retained advice and the cache payload have separate actual owners
   // (advicing-target-contract.md conditional progress, lines 308–315).
@@ -240,7 +240,7 @@ it.each(["prepare", "reserve"] as const)(
     expect(run.projection.reuse.cache).toEqual([])
     expect(run.projection.reuse.claims).toEqual([])
     expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     const refused = run.observations.filter(
       (observation) =>
         observation.rejection === "StaleOperation" &&
@@ -286,6 +286,6 @@ it("releases a completed clear claim after actual stored-capacity refusal while 
     [2, 1, "operationalNotice"],
     [2, 1, "operationalNotice"]
   ])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   replay(run)
 })

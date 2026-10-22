@@ -15,7 +15,7 @@ def selected(found: Maybe<&2,Initial.Agent>, edit: Inputs.Edit, runtime: List<&2
       ih(Initial.Initialized{[Edge.Runtime{state,Edge.append(queue,at,Edge.Edit{Edge.Job{p,l,bytes,units,outcome}}),jobs,delay}],agents,originals,True{}})
     case _ _ runtime: Initial.Initialized{runtime,agents,originals,False{}}
 
-def shared_initialized(+agent: String, at: Nat, bytes: Nat, units: List<&2,Nat>, subject: String, input: String, namespace: Shared.Namespace, +outcome: Maybe<&2,C.RequestOutcome>,
+def shared_initialized(+agent: String, at: Nat, bytes: Nat, units: List<&2,Nat>, subject: String, input: String, namespace: Shared.Namespace, +outcome: Maybe<&2,C.ReviewServiceRequestOutcome>,
     initial: Initial.Initialized, ih: Initial.Initialized -> Initial.Initialized) -> Initial.Initialized:
   match initial:
     case Initial.Initialized{runtime <> Nil{},+agents,originals,True{}}:

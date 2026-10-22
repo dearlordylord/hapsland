@@ -9,7 +9,7 @@ import {
   observedRuntimeVersion,
   expectedRuntimeVersion
 } from "@hapsland/runtime-environment/runtime/package-runtime"
-import { isClaudeHostVersion } from "@hapsland/native-observation/direct-event/observation"
+import { isClaudeAgentRuntimeVersion } from "@hapsland/native-observation/direct-event/observation"
 import { Config, Effect, Schema } from "effect"
 import { execFileClosedStdin } from "@hapsland/runtime-environment/process/closed-stdin"
 import { createHash } from "node:crypto"
@@ -200,7 +200,7 @@ const withComposedGroup = (
 const host = (observed: string) => {
   const version = /^(\d+\.\d+\.\d+)(?: \(Claude Code\))?$/.exec(observed)?.[1] ?? "unavailable"
   return {
-    supported: isClaudeHostVersion(version),
+    supported: isClaudeAgentRuntimeVersion(version),
     observed,
     version,
     tested: version === TESTED_VERSION,

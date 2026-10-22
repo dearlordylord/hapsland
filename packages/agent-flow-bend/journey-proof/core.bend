@@ -10,30 +10,33 @@ import ../Ledger.bend as Ledger
 import ../Reuse.bend as Reuse
 
 # Independent identity-preserving projections, not a second lifecycle machine.
-def findings(items: List<&2, Canonical.Work>) -> List<&2, Canonical.Work>:
+def findings(items: List<&2, Canonical.ReviewWorkRecord>) -> List<&2, Canonical.ReviewWorkRecord>:
   match items:
     case Nil{}: Nil{}
-    case Canonical.Work{p, l, r, op, charge, Canonical.PendingFinding{count}, parent} <> rest:
-      Canonical.Work{p, l, r, op, charge, Canonical.PendingFinding{count},
+    case Canonical.ReviewWorkRecord{p, l, r, op, charge, Canonical.PendingFinding{count}, parent} <> rest:
+      Canonical.ReviewWorkRecord{p, l, r, op, charge, Canonical.PendingFinding{count},
         parent} <> findings(rest)
     case _ <> rest: findings(rest)
 
-def other_finding_put(item: Canonical.Work, rest: List<&2, Canonical.Work>,
-  same: Bool) -> List<&2, Canonical.Work>:
+def other_finding_put(item: Canonical.ReviewWorkRecord, rest: List<&2, Canonical.ReviewWorkRecord>,
+  same: Bool) -> List<&2, Canonical.ReviewWorkRecord>:
   match same:
     case True{}: rest
     case False{}: item <> rest
 
-def other_findings(+operation: Nat, items: List<&2, Canonical.Work>) -> List<&2, Canonical.Work>:
+def other_findings(
+  +operation: Nat,
+  items: List<&2, Canonical.ReviewWorkRecord>
+) -> List<&2, Canonical.ReviewWorkRecord>:
   match items:
     case Nil{}: Nil{}
     case +item <> rest:
       match item:
-        case Canonical.Work{_, _, _, op, _, Canonical.PendingFinding{_}, _}:
+        case Canonical.ReviewWorkRecord{_, _, _, op, _, Canonical.PendingFinding{_}, _}:
           other_finding_put(item, other_findings(operation, rest), Nat.is_eq(op, operation))
         case _: other_findings(operation, rest)
 
-def work(state: Canonical.State) -> List<&2, Canonical.Work>:
+def work(state: Canonical.State) -> List<&2, Canonical.ReviewWorkRecord>:
   match state:
     case Canonical.State{_, _, work, _, _, _, _, _, _}: work
 
@@ -100,39 +103,51 @@ def all_resolved(replies: List<&2, Reply>) -> Bool:
     case Nil{}: True{}
     case reply <> rest: Bool.and(resolved_reply(reply), all_resolved(rest))
 
-# Only matching physical settlement may drive this resource-release trace.
+# Only matching request settlement may drive this resource-release trace.
 def release_next(result: Ledger.LedgerResult,
     next: Ledger.Ledger -> Maybe<&2, Ledger.Ledger>) -> Maybe<&2, Ledger.Ledger>:
   match result:
     case Ledger.Granted{state, _}: next(state)
     case Ledger.Rejected{_}: None{}
 
-def release_charges(charges: List<&2, Ledger.Charge>, +ledger: Ledger.Ledger) -> Maybe<&2,
+def release_charges(
+  charges: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  +ledger: Ledger.Ledger
+) -> Maybe<&2,
   Ledger.Ledger>:
   match charges:
     case Nil{}: Some{ledger}
-    case Ledger.Charge{id, _, _, _} <> rest:
+    case Ledger.ReviewCapacityReservationRecord{id, _, _, _} <> rest:
       release_next(Ledger.release(ledger, id), state => release_charges(rest, state))
 
 # A shrinking waiting prefix cannot be overtaken by arbitrary later arrivals.
-def Waiting(prefix: List<&2, Dispatch.Entry>, +running: List<&2, Dispatch.Entry>) -> Type:
+def Waiting(
+  prefix: List<&2, Dispatch.ScheduledReviewWork>,
+  +running: List<&2, Dispatch.ScheduledReviewWork>
+) -> Type:
   match prefix:
     case Nil{}: Unit
     case +entry <> rest:
       {False{} == Dispatch.can_start(entry, running) : Bool} & Waiting(rest, running)
 
 # Unique transient IDs, disjoint from legitimate retained owners.
-def Absent(+id: Nat, charges: List<&2, Ledger.Charge>) -> Type:
+def Absent(+id: Nat, charges: List<&2, Ledger.ReviewCapacityReservationRecord>) -> Type:
   match charges:
     case Nil{}: Unit
-    case Ledger.Charge{current, _, _, _} <> rest:
+    case Ledger.ReviewCapacityReservationRecord{current, _, _, _} <> rest:
       {False{} == Nat.is_eq(current, id) : Bool} & Absent(id, rest)
 
-def Transient(charges: List<&2, Ledger.Charge>, +retained: List<&2, Ledger.Charge>) -> Type:
+def Transient(
+  charges: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  +retained: List<&2, Ledger.ReviewCapacityReservationRecord>
+) -> Type:
   match charges:
     case Nil{}: Unit
-    case Ledger.Charge{+id, _, _, _} <> +rest:
-      Absent(id, List.append(&2, Ledger.Charge, rest, retained)) & Transient(rest, retained)
+    case Ledger.ReviewCapacityReservationRecord{+id, _, _, _} <> +rest:
+      Absent(id, List.append(&2, Ledger.ReviewCapacityReservationRecord, rest, retained)) & Transient(
+        rest,
+        retained
+      )
 
 # The trace also requires each command that enables the next host operation.
 # A state-only journey would miss a reducer that silently dropped Prepare.
@@ -146,10 +161,10 @@ type Required is Data:
   NeedBeginObservedPreparation{}
   NeedPreparationCompleted{}
   NeedCompleteObservation{}
-  NeedJevRequestReady{}
-  NeedJevRequestStarted{}
-  NeedJevRequestInterrupted{}
-  NeedJevRequestSettled{}
+  NeedReviewServiceRequestReady{}
+  NeedReviewServiceRequestStarted{}
+  NeedReviewServiceRequestInterrupted{}
+  NeedReviewServiceRequestSettled{}
   NeedCollectionReady{}
   NeedCollectionReserveLease{}
   NeedSubmissionBegin{}
@@ -167,10 +182,10 @@ def required(event: Canonical.CanonicalEvent) -> Required:
     case Canonical.BeginObservedPreparation{_, _, _, _, _}: NeedBeginObservedPreparation{}
     case Canonical.PreparationCompleted{_, _, _, _, _}: NeedPreparationCompleted{}
     case Canonical.CompleteObservation{_, _, _, _}: NeedCompleteObservation{}
-    case Canonical.JevRequestReady{_, _, _, _, _, _, _, _, _, _}: NeedJevRequestReady{}
-    case Canonical.JevRequestStarted{_, _, _, _, _}: NeedJevRequestStarted{}
-    case Canonical.JevRequestInterrupted{_, _, _, _, _}: NeedJevRequestInterrupted{}
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: NeedJevRequestSettled{}
+    case Canonical.ReviewServiceRequestReady{_, _, _, _, _, _, _, _, _, _}: NeedReviewServiceRequestReady{}
+    case Canonical.ReviewServiceRequestStarted{_, _, _, _, _}: NeedReviewServiceRequestStarted{}
+    case Canonical.ReviewServiceRequestInterrupted{_, _, _, _, _}: NeedReviewServiceRequestInterrupted{}
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}: NeedReviewServiceRequestSettled{}
     case Canonical.CollectionReady{_, _, _, _, _, _}: NeedCollectionReady{}
     case Canonical.CollectionReserveLease{_, _}: NeedCollectionReserveLease{}
     case Canonical.SubmissionBegin{_, _, _, _, _, _, _, _}: NeedSubmissionBegin{}
@@ -186,19 +201,23 @@ def command_matches(required: Required, command: Canonical.Output) -> Bool:
     case NeedAdmitObservation{} Canonical.EventEstablished{Canonical.ObservationAdmitted{_}}: True{}
     case NeedQueueDispatch{} Canonical.EventEstablished{Canonical.DispatchStarted{_, _}}: True{}
     case NeedStartObservation{} Canonical.EventEstablished{Canonical.ObservationStarted{}}: True{}
-    case NeedBeginObservedPreparation{} Canonical.ActionRequested{Canonical.Prepare{_, _}}: True{}
+    case NeedBeginObservedPreparation{} Canonical.ResidentActionRequested{Canonical.Prepare{_, _}}: True{}
     case NeedPreparationCompleted{} Canonical.EventEstablished{
       Canonical.UnitAdmitted{_, _, _, _, _}
     }: True{}
     case NeedCompleteObservation{} Canonical.EventEstablished{Canonical.ObservationCompleted{}}: True{}
-    case NeedJevRequestReady{} Canonical.EventEstablished{
-      Canonical.JevRequestIssued{_, _, _, _, _}
+    case NeedReviewServiceRequestReady{} Canonical.EventEstablished{
+      Canonical.ReviewServiceRequestIssued{_, _, _, _, _}
     }: True{}
-    case NeedJevRequestStarted{} Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: True{}
-    case NeedJevRequestInterrupted{} Canonical.EventEstablished{
-      Canonical.JevInterruptionRecorded{}
+    case NeedReviewServiceRequestStarted{} Canonical.EventEstablished{
+      Canonical.ReviewServiceRequestStartRecorded{}
     }: True{}
-    case NeedJevRequestSettled{} Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: True{}
+    case NeedReviewServiceRequestInterrupted{} Canonical.EventEstablished{
+      Canonical.ReviewServiceRequestInterruptionRecorded{}
+    }: True{}
+    case NeedReviewServiceRequestSettled{} Canonical.EventEstablished{
+      Canonical.ReviewServiceRequestOutcomeRecorded{_}
+    }: True{}
     case NeedCollectionReady{} Canonical.EventEstablished{Canonical.CollectionEligible{}}: True{}
     case NeedCollectionReserveLease{} Canonical.EventEstablished{
       Canonical.CollectionLeaseReserved{}
@@ -242,16 +261,24 @@ def run_events(events: List<&2, Canonical.CanonicalEvent>, state: Canonical.Stat
     case +event <> rest: advance(event_state(event, Canonical.step(state, event)),
       run_events(rest))
 
-def request_start_events(+partition: Nat, outcome: Canonical.RequestOutcome) -> List<&2,
+def request_start_events(
+  +partition: Nat,
+  outcome: Canonical.ReviewServiceRequestOutcome
+) -> List<&2,
   Canonical.CanonicalEvent>:
   match outcome:
     case Canonical.NeverSent{}: Nil{}
-    case Canonical.RequestInterrupted{}: Canonical.JevRequestStarted{(1n + partition : Nat), 1n,
-      1n, 3n, 4n} <> Canonical.JevRequestInterrupted{(1n + partition : Nat), 1n, 1n, 3n, 4n} <> Nil{}
-    case _: Canonical.JevRequestStarted{(1n + partition : Nat), 1n, 1n, 3n, 4n} <> Nil{}
+    case Canonical.RequestInterrupted{}: Canonical.ReviewServiceRequestStarted{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      4n
+    } <> Canonical.ReviewServiceRequestInterrupted{(1n + partition : Nat), 1n, 1n, 3n, 4n} <> Nil{}
+    case _: Canonical.ReviewServiceRequestStarted{(1n + partition : Nat), 1n, 1n, 3n, 4n} <> Nil{}
 
 def delivery_events(+partition: Nat, +fingerprint: Nat,
-  outcome: Canonical.RequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
+  outcome: Canonical.ReviewServiceRequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
   match outcome:
     case Canonical.RequestFinding{}:
       Canonical.CollectionReady{3n, (1n + partition : Nat), 1n, 1n, 1n, False{}} <>
@@ -264,14 +291,29 @@ def delivery_events(+partition: Nat, +fingerprint: Nat,
     case _: Nil{}
 
 def result_events(+partition: Nat, +fingerprint: Nat,
-  +outcome: Canonical.RequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
-  List.append(&2, Canonical.CanonicalEvent, request_start_events(partition, outcome),
-    Canonical.JevRequestSettled{(1n + partition : Nat), 1n, 1n, 3n, 4n, outcome, True{}} <>
-    Canonical.DispatchSettled{(1n + partition : Nat), 1n, 1n, 3n} <> delivery_events(partition,
-      fingerprint, outcome))
+  +outcome: Canonical.ReviewServiceRequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
+  List.append(
+    &2,
+    Canonical.CanonicalEvent,
+    request_start_events(partition, outcome),
+    Canonical.ReviewServiceRequestSettled{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n,
+      4n,
+      outcome,
+      True{}
+    } <> Canonical.DispatchSettled{
+      (1n + partition : Nat),
+      1n,
+      1n,
+      3n
+    } <> delivery_events(partition, fingerprint, outcome)
+  )
 
 def journey_events(+partition: Nat, +size: Nat, +fingerprint: Nat,
-  +outcome: Canonical.RequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
+  +outcome: Canonical.ReviewServiceRequestOutcome) -> List<&2, Canonical.CanonicalEvent>:
   Canonical.IssuePermit{(1n + partition : Nat), 1n, 1n, 1n, 10n, 1n, 0n,
     Admission.ProspectiveFacts{True{}, 5n, 1n, 1n, 1n, 1n}} <>
   Canonical.ConsumePermit{(1n + partition : Nat), 1n, 1n, 1n, 1n} <>
@@ -283,7 +325,7 @@ def journey_events(+partition: Nat, +size: Nat, +fingerprint: Nat,
   Canonical.CompleteObservation{(1n + partition : Nat), 1n, 1n, 1n} <>
   Canonical.DispatchSettled{(1n + partition : Nat), 1n, 1n, 1n} <>
   Canonical.QueueDispatch{(1n + partition : Nat), 1n, 1n, 3n} <>
-  Canonical.JevRequestReady{
+  Canonical.ReviewServiceRequestReady{
     (1n + partition : Nat),
     1n,
     1n,
@@ -298,7 +340,7 @@ def journey_events(+partition: Nat, +size: Nat, +fingerprint: Nat,
   result_events(partition, fingerprint, outcome)
 
 def expected_journey(+partition: Nat, +size: Nat, +fingerprint: Nat, +limits: Ledger.Limits,
-  outcome: Canonical.RequestOutcome) -> Canonical.State:
+  outcome: Canonical.ReviewServiceRequestOutcome) -> Canonical.State:
   match outcome:
     case Canonical.RequestFinding{}: Fixtures.final_finding(partition, size, fingerprint, limits)
     case _: Fixtures.resolved_nonfinding(partition, size, fingerprint, limits)
@@ -309,8 +351,91 @@ def capacity_after_release(result: Maybe<&2, Ledger.Ledger>, partition: Nat,
     case None{}: None{}
     case Some{ledger}: Some{Ledger.reserve_for(ledger, partition, bytes, purpose)}
 
-def recover_capacity(+charges: List<&2, Ledger.Charge>, retained: List<&2, Ledger.Charge>,
-    limits: Ledger.Limits, next_id: Nat, partition: Nat, bytes: Nat,
-      purpose: Ledger.Purpose) -> Maybe<&2, Ledger.LedgerResult>:
-  capacity_after_release(release_charges(charges, Ledger.Ledger{limits, next_id,
-    List.append(&2, Ledger.Charge, charges, retained)}), partition, bytes, purpose)
+def recover_capacity(
+  +charges: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  retained: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  limits: Ledger.Limits,
+  next_id: Nat,
+  partition: Nat,
+  bytes: Nat,
+  purpose: Ledger.Purpose
+) -> Maybe<&2, Ledger.LedgerResult>:
+  capacity_after_release(
+    release_charges(
+      charges,
+      Ledger.Ledger{
+        limits,
+        next_id,
+        List.append(&2, Ledger.ReviewCapacityReservationRecord, charges, retained)
+      }
+    ),
+    partition,
+    bytes,
+    purpose
+  )
+
+# Physical permit projection used to check logical cancellation independently.
+def dispatched_requests(
+  result: Dispatch.DispatchResult
+) -> List<&2, Dispatch.ReviewServiceRequestRecord>:
+  match result:
+    case Dispatch.Advanced{Dispatch.State{_, _, _, _, requests}, _}: requests
+    case Dispatch.Denied{Dispatch.State{_, _, _, _, requests}}: requests
+
+# Independent projection: retain every record whose operation is not the target,
+# including unfinished stages, completed findings, and original ordering.
+def keep_other(
+  item: Canonical.ReviewWorkRecord,
+  tail: List<&2, Canonical.ReviewWorkRecord>,
+  same: Bool
+) -> List<&2, Canonical.ReviewWorkRecord>:
+  match same:
+    case True{}: tail
+    case False{}: item <> tail
+
+def other_work(
+  +operation: Nat,
+  items: List<&2, Canonical.ReviewWorkRecord>
+) -> List<&2, Canonical.ReviewWorkRecord>:
+  match items:
+    case Nil{}: Nil{}
+    case +item <> rest:
+      match item:
+        case Canonical.ReviewWorkRecord{_, _, _, op, _, _, _}:
+          keep_other(item, other_work(operation, rest), Nat.is_eq(op, operation))
+
+def rounds(state: Canonical.State) -> List<&2, Canonical.Round>:
+  match state:
+    case Canonical.State{_, rounds, _, _, _, _, _, _, _}: rounds
+
+# Independent expected result: one new observation record, exact previous state,
+# one corresponding admission event, and the operation allocator incremented.
+def expected_observation(state: Canonical.State, +partition: Nat, +lifetime: Nat,
+  +round: Nat) -> Canonical.Step:
+  match state:
+    case Canonical.State{ledger, rounds, work, next_round, +next_operation,
+      admissions, dispatch, collection, history}:
+      Canonical.Advanced{
+        Canonical.State{ledger, rounds,
+          Canonical.ReviewWorkRecord{partition, lifetime, round, next_operation, 0n,
+            Canonical.AwaitingSourceRead{}, 0n} <> work,
+          next_round, (next_operation + 1n : Nat), admissions, dispatch,
+          collection, history},
+        Canonical.EventEstablished{Canonical.ObservationAdmitted{next_operation}} <> Nil{}
+      }
+
+
+# Both reducer outcomes retain an explicit resulting state.
+def step_state(result: Canonical.Step) -> Canonical.State:
+  match result:
+    case Canonical.Advanced{state, _}: state
+    case Canonical.Rejected{state, _}: state
+
+def UnmatchedRequests(prefix: List<&2, Dispatch.ReviewServiceRequestRecord>, +partition: Nat,
+    +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat) -> Type:
+  match prefix:
+    case Nil{}: Unit
+    case head <> rest:
+      {False{} == Dispatch.request_matches(head, partition, lifetime, round,
+        operation, request) : Bool} &
+        UnmatchedRequests(rest, partition, lifetime, round, operation, request)

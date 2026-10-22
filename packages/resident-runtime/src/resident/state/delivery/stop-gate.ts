@@ -9,7 +9,7 @@ export const deliveryStopGate = (
     "canonicalProjection" | "partitionId" | "transition" | "currentRoundId" | "roundId" | "acknowledgeStopRelease"
   >,
   {
-    readGeneration,
+    readAdmissionRoundId,
     continuationCount,
     isDeciding,
     canonicalCommandAccepted,
@@ -17,10 +17,15 @@ export const deliveryStopGate = (
     currentStop
   }: Pick<
     DeliveryPorts,
-    "readGeneration" | "continuationCount" | "isDeciding" | "canonicalCommandAccepted" | "finishPermit" | "currentStop"
+    | "readAdmissionRoundId"
+    | "continuationCount"
+    | "isDeciding"
+    | "canonicalCommandAccepted"
+    | "finishPermit"
+    | "currentStop"
   >
 ) => {
-  function isActive(partition: string, generation = readGeneration(partition)): boolean {
+  function isActive(partition: string, admissionRoundId = readAdmissionRoundId(partition)): boolean {
     const admission = canonicalOwner
       .canonicalProjection()
       .admissions.find((item) => item.partition === canonicalOwner.partitionId(partition))
@@ -32,7 +37,7 @@ export const deliveryStopGate = (
       round: admission?.round ?? 0,
       active: admission?.active ?? false,
       closedAt: admission?.closedAt ?? 0,
-      expectedGeneration: generation
+      expectedGeneration: admissionRoundId
     })
     if (result.rejection !== undefined || result.outputs.length !== 1)
       throw new Error("canonical round activity refused")
@@ -60,8 +65,8 @@ export const deliveryStopGate = (
     state.stops.set(partition, {
       token,
       id,
-      generation: readGeneration(partition),
-      canonicalRound: canonicalOwner.roundId(partition),
+      admissionRoundId: readAdmissionRoundId(partition),
+      canonicalRoundId: canonicalOwner.roundId(partition),
       continuationsAtStart: continuationCount(partition)
     })
     canonicalOwner.roundId(partition)
@@ -72,7 +77,7 @@ export const deliveryStopGate = (
     const stop = state.stops.get(partition)
     const decision = canonicalOwner.transition({
       kind: "roundOwnsStopCheck",
-      active: stop !== undefined && isActive(partition, stop.generation),
+      active: stop !== undefined && isActive(partition, stop.admissionRoundId),
       tokenMatches: stop?.token === token,
       deciding: isDeciding(partition)
     })
@@ -136,24 +141,24 @@ export const deliveryStopGate = (
     | undefined {
     const stop = currentStop(partition, token)
     if (stop === undefined) return undefined
-    const canonicalRound = stop.canonicalRound
+    const canonicalRoundId = stop.canonicalRoundId
     const projection = canonicalOwner.canonicalProjection()
     const owner = canonicalOwner.partitionId(partition)
     const cutoff = canonicalOwner.transition({
       kind: "stopGroupPolled",
       group: canonicalOwner.partitionId(partition),
       lifetime: 1,
-      round: canonicalRound,
-      scopes: [{ partition: owner, round: canonicalRound }],
+      round: canonicalRoundId,
+      scopes: [{ partition: owner, round: canonicalRoundId }],
       deadline: deadlineReached,
       extraPending: extraUnfinished > 0,
-      continuations: continuationCount(partition, canonicalRound)
+      continuations: continuationCount(partition, canonicalRoundId)
     })
     if (cutoff.rejection !== undefined) return undefined
     if (cutoff.outputs[0]?.kind === "waitForWork") return { status: "waiting" }
     const terminal = cutoff.outputs.at(-1)?.kind
     if (terminal !== "finishReady" && terminal !== "finishLimit") throw new Error("invalid canonical Stop command")
-    const source = unfinishedSourceOperations(projection, owner, canonicalRound)
+    const source = unfinishedSourceOperations(projection, owner, canonicalRoundId)
     const cancelled = cutoff.outputs.filter((item) => item.kind === "cancelWork").map((item) => item.operation)
     acknowledgeCutoffReservations(cutoff)
     releaseCutoffPermits(partition)

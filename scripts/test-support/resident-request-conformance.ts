@@ -3,8 +3,8 @@ import type { ResidentRequest } from "@hapsland/resident-transport/resident/prot
 /** Structural IPC cases use a deliberately obsolete lifetime to avoid resident work. */
 export const requestConformanceCases: ReadonlyArray<ResidentRequest> = (() => {
   const advicee = {
-    host: "codex-cli",
-    hostVersion: "0.156.0",
+    agentRuntime: "codex-cli",
+    agentRuntimeVersion: "0.156.0",
     sessionId: "session",
     turnId: "turn",
     toolUseId: "tool",
@@ -67,7 +67,7 @@ export const requestConformanceCases: ReadonlyArray<ResidentRequest> = (() => {
       lifetime: owner.lifetime,
       observation: {
         ...observation,
-        advicee: { ...advicee, host: "claude-code", hostVersion: "2.1.218", turnId: null }
+        advicee: { ...advicee, agentRuntime: "claude-code", agentRuntimeVersion: "2.1.218", turnId: null }
       },
       controlledWriter: true,
       composed: true,

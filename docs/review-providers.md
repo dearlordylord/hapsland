@@ -41,7 +41,7 @@ at its transport boundary for callers outside that pipeline.
 
 ## Adding a provider
 
-The closed `ReviewProviderId` set and `REVIEW_PROVIDERS` declarations live in
+The closed `ReviewServiceId` set and `REVIEW_PROVIDERS` declarations live in
 [runtime/backend.ts](../packages/runtime-environment/src/runtime/backend.ts).
 Each declaration owns its discriminator, display name, credential environment
 variable and storage mode, configuration fields, models and limits, API base,

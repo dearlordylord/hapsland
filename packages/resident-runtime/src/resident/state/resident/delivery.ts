@@ -16,7 +16,7 @@ export const residentDelivery =
   <Pending, DispatchKey, DispatchValue>({
     read,
     commitAllEffect,
-    residentLifetime
+    residentInstanceId
   }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) =>
   (reportRepeat: (diagnostic: RepeatEditDiagnostic) => void = () => {}) => {
     const deliveryCommitEffect = <A>(operation: (operations: ComposedDelivery) => A): Effect.Effect<A> =>
@@ -28,7 +28,7 @@ export const residentDelivery =
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           const operations = deliveryOperations(delivery, owner, (diagnostic) => diagnostics.push(diagnostic))
           const value = operation(operations)
@@ -53,7 +53,7 @@ export const residentDelivery =
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           return operation(deliveryView(snapshot.records.delivery, owner))
         })
@@ -78,9 +78,9 @@ export const residentDelivery =
         (...args: Parameters<ComposedDelivery["editIdentityMappingCount"]>) =>
           deliveryRead((view) => view.editIdentityMappingCount(...args))
       ),
-      liveCollectionTokenKeys: Effect.fn("ComposedDelivery.liveCollectionTokenKeys")(
-        (...args: Parameters<ComposedDelivery["liveCollectionTokenKeys"]>) =>
-          deliveryRead((view) => view.liveCollectionTokenKeys(...args))
+      liveAdviceHandoffIdentityKeys: Effect.fn("ComposedDelivery.liveAdviceHandoffIdentityKeys")(
+        (...args: Parameters<ComposedDelivery["liveAdviceHandoffIdentityKeys"]>) =>
+          deliveryRead((view) => view.liveAdviceHandoffIdentityKeys(...args))
       ),
       ensureFromHostTurn: Effect.fn("ComposedDelivery.ensureFromHostTurn")(
         (...args: Parameters<ComposedDelivery["ensureFromHostTurn"]>) =>
@@ -184,8 +184,9 @@ export const residentDelivery =
         (...args: Parameters<ComposedDelivery["canBeginExistingToken"]>) =>
           deliveryCommitEffect((operations) => operations.canBeginExistingToken(...args))
       ),
-      generation: Effect.fn("ComposedDelivery.generation")((...args: Parameters<ComposedDelivery["generation"]>) =>
-        deliveryCommitEffect((operations) => operations.generation(...args))
+      readAdmissionRoundId: Effect.fn("ComposedDelivery.readAdmissionRoundId")(
+        (...args: Parameters<ComposedDelivery["readAdmissionRoundId"]>) =>
+          deliveryCommitEffect((operations) => operations.readAdmissionRoundId(...args))
       ),
       consumeStop: Effect.fn("ComposedDelivery.consumeStop")((...args: Parameters<ComposedDelivery["consumeStop"]>) =>
         deliveryCommitEffect((operations) => operations.consumeStop(...args))

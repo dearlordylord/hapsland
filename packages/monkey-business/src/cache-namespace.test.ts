@@ -164,7 +164,7 @@ it("captures provider destination independently from work and credential namespa
     sourceHash: "count-number"
   }
   const input: ReviewInput = {
-    providerIdentity: { provider: "jev", model: "jev-latest", destination: "https://review.example/one" },
+    reviewServiceIdentity: { provider: "jev", model: "jev-latest", destination: "https://review.example/one" },
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",
@@ -175,14 +175,14 @@ it("captures provider destination independently from work and credential namespa
   }
   const preparedIdentity = semanticIdentity(input)
   const captured = captureSharingIdentityFacts({ ...original, preparedIdentity })
-  for (const providerIdentity of [
-    { ...input.providerIdentity, provider: "cloudflare" as const },
-    { ...input.providerIdentity, model: "clef" as const },
-    { ...input.providerIdentity, destination: "https://review.example/two" }
+  for (const reviewServiceIdentity of [
+    { ...input.reviewServiceIdentity, provider: "cloudflare" as const },
+    { ...input.reviewServiceIdentity, model: "clef" as const },
+    { ...input.reviewServiceIdentity, destination: "https://review.example/two" }
   ]) {
     const changed = captureSharingIdentityFacts({
       ...captured,
-      preparedIdentity: semanticIdentity({ ...input, providerIdentity })
+      preparedIdentity: semanticIdentity({ ...input, reviewServiceIdentity })
     })
     expect(changed.workId).toBe("cohort-A")
     expect(changed.credentialGeneration).toBe(3)
@@ -216,11 +216,13 @@ it.each(cases)("$name applies the actual configured runtime and ordinary replay"
   const originalEntry = run.projection.reuse.cache[0]
   expect(originalEntry).toBeDefined()
   const originalIssued = run.observations.filter((frame) =>
-    frame.outputs.some((value) => value.kind === "jevRequestIssued")
+    frame.outputs.some((value) => value.kind === "reviewServiceRequestIssued")
   )
   expect(originalIssued).toHaveLength(1)
   run.advance({ untilTime: 20, maxEvents: 1000 })
-  const allIssued = run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "jevRequestIssued"))
+  const allIssued = run.observations.filter((frame) =>
+    frame.outputs.some((value) => value.kind === "reviewServiceRequestIssued")
+  )
   expect(allIssued).toHaveLength(command === "reuseCacheHit" ? 1 : 2)
   expect(
     run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "reuseCacheHit"))
@@ -232,7 +234,7 @@ it.each(cases)("$name applies the actual configured runtime and ordinary replay"
     bytes: command === "reuseCacheHit" ? 5 : 10
   })
   expect(run.projection.work).toEqual([])
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.collection.leases).toEqual([])
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 })
@@ -257,7 +259,7 @@ it("keeps captured numeric zero distinct from the controlled null namespace", ()
   })
   run.advance({ untilTime: 20, maxEvents: 1000 })
   expect(
-    run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "jevRequestIssued"))
+    run.observations.filter((frame) => frame.outputs.some((value) => value.kind === "reviewServiceRequestIssued"))
   ).toHaveLength(2)
   expect(run.observations.some((frame) => frame.outputs.some((value) => value.kind === "reuseCacheHit"))).toBe(false)
   expect(run.projection.reuse.cache).toHaveLength(2)

@@ -1,4 +1,4 @@
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Effect } from "effect"
@@ -6,14 +6,14 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit
+  type PreparedReviewUnit
 } from "@hapsland/review-definition/direct-event/model"
 import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 
-const prepared = (source = "type Count = number"): PreparedUnit => {
+const prepared = (source = "type Count = number"): PreparedReviewUnit => {
   const declaration: TypeDeclaration = {
     id: "count.ts::Count",
     kind: "type-alias",
@@ -22,7 +22,7 @@ const prepared = (source = "type Count = number"): PreparedUnit => {
     sourceHash: source
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "count.ts",
@@ -44,7 +44,7 @@ it.effect("reuses one native revision and accounts for independent members", () 
     expect(joined).toEqual({ revision: first.revision, replaced: false })
     expect(Object.isFrozen(first.revision)).toBe(true)
     expect((yield* owner.canonicalProjection()).revision.entries.map((entry) => entry.members)).toEqual([2])
-    yield* owner.revision.release({ ...first.revision, token: "foreign-token" })
+    yield* owner.revision.release({ ...first.revision, revisionToken: "foreign-token" })
     expect((yield* owner.canonicalProjection()).revision.entries.map((entry) => entry.members)).toEqual([2])
     yield* owner.revision.release(first.revision)
     expect(yield* owner.revision.current(joined.revision, item)).toBe(true)
@@ -52,7 +52,7 @@ it.effect("reuses one native revision and accounts for independent members", () 
     yield* owner.revision.release(joined.revision)
     expect(yield* owner.revision.count()).toBe(0)
     expect(yield* owner.revision.current(first.revision, item)).toBe(false)
-    expect(yield* owner.revision.generation(first.revision.subject)).toBe(0)
+    expect(yield* owner.revision.readRevisionGeneration(first.revision.subject)).toBe(0)
   })
 )
 
@@ -64,7 +64,7 @@ it.effect("replaces only the matching subject and ignores an old generation's re
     const old = (yield* owner.revision.register("agent", item, true, "old")).revision
     const independent = (yield* owner.revision.register("other-agent", item, true, "independent")).revision
     const replacement = (yield* owner.revision.register("agent", changed, true, "replacement")).revision
-    expect(replacement.generation).toBeGreaterThan(old.generation)
+    expect(replacement.revisionGeneration).toBeGreaterThan(old.revisionGeneration)
     expect(yield* owner.revision.superseded(replacement.subject, old)).toBe(true)
     expect(yield* owner.revision.superseded(replacement.subject, independent)).toBe(false)
     expect(yield* owner.revision.current(old, item)).toBe(false)
@@ -91,7 +91,7 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
     yield* first.clear()
     expect(yield* first.revision.count()).toBe(0)
     const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision
-    expect(replacement.generation).toBe(old.generation)
+    expect(replacement.revisionGeneration).toBe(old.revisionGeneration)
     expect(yield* first.revision.current(old, item)).toBe(false)
     yield* first.revision.release(old)
     expect(yield* first.revision.current(replacement, item)).toBe(true)
@@ -128,7 +128,7 @@ it.effect("executes deferred registrations atomically across competing members",
       { concurrency: 16 }
     )
     expect(members.filter((member) => member.replaced)).toHaveLength(1)
-    expect(new Set(members.map((member) => member.revision.token))).toEqual(new Set(["shared-token"]))
+    expect(new Set(members.map((member) => member.revision.revisionToken))).toEqual(new Set(["shared-token"]))
     expect((yield* owner.canonicalProjection()).revision.entries.map((entry) => entry.members)).toEqual([16])
     yield* Effect.all(
       members.map((member) => owner.revision.release(member.revision)),
@@ -176,15 +176,15 @@ it.effect("reads current generation through a reusable snapshot query", () =>
     const owner = yield* makeResidentState()
     const item = prepared()
     const first = (yield* owner.revision.register("agent", item, true, "first")).revision
-    const generation = owner.revision.generation(first.subject)
-    expect(yield* generation).toBe(first.generation)
+    const generation = owner.revision.readRevisionGeneration(first.subject)
+    expect(yield* generation).toBe(first.revisionGeneration)
     const replacement = (yield* owner.revision.register("agent", prepared("type Count = string"), true, "second"))
       .revision
     const before = yield* owner.canonicalProjection()
-    expect(yield* generation).toBe(replacement.generation)
+    expect(yield* generation).toBe(replacement.revisionGeneration)
     expect(yield* owner.canonicalProjection()).toEqual(before)
     yield* owner.revision.release(first)
-    expect(yield* generation).toBe(replacement.generation)
+    expect(yield* generation).toBe(replacement.revisionGeneration)
     yield* owner.revision.release(replacement)
     expect(yield* generation).toBe(0)
   })
@@ -201,7 +201,7 @@ it.effect("checks revision currentness at execution and fences reused generation
     expect(yield* owner.canonicalProjection()).toEqual(before)
     yield* owner.clear()
     const next = (yield* owner.revision.register("agent", item, true, "new")).revision
-    expect(next.generation).toBe(first.generation)
+    expect(next.revisionGeneration).toBe(first.revisionGeneration)
     expect(yield* current).toBe(false)
     expect(yield* owner.revision.current(next, item)).toBe(true)
     yield* owner.revision.release(first)

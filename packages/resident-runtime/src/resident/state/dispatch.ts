@@ -4,7 +4,7 @@ import * as Latch from "effect/Latch"
 import * as Scope from "effect/Scope"
 import type { CapacityLedger } from "./capacity/operations.ts"
 
-export type DispatchEntry<K, A> = { readonly key: K; readonly sequence: number; readonly value: A }
+export type ScheduledReviewWork<K, A> = { readonly key: K; readonly sequence: number; readonly value: A }
 export type DispatchSnapshot = { readonly queued: number; readonly running: number }
 type NativeEntry<K, A> = {
   readonly key: K
@@ -14,7 +14,8 @@ type NativeEntry<K, A> = {
   readonly round: number
 }
 type Match<K, A> = (entry: { readonly key: K; readonly value: A }) => boolean
-export interface Dispatcher<K, A> {
+/** Schedules and runs admitted preparation and review jobs according to canonical policy. */
+export interface ReviewWorkScheduler<K, A> {
   readonly enqueue: (key: K, value: A) => Effect.Effect<boolean>
   readonly snapshot: () => Effect.Effect<DispatchSnapshot>
   readonly hasWork: (key: K) => Effect.Effect<boolean>
@@ -47,7 +48,7 @@ export interface DispatchState<K, A> {
 }
 
 /** Scoped execution of Bend outputs, with native handles registered at commit. */
-export const makeDispatcher = <K, A>(
+export const makeReviewWorkScheduler = <K, A>(
   ledger: {
     readonly canonicalProjection: () => Effect.Effect<ReturnType<CapacityLedger["canonicalProjection"]>>
     readonly dispatchIdentity: (
@@ -56,8 +57,8 @@ export const makeDispatcher = <K, A>(
     readonly dispatch: DispatchState<K, A>
   },
   operation: (value: A) => { readonly operation: number; readonly round: number },
-  run: (entry: DispatchEntry<K, A>) => Effect.Effect<void, unknown>
-): Effect.Effect<Dispatcher<K, A>, never, Scope.Scope> =>
+  run: (entry: ScheduledReviewWork<K, A>) => Effect.Effect<void, unknown>
+): Effect.Effect<ReviewWorkScheduler<K, A>, never, Scope.Scope> =>
   Effect.gen(function* () {
     const scope = yield* Scope.make()
     const idle = yield* Latch.make(true)
@@ -313,5 +314,5 @@ export const makeDispatcher = <K, A>(
         yield* idle.await
       }),
       close
-    } satisfies Dispatcher<K, A>
+    } satisfies ReviewWorkScheduler<K, A>
   }).pipe(Effect.uninterruptible, Effect.withSpan("ResidentDispatch.make"))

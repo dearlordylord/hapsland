@@ -13,7 +13,7 @@ import {
 } from "@hapsland/native-observation/direct-event/adapter"
 import { addEvent, makeReviewGitFixture, put } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { acquireResidentFixture } from "./runtime-fixture.ts"
-import type { JevRequestObservation } from "@hapsland/resident-runtime/resident/server"
+import type { ReviewServiceRequestObservation } from "@hapsland/resident-runtime/resident/server"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { prepareObservation } from "@hapsland/review-execution/direct-event/pipeline"
@@ -21,7 +21,7 @@ import { loadReviewSettings } from "@hapsland/review-definition/runtime/review-c
 import { residentUnitReservationBytes } from "@hapsland/resident-runtime/resident/server"
 import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import type { ResidentDispatchContext, ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext, ResidentEditPolicy } from "@hapsland/resident-transport/resident/protocol"
 import * as residentCapacity from "@hapsland/resident-runtime/resident/capacity"
 import type { CapacityLimits } from "@hapsland/resident-runtime/resident/capacity"
 
@@ -86,7 +86,7 @@ describe("target-root virtual rounds", () => {
       generation: 0,
       statePath: join(a, "credential-state")
     })
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: credential("B_KEY"),
@@ -123,7 +123,7 @@ describe("target-root virtual rounds", () => {
     )
     const ready = result.outcomes.find((outcome) => outcome.status === "ready")
     if (ready?.status !== "ready") throw new Error("missing reservation unit")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: "/tmp/state",
       userConfigPath: user,
       credential: null,
@@ -160,7 +160,7 @@ describe("target-root virtual rounds", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [target])))
     const other = await Effect.runPromise(adaptCodexDirectEvent(addEvent(c, [skipped], { tool_use_id: "skipped" })))
     if (observation === undefined || other === undefined) throw new Error("missing native target")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -240,7 +240,7 @@ describe("target-root virtual rounds", () => {
     await rename(replacement, b)
     const observation = await Effect.runPromise(adaptCodexDirectEvent(event))
     if (observation === undefined) throw new Error("missing replacement observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -270,7 +270,7 @@ describe("target-root virtual rounds", () => {
     const target = await put(b, "value.ts", "const value = 1\n")
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [target])))
     if (observation === undefined) throw new Error("missing capacity observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -334,8 +334,8 @@ describe("target-root virtual rounds", () => {
       tool_response: { filePath: path, content: text, originalFile: null, userModified: false }
     })
     const advicee = {
-      host: "claude-code",
-      hostVersion: "2.1.218",
+      agentRuntime: "claude-code",
+      agentRuntimeVersion: "2.1.218",
       sessionId: "native-session",
       turnId: null,
       toolUseId: "b",
@@ -382,7 +382,7 @@ describe("target-root virtual rounds", () => {
     expect(observation?.root).toBe(b)
     expect(capturedPolicy?.credentialEnvVar).toBeDefined()
     if (observation === undefined) throw new Error("immutable policy failed")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -423,7 +423,7 @@ describe("target-root virtual rounds", () => {
     const targetC = await put(c, "type.ts", "type OrderCount = number\n")
     const user = await put(a, "user.jsonc", JSON.stringify({ version: 1 }))
     const capturePath = join(a, "calls")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -489,7 +489,7 @@ describe("target-root virtual rounds", () => {
       })
     )
     const server = await acquireResidentFixture(residentPaths(join(a, "runtime")))
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -551,7 +551,7 @@ describe("target-root virtual rounds", () => {
     await put(c, "new/other.ts", "type OrderCount = number\n")
     const observation = await Effect.runPromise(adaptCodexDirectEvent(event))
     if (observation === undefined) throw new Error("missing mixed observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -587,7 +587,7 @@ describe("target-root virtual rounds", () => {
     const bEdit = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [targetB], { tool_use_id: "b" })))
     const cEdit = await Effect.runPromise(adaptCodexDirectEvent(addEvent(a, [targetC], { tool_use_id: "c" })))
     if (bEdit === undefined || cEdit === undefined) throw new Error("missing target observations")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath: join(a, "state"),
       userConfigPath: user,
       credential: null,
@@ -601,9 +601,9 @@ describe("target-root virtual rounds", () => {
         )
       }
     }
-    const requests: JevRequestObservation[] = []
+    const requests: ReviewServiceRequestObservation[] = []
     const server = await acquireResidentFixture(residentPaths(join(a, "runtime")), undefined, {
-      jevRequestObserver: (request) => {
+      reviewServiceRequestObserver: (request) => {
         requests.push(request)
       }
     })
@@ -654,9 +654,9 @@ describe("target-root virtual rounds", () => {
     expect((await registerC("fresh", monotonicNow())).status).toBe("advanced")
     expect((await Effect.runPromise(server.admit(fresh, dispatch, true, true))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
-    expect(requests.filter((request) => request.stage === "issued").map((request) => request.hapslandRound)).toEqual([
-      1, 2
-    ])
+    expect(requests.filter((request) => request.stage === "issued").map((request) => request.admissionRoundId)).toEqual(
+      [1, 2]
+    )
     expect(
       await Effect.runPromise(server.collect("/outside-git", fresh.advicee, dispatch, "ordinary", undefined, true))
     ).toMatchObject({
@@ -694,15 +694,15 @@ describe("target-root virtual rounds", () => {
       if (observation === undefined) throw new Error("missing target observation")
       const capturePath = join(a, "calls")
       const user = await put(a, "user.jsonc", JSON.stringify({ version: 1 }))
-      const dispatch: ResidentDispatchContext = {
+      const dispatch: ResidentReviewExecutionContext = {
         statePath: join(a, "state"),
         userConfigPath: user,
         credential: null,
         controlled: { capturePath, answers: { "target-domain": { _tag: "Probability", probability: 0.9 } } }
       }
-      const requests: JevRequestObservation[] = []
+      const requests: ReviewServiceRequestObservation[] = []
       const server = await acquireResidentFixture(residentPaths(join(a, "runtime")), undefined, {
-        jevRequestObserver: (request) => {
+        reviewServiceRequestObserver: (request) => {
           requests.push(request)
         }
       })

@@ -19,9 +19,9 @@ if (source.includes("residentLedger.replace(")) {
 for (const call of [
   "residentLedger.admitObservation(",
   "residentLedger.completePreparation(",
-  "residentLedger.readyJevRequest(",
-  "residentLedger.startJevRequest(",
-  "residentLedger.settleJevRequest("
+  "residentLedger.readyReviewServiceRequest(",
+  "residentLedger.startReviewServiceRequest(",
+  "residentLedger.settleReviewServiceRequest("
 ]) {
   if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`)
 }

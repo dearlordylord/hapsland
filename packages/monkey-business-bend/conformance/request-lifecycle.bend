@@ -7,12 +7,12 @@ import ../../agent-flow-bend/Canonical.bend as Canonical
 # of events obtained from JS. The complete scenario runner also needs queue IO.
 def event_code(event: Canonical.CanonicalEvent) -> Nat:
   match event:
-    case Canonical.JevRequestStarted{_, _, _, _, _}: 1n
-    case Canonical.JevRequestInterrupted{_, _, _, _, _}: 2n
-    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.NeverSent{}, _}: 3n
-    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.RequestFinding{}, _}: 4n
-    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.RequestClear{}, _}: 5n
-    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.RequestInterrupted{}, _}: 6n
+    case Canonical.ReviewServiceRequestStarted{_, _, _, _, _}: 1n
+    case Canonical.ReviewServiceRequestInterrupted{_, _, _, _, _}: 2n
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, Canonical.NeverSent{}, _}: 3n
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, Canonical.RequestFinding{}, _}: 4n
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, Canonical.RequestClear{}, _}: 5n
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, Canonical.RequestInterrupted{}, _}: 6n
     case _: 99n
 
 def actions(items: List<&2, Driver.Action>) -> List<&2, Nat>:

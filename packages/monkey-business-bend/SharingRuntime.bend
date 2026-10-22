@@ -17,8 +17,8 @@ type Disposition is Data:
   Owned{}
   Joined{}
   CachedFinding{}
-type PreparedUnit is Data:
-  PreparedUnit{
+type PreparedReviewUnit is Data:
+  PreparedReviewUnit{
     position: Nat,
     bytes: Nat,
     key: Sharing.SharingKey,
@@ -26,11 +26,16 @@ type PreparedUnit is Data:
     disposition: Disposition
   }
 type Preparation is Data:
-  Preparation{scope: Freshness.Scope, member: Sharing.Member, units: List<&2, PreparedUnit>}
+  Preparation{scope: Freshness.Scope, member: Sharing.Member, units: List<&2, PreparedReviewUnit>}
 type Binding is Data:
   Binding{scope: Freshness.Scope, evaluation: Nat, bytes: Nat, cached: Bool}
 type SharingResult is Data:
-  SharingResult{evaluation: Nat, outcome: C.RequestOutcome, original: Freshness.Scope, bytes: Nat}
+  SharingResult{
+    evaluation: Nat,
+    outcome: C.ReviewServiceRequestOutcome,
+    original: Freshness.Scope,
+    bytes: Nat
+  }
 type State is Data:
   State{
     sharing: Sharing.State,
@@ -110,7 +115,7 @@ def prepared(
   state: State,
   +scope: Freshness.Scope,
   member: Sharing.Member,
-  units: List<&2, PreparedUnit>
+  units: List<&2, PreparedReviewUnit>
 ) -> State:
   match state:
     case State{sharing, preparations, bindings, results}:
@@ -125,7 +130,7 @@ def append_found(
   state: State,
   scope: Freshness.Scope,
   member: Sharing.Member,
-  unit: PreparedUnit,
+  unit: PreparedReviewUnit,
   found: Maybe<&2, Preparation>
 ) -> State:
   match found:
@@ -134,14 +139,14 @@ def append_found(
       state,
       scope,
       member,
-      List.append(&2, PreparedUnit, units, [unit])
+      List.append(&2, PreparedReviewUnit, units, [unit])
     )
 
 def append_unit(
   +state: State,
   +scope: Freshness.Scope,
   member: Sharing.Member,
-  unit: PreparedUnit
+  unit: PreparedReviewUnit
 ) -> State:
   match state:
     case State{_, preparations, _, _}: append_found(
@@ -172,7 +177,7 @@ def captured_registration(
           with_sharing(state, sharing),
           scope,
           member,
-          PreparedUnit{position, bytes, key, evaluation, Awaiting{}}
+          PreparedReviewUnit{position, bytes, key, evaluation, Awaiting{}}
         ),
         Some{Route{scope, member, position, evaluation}},
         True{}
@@ -282,10 +287,10 @@ def capture(
     canonical
   )
 
-def route_unit(units: List<&2, PreparedUnit>, +position: Nat, +evaluation: Nat) -> Bool:
+def route_unit(units: List<&2, PreparedReviewUnit>, +position: Nat, +evaluation: Nat) -> Bool:
   match units:
     case Nil{}: False{}
-    case PreparedUnit{p, _, _, id, _} <> tail:
+    case PreparedReviewUnit{p, _, _, id, _} <> tail:
       (Nat.is_eq(p, position) && Nat.is_eq(id, evaluation)) || route_unit(
         tail,
         position,
@@ -333,15 +338,15 @@ def disposition(+outputs: List<&2, C.Output>) -> Disposition:
   )
 
 def unit_route(
-  units: List<&2, PreparedUnit>,
+  units: List<&2, PreparedReviewUnit>,
   +position: Nat,
   +evaluation: Nat,
   +next: Disposition
-) -> List<&2, PreparedUnit>:
+) -> List<&2, PreparedReviewUnit>:
   match units:
     case Nil{}: []
-    case PreparedUnit{+p, bytes, key, +id, previous} <> tail:
-      PreparedUnit{
+    case PreparedReviewUnit{+p, bytes, key, +id, previous} <> tail:
+      PreparedReviewUnit{
         p,
         bytes,
         key,
@@ -379,17 +384,17 @@ def routed(+state: State, +route: Route, outputs: List<&2, C.Output>) -> State:
       find_preparation(preparations, scope)
     )
 
-def ready(units: List<&2, PreparedUnit>) -> Bool:
+def ready(units: List<&2, PreparedReviewUnit>) -> Bool:
   match units:
     case Nil{}: True{}
-    case PreparedUnit{_, _, _, _, Awaiting{}} <> _: False{}
+    case PreparedReviewUnit{_, _, _, _, Awaiting{}} <> _: False{}
     case _ <> tail: ready(tail)
 
-def offered(units: List<&2, PreparedUnit>) -> List<&2, Nat>:
+def offered(units: List<&2, PreparedReviewUnit>) -> List<&2, Nat>:
   match units:
     case Nil{}: []
-    case PreparedUnit{_, bytes, _, _, Owned{}} <> tail: bytes <> offered(tail)
-    case PreparedUnit{_, bytes, _, _, CachedFinding{}} <> tail: bytes <> offered(tail)
+    case PreparedReviewUnit{_, bytes, _, _, Owned{}} <> tail: bytes <> offered(tail)
+    case PreparedReviewUnit{_, bytes, _, _, CachedFinding{}} <> tail: bytes <> offered(tail)
     case _ <> tail: offered(tail)
 
 def completion_found(event: C.CanonicalEvent, found: Maybe<&2, Preparation>) -> Completion:
@@ -404,21 +409,21 @@ def completion(state: State, +event: C.CanonicalEvent) -> Completion:
       completion_found(event, find_preparation(preparations, Freshness.Scope{p, l, r, o}))
     case _ _: Completion{event, True{}}
 
-def own_at(units: List<&2, PreparedUnit>, +index: Nat) -> Maybe<&2, PreparedUnit>:
+def own_at(units: List<&2, PreparedReviewUnit>, +index: Nat) -> Maybe<&2, PreparedReviewUnit>:
   match units:
     case Nil{}: None{}
     case +head <> tail:
       match head:
-        case PreparedUnit{_, _, _, _, Owned{}}:
+        case PreparedReviewUnit{_, _, _, _, Owned{}}:
           Bool.pick(
-            Maybe<&2, PreparedUnit>,
+            Maybe<&2, PreparedReviewUnit>,
             Nat.is_eq(index, 1n),
             Some{head},
             own_at(tail, (index - 1n : Nat))
           )
-        case PreparedUnit{_, _, _, _, CachedFinding{}}:
+        case PreparedReviewUnit{_, _, _, _, CachedFinding{}}:
           Bool.pick(
-            Maybe<&2, PreparedUnit>,
+            Maybe<&2, PreparedReviewUnit>,
             Nat.is_eq(index, 1n),
             Some{head},
             own_at(tail, (index - 1n : Nat))
@@ -434,11 +439,11 @@ def bound_unit(
   +state: State,
   scope: Freshness.Scope,
   +bytes: Nat,
-  unit: Maybe<&2, PreparedUnit>
+  unit: Maybe<&2, PreparedReviewUnit>
 ) -> State:
   match state unit:
     case State{sharing, preparations, bindings, results} Some{
-      PreparedUnit{_, expected, _, evaluation, disposition}
+      PreparedReviewUnit{_, expected, _, evaluation, disposition}
     }:
       Bool.pick(
         State,
@@ -508,7 +513,7 @@ def issued_found(+state: State, physical: Sharing.Physical, binding: Maybe<&2, B
 
 def issued(+state: State, command: C.Output) -> State:
   match command:
-    case C.EventEstablished{C.JevRequestIssued{+p, +l, +r, +o, +request}}:
+    case C.EventEstablished{C.ReviewServiceRequestIssued{+p, +l, +r, +o, +request}}:
       issued_found(
         state,
         Sharing.Physical{p, l, r, o, request},
@@ -525,8 +530,8 @@ def retained_finding(outputs: List<&2, C.Output>) -> Bool:
 def original_consumed(outputs: List<&2, C.Output>) -> Bool:
   match outputs:
     case Nil{}: False{}
-    case C.PolicyDecided{C.JevObservationIgnored{}} <> _: True{}
-    case C.EventEstablished{C.JevRequestOutcomeRecorded{_}} <> _: True{}
+    case C.PolicyDecided{C.ReviewServiceRequestObservationIgnored{}} <> _: True{}
+    case C.EventEstablished{C.ReviewServiceRequestOutcomeRecorded{_}} <> _: True{}
     case _ <> tail: original_consumed(tail)
 
 def kept_result(
@@ -551,7 +556,7 @@ def without_result(items: List<&2, SharingResult>, +evaluation: Nat) -> List<&2,
 def result_record(
   state: State,
   +evaluation: Nat,
-  outcome: C.RequestOutcome,
+  outcome: C.ReviewServiceRequestOutcome,
   original: Freshness.Scope,
   bytes: Nat
 ) -> State:
@@ -568,7 +573,7 @@ def terminal_found(
   +state: State,
   +scope: Freshness.Scope,
   physical: Sharing.Physical,
-  outcome: C.RequestOutcome,
+  outcome: C.ReviewServiceRequestOutcome,
   +outputs: List<&2, C.Output>,
   binding: Maybe<&2, Binding>
 ) -> State:
@@ -607,7 +612,7 @@ def terminal_found(
 def unavailable_command(outputs: List<&2, C.Output>) -> Bool:
   match outputs:
     case Nil{}: False{}
-    case C.PolicyDecided{C.JevRequestUnavailable{}} <> _: True{}
+    case C.PolicyDecided{C.ReviewServiceRequestUnavailable{}} <> _: True{}
     case _ <> tail: unavailable_command(tail)
 
 # An accepted pre-issuance rejection has no physical tuple to consume. Record
@@ -630,7 +635,7 @@ def unavailable_binding(
 
 def terminal(+state: State, event: C.CanonicalEvent, outputs: List<&2, C.Output>) -> State:
   match event:
-    case C.JevRequestSettled{+p, +l, +r, +o, +request, outcome, _}:
+    case C.ReviewServiceRequestSettled{+p, +l, +r, +o, +request, outcome, _}:
       terminal_found(
         state,
         Freshness.Scope{p, l, r, o},
@@ -639,7 +644,7 @@ def terminal(+state: State, event: C.CanonicalEvent, outputs: List<&2, C.Output>
         outputs,
         lookup_binding(state, Freshness.Scope{p, l, r, o})
       )
-    case C.JevRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
+    case C.ReviewServiceRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
       unavailable_binding(
         state,
         Freshness.Scope{p, l, r, o},
@@ -673,18 +678,21 @@ def completed(state: State, event: C.CanonicalEvent) -> State:
 def feedback(state: State, +event: C.CanonicalEvent, +outputs: List<&2, C.Output>) -> State:
   completed(terminal(commands_feedback(outputs, state, event), event, outputs), event)
 
-def result_found(results: List<&2, SharingResult>, +evaluation: Nat) -> Maybe<&2, C.RequestOutcome>:
+def result_found(
+  results: List<&2, SharingResult>,
+  +evaluation: Nat
+) -> Maybe<&2, C.ReviewServiceRequestOutcome>:
   match results:
     case Nil{}: None{}
     case SharingResult{id, outcome, original, bytes} <> tail:
       Bool.pick(
-        Maybe<&2, C.RequestOutcome>,
+        Maybe<&2, C.ReviewServiceRequestOutcome>,
         Nat.is_eq(id, evaluation),
         Some{outcome},
         result_found(tail, evaluation)
       )
 
-def result(state: State, evaluation: Nat) -> Maybe<&2, C.RequestOutcome>:
+def result(state: State, evaluation: Nat) -> Maybe<&2, C.ReviewServiceRequestOutcome>:
   match state:
     case State{_, _, _, results}: result_found(results, evaluation)
 
@@ -693,8 +701,8 @@ def result(state: State, evaluation: Nat) -> Maybe<&2, C.RequestOutcome>:
 # through recursive cleanup.
 type Authority is Data:
   Authority{
-    work: List<&2, C.Work>,
-    requests: List<&2, Dispatch.Request>,
+    work: List<&2, C.ReviewWorkRecord>,
+    requests: List<&2, Dispatch.ReviewServiceRequestRecord>,
     claims: List<&2, Reuse.Claim>,
     cache: List<&2, Reuse.Entry>
   }
@@ -738,7 +746,7 @@ def claim_live(view: Authority, +evaluation: Nat) -> Bool:
       Reuse.find_entry(evaluation, cache)
     )
 
-def request_live(found: Maybe<&2, Dispatch.Request>) -> Bool:
+def request_live(found: Maybe<&2, Dispatch.ReviewServiceRequestRecord>) -> Bool:
   match found:
     case None{}: False{}
     case Some{_}: True{}
@@ -754,10 +762,10 @@ def advice_live(view: Authority, captured: Maybe<&2, Freshness.Scope>) -> Bool:
     case Authority{work, _, _, _} Some{scope}: Sharing.pending_advice(work, scope)
     case _ None{}: False{}
 
-def units_reference(units: List<&2, PreparedUnit>, +evaluation: Nat) -> Bool:
+def units_reference(units: List<&2, PreparedReviewUnit>, +evaluation: Nat) -> Bool:
   match units:
     case Nil{}: False{}
-    case PreparedUnit{_, _, _, id, _} <> tail: Nat.is_eq(id, evaluation) || units_reference(
+    case PreparedReviewUnit{_, _, _, id, _} <> tail: Nat.is_eq(id, evaluation) || units_reference(
       tail,
       evaluation
     )
@@ -1078,13 +1086,13 @@ def route_followups(
 # completion payload or a current partition lookup. Only unresolved routes
 # need preprocessing at the single physical callback boundary.
 def unit_routes(
-  units: List<&2, PreparedUnit>,
+  units: List<&2, PreparedReviewUnit>,
   +scope: Freshness.Scope,
   +member: Sharing.Member
 ) -> List<&2, Route>:
   match units:
     case Nil{}: []
-    case PreparedUnit{position, _, _, evaluation, Awaiting{}} <> tail:
+    case PreparedReviewUnit{position, _, _, evaluation, Awaiting{}} <> tail:
       Route{scope, member, position, evaluation} <> unit_routes(tail, scope, member)
     case _ <> tail: unit_routes(tail, scope, member)
 
@@ -1102,7 +1110,7 @@ def pending(state: State, event: C.CanonicalEvent) -> List<&2, Route>:
 # Member disposition is decided by actual ReuseMemberCheck. The environmental
 # result and original retained source scope are inputs, never copied outcomes
 # turned into another Jev callback or another review-unit reservation.
-def joined_outcome(outcome: C.RequestOutcome) -> ReusePolicy.JoinedState:
+def joined_outcome(outcome: C.ReviewServiceRequestOutcome) -> ReusePolicy.JoinedState:
   match outcome:
     case C.RequestFinding{}: ReusePolicy.JoinedFinding{}
     case C.RequestClear{}: ReusePolicy.JoinedClear{}
@@ -1124,7 +1132,7 @@ def member_facts(
   +canonical: C.State,
   +freshness: Freshness.State,
   members: List<&2, Sharing.Member>,
-  +outcome: C.RequestOutcome,
+  +outcome: C.ReviewServiceRequestOutcome,
   +advice: Maybe<&2, Freshness.Scope>
 ) -> List<&2, C.CanonicalEvent>:
   match members:
@@ -1141,7 +1149,7 @@ def member_facts(
 def fanout_found(
   canonical: C.State,
   freshness: Freshness.State,
-  outcome: C.RequestOutcome,
+  outcome: C.ReviewServiceRequestOutcome,
   found: Maybe<&2, Sharing.Evaluation>
 ) -> List<&2, C.CanonicalEvent>:
   match found:
@@ -1158,7 +1166,7 @@ def fanout_binding(
   canonical: C.State,
   freshness: Freshness.State,
   state: State,
-  outcome: C.RequestOutcome,
+  outcome: C.ReviewServiceRequestOutcome,
   found: Maybe<&2, Binding>
 ) -> List<&2, C.CanonicalEvent>:
   match found:
@@ -1179,7 +1187,7 @@ def fanout(
   outputs: List<&2, C.Output>
 ) -> List<&2, C.CanonicalEvent>:
   match event:
-    case C.JevRequestSettled{p, l, r, o, _, outcome, _}:
+    case C.ReviewServiceRequestSettled{p, l, r, o, _, outcome, _}:
       Bool.pick(
         List<&2, C.CanonicalEvent>,
         original_consumed(outputs),
@@ -1225,7 +1233,7 @@ def terminal_members(
   freshness: Freshness.State,
   before: Maybe<&2, Sharing.Evaluation>,
   after: Maybe<&2, Sharing.Evaluation>,
-  outcome: C.RequestOutcome
+  outcome: C.ReviewServiceRequestOutcome
 ) -> List<&2, C.CanonicalEvent>:
   match before:
     case Some{Sharing.Evaluation{_, _, members, _, _}}: member_facts(
@@ -1237,7 +1245,10 @@ def terminal_members(
     )
     case None{}: []
 
-def unavailable_release(evaluation: Nat, outcome: C.RequestOutcome) -> List<&2, C.CanonicalEvent>:
+def unavailable_release(
+  evaluation: Nat,
+  outcome: C.ReviewServiceRequestOutcome
+) -> List<&2, C.CanonicalEvent>:
   match outcome:
     case C.RequestFinding{}: []
     case C.RequestClear{}: []
@@ -1249,7 +1260,7 @@ def postprocess_binding(
   canonical: C.State,
   freshness: Freshness.State,
   +physical: Sharing.Physical,
-  +outcome: C.RequestOutcome,
+  +outcome: C.ReviewServiceRequestOutcome,
   binding: Maybe<&2, Binding>
 ) -> List<&2, C.CanonicalEvent>:
   match binding:
@@ -1277,17 +1288,20 @@ def postprocess_binding(
         []
       )
 
-def never_sent(found: Maybe<&2, C.RequestOutcome>) -> Bool:
+def never_sent(found: Maybe<&2, C.ReviewServiceRequestOutcome>) -> Bool:
   match found:
     case Some{C.NeverSent{}}: True{}
     case _: False{}
 
-def reviewing_removed(before: Maybe<&2, C.Work>, after: Maybe<&2, C.Work>) -> Bool:
+def reviewing_removed(
+  before: Maybe<&2, C.ReviewWorkRecord>,
+  after: Maybe<&2, C.ReviewWorkRecord>
+) -> Bool:
   match before after:
-    case Some{C.Work{_, _, _, _, _, C.Reviewing{}, _}} None{}: True{}
+    case Some{C.ReviewWorkRecord{_, _, _, _, _, C.Reviewing{}, _}} None{}: True{}
     case _ _: False{}
 
-def work_at(canonical: C.State, scope: Freshness.Scope) -> Maybe<&2, C.Work>:
+def work_at(canonical: C.State, scope: Freshness.Scope) -> Maybe<&2, C.ReviewWorkRecord>:
   match canonical scope:
     case C.State{_, _, work, _, _, _, _, _, _} Freshness.Scope{p, l, r, o}: C.find_work(
       p,
@@ -1346,7 +1360,7 @@ def postprocess(
   event: C.CanonicalEvent
 ) -> List<&2, C.CanonicalEvent>:
   match event:
-    case C.JevRequestSettled{+p, +l, +r, +o, +request, outcome, _}:
+    case C.ReviewServiceRequestSettled{+p, +l, +r, +o, +request, outcome, _}:
       postprocess_binding(
         before,
         after,
@@ -1356,7 +1370,7 @@ def postprocess(
         outcome,
         lookup_binding(before, Freshness.Scope{p, l, r, o})
       )
-    case C.JevRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
+    case C.ReviewServiceRequestReady{+p, +l, +r, +o, _, _, _, _, _, _}:
       unavailable_postprocess(
         before,
         after,
@@ -1373,11 +1387,15 @@ def empty_evaluation(found: Maybe<&2, Sharing.Evaluation>) -> Bool:
     case Some{Sharing.Evaluation{_, _, Nil{}, _, _}}: True{}
     case _: False{}
 
-def canceled_work(found: Maybe<&2, C.Work>) -> List<&2, C.CanonicalEvent>:
+def canceled_work(found: Maybe<&2, C.ReviewWorkRecord>) -> List<&2, C.CanonicalEvent>:
   match found:
-    case Some{C.Work{p, l, r, o, _, C.Reviewing{}, _}}: [C.CancelReview{p, l, r, o}]
-    case Some{C.Work{p, l, r, o, _, C.AtJev{}, _}}: [C.CancelReview{p, l, r, o}]
-    case Some{C.Work{p, l, r, o, _, C.PendingFinding{_}, _}}: [C.RetireReview{p, l, r, o}]
+    case Some{C.ReviewWorkRecord{p, l, r, o, _, C.Reviewing{}, _}}: [C.CancelReview{p, l, r, o}]
+    case Some{C.ReviewWorkRecord{p, l, r, o, _, C.ReviewServiceRequestOutstanding{}, _}}: [
+      C.CancelReview{p, l, r, o}
+    ]
+    case Some{C.ReviewWorkRecord{p, l, r, o, _, C.PendingFinding{_}, _}}: [
+      C.RetireReview{p, l, r, o}
+    ]
     case _: []
 
 def cancellation_scope(canonical: C.State, scope: Freshness.Scope) -> List<&2, C.CanonicalEvent>:
@@ -1538,7 +1556,7 @@ def results(state: State) -> List<&2, SharingResult>:
 
 def cache_offer(state: State, event: C.CanonicalEvent) -> Maybe<&2, CacheScenario.Offer>:
   match state event:
-    case +state C.JevRequestSettled{p, l, r, o, _, _, _}:
+    case +state C.ReviewServiceRequestSettled{p, l, r, o, _, _, _}:
       cache_result_evaluation(
         state,
         cache_result_found(results(state), Freshness.Scope{p, l, r, o})
@@ -1548,24 +1566,24 @@ def cache_offer(state: State, event: C.CanonicalEvent) -> Maybe<&2, CacheScenari
 
 # Cache routes use only a payload accepted by actual ReuseCacheHit and the exact
 # stored entry. A clear has no new unit offer; a finding is a logical review.
-def cached_disposition(outcome: C.RequestOutcome) -> Disposition:
+def cached_disposition(outcome: C.ReviewServiceRequestOutcome) -> Disposition:
   match outcome:
     case C.RequestFinding{}: CachedFinding{}
     case C.RequestClear{}: Joined{}
     case _: Awaiting{}
 
 def cached_units(
-  units: List<&2, PreparedUnit>,
+  units: List<&2, PreparedReviewUnit>,
   +position: Nat,
   +evaluation: Nat,
   +key: Sharing.SharingKey,
   +bytes: Nat,
-  +outcome: C.RequestOutcome
-) -> List<&2, PreparedUnit>:
+  +outcome: C.ReviewServiceRequestOutcome
+) -> List<&2, PreparedReviewUnit>:
   match units:
     case Nil{}: []
-    case PreparedUnit{+p, +size, +original, +id, previous} <> tail:
-      PreparedUnit{
+    case PreparedReviewUnit{+p, +size, +original, +id, previous} <> tail:
+      PreparedReviewUnit{
         p,
         size,
         original,

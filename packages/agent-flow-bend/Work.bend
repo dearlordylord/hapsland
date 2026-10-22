@@ -48,7 +48,7 @@ type ObservationStage is Data:
 
 type UnitStage is Data:
   ReviewQueued{}
-  AtJev{}
+  ReviewServiceRequestOutstanding{}
   PendingFinding{}
   ClearResult{}
   UnavailableResult{}
@@ -73,7 +73,7 @@ type WorkRejection is Data:
   SourceNotReading{}
   TooManyUnits{}
   MissingUnit{}
-  UnitNotAtJev{}
+  UnitNotReviewServiceRequestOutstanding{}
   InvalidCapacity{}
   InvalidFinding{}
   UnitStillUnfinished{}
@@ -101,7 +101,7 @@ def is_source_reading(stage: ObservationStage) -> Bool:
 
 def is_at_jev(stage: UnitStage) -> Bool:
   match stage:
-    case AtJev{}:
+    case ReviewServiceRequestOutstanding{}:
       True{}
     case _:
       False{}
@@ -110,7 +110,7 @@ def is_unit_unfinished(stage: UnitStage) -> Bool:
   match stage:
     case ReviewQueued{}:
       True{}
-    case AtJev{}:
+    case ReviewServiceRequestOutstanding{}:
       True{}
     case _:
       False{}
@@ -199,7 +199,7 @@ def fill_review(
       match stage:
         case ReviewQueued{}:
           +room = Flow.has_room(occupied, capacity)
-          next_stage = Bool.pick(UnitStage, room, AtJev{}, ReviewQueued{})
+          next_stage = Bool.pick(UnitStage, room, ReviewServiceRequestOutstanding{}, ReviewQueued{})
           ReviewUnit{id, observation, next_stage, findings, bytes} <> fill_review(
             rest,
             capacity,
@@ -512,16 +512,16 @@ def outcome.apply(work: Work, +unit: ReviewUnit) -> WorkStep:
             observations, replace_unit(id, unit, units)}), Nil{}}
 
 def start_unit.apply(work: Work, id: Nat, observation: Nat) -> WorkStep:
-  outcome.apply(work, ReviewUnit{id, observation, AtJev{}, 0n, 0n})
+  outcome.apply(work, ReviewUnit{id, observation, ReviewServiceRequestOutstanding{}, 0n, 0n})
 
 def start_unit.stage(work: Work, id: Nat, observation: Nat, stage: UnitStage) -> WorkStep:
   match stage:
     case ReviewQueued{}:
       start_unit.apply(work, id, observation)
-    case AtJev{}:
+    case ReviewServiceRequestOutstanding{}:
       Accepted{work, Nil{}}
     case _:
-      Rejected{work, UnitNotAtJev{}}
+      Rejected{work, UnitNotReviewServiceRequestOutstanding{}}
 
 def start_unit.found(work: Work, id: Nat, found: Maybe<&2, ReviewUnit>) -> WorkStep:
   match found:
@@ -566,10 +566,10 @@ def outcome.stage(
   result: Outcome
 ) -> WorkStep:
   match stage:
-    case AtJev{}:
+    case ReviewServiceRequestOutstanding{}:
       outcome.kind(work, id, observation, result)
     case _:
-      Rejected{work, UnitNotAtJev{}}
+      Rejected{work, UnitNotReviewServiceRequestOutstanding{}}
 
 def outcome.found(work: Work, id: Nat, result: Outcome, found: Maybe<&2, ReviewUnit>) -> WorkStep:
   match found:
@@ -597,7 +597,7 @@ def revise_finding.stage(work: Work, id: Nat, observation: Nat, stage: UnitStage
     case PendingFinding{}:
       revise_finding.valid(work, id, observation, count, bytes, Nat.is_gt(count, 0n))
     case _:
-      Rejected{work, UnitNotAtJev{}}
+      Rejected{work, UnitNotReviewServiceRequestOutstanding{}}
 
 def revise_finding.found(work: Work, id: Nat, count: Nat, bytes: Nat,
     found: Maybe<&2, ReviewUnit>) -> WorkStep:
@@ -614,12 +614,12 @@ def revise_finding(+work: Work, +id: Nat, count: Nat, bytes: Nat) -> WorkStep:
 
 def interrupt_unit.stage(work: Work, id: Nat, observation: Nat, stage: UnitStage) -> WorkStep:
   match stage:
-    case AtJev{}:
+    case ReviewServiceRequestOutstanding{}:
       outcome.apply(work, ReviewUnit{id, observation, InterruptedResult{}, 0n, 0n})
     case ReviewQueued{}:
       outcome.apply(work, ReviewUnit{id, observation, InterruptedResult{}, 0n, 0n})
     case _:
-      Rejected{work, UnitNotAtJev{}}
+      Rejected{work, UnitNotReviewServiceRequestOutstanding{}}
 
 def interrupt_unit.found(work: Work, id: Nat, found: Maybe<&2, ReviewUnit>) -> WorkStep:
   match found:
@@ -850,7 +850,7 @@ def unfinished_unit_ids(units: List<&2, ReviewUnit>) -> List<&2, Nat>:
       match stage:
         case ReviewQueued{}:
           id <> unfinished_unit_ids(rest)
-        case AtJev{}:
+        case ReviewServiceRequestOutstanding{}:
           id <> unfinished_unit_ids(rest)
         case _:
           unfinished_unit_ids(rest)
@@ -887,7 +887,7 @@ def jev_cancel_ids(units: List<&2, ReviewUnit>) -> List<&2, Nat>:
       Nil{}
     case ReviewUnit{id, _, stage, _, _} <> rest:
       match stage:
-        case AtJev{}:
+        case ReviewServiceRequestOutstanding{}:
           id <> jev_cancel_ids(rest)
         case _:
           jev_cancel_ids(rest)

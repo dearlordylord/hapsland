@@ -126,7 +126,7 @@ try {
     !flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation"
   )
-  assert.equal(steps[35].event.kind, "jevRequestSettled")
+  assert.equal(steps[35].event.kind, "reviewServiceRequestSettled")
   assert.equal(steps[35].event.outcome, "clear")
   assert.ok(
     !steps[35].after.work.some((work) => work.operation === 7),

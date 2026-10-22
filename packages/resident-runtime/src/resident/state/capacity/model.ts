@@ -14,17 +14,18 @@ export const PARTITION_BYTE_LIMIT = 256 * 1024 * 1024
 export const MAX_PARTITION_IDENTITIES = 8192
 export const MAX_PARTITION_KEY_BYTES = 1024 * 1024
 export const MAX_PARTITION_IDENTITY_BYTES = 64 * 1024 * 1024
-export const MAX_COLLECTION_TOKEN_IDENTITIES = 16384
-export const MAX_COLLECTION_TOKEN_KEY_BYTES = 4096
+export const MAX_ADVICE_HANDOFF_IDENTITIES = 16384
+export const MAX_ADVICE_HANDOFF_KEY_BYTES = 4096
 export type CapacityLimits = {
   readonly globalItems: number
   readonly globalBytes: number
   readonly partitionItems: number
   readonly partitionBytes: number
 }
-export type CapacityReservation = { readonly id: number; readonly partition: string }
+/** An immutable capability for a logical capacity reservation; object identity prevents stale reuse. */
+export type ReviewCapacityReservationHandle = { readonly id: number; readonly partition: string }
 export type PreparationAdmission =
-  | { readonly status: "admitted"; readonly operation: number; readonly reservation: CapacityReservation }
+  | { readonly status: "admitted"; readonly operation: number; readonly reservation: ReviewCapacityReservationHandle }
   | { readonly status: "capacity-refused" }
   | { readonly status: "unavailable"; readonly reason: "stale-round" | "wrong-stage" }
   | { readonly status: "invalid-measurement" }
@@ -61,10 +62,10 @@ export type ResidentTransition = Extract<
       | "interruptPreparation"
       | "preparationCompleted"
       | "startReview"
-      | "jevRequestReady"
-      | "jevRequestStarted"
-      | "jevRequestInterrupted"
-      | "jevRequestSettled"
+      | "reviewServiceRequestReady"
+      | "reviewServiceRequestStarted"
+      | "reviewServiceRequestInterrupted"
+      | "reviewServiceRequestSettled"
       | "reviewCompleted"
       | "retireReview"
       | "retirePartition"
@@ -177,20 +178,20 @@ export const encodedBytesWithin = (value: unknown, maximum: number): number | un
   }
 }
 type ReservationRecord = {
-  readonly capability: CapacityReservation
+  readonly capability: ReviewCapacityReservationHandle
   readonly bytes: number
   readonly purpose: CapacityPurpose
 }
 export type CapacityState = {
-  readonly residentLifetime: string
+  readonly residentInstanceId: string
   readonly limits: CapacityLimits
   readonly canonical: unknown
   readonly reservations: ReadonlyMap<number, ReservationRecord>
   readonly partitionIds: ReadonlyMap<string, number>
   readonly partitionIdentityBytes: number
   readonly roundIds: ReadonlyMap<string, number>
-  readonly requestRounds: ReadonlyMap<number, { readonly partition: string; readonly round: number }>
-  readonly collectionTokens: ReadonlyMap<string, number>
+  readonly reviewServiceRequestRounds: ReadonlyMap<number, { readonly partition: string; readonly round: number }>
+  readonly adviceHandoffIdentities: ReadonlyMap<string, number>
   readonly nextCollectionToken: number
   readonly nextPartitionId: number
   readonly minimumFreshStart: number
@@ -207,6 +208,6 @@ export const draftCapacity = (current: CapacityState): CapacityDraft => ({
   reservations: new Map(current.reservations),
   partitionIds: new Map(current.partitionIds),
   roundIds: new Map(current.roundIds),
-  requestRounds: new Map(current.requestRounds),
-  collectionTokens: new Map(current.collectionTokens)
+  reviewServiceRequestRounds: new Map(current.reviewServiceRequestRounds),
+  adviceHandoffIdentities: new Map(current.adviceHandoffIdentities)
 })

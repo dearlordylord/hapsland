@@ -19,8 +19,8 @@ const makeRoot = () => {
   return root
 }
 const advicee = (sessionId: string, toolUseId: string, subagentId: string | null = null): DirectAdvicee => ({
-  host: "codex-cli",
-  hostVersion: "0.155.1",
+  agentRuntime: "codex-cli",
+  agentRuntimeVersion: "0.155.1",
   sessionId,
   turnId: `turn-${toolUseId}`,
   toolUseId,

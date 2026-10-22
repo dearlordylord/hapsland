@@ -270,7 +270,7 @@ type Scenario is Data:
     burst: U32,
     interval: U32
   }
-def scenario_outcome(result: U32) -> Maybe<&2, C.RequestOutcome>:
+def scenario_outcome(result: U32) -> Maybe<&2, C.ReviewServiceRequestOutcome>:
   match result:
     case 1: Some{C.RequestClear{}}
     case 2: Some{C.RequestFinding{}}

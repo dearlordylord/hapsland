@@ -44,7 +44,7 @@ for (const operation of ["release"]) {
   }
 }
 
-for (const operation of ["count", "generation", "superseded", "current"]) {
+for (const operation of ["count", "readRevisionGeneration", "superseded", "current"]) {
   if (
     !capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
     !capacity.includes(`revisionRead((operations) => operations.${operation}(...args))`)

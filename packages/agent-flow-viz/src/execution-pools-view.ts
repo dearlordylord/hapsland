@@ -24,7 +24,9 @@ export const executionPoolsView = <Message>(
   const preparations = [...resident.dispatch.running]
     .filter((job) => job.preparation)
     .sort((a, b) => a.operation - b.operation)
-  const requests = [...resident.dispatch.requests].sort((a, b) => a.request - b.request)
+  const requests = [...resident.dispatch.reviewServiceRequests].sort(
+    (a, b) => a.reviewServiceRequestId - b.reviewServiceRequestId
+  )
   const row = (
     kind: "preparation" | "jev",
     label: string,
@@ -136,10 +138,10 @@ export const executionPoolsView = <Message>(
         "jev",
         "Jev request permits",
         695,
-        resident.executionLimits.jevRequests,
+        resident.executionLimits.reviewServiceRequests,
         requests.map((request) => ({
           partition: request.partition,
-          description: `request #${request.request} · ${request.started ? "started" : "authorized, not started"}`
+          description: `request #${request.reviewServiceRequestId} · ${request.started ? "started" : "authorized, not started"}`
         }))
       ),
       ...agents.map((agent, index) =>

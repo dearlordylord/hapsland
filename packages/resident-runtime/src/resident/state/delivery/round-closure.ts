@@ -7,12 +7,17 @@ export const deliveryRoundClosure = (
   state: DeliveryDraft,
   canonicalOwner: Pick<
     CapacityLedger,
-    "transition" | "partitionId" | "collectionTokenId" | "canonicalProjection" | "retireRound" | "currentRoundId"
+    | "transition"
+    | "partitionId"
+    | "internAdviceHandoffIdentity"
+    | "canonicalProjection"
+    | "retireRound"
+    | "currentRoundId"
   >,
   {
     isActive,
     revokeProvisionalFinishOutput,
-    readGeneration,
+    readAdmissionRoundId,
     bendTime,
     finishPermit,
     forget,
@@ -23,7 +28,7 @@ export const deliveryRoundClosure = (
     DeliveryPorts,
     | "isActive"
     | "revokeProvisionalFinishOutput"
-    | "readGeneration"
+    | "readAdmissionRoundId"
     | "bendTime"
     | "finishPermit"
     | "forget"
@@ -34,7 +39,8 @@ export const deliveryRoundClosure = (
 ) => {
   function currentStop(partition: string, token: string): StopRecord | undefined {
     const stop = state.stops.get(partition)
-    if (stop?.token !== token || !state.rounds.has(partition) || !isActive(partition, stop.generation)) return undefined
+    if (stop?.token !== token || !state.rounds.has(partition) || !isActive(partition, stop.admissionRoundId))
+      return undefined
     return stop
   }
 
@@ -56,14 +62,14 @@ export const deliveryRoundClosure = (
     return command
   }
 
-  function endStopGroup(partition: string, canonicalRound: number): void {
+  function endStopGroup(partition: string, canonicalRoundId: number): void {
     const owner = canonicalOwner.partitionId(partition)
     const ended = canonicalOwner.transition({
       kind: "stopGroupEnded",
       group: canonicalOwner.partitionId(partition),
       lifetime: 1,
-      round: canonicalRound,
-      scopes: [{ partition: owner, round: canonicalRound }]
+      round: canonicalRoundId,
+      scopes: [{ partition: owner, round: canonicalRoundId }]
     })
     if (ended.rejection !== undefined || ended.outputs[0]?.kind !== "stopEnded")
       throw new Error("canonical Stop end refused")
@@ -75,16 +81,16 @@ export const deliveryRoundClosure = (
     const ended = canonicalOwner.transition({
       kind: "finishEnd",
       group: canonicalOwner.partitionId(partition),
-      round: stop.canonicalRound,
+      round: stop.canonicalRoundId,
       attempt: stop.id,
-      token: canonicalOwner.collectionTokenId(stop.outputToken)
+      token: canonicalOwner.internAdviceHandoffIdentity(stop.outputToken)
     })
     if (ended.rejection !== undefined || ended.outputs[0]?.kind !== "finishEnded")
       throw new Error("canonical finish slot end refused")
   }
 
   function closeStopRound(partition: string, stop: StopRecord, closedAt: number): boolean {
-    if (readGeneration(partition) !== stop.generation) return false
+    if (readAdmissionRoundId(partition) !== stop.admissionRoundId) return false
     // Publish the canonical fence before changing the resident's Stop view.
     const admission = canonicalOwner
       .canonicalProjection()
@@ -94,13 +100,13 @@ export const deliveryRoundClosure = (
       kind: "closePermitRound",
       partition: admission.partition,
       lifetime: admission.lifetime,
-      round: stop.generation,
+      round: stop.admissionRoundId,
       at: Math.max(bendTime(closedAt + 1), admission.closedAt)
     })
     if (
       closed.rejection !== undefined ||
       closed.outputs[0]?.kind !== "permitRoundClosed" ||
-      closed.outputs[0].round !== stop.generation
+      closed.outputs[0].round !== stop.admissionRoundId
     )
       throw new Error("canonical permit closure disagrees with round")
     return true
@@ -119,13 +125,13 @@ export const deliveryRoundClosure = (
     // A provisional output has not crossed the IPC write boundary.
     const command = stopTerminalDecision(partition, token, stop, close)
     if (command === undefined) return undefined
-    endStopGroup(partition, stop.canonicalRound)
+    endStopGroup(partition, stop.canonicalRoundId)
     endAuthorizedFinish(partition, stop)
     if (command.close && !closeStopRound(partition, stop, closedAt)) return undefined
     revokeEndedStop(partition, stop)
     if (!command.close) return undefined
-    retireClosedRound(partition, stop.canonicalRound)
-    return stop.generation
+    retireClosedRound(partition, stop.canonicalRoundId)
+    return stop.admissionRoundId
   }
 
   function retirePartitionPermits(partition: string): void {
@@ -141,8 +147,8 @@ export const deliveryRoundClosure = (
     for (const [id, submission] of state.submissions) if (submission.partition === partition) forget(id)
   }
 
-  function retireClosedRound(partition: string, canonicalRound: number): void {
-    canonicalOwner.retireRound(partition, canonicalRound)
+  function retireClosedRound(partition: string, canonicalRoundId: number): void {
+    canonicalOwner.retireRound(partition, canonicalRoundId)
     retirePartitionPermits(partition)
     const waiter = state.backgroundWaiters.get(partition)
     if (waiter !== undefined) releaseBackground(partition, waiter.token)
@@ -187,14 +193,14 @@ export const deliveryRoundClosure = (
   ): number | undefined {
     const round = state.rounds.get(partition)
     if (round === undefined) return undefined
-    const canonicalRound = canonicalOwner.currentRoundId(partition)
-    if (canonicalRound === undefined) throw new Error("active virtual round lacks canonical identity")
+    const canonicalRoundId = canonicalOwner.currentRoundId(partition)
+    if (canonicalRoundId === undefined) throw new Error("active virtual round lacks canonical identity")
     const handoffIdle = partitionHandoffIdle(partition)
     const tick = canonicalOwner.transition({
       kind: "quietRoundTick",
       partition: canonicalOwner.partitionId(partition),
       lifetime: 1,
-      round: canonicalRound,
+      round: canonicalRoundId,
       now: bendTime(now),
       window: bendTime(round.quietMs),
       facts: { ...facts, handoffIdle, stopAbsent: !state.stops.has(partition) }
@@ -202,7 +208,7 @@ export const deliveryRoundClosure = (
     if (tick.rejection !== undefined || tick.outputs.length !== 1) throw new Error("canonical quiet tick refused")
     if (tick.outputs[0]?.kind !== "quietRoundExpired") return undefined
     const admission = closeQuietRound(partition, now)
-    retireClosedRound(partition, canonicalRound)
+    retireClosedRound(partition, canonicalRoundId)
     return admission.round
   }
 

@@ -1,17 +1,36 @@
 # Product context
 
+**Purpose:** Define the domain vocabulary used in Hapsland explanations and code.
 **Audience:** Contributors, including coding agents; Product and specification owners.
+**Status:** Active domain glossary.
+**Authority:** Maintained vocabulary guidance; accepted product contracts define behavior.
+**Expected use:** Choose names and interpret product concepts using the meanings below.
+**Lifecycle:** Update when an accepted domain term changes; review with new runtime, review-service, identity or submission boundaries.
 
 This glossary records the domain language for the product under design. It is not an
 implementation specification. Product explanations and dashboard labels use
-these meanings. A Bend or TypeScript constructor name appears in reader-facing
+these meanings. Requests are named by their destination: resident requests and review service requests
+are different concepts. Submission reports describe the observed runtime boundary,
+not an agent's receipt or use of advice.
+
+A Bend or TypeScript constructor name appears in reader-facing
 material only beside the plain-language meaning it represents.
 
 | Term | Meaning |
 |---|---|
 | Product | Hapsland, the runtime-neutral system we are designing around realtime coding-agent reviews. |
+| Review service | The selected evaluator of prepared code and rule questions, such as Jev, Cloudflare or OpenAI. It is separate from the local resident and the agent runtime. |
+| Review service request | One locally tracked evaluation request, from slot reservation until settlement. It may settle without invoking the review service. |
+| Review service request slot | One share of Hapsland's bounded concurrent review-service work, held until the tracked call settles. |
+| Resident request | A local client's operation sent to the resident, such as recording an edit, collecting advice or reporting a submission. |
+| Advicee scope | The review and advice state belonging to one advicee recipient, independently of working root and runtime turn. |
+| Work cohort | A group of review jobs that share cancellation and evaluation-reuse ownership within an advicee’s virtual round. |
+| Evaluation reuse scope | The source scope, work cohort, credential generation and settings within which review evaluations may be shared. |
+| Finding candidate | One finding being considered for inclusion in an advice submission. |
+| Advice collection lease | Temporary exclusive ownership of a pending advice record while a collector selects findings and completes submission bookkeeping. |
+| Advice submission report | A local report that Hapsland reached the runtime’s supported submission-attempt boundary. It does not establish that the runtime preserved the output or that the agent received or used it. |
 | Jev | TypeSafe's external tool used by the product for typed, realtime review judgments. Jev is not the product name. |
-| Review integration | The product's integration boundary around agent runtimes, rules, findings, and review backends. |
+| Review integration | The product's integration boundary around agent runtimes, rules, findings, and review services. |
 | Flow stage | A conceptual location in the observed Hapsland review and advice process, such as preparation or pending advice. A stage groups checked state and facts for explanation; it is not a state in the reducer. |
 | Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and review credentials are available, review can run for files allowed by file selection. |
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from Hapsland's file selection and credential availability. |
@@ -24,11 +43,11 @@ material only beside the plain-language meaning it represents.
 | Edit permit | An expiring resident pre-edit record linking an advicee and tool invocation to its start boundary. Its matching post-edit report consumes it to admit the edit for review; the permit does not authorize the native edit itself. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
-| Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls the selected review backend, and holds temporary review state in its own memory. |
+| Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls the selected review service, and holds temporary review state in its own memory. |
 | Resident connection directory | A filesystem directory that contains the resident's local connection socket and ownership files. It does not contain the agents' source files or the capacity ledger. By default, Hapsland uses one such directory per operating-system user, outside Git worktrees. `REVIEW_RESIDENT_DIR` can select a different directory. Commands that select the same directory reach the same resident. |
 | Virtual round | One advicee's period of review and advice in Hapsland. Its first admitted eligible attributed edit selects its physical working root; later other-root edits are explicitly skipped until closure. It begins with that edit, not with a pre-edit permit. At a finish attempt, Hapsland holds the response while unfinished reviews can still become advice, until they settle or the safe deadline arrives; it can decide sooner when no continuation remains. A continue-with-advice response keeps the virtual round open; an allow-finish response closes it. A round can also close after its configured period of full quiescence without a Stop. A later eligible edit starts a new virtual round only after the prior one has closed. |
 | Runtime turn | A unit of conversation identified by an agent runtime. Its boundary need not match a virtual round; one runtime turn may contain multiple virtual rounds, and one virtual round may span multiple runtime turns. |
-| Model provider | Secondary metadata about the inference service selected by an agent runtime or review backend. It is not a first-class adapter target in the current phase. |
+| Model provider | Secondary metadata about the inference service selected by an agent runtime or review service. It is not a first-class adapter target in the current phase. |
 | Artifact | An independently identifiable semantic subject extracted from source. Its kind identifies what it describes; the initial kind is `typeShape`. |
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
 | Change observation | Agent runtime or reconciliation evidence that eligible working-tree content may have changed. |
@@ -52,12 +71,12 @@ material only beside the plain-language meaning it represents.
 | Turn-completion checkpoint | A catch-up checkpoint when an agent runtime attempts to finish one of its turns. |
 | Change set | The complete, stable source changes established by one successful observation. An incomplete or unstable capture produces no change set. |
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
-| Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
+| Review unit | One root artifact together with the supporting evidence evaluated independently in one review-service request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
 | Advicee recipient | The agent runtime and accepted version, session, and reliably identified child that may receive advice. Its identity is independent of working root and runtime turn. Missing child identity does not prove main-agent origin. |
-| Source partition | Review and freshness scope for one advicee recipient and one physical working root. Equal relative paths in different roots are different sources. |
+| Source scope | Review and freshness scope for one advicee recipient and one physical working root. Equal relative paths in different roots are different sources. |
 | Pinned working root | The physical Git working copy selected by a virtual round's first admitted eligible attributed edit. It stays fixed through closure; linked worktrees and separate repositories each have distinct physical roots. |
 | Stop continuation | More work that Hapsland asks an agent to do when it tries to finish, so it can act on advice. |
 | Stop allowance | Permission for Hapsland to request a Stop continuation from an agent. |
@@ -66,13 +85,13 @@ material only beside the plain-language meaning it represents.
 | Advice batch | The bounded collection of review results selected for delivery together through one agent-runtime interaction. |
 | Source fingerprint | A deterministic fingerprint of an artifact's exact source, used as equality evidence rather than as the identity of an observation. |
 | Review projection fingerprint | A deterministic fingerprint of the canonical evidence projection evaluated for a review unit. |
-| Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review backend. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
-| Review provider limit catalog | The declared input constraints of each supported review model, with measurement units and provenance. It distinguishes provider constraints from Hapsland's own collection and capacity bounds. |
-| Review input | The exact semantic payload rendered from one review unit under a review input contract for backend evaluation. |
+| Review input contract | A versioned definition of the source, path, domain text, completeness metadata, and rendering presented to a review service. Different input contracts are distinct evaluation scenarios even when they describe the same edit. |
+| Review service limit catalog | The declared input constraints of each supported review model, with measurement units and provenance. It distinguishes review-service constraints from Hapsland's own collection and capacity bounds. |
+| Review input | The exact semantic payload rendered from one review unit under a review input contract for review-service evaluation. |
 | Evidence completeness | Whether the evidence required for a checked rule expectation is present. Missing required evidence is incomplete, not evidence that the source is clear. |
-| Review capacity limit | A bound on how many resident records and measured bytes Hapsland can retain. The resident checks a shared bound and a bound for the identified agent's scope. These are four checks: item count and bytes at each of two scopes. They are not four kinds of work. This is distinct from Jev request concurrency and process RAM. |
-| Review capacity ledger | The temporary record, in the resident process's memory, of which review-related records use that capacity. The same resident schedules review work and calls Jev. Each agent's usage is part of the shared total. The ledger does not measure all process memory or Jev's own capacity. |
-| Review capacity reservation | Space held in the ledger for one resident record: one item and its measured bytes. A reservation starts and ends when that record changes or leaves the resident. The Bend `Charge` constructor represents a reservation; “charge” does not mean payment or a Jev request. |
+| Review capacity limit | A bound on how many resident records and measured bytes Hapsland can retain. The resident checks a shared bound and a bound for the identified agent's scope. These are four checks: item count and bytes at each of two scopes. They are not four kinds of work. This is distinct from review service request concurrency and process RAM. |
+| Review capacity ledger | The temporary record, in the resident process's memory, of which review-related records use that capacity. The same resident schedules review work and calls the selected review service. Each agent's usage is part of the shared total. The ledger does not measure all process memory or Jev's own capacity. |
+| Review capacity reservation | Space held in the ledger for one resident record: one item and its measured bytes. A reservation starts and ends when that record changes or leaves the resident. |
 | Advice submission | Hapsland sending advice through an agent runtime's supported channel. No acknowledgment or reply from the agent is required. |
 | Background advice submission | An advice submission attempted after an edit, before that agent asks to finish. “Background” distinguishes this opportunity from a response to the finish attempt. |
 | Rule | A user-configurable criterion evaluated against an action, edit, diff, or related context. |

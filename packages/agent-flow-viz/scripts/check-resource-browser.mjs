@@ -153,8 +153,9 @@ try {
   })
   cacheHit.advance({ untilTime: 20, maxEvents: 1000 })
   assert.equal(
-    cacheHit.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
-      .length,
+    cacheHit.observations.filter((frame) =>
+      frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued")
+    ).length,
     1
   )
   assert.equal(
@@ -303,7 +304,10 @@ try {
   for (const at of [14, 24])
     retained.schedule({ at, kind: "edit", bytes: 10, unitBytes: [5], evaluationInputs: [`cache-replacement-${at}`] })
   retained.advance({ untilTime: 40, maxEvents: 1000 })
-  assert.equal(retained.observations.filter((f) => f.outputs.some((c) => c.kind === "jevRequestIssued")).length, 3)
+  assert.equal(
+    retained.observations.filter((f) => f.outputs.some((c) => c.kind === "reviewServiceRequestIssued")).length,
+    3
+  )
   assert.equal(retained.projection.reuse.cache.length, 2)
   assert.ok(
     retained.observations.some((f) => f.outputs.some((c) => c.kind === "cachePrepared" && c.evicted.length > 0))

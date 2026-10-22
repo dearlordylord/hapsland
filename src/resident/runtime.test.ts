@@ -123,7 +123,7 @@ it.effect("incompatible callers have independent ten-minute warning budgets acro
           operation: "prompt-marker",
           lifetime: runtime.lifetime,
           root: "/other-root",
-          advicee: advicee({ sessionId: "one", turnId: "later-turn", hostVersion: "0.156.0" }),
+          advicee: advicee({ sessionId: "one", turnId: "later-turn", agentRuntimeVersion: "0.156.0" }),
           marker: "a".repeat(64)
         })
       )

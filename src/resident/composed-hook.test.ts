@@ -12,16 +12,16 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const input = (kind: "stop" | "background", host: "claude-code" | "codex-cli" = "claude-code") => ({
+const input = (kind: "stop" | "background", agentRuntime: "claude-code" | "codex-cli" = "claude-code") => ({
   kind,
-  host,
+  agentRuntime,
   event: {},
   statePath: "/fixture/state",
   activityPath: "/fixture/activity"
 })
 const hookAdvicee = {
-  host: "claude-code",
-  hostVersion: "2.1.218",
+  agentRuntime: "claude-code",
+  agentRuntimeVersion: "2.1.218",
   sessionId: "session",
   turnId: null,
   toolUseId: "tool",
@@ -30,7 +30,7 @@ const hookAdvicee = {
 const unused = () => Effect.die("unexpected hook port")
 const runtime = (
   client: Partial<ComposedHookRuntime["Service"]["client"]>,
-  advicee: Extract<DirectAdvicee, { host: "codex-cli" | "claude-code" }> = hookAdvicee
+  advicee: Extract<DirectAdvicee, { agentRuntime: "codex-cli" | "claude-code" }> = hookAdvicee
 ) =>
   ComposedHookRuntime.of({
     now: Effect.succeed(0),
@@ -38,13 +38,13 @@ const runtime = (
     identity: () => Effect.succeed({ root: "/fixture", advicee }),
     client: {
       resolveComposedRootEffect: (root) => Effect.succeed(root),
-      acknowledgeAdviceEffect: unused,
+      recordAdviceSubmissionAndFinalizeEffect: unused,
       registerComposedEditEffect: unused,
       composedStopBoundaryEffect: unused,
       beginComposedSubmissionEffect: unused,
       claimComposedBackgroundEffect: unused,
       collectAdviceeOutcomeEffect: unused,
-      makeResidentDispatchContextEffect: () =>
+      makeResidentReviewExecutionContextEffect: () =>
         Effect.succeed({
           statePath: "/fixture/state",
           activityPath: "/fixture/activity",
@@ -147,8 +147,8 @@ it.effect("releases a background claim even when interrupted during its acquisit
         collectAdviceeOutcomeEffect: () => Effect.never
       },
       {
-        host: "codex-cli",
-        hostVersion: "0.155.1",
+        agentRuntime: "codex-cli",
+        agentRuntimeVersion: "0.155.1",
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool",
@@ -176,8 +176,8 @@ it.effect("collects accepted Bash advice without registering edits or starting r
     )
     const calls: string[] = []
     const advicee = {
-      host: "codex-cli",
-      hostVersion: "0.155.1",
+      agentRuntime: "codex-cli",
+      agentRuntimeVersion: "0.155.1",
       sessionId: "session",
       turnId: "turn",
       toolUseId: "bash",
@@ -204,7 +204,7 @@ it.effect("collects accepted Bash advice without registering edits or starting r
             calls.push("submit")
             return true
           }),
-        acknowledgeAdviceEffect: () =>
+        recordAdviceSubmissionAndFinalizeEffect: () =>
           Effect.sync(() => {
             calls.push("acknowledge")
             return true
@@ -315,16 +315,16 @@ it.effect("marks prompt identity without starting collection, including unavaila
     yield* Effect.sync(() => writeFileSync(transcript, "native transcript"))
     const markers: Array<string> = []
     const cases = [
-      { host: "codex-cli", event: { prompt: "hello", turn_id: "turn" } },
-      { host: "codex-cli", event: { prompt: "hello", turn_id: "" } },
-      { host: "claude-code", event: { prompt: "hello" } },
-      { host: "claude-code", event: { prompt: "hello", transcript_path: `${transcript}-missing` } },
-      { host: "claude-code", event: { prompt: "hello", transcript_path: transcript } },
-      { host: "claude-code", event: { prompt: undefined } }
+      { agentRuntime: "codex-cli", event: { prompt: "hello", turn_id: "turn" } },
+      { agentRuntime: "codex-cli", event: { prompt: "hello", turn_id: "" } },
+      { agentRuntime: "claude-code", event: { prompt: "hello" } },
+      { agentRuntime: "claude-code", event: { prompt: "hello", transcript_path: `${transcript}-missing` } },
+      { agentRuntime: "claude-code", event: { prompt: "hello", transcript_path: transcript } },
+      { agentRuntime: "claude-code", event: { prompt: undefined } }
     ] as const
     for (const entry of cases) {
       let writes = 0
-      yield* runComposedHookEffect({ ...input("stop", entry.host), kind: "prompt", event: entry.event }).pipe(
+      yield* runComposedHookEffect({ ...input("stop", entry.agentRuntime), kind: "prompt", event: entry.event }).pipe(
         Effect.provideService(
           ComposedHookRuntime,
           runtime({

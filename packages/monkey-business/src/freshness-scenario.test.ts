@@ -67,39 +67,45 @@ it.each([
   advance(run, 30)
   const issues = run.observations
     .flatMap((frame) => frame.outputs)
-    .filter((command) => command.kind === "jevRequestIssued")
+    .filter((command) => command.kind === "reviewServiceRequestIssued")
   // Production server.ts:1986–2000,2098–2101 checks current work before
   // backend issuance. A stale preparation still completes its original facts,
   // but cannot acquire a request; an already-issued review completes physically.
   expect(issues).toHaveLength(phase === "preparation" ? 1 : 2)
   if (phase === "preparation") {
     expect(run.observations.filter((frame) => frame.event.kind === "preparationCompleted")).toHaveLength(2)
-    expect(run.observations.some((frame) => frame.event.kind === "jevRequestReady" && !frame.event.currentWork)).toBe(
-      true
-    )
+    expect(
+      run.observations.some((frame) => frame.event.kind === "reviewServiceRequestReady" && !frame.event.currentWork)
+    ).toBe(true)
   } else {
     const old = issues[0]!
     const oldCallback = run.observations.find(
-      (frame) => frame.event.kind === "jevRequestSettled" && frame.event.request === old.request
+      (frame) =>
+        frame.event.kind === "reviewServiceRequestSettled" &&
+        frame.event.reviewServiceRequestId === old.reviewServiceRequestId
     )!
     expect(oldCallback.event).toMatchObject({
       partition: old.partition,
       lifetime: old.lifetime,
       round: old.round,
       operation: old.operation,
-      request: old.request,
+      reviewServiceRequestId: old.reviewServiceRequestId,
       outcome: "finding",
       currentWork: false
     })
     // Canonical.review_observed_choice retires an owned stale finding; the
-    // canceled/absent-work JevObservationIgnored path has different premises.
+    // canceled/absent-work ReviewServiceRequestObservationIgnored path has different premises.
     expect(oldCallback.outputs).toEqual([
       { category: "event", kind: "reservationReleased", id: 2 },
       { category: "event", kind: "reviewRecorded", outcome: "finding" },
       { category: "event", kind: "staleFindingRetired" },
-      { category: "event", kind: "jevRequestOutcomeRecorded", outcome: "finding" }
+      { category: "event", kind: "reviewServiceRequestOutcomeRecorded", outcome: "finding" }
     ])
-    expect(oldCallback.after.dispatch.requests.some((request) => request.request === old.request)).toBe(false)
+    expect(
+      oldCallback.after.dispatch.reviewServiceRequests.some(
+        (request) => request.reviewServiceRequestId === old.reviewServiceRequestId
+      )
+    ).toBe(false)
   }
   expect(
     run.observations.flatMap((frame) => frame.outputs).filter((command) => command.kind === "findingRetained")
@@ -108,7 +114,7 @@ it.each([
     run.observations.filter((frame) => frame.event.kind === "submissionTerminal").map((frame) => frame.time)
   ).toEqual([next + preparationDelay + 20])
   expect(run.projection.global).toEqual({ items: 1, bytes: 7 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   replay(run)
 })
@@ -138,7 +144,7 @@ it("same input preserves both captured generation members during overlapping pre
     run.observations.filter((frame) => frame.event.kind === "submissionTerminal").map((frame) => frame.time)
   ).toEqual([25, 26])
   expect(run.projection.global).toEqual({ items: 2, bytes: 12 })
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   replay(run)
 })
 
@@ -197,7 +203,7 @@ const expected = (changed: boolean) => [
 ]
 function publicMilestones(frames: readonly Observation[]): number[][] {
   return frames.flatMap((frame) =>
-    frame.event.kind === "jevRequestSettled"
+    frame.event.kind === "reviewServiceRequestSettled"
       ? [
           [
             12,
@@ -206,7 +212,7 @@ function publicMilestones(frames: readonly Observation[]): number[][] {
             frame.event.lifetime,
             frame.event.round,
             frame.event.operation,
-            frame.event.request,
+            frame.event.reviewServiceRequestId,
             Number(frame.event.currentWork)
           ]
         ]
@@ -256,11 +262,13 @@ it.each([false, true])("preserves independent stale-delivery milestones and repl
     final.global.items,
     final.global.bytes,
     final.dispatch.running.length,
-    final.dispatch.requests.length,
+    final.dispatch.reviewServiceRequests.length,
     final.collection.leases.length
   ]
   expect([...publicMilestones(run.observations), snapshot]).toEqual(expected(changed))
-  const old = run.observations.find((frame) => frame.event.kind === "jevRequestSettled" && frame.event.operation === 3)!
+  const old = run.observations.find(
+    (frame) => frame.event.kind === "reviewServiceRequestSettled" && frame.event.operation === 3
+  )!
   if (changed) {
     // The captured request remains known, but its obsolete finding is retired.
     expect(old.outputs).toContainEqual({ category: "event", kind: "staleFindingRetired" })

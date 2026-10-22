@@ -124,10 +124,10 @@ def retired(state: State, scope: Scope) -> State:
 
 # Physical requests survive logical retirement; their original revision capture
 # must remain until the actual request terminates, including cancellation.
-def requests_owned(requests: List<&2, Dispatch.Request>, +scope: Scope) -> Bool:
+def requests_owned(requests: List<&2, Dispatch.ReviewServiceRequestRecord>, +scope: Scope) -> Bool:
   match requests scope:
     case Nil{} _: False{}
-    case Dispatch.Request{p, l, r, o, _, _, _} <> tail Scope{
+    case Dispatch.ReviewServiceRequestRecord{p, l, r, o, _, _, _} <> tail Scope{
       +partition,
       +lifetime,
       +round,
@@ -138,7 +138,7 @@ def requests_owned(requests: List<&2, Dispatch.Request>, +scope: Scope) -> Bool:
         Scope{partition, lifetime, round, operation}
       )
 
-def work_owned(found: Maybe<&2, Canonical.Work>) -> Bool:
+def work_owned(found: Maybe<&2, Canonical.ReviewWorkRecord>) -> Bool:
   match found:
     case Some{_}: True{}
     case None{}: False{}
@@ -232,7 +232,7 @@ def command_feedback(
       Source{subject, input},
       command
     )
-    case Canonical.BeginObservedPreparation{p, l, r, parent, _} Canonical.ActionRequested{
+    case Canonical.BeginObservedPreparation{p, l, r, parent, _} Canonical.ResidentActionRequested{
       Canonical.Prepare{child, _}
     }:
       preparation_feedback(state, p, l, r, parent, child)

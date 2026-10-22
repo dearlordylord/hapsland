@@ -42,7 +42,7 @@ import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
   encodeCurrentResidentRequest,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest
 } from "@hapsland/resident-transport/resident/protocol"
 
@@ -54,7 +54,7 @@ import {
   encodedHostOutputBytes
 } from "@hapsland/resident-runtime/resident/collection"
 
-const findingDispatch = (statePath: string): ResidentDispatchContext => ({
+const findingDispatch = (statePath: string): ResidentReviewExecutionContext => ({
   statePath,
   userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
@@ -68,7 +68,7 @@ const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   }
 })
 
-const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
+const allFindingsDispatch = (statePath: string): ResidentReviewExecutionContext => ({
   statePath,
   userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
   credential: null,
@@ -198,7 +198,7 @@ describe("canonical resident capacity", () => {
     await put(root, "type.ts", text)
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (observation === undefined) throw new Error("missing fixture observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...findingDispatch(join(root, "state")),
       controlled: {
         answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability }]))
@@ -1085,7 +1085,12 @@ describe("resident delivery lease", () => {
     if (base === undefined) throw new Error("missing fixture observation")
     const observation = {
       ...base,
-      advicee: { ...base.advicee, host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null }
+      advicee: {
+        ...base.advicee,
+        agentRuntime: "claude-code" as const,
+        agentRuntimeVersion: "2.1.218" as const,
+        turnId: null
+      }
     }
     let reviews = 0
     const paths = residentPaths(join(root, "runtime"))
@@ -1152,7 +1157,12 @@ describe("resident delivery lease", () => {
     if (base === undefined) throw new Error("missing fixture observation")
     const observation = {
       ...base,
-      advicee: { ...base.advicee, host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null }
+      advicee: {
+        ...base.advicee,
+        agentRuntime: "claude-code" as const,
+        agentRuntimeVersion: "2.1.218" as const,
+        turnId: null
+      }
     }
     const paths = residentPaths(join(root, "runtime"))
     const server = await acquireResidentFixture(paths)
@@ -1290,8 +1300,8 @@ describe("resident delivery lease", () => {
       ...base,
       advicee: {
         ...base.advicee,
-        host: "opencode" as const,
-        hostVersion: "1.14.44" as const,
+        agentRuntime: "opencode" as const,
+        agentRuntimeVersion: "1.14.44" as const,
         turnId: null,
         subagentId: null
       }
@@ -1939,8 +1949,8 @@ describe("resident delivery lease", () => {
     const claude = {
       ...claudeBase,
       advicee: {
-        host: "claude-code" as const,
-        hostVersion: "2.1.293" as const,
+        agentRuntime: "claude-code" as const,
+        agentRuntimeVersion: "2.1.293" as const,
         sessionId: "claude-session",
         turnId: null,
         toolUseId: "claude-tool",
@@ -2037,8 +2047,8 @@ describe("resident delivery lease", () => {
     const observation = {
       ...base,
       advicee: {
-        host: "claude-code" as const,
-        hostVersion: "2.1.218" as const,
+        agentRuntime: "claude-code" as const,
+        agentRuntimeVersion: "2.1.218" as const,
         sessionId: "claude-session",
         turnId: null,
         toolUseId: "write-1",
@@ -2046,7 +2056,7 @@ describe("resident delivery lease", () => {
       }
     }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...findingDispatch(statePath),
       credential: {
         name: "TYPESAFE_API_KEY",
@@ -2085,7 +2095,7 @@ describe("resident delivery lease", () => {
     writeFileSync(credentialStatePath, credentialState(1))
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (observation === undefined) throw new Error("missing fixture observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...findingDispatch(statePath),
       credential: {
         name: "TYPESAFE_API_KEY",
@@ -2162,7 +2172,7 @@ describe("resident delivery lease", () => {
     writeFileSync(credentialStatePath, credentialState(1))
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     if (observation === undefined) throw new Error("missing fixture observation")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...findingDispatch(statePath),
       activityPath,
       credential: {
@@ -2417,8 +2427,8 @@ describe("resident delivery lease", () => {
     const first = {
       ...base,
       advicee: {
-        host: "claude-code" as const,
-        hostVersion: "2.1.218" as const,
+        agentRuntime: "claude-code" as const,
+        agentRuntimeVersion: "2.1.218" as const,
         sessionId: "claude-session",
         turnId: null,
         subagentId: null,
@@ -2432,7 +2442,7 @@ describe("resident delivery lease", () => {
     }
     const issued: Array<{ partition: string; round: number }> = []
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      jevRequestObserver: (event) => {
+      reviewServiceRequestObserver: (event) => {
         if (event.stage === "issued") issued.push(event)
       }
     })
@@ -2864,8 +2874,8 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     const codex = advicee({ sessionId: "codex-session" })
     const claude = {
-      host: "claude-code" as const,
-      hostVersion: "2.1.218" as const,
+      agentRuntime: "claude-code" as const,
+      agentRuntimeVersion: "2.1.218" as const,
       sessionId: "claude-session",
       turnId: null,
       toolUseId: "prompt",
@@ -2989,8 +2999,8 @@ describe("resident delivery lease", () => {
         host === "codex-cli"
           ? advicee({ subagentId: "child" })
           : {
-              host,
-              hostVersion: "2.1.218" as const,
+              agentRuntime: host,
+              agentRuntimeVersion: "2.1.218" as const,
               sessionId: "session",
               turnId: null,
               toolUseId: "edit",
@@ -3167,7 +3177,7 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       dispatchControls: controls.layer
     })
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: {
@@ -3341,7 +3351,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -3495,7 +3505,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -3555,7 +3565,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, paths)))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -3585,7 +3595,9 @@ describe("resident delivery lease", () => {
     expect(metadata.map((item) => item.sequence)).toEqual(
       [...metadata.map((item) => item.sequence)].sort((left, right) => left - right)
     )
-    expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ maxMaterializedPreparedUnits: 64 })
+    expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({
+      maxMaterializedPreparedReviewUnits: 64
+    })
     expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(
       PARTITION_BYTE_LIMIT
     )
@@ -3625,7 +3637,7 @@ describe("resident delivery lease", () => {
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
       expect(observation).toBeDefined()
       if (observation === undefined) throw new Error("fixture adaptation failed")
-      const dispatch: ResidentDispatchContext = {
+      const dispatch: ResidentReviewExecutionContext = {
         statePath,
         userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
         credential: null,
@@ -3657,7 +3669,7 @@ describe("resident delivery lease", () => {
     expect(Effect.runSync(rejected.server.stats()).rejectedCapacity).toBeGreaterThan(0)
     expect(existsSync(rejected.capturePath)).toBe(false)
     expect(
-      (await Effect.runPromise(rejected.server.accountingMetrics())).maxMaterializedPreparedUnits
+      (await Effect.runPromise(rejected.server.accountingMetrics())).maxMaterializedPreparedReviewUnits
     ).toBeLessThanOrEqual(1)
     expect((await Effect.runPromise(rejected.server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(
       PARTITION_BYTE_LIMIT
@@ -3679,7 +3691,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -3746,7 +3758,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [longNestedPath])))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -3756,7 +3768,7 @@ describe("resident delivery lease", () => {
     expect((await Effect.runPromise(server.admit(observation, dispatch))).status).toBe("accepted")
     await Effect.runPromise(server.whenIdle())
     expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 })
-    expect((await Effect.runPromise(server.accountingMetrics())).maxMaterializedPreparedUnits).toBe(0)
+    expect((await Effect.runPromise(server.accountingMetrics())).maxMaterializedPreparedReviewUnits).toBe(0)
     expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(
       PARTITION_BYTE_LIMIT
     )
@@ -3823,7 +3835,7 @@ describe("resident delivery lease", () => {
     if (first === undefined) return
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     const capturePath = join(root, "backend-calls")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -4004,13 +4016,13 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture()
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")
-    const clearDispatch: ResidentDispatchContext = {
+    const clearDispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
       controlled: { capturePath }
     }
-    const finding: ResidentDispatchContext = {
+    const finding: ResidentReviewExecutionContext = {
       ...findingDispatch(statePath),
       controlled: {
         capturePath,
@@ -4031,7 +4043,7 @@ describe("resident delivery lease", () => {
           })
       })
     })
-    const admitSource = async (source: string, toolUseId: string, dispatch: ResidentDispatchContext) => {
+    const admitSource = async (source: string, toolUseId: string, dispatch: ResidentReviewExecutionContext) => {
       await put(root, "type.ts", source)
       const observation = await Effect.runPromise(
         adaptCodexDirectEvent(addEvent(root, ["type.ts"], { tool_use_id: toolUseId }))
@@ -4147,7 +4159,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...findingDispatch(statePath),
       controlled: {
         answers: {
@@ -4323,7 +4335,7 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent")
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")))
     const clearCalls = join(root, "clear-calls")
-    const clearDispatch: ResidentDispatchContext = {
+    const clearDispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -4346,7 +4358,7 @@ describe("resident delivery lease", () => {
     expect(await Effect.runPromise(server.accountingMetrics())).toMatchObject({ successfulCacheEntries: 1 })
 
     const malformedCalls = join(root, "malformed-calls")
-    const malformedDispatch: ResidentDispatchContext = {
+    const malformedDispatch: ResidentReviewExecutionContext = {
       ...clearDispatch,
       controlled: {
         capturePath: malformedCalls,
@@ -4371,7 +4383,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture()
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -4416,7 +4428,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture()
     const statePath = join(root, "consent")
     const capturePath = join(root, "backend-calls")
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,
@@ -4462,7 +4474,7 @@ describe("resident delivery lease", () => {
         candidate.operation === "add" ? { ...candidate, addedLines: [padding] } : candidate
       )
     }
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       userConfigPath: join(statePath, "absent-fixture-user.jsonc"),
       credential: null,

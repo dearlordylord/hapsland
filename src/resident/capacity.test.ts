@@ -3,7 +3,7 @@ import { it as effectIt } from "@effect/vitest"
 import { Effect, Exit } from "effect"
 import {
   makeResidentState,
-  MAX_COLLECTION_TOKEN_IDENTITIES,
+  MAX_ADVICE_HANDOFF_IDENTITIES,
   MAX_PARTITION_IDENTITIES,
   encodedBytesWithin
 } from "@hapsland/resident-runtime/resident/capacity"
@@ -245,7 +245,7 @@ describe("resident logical capacity ledger", () => {
   it("prunes completed collection tokens but retains canonical live tokens", () => {
     const ledger = Effect.runSync(makeResidentState())
     const partition = Effect.runSync(ledger.partitionId("agent"))
-    const live = Effect.runSync(ledger.collectionTokenId("live"))
+    const live = Effect.runSync(ledger.internAdviceHandoffIdentity("live"))
     expect(
       Effect.runSync(
         ledger.transition({
@@ -257,17 +257,17 @@ describe("resident logical capacity ledger", () => {
         })
       ).outputs[0]?.kind
     ).toBe("collectionBackgroundClaimed")
-    for (let index = 0; index < 1000; index++) Effect.runSync(ledger.collectionTokenId(`finished-${index}`))
-    Effect.runSync(ledger.pruneCollectionTokenIds(new Set()))
-    expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(1)
-    expect(Effect.runSync(ledger.collectionTokenId("live"))).toBe(live)
+    for (let index = 0; index < 1000; index++) Effect.runSync(ledger.internAdviceHandoffIdentity(`finished-${index}`))
+    Effect.runSync(ledger.pruneAdviceHandoffIdentities(new Set()))
+    expect(Effect.runSync(ledger.adviceHandoffIdentityCount())).toBe(1)
+    expect(Effect.runSync(ledger.internAdviceHandoffIdentity("live"))).toBe(live)
     expect(
       Effect.runSync(ledger.transition({ kind: "collectionReleaseBackground", group: partition, token: live }))
         .outputs[0]?.kind
     ).toBe("collectionBackgroundReleased")
-    Effect.runSync(ledger.pruneCollectionTokenIds(new Set()))
-    expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(0)
-    expect(MAX_COLLECTION_TOKEN_IDENTITIES).toBeGreaterThan(1000)
+    Effect.runSync(ledger.pruneAdviceHandoffIdentities(new Set()))
+    expect(Effect.runSync(ledger.adviceHandoffIdentityCount())).toBe(0)
+    expect(MAX_ADVICE_HANDOFF_IDENTITIES).toBeGreaterThan(1000)
   })
 
   it.each(["released", "consumed-and-closed"])(
@@ -339,7 +339,7 @@ describe("resident logical capacity ledger", () => {
   it("retains a canonical background collection owner until its claim is released", () => {
     const ledger = Effect.runSync(makeResidentState())
     const partition = Effect.runSync(ledger.partitionId("collector"))
-    const token = Effect.runSync(ledger.collectionTokenId("claim"))
+    const token = Effect.runSync(ledger.internAdviceHandoffIdentity("claim"))
     expect(
       Effect.runSync(
         ledger.transition({ kind: "collectionClaimBackground", group: partition, token, active: true, capacity: 1 })
@@ -702,7 +702,7 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.startReview("agent", unit.operation, nextRound))).toBe(true)
     expect(
       Effect.runSync(
-        ledger.readyJevRequest(
+        ledger.readyReviewServiceRequest(
           "agent",
           unit.operation,
           unit.reservation,
@@ -939,17 +939,17 @@ effectIt.effect("defers dispatch identity allocation and shares one partition ac
 effectIt.effect("allocates one collection token identity on execution and prunes only released keys", () =>
   Effect.gen(function* () {
     const owner = yield* makeResidentState()
-    const allocate = owner.collectionTokenId("collector")
-    expect(yield* owner.collectionTokenIdentityCount()).toBe(0)
+    const allocate = owner.internAdviceHandoffIdentity("collector")
+    expect(yield* owner.adviceHandoffIdentityCount()).toBe(0)
     const ids = yield* Effect.forEach(Array.from({ length: 16 }), () => allocate, { concurrency: "unbounded" })
     expect(new Set(ids).size).toBe(1)
-    expect(yield* owner.collectionTokenIdentityCount()).toBe(1)
-    yield* owner.pruneCollectionTokenIds(new Set(["collector"]))
+    expect(yield* owner.adviceHandoffIdentityCount()).toBe(1)
+    yield* owner.pruneAdviceHandoffIdentities(new Set(["collector"]))
     expect(yield* allocate).toBe(ids[0])
-    const prune = owner.pruneCollectionTokenIds(new Set())
-    expect(yield* owner.collectionTokenIdentityCount()).toBe(1)
+    const prune = owner.pruneAdviceHandoffIdentities(new Set())
+    expect(yield* owner.adviceHandoffIdentityCount()).toBe(1)
     yield* prune
-    expect(yield* owner.collectionTokenIdentityCount()).toBe(0)
+    expect(yield* owner.adviceHandoffIdentityCount()).toBe(0)
   })
 )
 

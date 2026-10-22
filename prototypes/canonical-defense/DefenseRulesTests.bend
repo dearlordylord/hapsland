@@ -10,10 +10,10 @@ import ./DefenseTestSupport.bend as Tests
 import ./DefenseMap.bend as Map
 import ../../packages/agent-flow-bend/Canonical.bend as C
 
-def counts(items: List<&2, C.Work>, +expected: Nat) -> Bool:
+def counts(items: List<&2, C.ReviewWorkRecord>, +expected: Nat) -> Bool:
   match items:
     case Nil{}: True{}
-    case C.Work{_, _, _, _, _, C.PendingFinding{n}, _} <> tail: Nat.is_eq(n, expected) && counts(
+    case C.ReviewWorkRecord{_, _, _, _, _, C.PendingFinding{n}, _} <> tail: Nat.is_eq(n, expected) && counts(
       tail,
       expected
     )
@@ -52,12 +52,12 @@ def mixed_counts(items: List<&2, R.Group>) -> Bool:
       (Nat.is_gt(P.count(Rules.results(group)), 0n) && Nat.is_lt(P.count(Rules.results(group)), 4n)) || mixed_counts(
         tail
       )
-def results_match(items: List<&2, C.Work>, +groups: List<&2, R.Group>) -> Bool:
+def results_match(items: List<&2, C.ReviewWorkRecord>, +groups: List<&2, R.Group>) -> Bool:
   match items:
     case Nil{}: True{}
     case +work <> tail:
       match work:
-        case C.Work{_, _, _, _, _, C.PendingFinding{count}, _}:
+        case C.ReviewWorkRecord{_, _, _, _, _, C.PendingFinding{count}, _}:
           Nat.is_eq(count, Rules.finding_count(Rules.find(Motion.key(work), groups))) && results_match(
             tail,
             groups
@@ -192,7 +192,7 @@ def main() -> IO(Unit):
     )
     Tests.require(
       Nat.is_eq(
-        List.length(&2, C.Work, M.work(M.core(settled))),
+        List.length(&2, C.ReviewWorkRecord, M.work(M.core(settled))),
         2n
       ) && counts(M.work(M.core(settled)), 4n),
       "four findings update each existing result rather than creating four requests"
@@ -208,7 +208,10 @@ def main() -> IO(Unit):
       "separate finding bodies never stack through the Jev fork and retained-room queues"
     )
     Tests.require(
-      U32.is_eq(M.clear(zero), 2) && Nat.is_eq(List.length(&2, C.Work, M.work(M.core(zero))), 0n),
+      U32.is_eq(M.clear(zero), 2) && Nat.is_eq(
+        List.length(&2, C.ReviewWorkRecord, M.work(M.core(zero))),
+        0n
+      ),
       "zero percent sends both actual requests to clear without advice"
     )
     Tests.require(

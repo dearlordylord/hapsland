@@ -144,7 +144,7 @@ export function createGameBusinessReplay(settings: BusinessReplaySettings = {}, 
         // Each settlement installs the game's four-check multiplicity before
         // another event, matching the Host's public scheduling boundary.
         for (const frame of publicFrames.slice(firstFrame)) {
-          if (frame.kind !== "canonical" || frame.observation.event.kind !== "jevRequestSettled") continue
+          if (frame.kind !== "canonical" || frame.observation.event.kind !== "reviewServiceRequestSettled") continue
           const event = frame.observation.event
           if (event.outcome !== "finding" || !event.currentWork) continue
           const work = run.observe().projection.work.find(item => item.partition === event.partition &&

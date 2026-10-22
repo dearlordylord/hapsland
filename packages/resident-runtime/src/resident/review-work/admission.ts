@@ -24,12 +24,15 @@ import {
   type ReviewSettingsSnapshot,
   type ReviewSettingsOperations
 } from "@hapsland/review-definition/runtime/review-settings"
-import { type ResidentDispatchContext, type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
-import { type CapacityReservation } from "../state/resident/state.ts"
-import { type Dispatcher } from "../state/dispatch.ts"
+import {
+  type ResidentReviewExecutionContext,
+  type ResidentResponse
+} from "@hapsland/resident-transport/resident/protocol"
+import { type ReviewCapacityReservationHandle } from "../state/resident/state.ts"
+import { type ReviewWorkScheduler } from "../state/dispatch.ts"
 import { type ResidentLedger, type IngressJob, type Job } from "../work-ownership/jobs.ts"
 import { RESERVATION_OVERHEAD_BYTES } from "../work-ownership/reservation.ts"
-import { recipientPartition, editPermitIdentity, dispatchForSourceRoot } from "../recipient/identity.ts"
+import { adviceeScopeKey, editPermitIdentity, dispatchForSourceRoot } from "../recipient/identity.ts"
 import { logicalBytes } from "../state/encoded-size.ts"
 
 type Dependencies = {
@@ -41,13 +44,13 @@ type Dependencies = {
     job: Pick<Job, "dispatch" | "observation"> & { readonly analyticsEnabled?: boolean },
     kind:
       | "submitted"
-      | "request-started"
-      | "request-clear"
-      | "request-findings"
-      | "request-failed"
-      | "request-timeout"
-      | "request-interrupted"
-      | "request-never-sent"
+      | "review-service-request-started"
+      | "review-service-request-clear"
+      | "review-service-request-findings"
+      | "review-service-request-failed"
+      | "review-service-request-timeout"
+      | "review-service-request-interrupted"
+      | "review-service-request-never-sent"
       | "cache-hit"
       | "joined-review"
       | "skipped-candidate"
@@ -60,29 +63,29 @@ type Dependencies = {
   ) => Effect.Effect<void, never, never>
   readonly runtimeConfiguration: Effect.Success<ReturnType<typeof makeResidentRuntimeConfiguration>>
   readonly reviewSettings: ReviewSettingsOperations
-  readonly residentOptionalUserConfig: (dispatch: ResidentDispatchContext) => string | undefined
+  readonly residentOptionalUserConfig: (dispatch: ResidentReviewExecutionContext) => string | undefined
   readonly residentNow: () => number
   readonly residentExpirePending: (now: number) => Effect.Effect<void, never, never>
   readonly residentPruneNoticeCooldowns: (
     now: number,
     exceptKey?: string | undefined
   ) => Effect.Effect<void, never, never>
-  readonly residentDispatcher: Dispatcher<string, Job>
+  readonly residentDispatcher: ReviewWorkScheduler<string, Job>
   readonly inspection: Effect.Success<ReturnType<typeof makeResidentInspection>>["recorder"]
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
   readonly admissionLock: Semaphore.Semaphore
 }
-const residentPruneCollectionTokenIds = Effect.fn("ResidentRuntime.pruneCollectionTokenIds")(function* (
+const residentPruneCollectionTokenIds = Effect.fn("ResidentRuntime.pruneAdviceHandoffIdentities")(function* (
   deps: Dependencies
 ) {
-  const live = yield* deps.residentComposedDelivery.liveCollectionTokenKeys()
+  const live = yield* deps.residentComposedDelivery.liveAdviceHandoffIdentityKeys()
   for (const { content } of yield* deps.residentLedger.advice.snapshots()) {
     if (content.delivery !== undefined) live.add(content.delivery.token)
   }
   for (const notice of (yield* deps.residentNotices.entries()).map(([, value]) => value)) {
     if (notice.pending?.delivery !== undefined) live.add(notice.pending.delivery.token)
   }
-  yield* deps.residentLedger.pruneCollectionTokenIds(live)
+  yield* deps.residentLedger.pruneAdviceHandoffIdentities(live)
 }, Effect.uninterruptible)
 const residentRoundSnapshot = Effect.fn("ResidentRuntime.roundSnapshot")(function* (
   deps: Dependencies,
@@ -95,7 +98,7 @@ const residentRoundSnapshot = Effect.fn("ResidentRuntime.roundSnapshot")(functio
 function recordResidentObservationActivity(
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   stage: "pending" | "incomplete" | "unavailable"
 ): void {
   recordActivity({
@@ -109,7 +112,7 @@ function recordResidentObservationActivity(
 const residentRejectAdmissionCapacity = Effect.fn("ResidentRuntime.rejectAdmissionCapacity")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ) {
   yield* deps.residentLedger.runtime.rejectCapacity()
   yield* deps.residentRecordAnalytics({ observation, dispatch }, "capacity-rejected")
@@ -136,7 +139,7 @@ const residentBindAdmissionRound = Effect.fn("ResidentRuntime.bindAdmissionRound
   group: string,
   generation: number | undefined,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ) {
   return generation === undefined
     ? undefined
@@ -157,16 +160,16 @@ const residentAdmissionCanonicalRound = Effect.fn("ResidentRuntime.admissionCano
   round: RoundWork | undefined,
   partition: string
 ) {
-  return round?.canonicalRound ?? (yield* deps.residentLedger.roundId(partition))
+  return round?.canonicalRoundId ?? (yield* deps.residentLedger.roundId(partition))
 })
 const residentAdmissionJob = Effect.fn("ResidentRuntime.admissionJob")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   partition: string,
-  canonicalRound: number,
+  canonicalRoundId: number,
   canonicalObservationId: number,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   round: RoundWork | undefined,
   settings: ReviewSettingsSnapshot,
   inspectionReceipt: InspectionReceipt | undefined
@@ -183,7 +186,7 @@ const residentAdmissionJob = Effect.fn("ResidentRuntime.admissionJob")(function*
     kind: "ingress",
     ...(inspectionReceipt === undefined ? {} : { inspectionReceipt }),
     settings,
-    canonicalRound,
+    canonicalRoundId,
     ...roundFields,
     observation,
     canonicalObservationId,
@@ -220,7 +223,7 @@ const residentAdmissionSettings = Effect.fn("ResidentRuntime.admissionSettings")
   deps: Dependencies,
   observation: DirectObservation,
   group: string,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ) {
   const registered = yield* deps.residentComposedDelivery.registeredEditSettings(
     group,
@@ -285,16 +288,16 @@ const residentCanonicalAdmissionIds = Effect.fn("ResidentRuntime.canonicalAdmiss
   round: RoundWork | undefined,
   partition: string
 ) {
-  const canonicalRound =
-    editAdmission?.canonicalRound ?? (yield* residentAdmissionCanonicalRound(deps, round, partition))
+  const canonicalRoundId =
+    editAdmission?.canonicalRoundId ?? (yield* residentAdmissionCanonicalRound(deps, round, partition))
   const canonicalObservationId =
-    editAdmission?.canonicalObservationId ?? (yield* deps.residentLedger.admitObservation(partition, canonicalRound))
-  return { canonicalRound, canonicalObservationId }
+    editAdmission?.canonicalObservationId ?? (yield* deps.residentLedger.admitObservation(partition, canonicalRoundId))
+  return { canonicalRoundId, canonicalObservationId }
 })
 const residentAdmissionPreflight = Effect.fn("ResidentRuntime.admissionPreflight")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   composed: boolean
 ) {
   const now = deps.residentNow()
@@ -304,7 +307,7 @@ const residentAdmissionPreflight = Effect.fn("ResidentRuntime.admissionPreflight
   yield* deps.residentPruneNoticeCooldowns(now)
   if ((yield* deps.residentLedger.runtime.snapshot()).lifecycle !== "active")
     return { response: { status: "rejected-capacity" as const } }
-  const group = recipientPartition(observation.advicee)
+  const group = adviceeScopeKey(observation.advicee)
   const settings = yield* residentAdmissionSettings(deps, observation, group, dispatch)
   // A registered edit keeps its original snapshot, even after the cache expires.
   if (settings === undefined) return { response: { status: "rejected-stale" as const } }
@@ -327,7 +330,7 @@ const residentAdmissionPreflight = Effect.fn("ResidentRuntime.admissionPreflight
 const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   composed = false,
   requirePermit = false,
   inspectionReceipt?: InspectionReceipt
@@ -336,7 +339,7 @@ const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
   if ("response" in preflight) return { response: preflight.response }
   const { group, settings, reservation } = preflight
   const editAdmission = yield* residentAdmissionGeneration(deps, group, observation, composed, requirePermit)
-  const generation = editAdmission?.generation
+  const generation = editAdmission?.admissionRoundId
   const editSettings = editAdmission?.settings ?? settings
   if (residentAdmissionStale(composed, generation)) {
     recordResidentObservationActivity(deps, observation, dispatch, "incomplete")
@@ -345,7 +348,7 @@ const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
   }
   const round = yield* residentBindAdmissionRound(deps, group, generation, observation, dispatch)
   const partition = group
-  const { canonicalRound, canonicalObservationId } = yield* residentCanonicalAdmissionIds(
+  const { canonicalRoundId, canonicalObservationId } = yield* residentCanonicalAdmissionIds(
     deps,
     editAdmission,
     round,
@@ -356,7 +359,7 @@ const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
     observation,
     dispatch,
     partition,
-    canonicalRound,
+    canonicalRoundId,
     canonicalObservationId,
     reservation,
     round,
@@ -364,7 +367,7 @@ const admitCore = Effect.fn("ResidentRuntime.admitCore")(function* (
     inspectionReceipt
   )
   if (!(yield* deps.residentDispatcher.enqueue(partition, job))) {
-    yield* deps.residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound)
+    yield* deps.residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRoundId)
     yield* deps.residentLedger.release(reservation)
     yield* residentRejectAdmissionCapacity(deps, observation, dispatch)
     return { response: { status: "rejected-capacity" } }
@@ -382,7 +385,7 @@ const residentRetireCandidateRoots = Effect.fn("ResidentRuntime.retireCandidateR
   for (const root of roots) {
     if (root === keepRoot) continue
     yield* deps.residentComposedDelivery.retireEdit(
-      recipientPartition(observation.advicee),
+      adviceeScopeKey(observation.advicee),
       editPermitIdentity(root, observation.advicee)
     )
   }
@@ -391,7 +394,7 @@ const residentCandidateEligible = Effect.fn("ResidentRuntime.candidateEligible")
   deps: Dependencies,
   single: DirectObservation,
   group: string,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   requirePermit: boolean
 ) {
   if (
@@ -415,7 +418,7 @@ const residentFirstTarget = Effect.fn("ResidentRuntime.firstTarget")(function* (
   deps: Dependencies,
   observation: DirectObservation,
   group: string,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   requirePermit: boolean,
   pinnedRoot?: string
 ) {
@@ -440,12 +443,12 @@ const residentRouteSingleSource = Effect.fn("ResidentRuntime.routeSingleSource")
 const residentRouteObservation = Effect.fn("ResidentRuntime.routeObservation")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   composed: boolean,
   requirePermit: boolean
 ) {
   if (!composed) return { observation, skipped: [] as string[] }
-  const group = recipientPartition(observation.advicee)
+  const group = adviceeScopeKey(observation.advicee)
   yield* deps.residentComposedDelivery.expirePermits(monotonicNow())
   const pin = yield* residentPinnedActivity(deps, group)
   if (observation.candidateRoots === undefined)
@@ -474,7 +477,7 @@ const residentSkippedAdmission = Effect.fn("ResidentRuntime.skippedAdmission")(f
   receipts: ReadonlyMap<string, InspectionReceipt>,
   skipped: ReadonlyArray<string>
 ) {
-  const active = yield* deps.residentLedger.rounds.get(recipientPartition(observation.advicee))
+  const active = yield* deps.residentLedger.rounds.get(adviceeScopeKey(observation.advicee))
   const pin = active === undefined ? undefined : yield* deps.residentLedger.rounds.activity(active)
   for (const receipt of receipts.values()) {
     deps.inspection.offer(receipt.scope, receipt.correlation, {
@@ -484,7 +487,7 @@ const residentSkippedAdmission = Effect.fn("ResidentRuntime.skippedAdmission")(f
     if (pin !== undefined && active !== undefined)
       deps.inspection.offer(receipt.scope, receipt.correlation, {
         kind: "round-membership",
-        roundId: `${deps.lifetime}:${active.canonicalRound}`,
+        roundId: `${deps.lifetime}:${active.canonicalRoundId}`,
         pinnedRoot: pin.root,
         skippedPaths: skipped
       })
@@ -501,9 +504,9 @@ const residentRetryCandidates = Effect.fn("ResidentRuntime.retryCandidates")(fun
 ) {
   if (!composed || native.candidateRoots === undefined) return undefined
   if (status !== "rejected-stale" && status !== "rejected-capacity") return undefined
-  if ((yield* deps.residentLedger.rounds.get(recipientPartition(selected.advicee))) !== undefined) return undefined
+  if ((yield* deps.residentLedger.rounds.get(adviceeScopeKey(selected.advicee))) !== undefined) return undefined
   yield* deps.residentComposedDelivery.retireEdit(
-    recipientPartition(selected.advicee),
+    adviceeScopeKey(selected.advicee),
     editPermitIdentity(selected.root, selected.advicee)
   )
   const candidateRoots = remaining.candidateRoots!.map((target) => (target?.root === selected.root ? null : target))
@@ -519,12 +522,12 @@ const residentAcceptedMembership = Effect.fn("ResidentRuntime.acceptedMembership
   composed: boolean
 ) {
   if (!composed || status !== "accepted") return
-  const active = yield* deps.residentLedger.rounds.get(recipientPartition(observation.advicee))
+  const active = yield* deps.residentLedger.rounds.get(adviceeScopeKey(observation.advicee))
   if (active === undefined) return
   yield* residentRetireCandidateRoots(deps, native, observation.root)
   deps.inspection.offer(receipt.scope, receipt.correlation, {
     kind: "round-membership",
-    roundId: `${deps.lifetime}:${active.canonicalRound}`,
+    roundId: `${deps.lifetime}:${active.canonicalRoundId}`,
     pinnedRoot: observation.root,
     skippedPaths: skipped
   })
@@ -532,7 +535,7 @@ const residentAcceptedMembership = Effect.fn("ResidentRuntime.acceptedMembership
 const residentAdmitSource = Effect.fn("ResidentRuntime.admitSource")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   composed: boolean,
   requirePermit: boolean,
   receipt: InspectionReceipt
@@ -558,7 +561,7 @@ const residentRecordOtherRootAdmissions = (
 const residentAdmitOperation = Effect.fn("ResidentRuntime.admit")(function* (
   deps: Dependencies,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   composed = false,
   requirePermit = false
 ): Effect.fn.Return<{ readonly response: ResidentResponse; readonly settings?: ReviewSettingsSnapshot }> {
@@ -597,7 +600,7 @@ const residentAdmit = (
   deps: Dependencies,
   ...args: [
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     composed?: boolean,
     requirePermit?: boolean
   ]
@@ -607,7 +610,7 @@ const admit = Effect.fn("ResidentRuntime.admitResponse")(
     deps: Dependencies,
     ...args: [
       observation: DirectObservation,
-      dispatch: ResidentDispatchContext,
+      dispatch: ResidentReviewExecutionContext,
       composed?: boolean,
       requirePermit?: boolean
     ]

@@ -19,7 +19,7 @@ import {
 import { residentRequestEffect as residentRequest } from "@hapsland/resident-transport/resident/client"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 
 const marker = "SYNTHETIC_SOURCE_MARKER_7fb741a1"
 const processes: number[] = []
@@ -97,7 +97,7 @@ describe("security sink prototype", () => {
     )
     expect(observation).toBeDefined()
     if (observation === undefined) return
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       statePath,
       activityPath,
       userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),

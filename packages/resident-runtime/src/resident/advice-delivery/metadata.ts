@@ -15,7 +15,7 @@ export type PendingAdviceMetadata = ReadonlyArray<{
 
 export type AccountingMetrics = {
   readonly peakLedgerBytes: number
-  readonly maxMaterializedPreparedUnits: number
+  readonly maxMaterializedPreparedReviewUnits: number
   readonly successfulCacheEntries: number
   readonly successfulCacheBytes: number
   readonly pendingEvaluations: number

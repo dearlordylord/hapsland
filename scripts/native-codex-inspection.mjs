@@ -99,7 +99,7 @@ export async function runCodexInspectionProfile({ project, archivePath, model, p
         installationProbeRuntime: profile?.prepareRuntime
           ? "pinned-bun-with-packaged-native-entrypoint"
           : "packaged-native-runtime",
-        maximumJevRequests: 0,
+        maximumReviewServiceRequests: 0,
         automaticHostRetries: 0,
         syntheticRepositoryOnly: true,
         ordinaryTaskInstructions: true,

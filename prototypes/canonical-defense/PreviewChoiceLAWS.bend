@@ -56,7 +56,7 @@ law jev_capture:
   for +order: Nat
   for +selected: Bool
   {
-    P.candidate(CB.Target{owner, CB.JevSettled{request}, order}, selected)
+    P.candidate(CB.Target{owner, CB.ReviewServiceRequestSettled{request}, order}, selected)
     == Marks.Target{P.key(owner), None{}, order, selected}
     : Marks.Target
   }

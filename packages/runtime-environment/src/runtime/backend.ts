@@ -2,9 +2,10 @@ import * as Schema from "effect/Schema"
 import * as Record from "effect/Record"
 
 /** Closed provider set. Every provider declaration and execution registration must cover it. */
-export const ReviewProviderId = Schema.Literals(["jev", "cloudflare", "openai"])
-export type BackendId = typeof ReviewProviderId.Type
-export const [JEV_BACKEND, CLOUDFLARE_BACKEND, OPENAI_BACKEND] = ReviewProviderId.literals
+/** The selected code-review service, distinct from the local resident and the agent runtime. */
+export const ReviewServiceId = Schema.Literals(["jev", "cloudflare", "openai"])
+export type ReviewServiceId = typeof ReviewServiceId.Type
+export const [JEV_BACKEND, CLOUDFLARE_BACKEND, OPENAI_BACKEND] = ReviewServiceId.literals
 
 export type RequestContentProfile = "state" | "openai"
 export type WireQuestionIdProfile = "rule-id" | "opaque"
@@ -33,7 +34,7 @@ type ProviderDeclaration = Readonly<{
 }>
 
 const defineProvider = <
-  const Id extends BackendId,
+  const Id extends ReviewServiceId,
   const Models extends Readonly<Record<string, ProviderLimits>>,
   const Declaration extends ProviderDeclaration,
   const Fields extends Schema.Struct.Fields
@@ -139,7 +140,7 @@ export const REVIEW_PROVIDERS = {
     (model) => ({ model: model.annotate({ description: "OpenAI Decisions model selector." }) })
   )
 } satisfies {
-  readonly [Id in BackendId]: ProviderDeclaration & {
+  readonly [Id in ReviewServiceId]: ProviderDeclaration & {
     readonly id: Id
     readonly schema: Schema.Schema<{ readonly provider: Id }>
     readonly models: Readonly<Record<string, ProviderLimits>>
@@ -153,7 +154,7 @@ const CREDENTIAL_ENVIRONMENT_ONLY = { "jev-key-store": false, environment: true 
   boolean
 >
 
-export const providerEnvironmentOnly = (id: BackendId): boolean =>
+export const providerEnvironmentOnly = (id: ReviewServiceId): boolean =>
   CREDENTIAL_ENVIRONMENT_ONLY[REVIEW_PROVIDERS[id].credentials]
 
 export const ReviewBackendSettings = Schema.Union(
@@ -164,7 +165,7 @@ export const ReviewBackendSettings = Schema.Union(
     "User-owned review destination and provider-specific model/account selection. Projects cannot set this field."
 })
 export type ReviewBackendSettings = typeof ReviewBackendSettings.Type
-export type ReviewModel = (typeof REVIEW_PROVIDERS)[BackendId]["model"]["Type"]
+export type ReviewModel = (typeof REVIEW_PROVIDERS)[ReviewServiceId]["model"]["Type"]
 export const DEFAULT_REVIEW_BACKEND = { provider: JEV_BACKEND } as const satisfies ReviewBackendSettings
 
 export const JEV_PROVIDER = REVIEW_PROVIDERS[JEV_BACKEND]

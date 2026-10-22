@@ -145,7 +145,7 @@ export const flowNodesView = <Message>(
                 [
                   node.id === "scheduling"
                     ? `Preparing: agent ${projection.dispatch.running.filter((w) => w.preparation).length} · shared ${resident.dispatch.running.filter((w) => w.preparation).length}/${resident.executionLimits.preparation}`
-                    : `Jev: agent ${projection.dispatch.requests.length} · shared ${resident.dispatch.requests.length}/${resident.executionLimits.jevRequests}`
+                    : `Jev: agent ${projection.dispatch.reviewServiceRequests.length} · shared ${resident.dispatch.reviewServiceRequests.length}/${resident.executionLimits.reviewServiceRequests}`
                 ]
               )
             ]

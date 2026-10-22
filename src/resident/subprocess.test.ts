@@ -20,7 +20,7 @@ import {
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import {
-  acknowledgeAdviceEffect as acknowledgeAdvice,
+  recordAdviceSubmissionAndFinalizeEffect as acknowledgeAdvice,
   beginComposedSubmissionEffect as beginComposedSubmission,
   collectReadyEffect as collectReady,
   composedStopBoundaryEffect as composedStopBoundary,
@@ -31,7 +31,7 @@ import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
 import {
   DELIVERY_LEASE_MS,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest
 } from "@hapsland/resident-transport/resident/protocol"
 
@@ -100,7 +100,10 @@ const waitFor = async <A>(read: () => Promise<A | undefined>, milliseconds = 5_0
 
 const answers = Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0.9 }]))
 
-const dispatchFor = (statePath: string, options: { readonly capturePath?: string } = {}): ResidentDispatchContext => ({
+const dispatchFor = (
+  statePath: string,
+  options: { readonly capturePath?: string } = {}
+): ResidentReviewExecutionContext => ({
   statePath,
   userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
   credential: null,
@@ -558,7 +561,7 @@ describe("resident separate-process lifecycle", () => {
 
     const paths = residentPaths(runtime)
     const owner = identities[0]!
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...dispatchFor(statePath),
       controlled: {
         answers: Object.fromEntries(
@@ -635,7 +638,7 @@ describe("resident separate-process lifecycle", () => {
     await writeFile(`${ackGate}.enabled`, "enabled\n")
     expect(await runClient(beginComposedSubmission(advice, "edit"))).toBe(true)
     const ackScript = [
-      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
+      "import {recordAdviceSubmissionAndFinalizeEffect as acknowledgeAdvice} from './packages/resident-transport/src/resident/client.ts';\nimport { runClient } from '@hapsland/build-tooling/test-support/client-runtime';",
       `const advice=${JSON.stringify(advice)};`,
       "await runClient(acknowledgeAdvice(advice));"
     ].join("")
@@ -807,7 +810,7 @@ describe("resident separate-process lifecycle", () => {
       return JSON.parse(await childResult(child)) as { pid: number; lifetime: string }
     }
     const paths = residentPaths(runtime)
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...dispatchFor(statePath),
       controlled: {
         answers: Object.fromEntries(
@@ -818,7 +821,7 @@ describe("resident separate-process lifecycle", () => {
         )
       }
     }
-    const failingDispatch: ResidentDispatchContext = {
+    const failingDispatch: ResidentReviewExecutionContext = {
       ...dispatch,
       controlled: { failure: "fixture backend unavailable" }
     }

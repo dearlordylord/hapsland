@@ -9,9 +9,11 @@ it("refuses saturated Jev requests immediately and admits fresh work after a per
   const run = createRun({ inputs, jevDelay: 1000 })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
 
-  const issued = run.observations.filter((item) => item.outputs.some((command) => command.kind === "jevRequestIssued"))
+  const issued = run.observations.filter((item) =>
+    item.outputs.some((command) => command.kind === "reviewServiceRequestIssued")
+  )
   const unavailable = run.observations.filter((item) =>
-    item.outputs.some((command) => command.kind === "jevRequestUnavailable")
+    item.outputs.some((command) => command.kind === "reviewServiceRequestUnavailable")
   )
   expect(issued.filter((item) => item.time < 1000)).toHaveLength(8)
   expect(unavailable).toHaveLength(12)
@@ -63,16 +65,18 @@ it("a finish attempt waits for both requests, then a deadline cancels their exac
     .sort()
   expect(cancelled).toEqual(started)
   expect(run.advance({ maxEvents: 100 }).reason).toBe("idle")
-  const late = run.observations.filter((item) => item.event.kind === "jevRequestSettled")
+  const late = run.observations.filter((item) => item.event.kind === "reviewServiceRequestSettled")
   expect(late.map((item) => item.outputs.map((command) => command.kind))).toEqual([
-    ["jevObservationIgnored"],
-    ["jevObservationIgnored"]
+    ["reviewServiceRequestObservationIgnored"],
+    ["reviewServiceRequestObservationIgnored"]
   ])
-  const issuedRequests = run.observations
+  const issuedReviewServiceRequestIds = run.observations
     .flatMap((item) => item.effects)
     .filter((effect) => effect.kind === "jev" && effect.phase === "started")
-    .map((effect) => effect.request)
-  expect(late.map((item) => ("request" in item.event ? item.event.request : null))).toEqual(issuedRequests)
+    .map((effect) => effect.reviewServiceRequestId)
+  expect(
+    late.map((item) => ("reviewServiceRequestId" in item.event ? item.event.reviewServiceRequestId : null))
+  ).toEqual(issuedReviewServiceRequestIds)
 })
 
 it("same-time completion and deadline follow recorded insertion order", () => {
@@ -89,12 +93,12 @@ it("same-time completion and deadline follow recorded insertion order", () => {
       .filter((item) => item.time === 7)
       .slice(0, 2)
       .map((item) => item.event.kind)
-  ).toEqual(["stopPolled", "jevRequestSettled"])
+  ).toEqual(["stopPolled", "reviewServiceRequestSettled"])
   expect(
     beforeCompletion.observations
-      .find((item) => item.event.kind === "jevRequestSettled")
+      .find((item) => item.event.kind === "reviewServiceRequestSettled")
       ?.outputs.map((command) => command.kind)
-  ).toEqual(["jevObservationIgnored"])
+  ).toEqual(["reviewServiceRequestObservationIgnored"])
 
   const afterCompletion = createRun({ inputs: [edit], jevDelay: 5 })
   afterCompletion.advance({ untilTime: 2 })
@@ -105,10 +109,10 @@ it("same-time completion and deadline follow recorded insertion order", () => {
       .filter((item) => item.time === 7)
       .slice(0, 2)
       .map((item) => item.event.kind)
-  ).toEqual(["jevRequestSettled", "stopPolled"])
+  ).toEqual(["reviewServiceRequestSettled", "stopPolled"])
   expect(
     afterCompletion.observations
-      .find((item) => item.event.kind === "jevRequestSettled")
+      .find((item) => item.event.kind === "reviewServiceRequestSettled")
       ?.outputs.map((command) => command.kind)
   ).toContain("findingRetained")
 })
@@ -135,14 +139,14 @@ it("readies completed findings after a Stop deadline cancels sibling work", () =
   })
   run.advance({ untilTime: 3 })
   const issued = run.observations.flatMap((item) =>
-    item.outputs.filter((command) => command.kind === "jevRequestIssued")
+    item.outputs.filter((command) => command.kind === "reviewServiceRequestIssued")
   )
   expect(issued).toHaveLength(2)
   const { kind: _kind, category: _category, ...binding } = issued[0]!
   run.schedule({
     at: 4,
     kind: "canonical",
-    event: { kind: "jevRequestSettled", ...binding, outcome: "finding", currentWork: true }
+    event: { kind: "reviewServiceRequestSettled", ...binding, outcome: "finding", currentWork: true }
   })
   run.advance({ untilTime: 20 })
   const deadline = run.observations.find((item) => item.event.kind === "stopPolled" && item.time === 10)

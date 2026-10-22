@@ -54,7 +54,11 @@ describe("direct-event Codex Add adapter", () => {
           "PreToolUse"
         )
       )
-    ).toMatchObject({ root: target, advicee: { host: "claude-code", sessionId: "claude" }, editRoots: [target] })
+    ).toMatchObject({
+      root: target,
+      advicee: { agentRuntime: "claude-code", sessionId: "claude" },
+      editRoots: [target]
+    })
   })
   it("maps background and Stop identities for both hosts without inferring a child", async () => {
     const root = await makeGitFixture()
@@ -65,7 +69,7 @@ describe("direct-event Codex Add adapter", () => {
         "Stop"
       )
     )
-    expect(codex).toMatchObject({ root, advicee: { host: "codex-cli", sessionId: "codex", subagentId: null } })
+    expect(codex).toMatchObject({ root, advicee: { agentRuntime: "codex-cli", sessionId: "codex", subagentId: null } })
     const claude = await Effect.runPromise(
       adaptComposedHookIdentity(
         {
@@ -85,8 +89,8 @@ describe("direct-event Codex Add adapter", () => {
     expect(claude).toMatchObject({
       root,
       advicee: {
-        host: "claude-code",
-        hostVersion: "2.1.293",
+        agentRuntime: "claude-code",
+        agentRuntimeVersion: "2.1.293",
         sessionId: "claude",
         toolUseId: "tool",
         subagentId: "child"
@@ -140,7 +144,7 @@ describe("direct-event Codex Add adapter", () => {
     }
     expect(await Effect.runPromise(adaptComposedHookIdentity(event, "codex-cli", "PostToolUse"))).toMatchObject({
       root,
-      advicee: { host: "codex-cli", sessionId: "codex", toolUseId: "check" }
+      advicee: { agentRuntime: "codex-cli", sessionId: "codex", toolUseId: "check" }
     })
     expect(
       await Effect.runPromise(
@@ -160,7 +164,7 @@ describe("direct-event Codex Add adapter", () => {
       ).toBeUndefined()
       expect(
         await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "SubagentStop"))
-      ).toMatchObject({ root, advicee: { host, sessionId: "session", subagentId: "child" } })
+      ).toMatchObject({ root, advicee: { agentRuntime: host, sessionId: "session", subagentId: "child" } })
       expect(
         await Effect.runPromise(adaptComposedHookIdentity({ ...event, agent_id: "child" }, host, "Stop"))
       ).toBeUndefined()
@@ -169,7 +173,7 @@ describe("direct-event Codex Add adapter", () => {
   it.each(["0.156.0", "0.160.0", "0.161.0"])("preserves the selected %s host identity", async (version) => {
     const root = await makeGitFixture()
     const result = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root), version))
-    expect(result?.advicee.hostVersion).toBe(version)
+    expect(result?.advicee.agentRuntimeVersion).toBe(version)
   })
   it("preserves the complete explicit advicee and canonical Git root", async () => {
     const root = await makeGitFixture()
@@ -178,8 +182,8 @@ describe("direct-event Codex Add adapter", () => {
     expect(result).toMatchObject({
       root,
       advicee: {
-        host: "codex-cli",
-        hostVersion: "0.155.1",
+        agentRuntime: "codex-cli",
+        agentRuntimeVersion: "0.155.1",
         sessionId: "session",
         turnId: "turn",
         toolUseId: "tool-use",

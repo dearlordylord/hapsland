@@ -10,10 +10,11 @@ export type RoundActivity = {
   readonly advicee: DirectAdvicee
   readonly activityPath: string | undefined
 }
+/** Binds an admission round to its separately allocated canonical round and native cancellation handle. */
 export interface RoundWork {
-  readonly group: string
-  readonly generation: number
-  readonly canonicalRound: number
+  readonly adviceeScopeKey: string
+  readonly admissionRoundId: number
+  readonly canonicalRoundId: number
   readonly controller: AbortController
 }
 export type RoundRecord = {
@@ -38,22 +39,23 @@ export const roundRecordOperations = (
   owner: Pick<CapacityLedger, "roundId" | "retireRound" | "dispatchScope" | "partitionId" | "canonicalProjection">
 ) => ({
   bind: (
-    group: string,
-    generation: number,
+    adviceeScopeKey: string,
+    admissionRoundId: number,
     activity: RoundActivity,
-    create: (canonicalRound: number, partition: number) => Omit<RoundRecord, "activity">
+    create: (canonicalRoundId: number, partition: number) => Omit<RoundRecord, "activity">
   ): RoundWork => {
-    const canonicalRound = owner.roundId(group)
-    const partition = owner.partitionId(group)
+    const canonicalRoundId = owner.roundId(adviceeScopeKey)
+    const partition = owner.partitionId(adviceeScopeKey)
     const admission = owner.canonicalProjection().admissions.find((entry) => entry.partition === partition)
-    if (admission?.active !== true || admission.round !== generation)
-      throw new Error("native round binding lacks its canonical admission generation")
-    const previous = draft.entries.get(group)
+    if (admission?.active !== true || admission.round !== admissionRoundId)
+      throw new Error("native round binding lacks its canonical admission round")
+    const previous = draft.entries.get(adviceeScopeKey)
     const record: RoundRecord =
-      previous?.capability.generation === generation && previous.capability.canonicalRound === canonicalRound
+      previous?.capability.admissionRoundId === admissionRoundId &&
+      previous.capability.canonicalRoundId === canonicalRoundId
         ? { ...previous, activity: snapshotActivity(activity) }
-        : { ...create(canonicalRound, partition), activity: snapshotActivity(activity) }
-    draft.entries.set(group, Object.freeze(record))
+        : { ...create(canonicalRoundId, partition), activity: snapshotActivity(activity) }
+    draft.entries.set(adviceeScopeKey, Object.freeze(record))
     return record.capability
   },
   replaceWork: (
@@ -66,12 +68,12 @@ export const roundRecordOperations = (
       readonly hasUnnamed: boolean
     }
   ): { readonly matched: boolean; readonly previousWork: WorkCohort } | undefined => {
-    const record = draft.entries.get(round.group)
+    const record = draft.entries.get(round.adviceeScopeKey)
     if (record?.capability !== round) return undefined
     const matched = owner.dispatchScope(counts.named.queued + counts.named.running, counts.cancelled, counts.hasUnnamed)
     const discarded = matched ? counts.named : counts.all
     draft.entries.set(
-      round.group,
+      round.adviceeScopeKey,
       Object.freeze({
         ...record,
         work: Object.freeze({ ...work }),
@@ -84,20 +86,20 @@ export const roundRecordOperations = (
     return { matched, previousWork: record.work }
   },
   retire: (round: RoundWork): boolean => {
-    if (draft.entries.get(round.group)?.capability !== round) return false
-    owner.retireRound(round.group, round.canonicalRound)
-    draft.entries.delete(round.group)
+    if (draft.entries.get(round.adviceeScopeKey)?.capability !== round) return false
+    owner.retireRound(round.adviceeScopeKey, round.canonicalRoundId)
+    draft.entries.delete(round.adviceeScopeKey)
     return true
   }
 })
 export interface RoundRecords {
   readonly bind: (
-    group: string,
-    generation: number,
+    adviceeScopeKey: string,
+    admissionRoundId: number,
     activity: RoundActivity,
     cohortId: string
   ) => Effect.Effect<RoundWork>
-  readonly get: (group: string) => Effect.Effect<RoundWork | undefined>
+  readonly get: (adviceeScopeKey: string) => Effect.Effect<RoundWork | undefined>
   readonly entries: () => Effect.Effect<ReadonlyArray<readonly [string, RoundWork]>>
   readonly activity: (round: RoundWork) => Effect.Effect<RoundActivity | undefined>
   readonly policyWork: (round: RoundWork) => Effect.Effect<BendWorkView>

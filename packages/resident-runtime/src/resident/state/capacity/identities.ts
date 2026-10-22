@@ -6,8 +6,8 @@ import {
   MAX_PARTITION_IDENTITIES,
   MAX_PARTITION_IDENTITY_BYTES,
   type CapacityState,
-  MAX_COLLECTION_TOKEN_KEY_BYTES,
-  MAX_COLLECTION_TOKEN_IDENTITIES
+  MAX_ADVICE_HANDOFF_KEY_BYTES,
+  MAX_ADVICE_HANDOFF_IDENTITIES
 } from "./model.ts"
 import { canonicalProjection, transition } from "./canonical.ts"
 
@@ -48,7 +48,7 @@ function nativePartitionInUse(draft: CapacityDraft, partition: string): boolean 
   return (
     draft.roundIds.has(partition) ||
     [...draft.reservations.values()].some((item) => item.capability.partition === partition) ||
-    [...draft.requestRounds.values()].some((item) => item.partition === partition)
+    [...draft.reviewServiceRequestRounds.values()].some((item) => item.partition === partition)
   )
 }
 function canonicalPartitionInUse(state: ReturnType<typeof projectCanonical>, id: number): boolean {
@@ -59,7 +59,7 @@ function canonicalPartitionInUse(state: ReturnType<typeof projectCanonical>, id:
     state.charges,
     state.dispatch.queued,
     state.dispatch.running,
-    state.dispatch.requests,
+    state.dispatch.reviewServiceRequests,
     state.reuse.cache
   ]
   if (partitions.some((entries) => entries.some((item) => item.partition === id))) return true
@@ -97,24 +97,25 @@ function evictInactivePartition(draft: CapacityDraft): boolean {
   }
   return false
 }
-export function collectionTokenId(draft: CapacityDraft, token: string): number {
-  let id = draft.collectionTokens.get(token)
+/** Maps handoff tokens and namespaced advice/finding keys to local numeric identities. */
+export function internAdviceHandoffIdentity(draft: CapacityDraft, token: string): number {
+  let id = draft.adviceHandoffIdentities.get(token)
   if (id === undefined) {
     if (
-      Buffer.byteLength(token, "utf8") > MAX_COLLECTION_TOKEN_KEY_BYTES ||
-      draft.collectionTokens.size >= MAX_COLLECTION_TOKEN_IDENTITIES
+      Buffer.byteLength(token, "utf8") > MAX_ADVICE_HANDOFF_KEY_BYTES ||
+      draft.adviceHandoffIdentities.size >= MAX_ADVICE_HANDOFF_IDENTITIES
     ) {
       throw new RangeError("resident collection token capacity exhausted")
     }
     id = draft.nextCollectionToken++
-    draft.collectionTokens.set(token, id)
+    draft.adviceHandoffIdentities.set(token, id)
   }
   return id
 }
-export function collectionTokenIdentityCount(draft: CapacityState): number {
-  return draft.collectionTokens.size
+export function adviceHandoffIdentityCount(draft: CapacityState): number {
+  return draft.adviceHandoffIdentities.size
 }
-export function pruneCollectionTokenIds(draft: CapacityDraft, nativeLive: ReadonlySet<string>): void {
+export function pruneAdviceHandoffIdentities(draft: CapacityDraft, nativeLive: ReadonlySet<string>): void {
   const state = canonicalProjection(draft)
   const canonicalLive = new Set<number>([
     ...state.collection.leases.map((item) => item.owner),
@@ -122,8 +123,8 @@ export function pruneCollectionTokenIds(draft: CapacityDraft, nativeLive: Readon
     ...state.delivery.slots.map((item) => item.token),
     ...state.delivery.submissions.batches.map((item) => item.token)
   ])
-  for (const [key, id] of draft.collectionTokens) {
-    if (!nativeLive.has(key) && !canonicalLive.has(id)) draft.collectionTokens.delete(key)
+  for (const [key, id] of draft.adviceHandoffIdentities) {
+    if (!nativeLive.has(key) && !canonicalLive.has(id)) draft.adviceHandoffIdentities.delete(key)
   }
 }
 

@@ -391,7 +391,11 @@ def graph_limits(state: T.State, limits: Graph.Limits) -> Applied:
         Ordinary{}
       }
 
-def jev_outcome(state: T.State, delay: Nat, outcome: Canonical.RequestOutcome) -> Applied:
+def jev_outcome(
+  state: T.State,
+  delay: Nat,
+  outcome: Canonical.ReviewServiceRequestOutcome
+) -> Applied:
   match state:
     case T.State{
       core,
@@ -756,8 +760,8 @@ def request_orders(items: List<&2, T.Item>, +target: Targets.Target) -> List<&2,
 
 def settled_event(event: Canonical.CanonicalEvent, target: Targets.Target) -> Bool:
   match event:
-    case Canonical.JevRequestSettled{p, l, r, o, q, outcome, physical}: Engine.callback_matches(
-      Canonical.JevRequestSettled{p, l, r, o, q, outcome, physical},
+    case Canonical.ReviewServiceRequestSettled{p, l, r, o, q, outcome, physical}: Engine.callback_matches(
+      Canonical.ReviewServiceRequestSettled{p, l, r, o, q, outcome, physical},
       target
     )
     case _: False{}
@@ -819,7 +823,11 @@ def request_changed(+state: T.State, +orders: List<&2, Nat>, changed: Jev.Interv
     }
     case value: Applied{state, True{}, JevReport{value}}
 
-def request(+state: T.State, +target: Targets.Target, outcome: Canonical.RequestOutcome) -> Applied:
+def request(
+  +state: T.State,
+  +target: Targets.Target,
+  outcome: Canonical.ReviewServiceRequestOutcome
+) -> Applied:
   request_changed(
     state,
     request_orders(Run.runtime_items(state), target),
@@ -950,7 +958,7 @@ def apply(+state: T.State, control: T.Control) -> Applied:
       bound,
       allowed
     )
-    case T.JevRequestControl{target, outcome}: request(state, target, outcome)
+    case T.ReviewServiceRequestControl{target, outcome}: request(state, target, outcome)
     case T.ExpiryProfileControl{profile}: expiry(state, profile, Run.runtime(state))
     case T.PermitProfileControl{duration, lifetime, outcome}: permit_profile(
       state,
@@ -1022,7 +1030,7 @@ def apply(+state: T.State, control: T.Control) -> Applied:
       Run.replace_runtime(state, limits_identity(Run.runtime(state), identity)),
       limits
     )
-    case T.JevOutcomeControl{delay, outcome}: jev_outcome(state, delay, outcome)
+    case T.ReviewServiceOutcomeControl{delay, outcome}: jev_outcome(state, delay, outcome)
     case control: ordinary(Run.control(state, control))
 
 def controlled(result: Applied) -> T.Controlled:

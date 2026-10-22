@@ -11,7 +11,7 @@ export const deliverySubmissionSettlement = (
   state: DeliveryDraft,
   canonicalOwner: Pick<
     CapacityLedger,
-    "transition" | "canonicalProjection" | "partitionId" | "roundId" | "collectionTokenId"
+    "transition" | "canonicalProjection" | "partitionId" | "roundId" | "internAdviceHandoffIdentity"
   >,
   {
     canonicalCommandAccepted,
@@ -128,7 +128,7 @@ export const deliverySubmissionSettlement = (
       group: canonicalOwner.partitionId(permit.partition),
       round: canonicalOwner.roundId(permit.partition),
       attempt: stop.id,
-      token: canonicalOwner.collectionTokenId(token),
+      token: canonicalOwner.internAdviceHandoffIdentity(token),
       selected: permit.selected,
       outcome
     })

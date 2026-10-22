@@ -22,33 +22,36 @@ def reset(scope: Scope) -> Canonical.CanonicalEvent:
 
 # The host supplies only physical activity/Stop observations. Recorded work,
 # claims, leases and batches remain actual Canonical ownership facts.
-def unfinished(work: List<&2, Canonical.Work>, +p: Nat) -> Bool:
+def unfinished(work: List<&2, Canonical.ReviewWorkRecord>, +p: Nat) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{owner, _, _, _, _, Canonical.PendingFinding{_}, _} <> tail: unfinished(
+    case Canonical.ReviewWorkRecord{owner, _, _, _, _, Canonical.PendingFinding{_}, _} <> tail: unfinished(
       tail,
       p
     )
-    case Canonical.Work{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || unfinished(tail, p)
+    case Canonical.ReviewWorkRecord{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || unfinished(
+      tail,
+      p
+    )
 
-def findings(work: List<&2, Canonical.Work>, +p: Nat) -> Bool:
+def findings(work: List<&2, Canonical.ReviewWorkRecord>, +p: Nat) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{owner, _, _, _, _, Canonical.PendingFinding{_}, _} <> tail: Nat.is_eq(
+    case Canonical.ReviewWorkRecord{owner, _, _, _, _, Canonical.PendingFinding{_}, _} <> tail: Nat.is_eq(
       owner,
       p
     ) || findings(tail, p)
     case _ <> tail: findings(tail, p)
 
-def advice_owned(work: List<&2, Canonical.Work>, +p: Nat, +advice: Nat) -> Bool:
+def advice_owned(work: List<&2, Canonical.ReviewWorkRecord>, +p: Nat, +advice: Nat) -> Bool:
   match work:
     case Nil{}: False{}
-    case Canonical.Work{owner, _, _, id, _, _, _} <> tail:
+    case Canonical.ReviewWorkRecord{owner, _, _, id, _, _, _} <> tail:
       (Nat.is_eq(owner, p) && Nat.is_eq(id, advice)) || advice_owned(tail, p, advice)
 
 def leases_busy(
   leases: List<&2, Collection.Lease>,
-  +work: List<&2, Canonical.Work>,
+  +work: List<&2, Canonical.ReviewWorkRecord>,
   +p: Nat
 ) -> Bool:
   match leases:
@@ -67,18 +70,18 @@ def batches_busy(batches: List<&2, Submission.Batch>, +p: Nat) -> Bool:
       p
     )
 
-def dispatch_entries_busy(entries: List<&2, Dispatch.Entry>, +p: Nat) -> Bool:
+def dispatch_entries_busy(entries: List<&2, Dispatch.ScheduledReviewWork>, +p: Nat) -> Bool:
   match entries:
     case Nil{}: False{}
-    case Dispatch.Entry{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || dispatch_entries_busy(
+    case Dispatch.ScheduledReviewWork{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || dispatch_entries_busy(
       tail,
       p
     )
 
-def requests_busy(requests: List<&2, Dispatch.Request>, +p: Nat) -> Bool:
+def requests_busy(requests: List<&2, Dispatch.ReviewServiceRequestRecord>, +p: Nat) -> Bool:
   match requests:
     case Nil{}: False{}
-    case Dispatch.Request{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || requests_busy(
+    case Dispatch.ReviewServiceRequestRecord{owner, _, _, _, _, _, _} <> tail: Nat.is_eq(owner, p) || requests_busy(
       tail,
       p
     )
@@ -189,7 +192,7 @@ def command_actions(
 def refresh(event: Canonical.CanonicalEvent) -> Bool:
   match event:
     case Canonical.CompleteObservation{_, _, _, _}: True{}
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: True{}
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}: True{}
     case Canonical.SubmissionTerminal{_, _, _}: True{}
     case Canonical.CollectionReleaseLease{_, _}: True{}
     case Canonical.ReleasePermit{_, _, _}: True{}

@@ -45,7 +45,7 @@ skip occur, the final graph reason is `TreeLimit`; otherwise a denied path finis
 
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
-Its ordered `Output` stream distinguishes `ActionRequested`, `EventEstablished`
+Its ordered `Output` stream distinguishes `ResidentActionRequested`, `EventEstablished`
 and `PolicyDecided`. Consumers execute requested actions and react to established
 facts and policy decisions without reapplying the reducer's state changes.
 The maintained [TypeScript decision boundary ledger](../../docs/typescript-decision-boundary-ledger.md)
@@ -261,7 +261,7 @@ settlement, handoff/reoffer eligibility, dispatch closure or orchestration
 assumptions change.
 
 `Canonical.CancelReview` is an explicit logical cancellation fact for one exact
-partition/lifetime/round/operation in `Reviewing` or `AtJev`. It releases that
+partition/lifetime/round/operation in `Reviewing` or `ReviewServiceRequestOutstanding`. It releases that
 work's reservation once, removes its logical work, and discards only its queued
 or running dispatch operation. Issued physical requests remain unchanged until
 their original callback settles them. The commands are `ReservationReleased`,
@@ -274,8 +274,8 @@ behavior remains owned by `docs/advicing-target-contract.md`.
 ### Edit-to-submission journey laws
 
 The same `test:progress` gate also checks [journey-proof/LAWS.bend](journey-proof/LAWS.bend)
-and [journey-proof/PROOF.bend](journey-proof/PROOF.bend): thirteen additional general
-laws implementing the six approved directions.
+and [journey-proof/PROOF.bend](journey-proof/PROOF.bend): twenty-three general
+laws covering the edit journey and reliability boundaries below.
 
 - Findings retain their exact identity, ownership and charge across Stop cutoff,
   removal of another operation and changes to another operation's stage.
@@ -292,17 +292,34 @@ laws implementing the six approved directions.
   transitions through each of the six request outcomes. A finding reaches recorded
   submission with matching collection, authorization and successful write facts.
   Required commands must be emitted, including preparation and dispatch commands.
+- Physical settlement removes the first matching request behind an arbitrary
+  unrelated prefix and preserves the exact prefix, suffix and dispatch metadata.
+  Interruption retains the physical permit; dispatch cancellation preserves the
+  entire physical request list. A terminal callback for an absent exact request
+  leaves the entire canonical state unchanged, including newly admitted work.
+- Releasing a different revision generation leaves the complete registry unchanged;
+  a different generation cannot be current, even when source inputs match. These
+  public-operation laws require a matching registry lookup fact. They do not prove
+  generation allocation or native token ownership across resident lifetimes.
+- Observing any review outcome preserves all other operations' pending findings.
+  Removal and stage changes preserve all other work records, including unfinished
+  work. Admission to a matching non-deciding round records the exact new observation
+  and event while preserving previous work and all other state fields.
 
 The journey quantifies over partition, payload size, fingerprint and capacity;
 its structural trace has one unit. This does not prove arbitrary fanout orchestration,
 execution of emitted commands, physical IO or eventual agent receipt. The finite
 cohort laws quantify over arbitrary lists, but do not prove fairness on an infinite
 host trace. Capacity, responsiveness, current joined members, stable eligibility
-and a permitted delivery opportunity are explicit boundaries.
+and a permitted delivery opportunity are explicit boundaries. These laws do not
+require preservation of transient work across interruption, crashes or resident
+replacement; the [transient-work contract](../../docs/advicing-target-contract.md#correctness-and-transient-work-loss)
+continues to own that boundary.
 
-The journey gate checks 661 literal instances and their premises, fourteen compiling
+The journey gate checks 1,732 literal instances and their premises, twenty-four compiling
 mutants, isolated positive proof controls, the kernel verdict and rejection with the
-kernel disabled. Mutation failures in supporting lemmas are identified by name.
+kernel disabled. Mutation failures in supporting lemmas are identified by name. Literal cases run
+in bounded batches without extending the five-second per-check deadline.
 `journey-proof/core.bend` composes production functions; `fixtures.bend` supplies
 expected snapshots rather than a replacement state machine. Review this section
 and these laws when the covered transitions or host assumptions change.

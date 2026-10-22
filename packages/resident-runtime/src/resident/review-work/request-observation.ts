@@ -1,12 +1,13 @@
-export type JevRequestObservation = {
+/** Reports a locally tracked review-service request lifecycle; an HTTP call may never have occurred. */
+export type ReviewServiceRequestObservation = {
   readonly stage: "issued" | "unavailable" | "started" | "interrupted" | "settled"
   readonly partition: string
   readonly canonicalPartition: number
   readonly lifetime: string
-  readonly canonicalLifetime: number
+  readonly canonicalLifetimeId: number
   readonly round: number
-  readonly hapslandRound: number | null
+  readonly admissionRoundId: number | null
   readonly operation: number
-  readonly request?: number
+  readonly reviewServiceRequestId?: number
   readonly outcome?: "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted"
 }

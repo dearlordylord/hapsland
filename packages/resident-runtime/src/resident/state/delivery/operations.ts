@@ -53,13 +53,13 @@ export const deliveryOperations = (
     bendTime: (...args) => clock.bendTime(...args),
     checkCompleted: (...args) => editIdentity.checkCompleted(...args),
     startRound: (...args) => roundStart.startRound(...args),
-    readGeneration: (...args) => submissionPolicy.readGeneration(...args),
+    readAdmissionRoundId: (...args) => submissionPolicy.readAdmissionRoundId(...args),
     isActive: (...args) => stopGate.isActive(...args),
     dropTool: (...args) => editIdentity.dropTool(...args),
     toolId: (...args) => editIdentity.toolId(...args)
   })
   const stopGate = deliveryStopGate(state, canonicalOwner, {
-    readGeneration: (...args) => submissionPolicy.readGeneration(...args),
+    readAdmissionRoundId: (...args) => submissionPolicy.readAdmissionRoundId(...args),
     continuationCount: (...args) => submissionPolicy.continuationCount(...args),
     isDeciding: (...args) => submissionPolicy.isDeciding(...args),
     canonicalCommandAccepted: (...args) => finishOutput.canonicalCommandAccepted(...args),
@@ -77,7 +77,7 @@ export const deliveryOperations = (
   const roundClosure = deliveryRoundClosure(state, canonicalOwner, {
     isActive: (...args) => stopGate.isActive(...args),
     revokeProvisionalFinishOutput: (...args) => finishOutput.revokeProvisionalFinishOutput(...args),
-    readGeneration: (...args) => submissionPolicy.readGeneration(...args),
+    readAdmissionRoundId: (...args) => submissionPolicy.readAdmissionRoundId(...args),
     bendTime: (...args) => clock.bendTime(...args),
     finishPermit: (...args) => editIdentity.finishPermit(...args),
     forget: (...args) => submissionRelease.forget(...args),
@@ -89,13 +89,13 @@ export const deliveryOperations = (
     isActive: (...args) => stopGate.isActive(...args)
   })
   const submission = deliverySubmission(state, canonicalOwner, {
-    readGeneration: (...args) => submissionPolicy.readGeneration(...args),
+    readAdmissionRoundId: (...args) => submissionPolicy.readAdmissionRoundId(...args),
     isActive: (...args) => stopGate.isActive(...args),
     canonicalCommandAccepted: (...args) => finishOutput.canonicalCommandAccepted(...args)
   })
   const submissionRelease = deliverySubmissionRelease(state, canonicalOwner, {
     submissionAdviceId: (...args) => submission.submissionAdviceId(...args),
-    readGeneration: (...args) => submissionPolicy.readGeneration(...args),
+    readAdmissionRoundId: (...args) => submissionPolicy.readAdmissionRoundId(...args),
     fingerprintId: (...args) => submission.fingerprintId(...args)
   })
   const expiry = deliveryExpiry(state, canonicalOwner, {
@@ -105,7 +105,7 @@ export const deliveryOperations = (
 
   return {
     ...deliveryView(state, canonicalOwner),
-    generation: submissionPolicy.readGeneration,
+    readAdmissionRoundId: submissionPolicy.readAdmissionRoundId,
     claimBackground: background.claimBackground,
     releaseBackground: background.releaseBackground,
     advance: roundStart.advance,

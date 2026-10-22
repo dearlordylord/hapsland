@@ -3,7 +3,7 @@ import { type DirectObservation, type DirectAdvicee } from "@hapsland/native-obs
 import type * as Effect from "effect/Effect"
 import { type ResidentPaths } from "@hapsland/resident-transport/resident/paths"
 import {
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest,
   type ResidentResponse,
   type CollectionMode
@@ -30,20 +30,20 @@ export interface ResidentRuntime {
   cleanup(): Effect.Effect<"busy" | "cleaned">
   admit(
     observation: DirectObservation,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     composed?: boolean,
     requirePermit?: boolean
   ): Effect.Effect<ResidentResponse>
   collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode?: CollectionMode
   ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>
   collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode,
     authority: undefined,
     composed: true
@@ -51,7 +51,7 @@ export interface ResidentRuntime {
   collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode,
     authority: ResponseAuthority,
     composed?: boolean

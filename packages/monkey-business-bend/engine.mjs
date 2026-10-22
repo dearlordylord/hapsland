@@ -163,7 +163,7 @@ function io_eff(k, run) {
 // =======
 
 function $$$$047agent$045flow$045bend$047Dispatch$058initial$() {
-  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "requests": {$: "Nil"}};
+  return {$: "Dispatch.State", "queued": {$: "Nil"}, "running": {$: "Nil"}, "next_sequence": 0, "closed": false, "review_service_requests": {$: "Nil"}};
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058max_running$() {
@@ -249,22 +249,22 @@ function $$$$047agent$045flow$045bend$047Dispatch$058prepend_waiting$(_entry_0, 
     const _running_0 = _t_0["running"];
     const _next_sequence_0 = _t_0["next_sequence"];
     const _closed_0 = _t_0["closed"];
-    const _requests_0 = _t_0["requests"];
+    const _review_service_requests_0 = _t_0["review_service_requests"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": _commands_0};
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Con", "head": _entry_0, "tail": _queued_0}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": _commands_0};
   } else {
     const _state_0 = _result_0["state"];
     return {$: "Dispatch.Denied", "state": _state_0};
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0) {
   if (_queued_0.$ === "Nil") {
-    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+    return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": {$: "Nil"}};
   } else {
     const _entry_0 = _queued_0["head"];
     const _rest_0 = _queued_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$058start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$058prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _requests_0)))));
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058can_start$(_entry_0, _running_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _rest_0, "running": ($List$append$(_running_0, {$: "Con", "head": _entry_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": {$: "Con", "head": ($$$$047agent$045flow$045bend$047Dispatch$058start_command$(_entry_0)), "tail": {$: "Nil"}}}, ($$$$047agent$045flow$045bend$047Dispatch$058prepend_waiting$(_entry_0, ($$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_rest_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0)))));
   }
 }
 
@@ -273,8 +273,8 @@ function $$$$047agent$045flow$045bend$047Dispatch$058pump_one$(_state_0) {
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _requests_0);
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$058pump_queued$(_queued_0, _running_0, _next_sequence_0, _closed_0, _review_service_requests_0);
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058pump_next_result$(_first_0, _commands_0, _result_0) {
@@ -314,9 +314,9 @@ function $$$$047agent$045flow$045bend$047Dispatch$058pump_remaining$(_remaining_
       const _running_0 = _t_0["running"];
       const __0 = _t_0["next_sequence"];
       const __1 = _t_0["closed"];
-      const __2 = _t_0["requests"];
+      const __2 = _t_0["review_service_requests"];
       const _commands_0 = _result_0["commands"];
-      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$058pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$058pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, "commands": _commands_0});
+      return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058may_pump$(_queued_0, _running_0)), ($$$$047agent$045flow$045bend$047Dispatch$058pump_remaining$(_rest_0, ($$$$047agent$045flow$045bend$047Dispatch$058pump_next$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, _commands_0)))), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, "commands": _commands_0});
     } else {
       const _state_0 = _result_0["state"];
       return {$: "Dispatch.Denied", "state": _state_0};
@@ -329,8 +329,8 @@ function $$$$047agent$045flow$045bend$047Dispatch$058pump_available$(_state_0) {
   const __0 = _state_0["running"];
   const __1 = _state_0["next_sequence"];
   const __2 = _state_0["closed"];
-  const __3 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$058pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "requests": __3}, "commands": {$: "Nil"}});
+  const __3 = _state_0["review_service_requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$058pump_remaining$(($List$length$(_queued_0)), {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _queued_0, "running": __0, "next_sequence": __1, "closed": __2, "review_service_requests": __3}, "commands": {$: "Nil"}});
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058enqueue$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _preparation_0) {
@@ -338,9 +338,9 @@ function $$$$047agent$045flow$045bend$047Dispatch$058enqueue$(_state_0, _partiti
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$058known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
-  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "requests": _requests_0})));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$058known$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0));
+  return $Bool$pick$((_closed_0 || _x_0), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, ($$$$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "Dispatch.State", "queued": ($List$append$(_queued_0, {$: "Con", "head": {$: "Dispatch.ScheduledReviewWork", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _next_sequence_0, "cancelled": false, "preparation": _preparation_0}, "tail": {$: "Nil"}})), "running": _running_0, "next_sequence": nat_chk(_next_sequence_0 + 1), "closed": _closed_0, "review_service_requests": _review_service_requests_0})));
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058remove_entry$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
@@ -358,8 +358,8 @@ function $$$$047agent$045flow$045bend$047Dispatch$058settle$(_state_0, _partitio
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$058remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}});
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058contains$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058pump_available$({$: "Dispatch.State", "queued": _queued_0, "running": ($$$$047agent$045flow$045bend$047Dispatch$058remove_entry$(_running_0, _partition_0, _lifetime_0, _round_0, _operation_0)), "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0})), {$: "Dispatch.Denied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}});
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0) {
@@ -404,7 +404,7 @@ function $$$$047agent$045flow$045bend$047Dispatch$058filter_queued$(_items_0, _i
     const __4 = _t_0["cancelled"];
     const __5 = _t_0["preparation"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$058filter_queued_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_queued$(_rest_0, _ids_0)));
+    return $$$$047agent$045flow$045bend$047Dispatch$058filter_queued_one$({$: "Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_queued$(_rest_0, _ids_0)));
   }
 }
 
@@ -415,7 +415,7 @@ function $$$$047agent$045flow$045bend$047Dispatch$058cancelled_entry$(_entry_0) 
   const _operation_0 = _entry_0["operation"];
   const _sequence_0 = _entry_0["sequence"];
   const _preparation_0 = _entry_0["preparation"];
-  return {$: "Dispatch.Entry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
+  return {$: "Dispatch.ScheduledReviewWork", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "sequence": _sequence_0, "cancelled": true, "preparation": _preparation_0};
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058filter_running_hit$(_entry_0, _hit_0, _tail_0) {
@@ -441,10 +441,10 @@ function $$$$047agent$045flow$045bend$047Dispatch$058filter_running_one$(_entry_
     const __5 = _entry_0["preparation"];
     const _entries_0 = _tail_0["entries"];
     const _commands_0 = _tail_0["commands"];
-    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
+    return {$: "Dispatch.Filtered", "entries": {$: "Con", "head": {$: "Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": true, "preparation": __5}, "tail": _entries_0}, "commands": _commands_0};
   } else {
     const __6 = _entry_0["preparation"];
-    return $$$$047agent$045flow$045bend$047Dispatch$058filter_running_hit$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
+    return $$$$047agent$045flow$045bend$047Dispatch$058filter_running_hit$({$: "Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cancelled": _t_0, "preparation": __6}, _hit_0, _tail_0);
   }
 }
 
@@ -461,19 +461,19 @@ function $$$$047agent$045flow$045bend$047Dispatch$058filter_running$(_items_0, _
     const __4 = _t_0["cancelled"];
     const __5 = _t_0["preparation"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Dispatch$058filter_running_one$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_running$(_rest_0, _ids_0)));
+    return $$$$047agent$045flow$045bend$047Dispatch$058filter_running_one$({$: "Dispatch.ScheduledReviewWork", "partition": __0, "lifetime": __1, "round": __2, "operation": _operation_0, "sequence": __3, "cancelled": __4, "preparation": __5}, ($$$$047agent$045flow$045bend$047Dispatch$058listed$(_ids_0, _operation_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_running$(_rest_0, _ids_0)));
   }
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058discarded_result$(_state_0, _queued_0, _running_0) {
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
+  const _review_service_requests_0 = _state_0["review_service_requests"];
   const _waiting_0 = _queued_0["entries"];
   const _waiting_commands_0 = _queued_0["commands"];
   const _executing_0 = _running_0["entries"];
   const _executing_commands_0 = _running_0["commands"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": _waiting_0, "running": _executing_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}, "commands": ($List$append$(_waiting_commands_0, _executing_commands_0))};
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058discard$(_state_0, _ids_0) {
@@ -481,8 +481,8 @@ function $$$$047agent$045flow$045bend$047Dispatch$058discard$(_state_0, _ids_0) 
   const _running_0 = _state_0["running"];
   const __0 = _state_0["next_sequence"];
   const __1 = _state_0["closed"];
-  const __2 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$058discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$058filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_running$(_running_0, _ids_0)));
+  const __2 = _state_0["review_service_requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$058discarded_result$({$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": __0, "closed": __1, "review_service_requests": __2}, ($$$$047agent$045flow$045bend$047Dispatch$058filter_queued$(_queued_0, _ids_0)), ($$$$047agent$045flow$045bend$047Dispatch$058filter_running$(_running_0, _ids_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Dispatch$058discard_all$(_items_0) {
@@ -499,27 +499,27 @@ function $$$$047agent$045flow$045bend$047Dispatch$058close$(_state_0) {
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
-  const _requests_0 = _state_0["requests"];
-  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "requests": _requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$058discard_all$(_queued_0))};
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "queued": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "closed": true, "review_service_requests": _review_service_requests_0}, "commands": ($$$$047agent$045flow$045bend$047Dispatch$058discard_all$(_queued_0))};
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const _owner_0 = _item_0["partition"];
   const _generation_0 = _item_0["lifetime"];
   const _current_0 = _item_0["round"];
   const _work_0 = _item_0["operation"];
-  const _id_0 = _item_0["request"];
-  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _request_0)))))))));
+  const _id_0 = _item_0["review_service_request_id"];
+  return $Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Nat$is_eq$(_current_0, _round_0)), ($Bool$and$(($Nat$is_eq$(_work_0, _operation_0)), ($Nat$is_eq$(_id_0, _review_service_request_id_0)))))))));
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_known$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return false;
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$058request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0));
+    const _x_0 = ($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$058request_known$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0));
     return (_x_0 || _x_1);
   }
 }
@@ -537,21 +537,21 @@ function $$$$047agent$045flow$045bend$047Dispatch$058request_for_work$(_items_0,
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  const _x_0 = ($List$length$(_requests_0));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  const _x_0 = ($List$length$(_review_service_requests_0));
   const _x_1 = ($$$$047agent$045flow$045bend$047Dispatch$058max_requests$());
-  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$058request_for_work$(_requests_0, _operation_0));
+  const _x_2 = ($$$$047agent$045flow$045bend$047Dispatch$058request_for_work$(_review_service_requests_0, _operation_0));
   const _x_3 = ($Bool$not$((_x_0 < _x_1)));
   const _x_4 = (_x_2 || _x_3);
-  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": {$: "Con", "head": {$: "Dispatch.Request", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0, "started": false, "interrupted": false}, "tail": _requests_0}}});
+  return $Bool$pick$((_closed_0 || _x_4), {$: "Dispatch.ReviewServiceRequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, {$: "Dispatch.ReviewServiceRequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": {$: "Con", "head": {$: "Dispatch.ReviewServiceRequestRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "review_service_request_id": _review_service_request_id_0, "started": false, "interrupted": false}, "tail": _review_service_requests_0}}});
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_started$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -560,15 +560,15 @@ function $$$$047agent$045flow$045bend$047Dispatch$058request_started$(_items_0, 
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
     const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const __0 = _t_0["started"];
     const _interrupted_0 = _t_0["interrupted"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": __0, "interrupted": _interrupted_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Con", "head": {$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": true, "interrupted": _interrupted_0}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": __0, "interrupted": _interrupted_0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_started$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -577,42 +577,42 @@ function $$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_items
     const _generation_0 = _t_0["lifetime"];
     const _current_0 = _t_0["round"];
     const _work_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const _started_0 = _t_0["started"];
     const __0 = _t_0["interrupted"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.Request", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "request": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": __0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Con", "head": {$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": true}, "tail": _rest_0}, {$: "Con", "head": {$: "Dispatch.ReviewServiceRequestRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": _work_0, "review_service_request_id": _id_0, "started": _started_0, "interrupted": __0}, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))});
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), _rest_0, {$: "Con", "head": _item_0, "tail": ($$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))});
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_items_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   if (_items_0.$ === "Nil") {
     return {$: "None"};
   } else {
     const _item_0 = _items_0["head"];
     const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Dispatch$058request_matches$(_item_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), {$: "Some", "value": _item_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_rest_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, _found_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_update_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0, _found_0) {
   const _queued_0 = _state_0["queued"];
   const _running_0 = _state_0["running"];
   const _next_sequence_0 = _state_0["next_sequence"];
   const _closed_0 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
+  const _review_service_requests_0 = _state_0["review_service_requests"];
   if (_found_0.$ === "None") {
-    return {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}};
+    return {$: "Dispatch.ReviewServiceRequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}};
   } else {
     const _t_0 = _found_0["value"];
     const _started_0 = _t_0["started"];
@@ -621,17 +621,17 @@ function $$$$047agent$045flow$045bend$047Dispatch$058request_update_found$(_stat
     const _x_1 = ($Bool$and$(_interrupt_0, ($Bool$not$(_started_0))));
     const _x_2 = ($Bool$and$(_start_0, _started_0));
     const _x_3 = (_x_0 || _x_1);
-    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.RequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": _requests_0}}, {$: "Dispatch.RequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_started$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)), ($$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0))))))}});
+    return $Bool$pick$((_x_2 || _x_3), {$: "Dispatch.ReviewServiceRequestDenied", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": _review_service_requests_0}}, {$: "Dispatch.ReviewServiceRequestAccepted", "state": {$: "Dispatch.State", "queued": _queued_0, "running": _running_0, "next_sequence": _next_sequence_0, "closed": _closed_0, "review_service_requests": ($Bool$pick$(_settle_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_remove$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), ($Bool$pick$(_start_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_started$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)), ($$$$047agent$045flow$045bend$047Dispatch$058request_interrupted$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0))))))}});
   }
 }
 
-function $$$$047agent$045flow$045bend$047Dispatch$058request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0) {
+function $$$$047agent$045flow$045bend$047Dispatch$058request_update$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0) {
   const __0 = _state_0["queued"];
   const __1 = _state_0["running"];
   const __2 = _state_0["next_sequence"];
   const __3 = _state_0["closed"];
-  const _requests_0 = _state_0["requests"];
-  return $$$$047agent$045flow$045bend$047Dispatch$058request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "requests": _requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  const _review_service_requests_0 = _state_0["review_service_requests"];
+  return $$$$047agent$045flow$045bend$047Dispatch$058request_update_found$({$: "Dispatch.State", "queued": __0, "running": __1, "next_sequence": __2, "closed": __3, "review_service_requests": _review_service_requests_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _start_0, _interrupt_0, _settle_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_review_service_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
 }
 
 function $Numeric$058high$(_value_0) {
@@ -988,7 +988,7 @@ function $$$$047agent$045flow$045bend$047Ledger$058admission$(_state_0, _partiti
 
 function $$$$047agent$045flow$045bend$047Ledger$058reserve$check$(_limits_0, _next_id_0, _charges_0, _partition_0, _bytes_0, _purpose_0, _allowed_0) {
   if (_allowed_0) {
-    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.Charge", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
+    return {$: "Ledger.Granted", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": nat_chk(_next_id_0 + 1), "charges": ($List$append$(_charges_0, {$: "Con", "head": {$: "Ledger.ReviewCapacityReservationRecord", "id": _next_id_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, "tail": {$: "Nil"}}))}, "id": _next_id_0};
   } else {
     return {$: "Ledger.Rejected", "state": {$: "Ledger.Ledger", "limits": _limits_0, "next_id": _next_id_0, "charges": _charges_0}};
   }
@@ -1023,7 +1023,7 @@ function $$$$047agent$045flow$045bend$047Ledger$058find$(_id_0, _charges_0) {
     const __1 = _t_0["bytes"];
     const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$058find$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$058find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047agent$045flow$045bend$047Ledger$058find$pick$({$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$058find$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1045,7 +1045,7 @@ function $$$$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _charges_0) {
     const __1 = _t_0["bytes"];
     const __2 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$058remove$pick$({$: "Ledger.Charge", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047agent$045flow$045bend$047Ledger$058remove$pick$({$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": __0, "bytes": __1, "purpose": __2}, ($$$$047agent$045flow$045bend$047Ledger$058remove$(_id_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1085,7 +1085,7 @@ function $$$$047agent$045flow$045bend$047Ledger$058replace$(_id_0, _bytes_0, _ch
     const _old_bytes_0 = _t_0["bytes"];
     const _purpose_0 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$058replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _old_bytes_0, "purpose": _purpose_0}, {$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$058replace$(_id_0, _bytes_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1099,7 +1099,7 @@ function $$$$047agent$045flow$045bend$047Ledger$058replace_for$(_id_0, _bytes_0,
     const __0 = _t_0["bytes"];
     const __1 = _t_0["purpose"];
     const _rest_0 = _charges_0["tail"];
-    return $$$$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "Ledger.Charge", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$058replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
+    return $$$$047agent$045flow$045bend$047Ledger$058replace$pick$({$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": __0, "purpose": __1}, {$: "Ledger.ReviewCapacityReservationRecord", "id": _current_0, "partition": _partition_0, "bytes": _bytes_0, "purpose": _purpose_0}, ($$$$047agent$045flow$045bend$047Ledger$058replace_for$(_id_0, _bytes_0, _purpose_0, _rest_0)), ($Nat$is_eq$(_current_0, _id_0)));
   }
 }
 
@@ -1615,7 +1615,7 @@ function $$$$047agent$045flow$045bend$047Flow$058route_of$(_event_0) {
     return {$: "Flow.DataRoute", "from": {$: "Flow.PreparationNode"}, "to": {$: "Flow.ReviewQueueNode"}, "input": {$: "Flow.CaptureJob"}, "output": {$: "Flow.ReviewWorkItem"}, "copy": false};
   } else if (_event_0.$ === "Flow.UnitDispatched") {
     return {$: "Flow.DataRoute", "from": {$: "Flow.ReviewQueueNode"}, "to": {$: "Flow.JevDispatchNode"}, "input": {$: "Flow.ReviewWorkItem"}, "output": {$: "Flow.DecisionRequest"}, "copy": false};
-  } else if (_event_0.$ === "Flow.JevRequestSent") {
+  } else if (_event_0.$ === "Flow.ReviewServiceRequestSent") {
     return {$: "Flow.DataRoute", "from": {$: "Flow.JevDispatchNode"}, "to": {$: "Flow.JevNode"}, "input": {$: "Flow.DecisionRequest"}, "output": {$: "Flow.NetworkRequest"}, "copy": false};
   } else if (_event_0.$ === "Flow.JevFindingReceived") {
     return {$: "Flow.DataRoute", "from": {$: "Flow.JevNode"}, "to": {$: "Flow.AdviceStoreNode"}, "input": {$: "Flow.NetworkRequest"}, "output": {$: "Flow.Advice"}, "copy": false};
@@ -2590,7 +2590,7 @@ function $$$$047agent$045flow$045bend$047Flow$058step$(_flow_0, _event_0, _item_
     return $$$$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "Flow.InternalEvent"});
   } else if (_event_0.$ === "Flow.UnitDispatched") {
     return $$$$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "Flow.InternalEvent"});
-  } else if (_event_0.$ === "Flow.JevRequestSent") {
+  } else if (_event_0.$ === "Flow.ReviewServiceRequestSent") {
     return $$$$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "Flow.InternalEvent"});
   } else if (_event_0.$ === "Flow.BackgroundWaitStarted") {
     return $$$$047agent$045flow$045bend$047Flow$058reject$(_flow_0, {$: "Flow.InternalEvent"});
@@ -2749,7 +2749,7 @@ function $$$$047agent$045flow$045bend$047Flow$058selected_is$(_id_0, _selected_0
 
 function $$$$047agent$045flow$045bend$047Flow$058schedule_review$pick$(_id_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.UnitDispatched"}, "route": ($$$$047agent$045flow$045bend$047Flow$058route_of$({$: "Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.JevRequestSent"}, "route": ($$$$047agent$045flow$045bend$047Flow$058route_of$({$: "Flow.JevRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
+    return {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.UnitDispatched"}, "route": ($$$$047agent$045flow$045bend$047Flow$058route_of$({$: "Flow.UnitDispatched"})), "item": {$: "Some", "value": _id_0}}, "tail": {$: "Con", "head": {$: "Flow.Transition", "event": {$: "Flow.ReviewServiceRequestSent"}, "route": ($$$$047agent$045flow$045bend$047Flow$058route_of$({$: "Flow.ReviewServiceRequestSent"})), "item": {$: "Some", "value": _id_0}}, "tail": _tail_0}};
   } else {
     return _tail_0;
   }
@@ -2947,7 +2947,7 @@ function $$$$047agent$045flow$045bend$047Work$058is_source_reading$(_stage_0) {
 }
 
 function $$$$047agent$045flow$045bend$047Work$058is_at_jev$(_stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -2957,7 +2957,7 @@ function $$$$047agent$045flow$045bend$047Work$058is_at_jev$(_stage_0) {
 function $$$$047agent$045flow$045bend$047Work$058is_unit_unfinished$(_stage_0) {
   if (_stage_0.$ === "Work.ReviewQueued") {
     return true;
-  } else if (_stage_0.$ === "Work.AtJev") {
+  } else if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return true;
   } else {
     return false;
@@ -3081,7 +3081,7 @@ function $$$$047agent$045flow$045bend$047Work$058fill_review$(_units_0, _capacit
       const _bytes_0 = _t_0["bytes"];
       const _rest_0 = _units_0["tail"];
       const _room_0 = ($$$$047agent$045flow$045bend$047Flow$058has_room$(_occupied_0, _capacity_0));
-      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.AtJev"}, {$: "Work.ReviewQueued"}));
+      const _next_stage_0 = ($Bool$pick$(_room_0, {$: "Work.ReviewServiceRequestOutstanding"}, {$: "Work.ReviewQueued"}));
       const _x_0 = ($Bool$pick$(_room_0, 1, 0));
       return {$: "Con", "head": {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": _next_stage_0, "findings": _findings_0, "bytes": _bytes_0}, "tail": ($$$$047agent$045flow$045bend$047Work$058fill_review$(_rest_0, _capacity_0, nat_chk(_occupied_0 + _x_0)))};
     } else {
@@ -3382,16 +3382,16 @@ function $$$$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, _unit_0
 }
 
 function $$$$047agent$045flow$045bend$047Work$058start_unit$apply$(_work_0, _id_0, _observation_0) {
-  return $$$$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.AtJev"}, "findings": 0, "bytes": 0});
+  return $$$$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.ReviewServiceRequestOutstanding"}, "findings": 0, "bytes": 0});
 }
 
 function $$$$047agent$045flow$045bend$047Work$058start_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
   if (_stage_0.$ === "Work.ReviewQueued") {
     return $$$$047agent$045flow$045bend$047Work$058start_unit$apply$(_work_0, _id_0, _observation_0);
-  } else if (_stage_0.$ === "Work.AtJev") {
+  } else if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return {$: "Work.Accepted", "state": _work_0, "admitted": {$: "Nil"}};
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3437,10 +3437,10 @@ function $$$$047agent$045flow$045bend$047Work$058outcome$kind$(_work_0, _id_0, _
 }
 
 function $$$$047agent$045flow$045bend$047Work$058outcome$stage$(_work_0, _id_0, _observation_0, _stage_0, _result_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return $$$$047agent$045flow$045bend$047Work$058outcome$kind$(_work_0, _id_0, _observation_0, _result_0);
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3477,7 +3477,7 @@ function $$$$047agent$045flow$045bend$047Work$058revise_finding$stage$(_work_0, 
   if (_stage_0.$ === "Work.PendingFinding") {
     return $$$$047agent$045flow$045bend$047Work$058revise_finding$valid$(_work_0, _id_0, _observation_0, _count_0, _bytes_0, ($Nat$is_gt$(_count_0, 0)));
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3503,12 +3503,12 @@ function $$$$047agent$045flow$045bend$047Work$058revise_finding$(_work_0, _id_0,
 }
 
 function $$$$047agent$045flow$045bend$047Work$058interrupt_unit$stage$(_work_0, _id_0, _observation_0, _stage_0) {
-  if (_stage_0.$ === "Work.AtJev") {
+  if (_stage_0.$ === "Work.ReviewServiceRequestOutstanding") {
     return $$$$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else if (_stage_0.$ === "Work.ReviewQueued") {
     return $$$$047agent$045flow$045bend$047Work$058outcome$apply$(_work_0, {$: "Work.ReviewUnit", "id": _id_0, "observation": _observation_0, "stage": {$: "Work.InterruptedResult"}, "findings": 0, "bytes": 0});
   } else {
-    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotAtJev"}};
+    return {$: "Work.Rejected", "state": _work_0, "reason": {$: "Work.UnitNotReviewServiceRequestOutstanding"}};
   }
 }
 
@@ -3767,7 +3767,7 @@ function $$$$047agent$045flow$045bend$047Work$058unfinished_unit_ids$($0) {
         if (_t_1.$ === "Work.ReviewQueued") {
           const _rest_0 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$058unfinished_unit_ids$(_rest_0))};
-        } else if (_t_1.$ === "Work.AtJev") {
+        } else if (_t_1.$ === "Work.ReviewServiceRequestOutstanding") {
           const _rest_1 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$058unfinished_unit_ids$(_rest_1))};
         } else {
@@ -3823,7 +3823,7 @@ function $$$$047agent$045flow$045bend$047Work$058jev_cancel_ids$($0) {
         const _t_0 = _units_0["head"];
         const _id_0 = _t_0["id"];
         const _t_1 = _t_0["stage"];
-        if (_t_1.$ === "Work.AtJev") {
+        if (_t_1.$ === "Work.ReviewServiceRequestOutstanding") {
           const _rest_0 = _units_0["tail"];
           return {$: "Con", "head": _id_0, "tail": ($$$$047agent$045flow$045bend$047Work$058jev_cancel_ids$(_rest_0))};
         } else {
@@ -4054,7 +4054,7 @@ function $$$$047agent$045flow$045bend$047Handoff$058select$(_state_0, _advice_0,
   const __11 = _advice_0["collection_ready"];
   const _x_0 = ($$$$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _selected_0));
   const _x_1 = ($$$$047agent$045flow$045bend$047Handoff$058contains$(_id_0, _retained_0));
-  return $$$$047agent$045flow$045bend$047Handoff$058select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$058current$({$: "Handoff.Advice", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
+  return $$$$047agent$045flow$045bend$047Handoff$058select$duplicate$({$: "Handoff.Selection", "partition": _partition_0, "round": _round_0, "selected": _selected_0, "retained": _retained_0, "findings": __0, "bytes": __1}, {$: "Handoff.FindingCandidate", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _prospective_bytes_0, ($$$$047agent$045flow$045bend$047Handoff$058current$({$: "Handoff.FindingCandidate", "id": _id_0, "unit": __2, "partition": __3, "round": __4, "snapshot": __5, "current_snapshot": __6, "credential": __7, "current_credential": __8, "age_ms": __9, "solo_bytes": __10, "collection_ready": __11}, _partition_0, _round_0)), (_x_0 || _x_1));
 }
 
 function $$$$047agent$045flow$045bend$047Handoff$058finish$initial$(_round_0) {
@@ -8021,7 +8021,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0,
     const __4 = _t_0["kind"];
     const __5 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Canonical$058remove_work_pick$({$: "Canonical.Work", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4, "parent": __5}, ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
+    return $$$$047agent$045flow$045bend$047Canonical$058remove_work_pick$({$: "Canonical.ReviewWorkRecord", "partition": __0, "lifetime": __1, "round": __2, "operation": _op_0, "charge": __3, "kind": __4, "parent": __5}, ($$$$047agent$045flow$045bend$047Canonical$058remove_work$(_operation_0, _rest_0)), ($Nat$is_eq$(_op_0, _operation_0)));
   }
 }
 
@@ -8135,7 +8135,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058quiet_round_reset$(_state_
 
 function $$$$047agent$045flow$045bend$047Canonical$058cancel_pick$(_operation_0, _tail_0, _hit_0) {
   if (_hit_0) {
-    return {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": _tail_0};
+    return {$: "Con", "head": {$: "Canonical.ResidentActionRequested", "command": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": _tail_0};
   } else {
     return _tail_0;
   }
@@ -8278,7 +8278,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058retain_other_work$(_items_
     const __2 = _t_0["kind"];
     const __3 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2, "parent": __3}, ($$$$047agent$045flow$045bend$047Canonical$058retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
+    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.ReviewWorkRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": __2, "parent": __3}, ($$$$047agent$045flow$045bend$047Canonical$058retain_other_work$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)));
   }
 }
 
@@ -8295,7 +8295,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_items_
     const _kind_0 = _t_0["kind"];
     const __2 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.Work", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($$$$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))));
+    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.ReviewWorkRecord", "partition": _owner_0, "lifetime": _generation_0, "round": _current_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047agent$045flow$045bend$047Canonical$058retain_after_stop$(_rest_0, _partition_0, _lifetime_0, _round_0)), ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($$$$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))));
   }
 }
 
@@ -8401,7 +8401,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058admit_observation_found$(_
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($$$$047agent$045flow$045bend$047Canonical$058is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -8441,7 +8441,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operat
     const __0 = _t_0["kind"];
     const _parent_0 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Canonical$058replace_work_kind_pick$({$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": __0, "parent": _parent_0}, {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": _kind_0, "parent": _parent_0}, ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, _kind_0, _rest_0)), ($Nat$is_eq$(_current_0, _operation_0)));
+    return $$$$047agent$045flow$045bend$047Canonical$058replace_work_kind_pick$({$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": __0, "parent": _parent_0}, {$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _current_0, "charge": _charge_0, "kind": _kind_0, "parent": _parent_0}, ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, _kind_0, _rest_0)), ($Nat$is_eq$(_current_0, _operation_0)));
   }
 }
 
@@ -8583,7 +8583,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058begin_result$(_state_0, _p
   if (_result_0.$ === "Ledger.Granted") {
     const _ledger_0 = _result_0["state"];
     const _charge_0 = _result_0["id"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($List$append$(_work_0, {$: "Con", "head": {$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": _charge_0, "kind": {$: "Canonical.Preparing"}, "parent": _parent_0}, "tail": {$: "Nil"}})), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.ResidentActionRequested", "command": {$: "Canonical.Prepare", "operation": _next_operation_0, "reservation": _charge_0}}, "tail": {$: "Nil"}}};
   } else {
     return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.PreparationRefused"}}, "tail": {$: "Nil"}}};
   }
@@ -8670,7 +8670,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058admit_one$(_result_0, _par
   if (_result_0.$ === "Ledger.Granted") {
     const _granted_0 = _result_0["state"];
     const _id_0 = _result_0["id"];
-    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}}, "tail": {$: "Nil"}}))};
+    return {$: "Canonical.Batch", "ledger": _granted_0, "work": {$: "Con", "head": {$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "charge": _id_0, "kind": {$: "Canonical.Reviewing"}, "parent": _parent_0}, "tail": _work_0}, "next_operation": nat_chk(_operation_0 + 1), "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.UnitAdmitted", "operation": _operation_0, "reservation": _id_0, "position": _position_0, "bytes": _bytes_0, "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_granted_0, _partition_0))}}, "tail": {$: "Nil"}}))};
   } else {
     const _unchanged_0 = _result_0["state"];
     return {$: "Canonical.Batch", "ledger": _unchanged_0, "work": _work_0, "next_operation": _operation_0, "outputs": ($List$append$(_outputs_0, {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.UnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($$$$047agent$045flow$045bend$047Ledger$058admission$(_unchanged_0, _partition_0, _bytes_0)), "after": ($$$$047agent$045flow$045bend$047Canonical$058capacity_view$(_unchanged_0, _partition_0))}}, "tail": {$: "Nil"}}))};
@@ -8931,7 +8931,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058reviewed_found$(_state_0, 
     if (_t_1.$ === "Canonical.Reviewing") {
       const _parent_0 = _t_0["parent"];
       return $$$$047agent$045flow$045bend$047Canonical$058reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_0, _outcome_0);
-    } else if (_t_1.$ === "Canonical.AtJev") {
+    } else if (_t_1.$ === "Canonical.ReviewServiceRequestOutstanding") {
       const _parent_1 = _t_0["parent"];
       return $$$$047agent$045flow$045bend$047Canonical$058reviewed_decide$(_state_0, _operation_0, _charge_0, _parent_1, _outcome_0);
     } else {
@@ -9056,7 +9056,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058reviewed_stale_found$(_sta
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
       return $$$$047agent$045flow$045bend$047Canonical$058reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, {$: "Canonical.Finding"}, _charge_0, ($$$$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
-    } else if (_t_1.$ === "Canonical.AtJev") {
+    } else if (_t_1.$ === "Canonical.ReviewServiceRequestOutstanding") {
       return $$$$047agent$045flow$045bend$047Canonical$058reviewed_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, {$: "Canonical.Finding"}, _charge_0, ($$$$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
@@ -9115,13 +9115,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_ou
 
 function $$$$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0) {
   if (_outcome_0.$ === "Canonical.RequestFinding") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Finding"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestFinding"}}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Finding"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestFinding"}}});
   } else if (_outcome_0.$ === "Canonical.RequestClear") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Clear"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestClear"}}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058review_observed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Clear"}, _current_work_0)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestClear"}}});
   } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Interrupted"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestInterrupted"}}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Interrupted"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": {$: "Canonical.RequestInterrupted"}}});
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestOutcomeRecorded", "outcome": _outcome_0}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestOutcomeRecorded", "outcome": _outcome_0}});
   }
 }
 
@@ -9129,13 +9129,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled_work$(_sta
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.AtJev") {
+    if (_t_1.$ === "Canonical.ReviewServiceRequestOutstanding") {
       return $$$$047agent$045flow$045bend$047Canonical$058request_settled_outcome$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0);
     } else {
-      return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
+      return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReviewServiceRequestObservationIgnored"}}, "tail": {$: "Nil"}}};
     }
   } else {
-    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevObservationIgnored"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReviewServiceRequestObservationIgnored"}}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -9149,7 +9149,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled_released$(
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "Dispatch.RequestAccepted") {
+  if (_result_0.$ === "Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
     return $$$$047agent$045flow$045bend$047Canonical$058request_settled_work$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047agent$045flow$045bend$047Canonical$058find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
   } else {
@@ -9157,7 +9157,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled_released$(
   }
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058request_settled_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0, _found_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058request_settled_found$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0, _found_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9171,13 +9171,13 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled_found$(_st
     const _t_0 = _found_0["value"];
     const _started_0 = _t_0["started"];
     const _interrupted_0 = _t_0["interrupted"];
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_outcome_0, _started_0, _interrupted_0)), ($$$$047agent$045flow$045bend$047Canonical$058request_settled_released$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, false, true)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047Canonical$058request_outcome_valid$(_outcome_0, _started_0, _interrupted_0)), ($$$$047agent$045flow$045bend$047Canonical$058request_settled_released$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _outcome_0, _current_work_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, false, false, true)))), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
   }
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9189,17 +9189,17 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0,
   const __7 = _t_0["running"];
   const __8 = _t_0["next_sequence"];
   const __9 = _t_0["closed"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const __10 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058request_settled_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": {$: "Dispatch.State", "queued": __6, "running": __7, "next_sequence": __8, "closed": __9, "requests": _requests_0}, "collection": __10, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _outcome_0, _current_work_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0)));
+  return $$$$047agent$045flow$045bend$047Canonical$058request_settled_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": {$: "Dispatch.State", "queued": __6, "running": __7, "next_sequence": __8, "closed": __9, "review_service_requests": _requests_0}, "collection": __10, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _outcome_0, _current_work_0, ($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058request_facts_ready$(_root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0, _current_work_0, _physical_available_0) {
   return $Bool$and$(_root_valid_0, ($Bool$and$(_configuration_valid_0, ($Bool$and$(_credential_ready_0, ($Bool$and$(_selected_0, ($Bool$and$(_current_work_0, _physical_available_0)))))))));
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, _result_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, _result_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
@@ -9209,11 +9209,11 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$(_s
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "Dispatch.RequestAccepted") {
+  if (_result_0.$ === "Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.AtJev"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "request": _request_0}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($$$$047agent$045flow$045bend$047Canonical$058replace_work_kind$(_operation_0, {$: "Canonical.ReviewServiceRequestOutstanding"}, _work_0)), "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestIssued", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "review_service_request_id": _review_service_request_id_0}}, "tail": {$: "Nil"}}};
   } else {
-    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevRequestUnavailable"}});
+    return $$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": __0, "collection": _collection_0, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReviewServiceRequestUnavailable"}});
   }
 }
 
@@ -9231,7 +9231,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_ready_found$(_stat
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
-      return $Bool$pick$(_ready_0, ($$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.JevRequestUnavailable"}})));
+      return $Bool$pick$(_ready_0, ($$$$047agent$045flow$045bend$047Canonical$058request_ready_reserved$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0, ($$$$047agent$045flow$045bend$047Dispatch$058reserve_request$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _next_operation_0)))), ($$$$047agent$045flow$045bend$047Canonical$058append_review_disposition$(($$$$047agent$045flow$045bend$047Canonical$058reviewed$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, _partition_0, _lifetime_0, _round_0, _operation_0, {$: "Canonical.Unavailable"})), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.ReviewServiceRequestUnavailable"}})));
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": _next_operation_0, "admissions": __4, "dispatch": _dispatch_0, "collection": __5, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
     }
@@ -9263,7 +9263,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_update_result$(_st
   const __0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_result_0.$ === "Dispatch.RequestAccepted") {
+  if (_result_0.$ === "Dispatch.ReviewServiceRequestAccepted") {
     const _dispatch_0 = _result_0["state"];
     return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": _command_0, "tail": {$: "Nil"}}};
   } else {
@@ -9271,7 +9271,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_update_result$(_st
   }
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9281,10 +9281,10 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0,
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, true, false, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestStartRecorded"}});
+  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, true, false, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestStartRecorded"}});
 }
 
-function $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0) {
+function $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
   const __2 = _state_0["work"];
@@ -9294,7 +9294,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_stat
   const _dispatch_0 = _state_0["dispatch"];
   const __6 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _request_0, false, true, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevInterruptionRecorded"}});
+  return $$$$047agent$045flow$045bend$047Canonical$058request_update_result$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": _dispatch_0, "collection": __6, "history": _history_0}, ($$$$047agent$045flow$045bend$047Dispatch$058request_update$(_dispatch_0, _partition_0, _lifetime_0, _round_0, _operation_0, _review_service_request_id_0, false, true, false)), {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestInterruptionRecorded"}});
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058prepared_offer_result$(_state_0, _decision_0) {
@@ -9506,7 +9506,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_items
     const _kind_0 = _t_0["kind"];
     const __2 = _t_0["parent"];
     const _rest_0 = _items_0["tail"];
-    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.Work", "partition": _partition_0, "lifetime": _generation_0, "round": _round_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_rest_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058scope_contains$(_scopes_0, _partition_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))))));
+    return $$$$047agent$045flow$045bend$047Canonical$058retain_work_pick$({$: "Canonical.ReviewWorkRecord", "partition": _partition_0, "lifetime": _generation_0, "round": _round_0, "operation": __0, "charge": __1, "kind": _kind_0, "parent": __2}, ($$$$047agent$045flow$045bend$047Canonical$058retain_scoped_work$(_rest_0, _lifetime_0, _scopes_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($$$$047agent$045flow$045bend$047Canonical$058scope_contains$(_scopes_0, _partition_0, _round_0)), ($$$$047agent$045flow$045bend$047Canonical$058unfinished$(_kind_0)))))));
   }
 }
 
@@ -10218,7 +10218,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058cancel_review_dispatched$(
   if (_result_0.$ === "Dispatch.Advanced") {
     const _dispatch_0 = _result_0["state"];
     const _outputs_0 = _result_0["commands"];
-    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))}}};
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "outputs": {$: "Con", "head": {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReservationReleased", "id": _charge_0}}, "tail": {$: "Con", "head": {$: "Canonical.ResidentActionRequested", "command": {$: "Canonical.CancelWork", "operation": _operation_0}}, "tail": ($$$$047agent$045flow$045bend$047Canonical$058dispatch_commands$(_outputs_0))}}};
   } else {
     return {$: "Canonical.Rejected", "state": _original_0, "reason": {$: "Canonical.StaleOperation"}};
   }
@@ -10254,7 +10254,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058cancel_review_kind$(_state
   const __7 = _state_0["history"];
   if (_kind_0.$ === "Canonical.Reviewing") {
     return $$$$047agent$045flow$045bend$047Canonical$058cancel_review_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _operation_0, _charge_0, ($$$$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
-  } else if (_kind_0.$ === "Canonical.AtJev") {
+  } else if (_kind_0.$ === "Canonical.ReviewServiceRequestOutstanding") {
     return $$$$047agent$045flow$045bend$047Canonical$058cancel_review_released$({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, _operation_0, _charge_0, ($$$$047agent$045flow$045bend$047Ledger$058release$(_ledger_0, _charge_0)));
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": __6, "history": __7}, "reason": {$: "Canonical.StaleOperation"}};
@@ -10563,7 +10563,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058collection_finding_result$
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_finding$(_state_0, _selection_partition_0, _selection_round_0, _unit_0, _partition_0, _round_0, _snapshot_0, _current_snapshot_0, _credential_0, _current_credential_0, _age_ms_0, _solo_bytes_0, _collection_ready_0, _selected_count_0, _prospective_bytes_0) {
-  return $$$$047agent$045flow$045bend$047Canonical$058collection_finding_result$(_state_0, ($$$$047agent$045flow$045bend$047Handoff$058current$({$: "Handoff.Advice", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 10240)), ($$$$047agent$045flow$045bend$047Handoff$058fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
+  return $$$$047agent$045flow$045bend$047Canonical$058collection_finding_result$(_state_0, ($$$$047agent$045flow$045bend$047Handoff$058current$({$: "Handoff.FindingCandidate", "id": 1, "unit": _unit_0, "partition": _partition_0, "round": _round_0, "snapshot": _snapshot_0, "current_snapshot": _current_snapshot_0, "credential": _credential_0, "current_credential": _current_credential_0, "age_ms": _age_ms_0, "solo_bytes": _solo_bytes_0, "collection_ready": _collection_ready_0}, _selection_partition_0, _selection_round_0)), ($Nat$is_gt$(_solo_bytes_0, 10240)), ($$$$047agent$045flow$045bend$047Handoff$058fits_batch$(nat_chk(_selected_count_0 + 1), _prospective_bytes_0)));
 }
 
 function $$$$047agent$045flow$045bend$047Canonical$058collection_notice_result$(_state_0, _result_0) {
@@ -11108,7 +11108,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058cleanup_state_clean$(_stat
         if (_t_4.$ === "Nil") {
           const _t_5 = _t_2["closed"];
           if (!_t_5) {
-            const _t_6 = _t_2["requests"];
+            const _t_6 = _t_2["review_service_requests"];
             if (_t_6.$ === "Nil") {
               const _t_7 = _state_0["collection"];
               const _t_8 = _t_7["ready"];
@@ -11427,7 +11427,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058notice_advance_result$(_st
   } else if (_result_0.$ === "NoticeState.RejectedFull") {
     return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.NoticeRejectedFull"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "NoticeState.CreateKey") {
-    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.ActionRequested", "request": {$: "Canonical.CreateNoticeKey"}}, "tail": {$: "Nil"}}};
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": {$: "Canonical.ResidentActionRequested", "command": {$: "Canonical.CreateNoticeKey"}}, "tail": {$: "Nil"}}};
   } else if (_result_0.$ === "NoticeState.CreatePending") {
     const _replacement_1 = _result_0["state"];
     const _count_1 = _result_0["count"];
@@ -11635,7 +11635,7 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _round_11 = _event_0["round"];
     const _operation_2 = _event_0["operation"];
     return $$$$047agent$045flow$045bend$047Canonical$058start_review$(_state_0, _partition_17, _lifetime_16, _round_11, _operation_2);
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _partition_18 = _event_0["partition"];
     const _lifetime_17 = _event_0["lifetime"];
     const _round_12 = _event_0["round"];
@@ -11647,29 +11647,29 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
     const _current_work_0 = _event_0["current_work"];
     const _physical_available_0 = _event_0["physical_available"];
     return $$$$047agent$045flow$045bend$047Canonical$058request_ready$(_state_0, _partition_18, _lifetime_17, _round_12, _operation_3, _root_valid_0, _configuration_valid_0, _credential_ready_0, _selected_0, _current_work_0, _physical_available_0);
-  } else if (_event_0.$ === "Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _partition_19 = _event_0["partition"];
     const _lifetime_18 = _event_0["lifetime"];
     const _round_13 = _event_0["round"];
     const _operation_4 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
-    return $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_4, _request_0);
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _review_service_request_id_0 = _event_0["review_service_request_id"];
+    return $$$$047agent$045flow$045bend$047Canonical$058request_started$(_state_0, _partition_19, _lifetime_18, _round_13, _operation_4, _review_service_request_id_0);
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _partition_20 = _event_0["partition"];
     const _lifetime_19 = _event_0["lifetime"];
     const _round_14 = _event_0["round"];
     const _operation_5 = _event_0["operation"];
-    const _request_1 = _event_0["request"];
-    return $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_5, _request_1);
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _review_service_request_id_1 = _event_0["review_service_request_id"];
+    return $$$$047agent$045flow$045bend$047Canonical$058request_interrupted$(_state_0, _partition_20, _lifetime_19, _round_14, _operation_5, _review_service_request_id_1);
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _partition_21 = _event_0["partition"];
     const _lifetime_20 = _event_0["lifetime"];
     const _round_15 = _event_0["round"];
     const _operation_6 = _event_0["operation"];
-    const _request_2 = _event_0["request"];
+    const _review_service_request_id_2 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
     const _current_work_1 = _event_0["current_work"];
-    return $$$$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_6, _request_2, _outcome_0, _current_work_1);
+    return $$$$047agent$045flow$045bend$047Canonical$058request_settled$(_state_0, _partition_21, _lifetime_20, _round_15, _operation_6, _review_service_request_id_2, _outcome_0, _current_work_1);
   } else if (_event_0.$ === "Canonical.ReviewCompleted") {
     const _partition_22 = _event_0["partition"];
     const _lifetime_21 = _event_0["lifetime"];
@@ -11977,8 +11977,8 @@ function $$$$047agent$045flow$045bend$047Canonical$058step_unchecked$(_state_0, 
   } else if (_event_0.$ === "Canonical.CleanupCommit") {
     return $$$$047agent$045flow$045bend$047Canonical$058cleanup_commit$(_state_0);
   } else if (_event_0.$ === "Canonical.DeliveryReleaseCheck") {
-    const _acknowledged_0 = _event_0["acknowledged"];
-    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_acknowledged_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryReleaseUnacknowledged"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryKeepAcknowledged"}})), "tail": {$: "Nil"}}};
+    const _submission_recorded_0 = _event_0["submission_recorded"];
+    return {$: "Canonical.Advanced", "state": _state_0, "outputs": {$: "Con", "head": ($Bool$pick$(($$$$047agent$045flow$045bend$047Delivery$058release_unacknowledged$(_submission_recorded_0)), {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryReleaseUnacknowledged"}}, {$: "Canonical.PolicyDecided", "decision": {$: "Canonical.DeliveryKeepAcknowledged"}})), "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.DeliveryAcknowledgeCheck") {
     const _items_2 = _event_0["items"];
     const _any_expired_0 = _event_0["any_expired"];
@@ -12308,11 +12308,11 @@ function $$$$047agent$045flow$045bend$047Canonical$058main$() {
 
 function $JevEffects$058issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0) {
   if (_outcome_0.$ === "Canonical.NeverSent") {
-    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}};
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": {$: "Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}};
   } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
-    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
   } else {
-    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
   }
 }
 
@@ -12325,15 +12325,15 @@ function $JevEffects$058started$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _del
     }
   } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
     if (!_interrupted_0) {
-      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
     } else {
-      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
   } else {
     if (_interrupted_0) {
       return {$: "JevEffects.RefusedInterrupted"};
     } else {
-      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
   }
 }
@@ -12347,7 +12347,7 @@ function $JevEffects$058intervene$(_found_0, _outcome_0, _delay_0) {
     const _l_0 = _t_0["lifetime"];
     const _r_0 = _t_0["round"];
     const _o_0 = _t_0["operation"];
-    const _id_0 = _t_0["request"];
+    const _id_0 = _t_0["review_service_request_id"];
     const _t_1 = _t_0["started"];
     if (!_t_1) {
       return {$: "JevEffects.Applied", "facts": ($JevEffects$058issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _delay_0))};
@@ -12599,22 +12599,22 @@ function $Driver$058context_scope$(_event_0, _provided_0) {
     const _lifetime_11 = _event_0["lifetime"];
     const _round_11 = _event_0["round"];
     return {$: "Driver.ContextScope", "partition": _partition_11, "lifetime": _lifetime_11, "round": _round_11};
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _partition_12 = _event_0["partition"];
     const _lifetime_12 = _event_0["lifetime"];
     const _round_12 = _event_0["round"];
     return {$: "Driver.ContextScope", "partition": _partition_12, "lifetime": _lifetime_12, "round": _round_12};
-  } else if (_event_0.$ === "Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _partition_13 = _event_0["partition"];
     const _lifetime_13 = _event_0["lifetime"];
     const _round_13 = _event_0["round"];
     return {$: "Driver.ContextScope", "partition": _partition_13, "lifetime": _lifetime_13, "round": _round_13};
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _partition_14 = _event_0["partition"];
     const _lifetime_14 = _event_0["lifetime"];
     const _round_14 = _event_0["round"];
     return {$: "Driver.ContextScope", "partition": _partition_14, "lifetime": _lifetime_14, "round": _round_14};
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _partition_15 = _event_0["partition"];
     const _lifetime_15 = _event_0["lifetime"];
     const _round_15 = _event_0["round"];
@@ -12778,7 +12778,7 @@ function $Driver$058dispatch_work$(_found_0, _context_0) {
     } else if (_t_1.$ === "Canonical.Reviewing") {
       const _current_0 = _context_0["current_work"];
       const _credential_0 = _context_0["credential_ready"];
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.JevRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$058immediate$({$: "Canonical.ReviewServiceRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
     } else {
       return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
     }
@@ -12880,7 +12880,7 @@ function $Driver$058work_list$(_state_0) {
 }
 
 function $Driver$058retained$(_event_0, _lifetime_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _operation_0 = _event_0["operation"];
     return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_0}}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.ReviewCompleted") {
@@ -12974,7 +12974,7 @@ function $Driver$058release_if$(_available_0, _p_0, _l_0, _r_0, _o_0) {
 }
 
 function $Driver$058unavailable$(_state_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestReady") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -13002,7 +13002,7 @@ function $Driver$058handle$(_state_0, _event_0, _command_0, _context_0) {
     const _t_0 = _command_0["decision"];
     if (_t_0.$ === "Canonical.PreparationRefused") {
       return $Driver$058refused_preparation$(_event_0);
-    } else if (_t_0.$ === "Canonical.JevRequestUnavailable") {
+    } else if (_t_0.$ === "Canonical.ReviewServiceRequestUnavailable") {
       return $Driver$058unavailable$(_state_0, _event_0);
     } else if (_t_0.$ === "Canonical.RetireCandidate") {
       const _candidate_0 = _context_0["candidate"];
@@ -13076,12 +13076,12 @@ function $Driver$058handle$(_state_0, _event_0, _command_0, _context_0) {
       } else {
         return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
       }
-    } else if (_t_2.$ === "Canonical.JevRequestIssued") {
+    } else if (_t_2.$ === "Canonical.ReviewServiceRequestIssued") {
       const _p_3 = _t_2["partition"];
       const _l_3 = _t_2["lifetime"];
       const _r_3 = _t_2["round"];
       const _o_0 = _t_2["operation"];
-      const _request_0 = _t_2["request"];
+      const _request_0 = _t_2["review_service_request_id"];
       const _delay_0 = _context_0["jev_delay"];
       const _t_6 = _context_0["outcome"];
       if (_t_6.$ === "Some") {
@@ -13203,21 +13203,21 @@ function $Driver$058candidate_owner$(_state_0, _candidate_0) {
 }
 
 function $Driver$058fence$(_state_0, _event_0, _generated_0, _context_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
     const __0 = _event_0["current_work"];
     if (_generated_0) {
       const _current_0 = _context_0["current_work"];
-      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": _current_0};
+      return {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": _current_0};
     } else {
-      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": __0};
+      return {$: "Canonical.ReviewServiceRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0, "outcome": _outcome_0, "current_work": __0};
     }
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -13231,9 +13231,9 @@ function $Driver$058fence$(_state_0, _event_0, _generated_0, _context_0) {
     if (_generated_0) {
       const _current_1 = _context_0["current_work"];
       const _credential_0 = _context_0["credential_ready"];
-      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
+      return {$: "Canonical.ReviewServiceRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
     } else {
-      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
+      return {$: "Canonical.ReviewServiceRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
     }
   } else if (_event_0.$ === "Canonical.FinalCandidateCheck") {
     const __42 = _event_0["owner_current"];
@@ -13462,7 +13462,7 @@ function $QuietScenario$058ownership_facts$(_canonical_0, _p_0, _native_idle_0, 
   const _t_0 = _canonical_0["dispatch"];
   const _queued_0 = _t_0["queued"];
   const _running_0 = _t_0["running"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _t_1 = _canonical_0["collection"];
   const _leases_0 = _t_1["leases"];
   const _claims_0 = _t_1["claims"];
@@ -13536,7 +13536,7 @@ function $QuietScenario$058command_actions$(_command_0, _event_0, _now_0) {
 function $QuietScenario$058refresh$(_event_0) {
   if (_event_0.$ === "Canonical.CompleteObservation") {
     return true;
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     return true;
   } else if (_event_0.$ === "Canonical.SubmissionTerminal") {
     return true;
@@ -15727,7 +15727,7 @@ function $FreshnessScenario$058work_owned$(_found_0) {
 function $FreshnessScenario$058live$(_canonical_0, _scope_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _p_0 = _scope_0["partition"];
   const _l_0 = _scope_0["lifetime"];
   const _r_0 = _scope_0["round"];
@@ -15810,8 +15810,8 @@ function $FreshnessScenario$058command_feedback$(_state_0, _event_0, _command_0)
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _parent_0 = _event_0["observation"];
-    if (_command_0.$ === "Canonical.ActionRequested") {
-      const _t_0 = _command_0["request"];
+    if (_command_0.$ === "Canonical.ResidentActionRequested") {
+      const _t_0 = _command_0["command"];
       if (_t_0.$ === "Canonical.Prepare") {
         const _child_0 = _t_0["operation"];
         return $FreshnessScenario$058preparation_feedback$(_state_0, _p_0, _l_0, _r_0, _parent_0, _child_0);
@@ -16273,12 +16273,12 @@ function $SharingScenario$058physical_same$(_left_0, _right_0) {
   const _l_0 = _left_0["lifetime"];
   const _r_0 = _left_0["round"];
   const _op_0 = _left_0["operation"];
-  const _request_0 = _left_0["request"];
+  const _request_0 = _left_0["review_service_request_id"];
   const _owner_0 = _right_0["partition"];
   const _generation_0 = _right_0["lifetime"];
   const _round_0 = _right_0["round"];
   const _operation_0 = _right_0["operation"];
-  const _id_0 = _right_0["request"];
+  const _id_0 = _right_0["review_service_request_id"];
   return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _owner_0)), ($Nat$is_eq$(_l_0, _generation_0)))), ($Nat$is_eq$(_r_0, _round_0)))), ($Nat$is_eq$(_op_0, _operation_0)))), ($Nat$is_eq$(_request_0, _id_0)));
 }
 
@@ -17699,7 +17699,7 @@ function $SharingRuntime$058captured_registration$(_state_0, _scope_0, _member_0
     return {$: "SharingRuntime.CaptureStep", "state": _state_0, "route": {$: "None"}, "valid": false};
   } else {
     const _evaluation_0 = _t_0["value"];
-    return {$: "SharingRuntime.CaptureStep", "state": ($SharingRuntime$058append_unit$(($SharingRuntime$058with_sharing$(_state_0, __0)), _scope_0, _member_0, {$: "SharingRuntime.PreparedUnit", "position": _position_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _evaluation_0, "disposition": {$: "SharingRuntime.Awaiting"}})), "route": {$: "Some", "value": {$: "SharingRuntime.Route", "preparation": _scope_0, "member": _member_0, "position": _position_0, "evaluation": _evaluation_0}}, "valid": true};
+    return {$: "SharingRuntime.CaptureStep", "state": ($SharingRuntime$058append_unit$(($SharingRuntime$058with_sharing$(_state_0, __0)), _scope_0, _member_0, {$: "SharingRuntime.PreparedReviewUnit", "position": _position_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _evaluation_0, "disposition": {$: "SharingRuntime.Awaiting"}})), "route": {$: "Some", "value": {$: "SharingRuntime.Route", "preparation": _scope_0, "member": _member_0, "position": _position_0, "evaluation": _evaluation_0}}, "valid": true};
   }
 }
 
@@ -17851,7 +17851,7 @@ function $SharingRuntime$058unit_route$(_units_0, _position_0, _evaluation_0, _n
     const _id_0 = _t_0["evaluation"];
     const _previous_0 = _t_0["disposition"];
     const _tail_0 = _units_0["tail"];
-    return {$: "Con", "head": {$: "SharingRuntime.PreparedUnit", "position": _p_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), _next_0, _previous_0))}, "tail": ($SharingRuntime$058unit_route$(_tail_0, _position_0, _evaluation_0, _next_0))};
+    return {$: "Con", "head": {$: "SharingRuntime.PreparedReviewUnit", "position": _p_0, "bytes": _bytes_0, "key": _key_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), _next_0, _previous_0))}, "tail": ($SharingRuntime$058unit_route$(_tail_0, _position_0, _evaluation_0, _next_0))};
   }
 }
 
@@ -17978,10 +17978,10 @@ function $SharingRuntime$058own_at$($0, $1) {
         const _t_1 = _t_0["disposition"];
         if (_t_1.$ === "SharingRuntime.Owned") {
           const _tail_0 = _units_0["tail"];
-          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.Owned"}}}, ($SharingRuntime$058own_at$(_tail_0, (_index_0 < 1 ? 0 : _index_0 - 1))));
+          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedReviewUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.Owned"}}}, ($SharingRuntime$058own_at$(_tail_0, (_index_0 < 1 ? 0 : _index_0 - 1))));
         } else if (_t_1.$ === "SharingRuntime.CachedFinding") {
           const _tail_1 = _units_0["tail"];
-          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.CachedFinding"}}}, ($SharingRuntime$058own_at$(_tail_1, (_index_0 < 1 ? 0 : _index_0 - 1))));
+          return $Bool$pick$(($Nat$is_eq$(_index_0, 1)), {$: "Some", "value": {$: "SharingRuntime.PreparedReviewUnit", "position": __0, "bytes": __1, "key": __2, "evaluation": __3, "disposition": {$: "SharingRuntime.CachedFinding"}}}, ($SharingRuntime$058own_at$(_tail_1, (_index_0 < 1 ? 0 : _index_0 - 1))));
         } else {
           const _tail_2 = _units_0["tail"];
           $0 = _tail_2;
@@ -18087,13 +18087,13 @@ function $SharingRuntime$058issued_found$(_state_0, _physical_0, _binding_0) {
 function $SharingRuntime$058issued$(_state_0, _command_0) {
   if (_command_0.$ === "Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "Canonical.JevRequestIssued") {
+    if (_t_0.$ === "Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
       const _o_0 = _t_0["operation"];
-      const _request_0 = _t_0["request"];
-      return $SharingRuntime$058issued_found$(_state_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+      const _request_0 = _t_0["review_service_request_id"];
+      return $SharingRuntime$058issued_found$(_state_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
     } else {
       return _state_0;
     }
@@ -18139,7 +18139,7 @@ function $SharingRuntime$058original_consumed$($0) {
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "Canonical.PolicyDecided") {
           const _t_1 = _t_0["decision"];
-          if (_t_1.$ === "Canonical.JevObservationIgnored") {
+          if (_t_1.$ === "Canonical.ReviewServiceRequestObservationIgnored") {
             return true;
           } else {
             const __1 = _outputs_0["tail"];
@@ -18148,7 +18148,7 @@ function $SharingRuntime$058original_consumed$($0) {
           }
         } else if (_t_0.$ === "Canonical.EventEstablished") {
           const _t_2 = _t_0["event"];
-          if (_t_2.$ === "Canonical.JevRequestOutcomeRecorded") {
+          if (_t_2.$ === "Canonical.ReviewServiceRequestOutcomeRecorded") {
             return true;
           } else {
             const __4 = _outputs_0["tail"];
@@ -18216,7 +18216,7 @@ function $SharingRuntime$058unavailable_command$($0) {
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "Canonical.PolicyDecided") {
           const _t_1 = _t_0["decision"];
-          if (_t_1.$ === "Canonical.JevRequestUnavailable") {
+          if (_t_1.$ === "Canonical.ReviewServiceRequestUnavailable") {
             return true;
           } else {
             const __1 = _outputs_0["tail"];
@@ -18245,15 +18245,15 @@ function $SharingRuntime$058unavailable_binding$(_state_0, _scope_0, _outputs_0,
 }
 
 function $SharingRuntime$058terminal$(_state_0, _event_0, _outputs_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
-    return $SharingRuntime$058terminal_found$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, _outputs_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    return $SharingRuntime$058terminal_found$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, _outcome_0, _outputs_0, ($SharingRuntime$058lookup_binding$(_state_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -18324,7 +18324,7 @@ function $SharingRuntime$058result$(_state_0, _evaluation_0) {
 function $SharingRuntime$058authority$(_canonical_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _t_1 = _canonical_0["collection"];
   const _t_2 = _t_1["reuse"];
   const _claims_0 = _t_2["claims"];
@@ -18384,7 +18384,7 @@ function $SharingRuntime$058physical_live$(_view_0, _captured_0) {
     const _l_0 = _t_0["lifetime"];
     const _r_0 = _t_0["round"];
     const _o_0 = _t_0["operation"];
-    const _request_0 = _t_0["request"];
+    const _request_0 = _t_0["review_service_request_id"];
     return $SharingRuntime$058request_live$(($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
   } else {
     return false;
@@ -18820,7 +18820,7 @@ function $SharingRuntime$058fanout_binding$(_canonical_0, _freshness_0, _state_0
 }
 
 function $SharingRuntime$058fanout$(_before_0, _after_0, _canonical_0, _freshness_0, _event_0, _outputs_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -18958,15 +18958,15 @@ function $SharingRuntime$058unavailable_postprocess$(_before_0, _after_0, _previ
 }
 
 function $SharingRuntime$058postprocess$(_before_0, _after_0, _previous_0, _canonical_0, _freshness_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     const _outcome_0 = _event_0["outcome"];
-    return $SharingRuntime$058postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, _outcome_0, ($SharingRuntime$058lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    return $SharingRuntime$058postprocess_binding$(_before_0, _after_0, _canonical_0, _freshness_0, {$: "SharingScenario.Physical", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _request_0}, _outcome_0, ($SharingRuntime$058lookup_binding$(_before_0, {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})));
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -19001,7 +19001,7 @@ function $SharingRuntime$058canceled_work$(_found_0) {
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.Reviewing") {
       return {$: "Con", "head": {$: "Canonical.CancelReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
-    } else if (_t_1.$ === "Canonical.AtJev") {
+    } else if (_t_1.$ === "Canonical.ReviewServiceRequestOutstanding") {
       return {$: "Con", "head": {$: "Canonical.CancelReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
     } else if (_t_1.$ === "Canonical.PendingFinding") {
       return {$: "Con", "head": {$: "Canonical.RetireReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "tail": {$: "Nil"}};
@@ -19160,7 +19160,7 @@ function $SharingRuntime$058results$(_state_0) {
 }
 
 function $SharingRuntime$058cache_offer$(_state_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
@@ -19192,7 +19192,7 @@ function $SharingRuntime$058cached_units$(_units_0, _position_0, _evaluation_0, 
     const _id_0 = _t_0["evaluation"];
     const _previous_0 = _t_0["disposition"];
     const _tail_0 = _units_0["tail"];
-    return {$: "Con", "head": {$: "SharingRuntime.PreparedUnit", "position": _p_0, "bytes": _size_0, "key": _original_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), ($SharingScenario$058same_key$(_original_0, _key_0)))), ($Nat$is_eq$(_size_0, _bytes_0)))), ($SharingRuntime$058cached_disposition$(_outcome_0)), _previous_0))}, "tail": ($SharingRuntime$058cached_units$(_tail_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0))};
+    return {$: "Con", "head": {$: "SharingRuntime.PreparedReviewUnit", "position": _p_0, "bytes": _size_0, "key": _original_0, "evaluation": _id_0, "disposition": ($Bool$pick$(($Bool$and$(($Bool$and$(($Bool$and$(($Nat$is_eq$(_p_0, _position_0)), ($Nat$is_eq$(_id_0, _evaluation_0)))), ($SharingScenario$058same_key$(_original_0, _key_0)))), ($Nat$is_eq$(_size_0, _bytes_0)))), ($SharingRuntime$058cached_disposition$(_outcome_0)), _previous_0))}, "tail": ($SharingRuntime$058cached_units$(_tail_0, _position_0, _evaluation_0, _key_0, _bytes_0, _outcome_0))};
   }
 }
 
@@ -19339,13 +19339,13 @@ function $FreshnessContext$058candidate$(_state_0, _value_0) {
 }
 
 function $FreshnessContext$058scope$(_state_0, _event_0, _value_0) {
-  if (_event_0.$ === "Canonical.JevRequestReady") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return {$: "Some", "value": {$: "FreshnessScenario.Scope", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -19549,26 +19549,26 @@ function $Callbacks$058owner_equal$(_a_0, _b_0) {
 }
 
 function $Callbacks$058effect_equal$(_a_0, _b_0) {
-  if (_a_0.$ === "Callbacks.JevStarted") {
-    const _r_0 = _a_0["request"];
-    if (_b_0.$ === "Callbacks.JevStarted") {
-      const _other_0 = _b_0["request"];
+  if (_a_0.$ === "Callbacks.ReviewServiceRequestStarted") {
+    const _r_0 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "Callbacks.ReviewServiceRequestStarted") {
+      const _other_0 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_0, _other_0);
     } else {
       return false;
     }
-  } else if (_a_0.$ === "Callbacks.JevInterrupted") {
-    const _r_1 = _a_0["request"];
-    if (_b_0.$ === "Callbacks.JevInterrupted") {
-      const _other_1 = _b_0["request"];
+  } else if (_a_0.$ === "Callbacks.ReviewServiceRequestInterrupted") {
+    const _r_1 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "Callbacks.ReviewServiceRequestInterrupted") {
+      const _other_1 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_1, _other_1);
     } else {
       return false;
     }
-  } else if (_a_0.$ === "Callbacks.JevSettled") {
-    const _r_2 = _a_0["request"];
-    if (_b_0.$ === "Callbacks.JevSettled") {
-      const _other_2 = _b_0["request"];
+  } else if (_a_0.$ === "Callbacks.ReviewServiceRequestSettled") {
+    const _r_2 = _a_0["review_service_request_id"];
+    if (_b_0.$ === "Callbacks.ReviewServiceRequestSettled") {
+      const _other_2 = _b_0["review_service_request_id"];
       return $Nat$is_eq$(_r_2, _other_2);
     } else {
       return false;
@@ -19635,27 +19635,27 @@ function $Callbacks$058target_of$(_original_0) {
 }
 
 function $Callbacks$058fact_target$(_owner_0, _order_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestStarted") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
-    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "effect": {$: "Callbacks.JevStarted", "request": _request_0}, "original_order": _order_0}}, {$: "None"});
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _request_0 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, "effect": {$: "Callbacks.ReviewServiceRequestStarted", "review_service_request_id": _request_0}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
-    const _request_1 = _event_0["request"];
-    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "effect": {$: "Callbacks.JevInterrupted", "request": _request_1}, "original_order": _order_0}}, {$: "None"});
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _request_1 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}, "effect": {$: "Callbacks.ReviewServiceRequestInterrupted", "review_service_request_id": _request_1}, "original_order": _order_0}}, {$: "None"});
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
     const _o_2 = _event_0["operation"];
-    const _request_2 = _event_0["request"];
-    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}, "effect": {$: "Callbacks.JevSettled", "request": _request_2}, "original_order": _order_0}}, {$: "None"});
+    const _request_2 = _event_0["review_service_request_id"];
+    return $Bool$pick$(($Callbacks$058owner_equal$(_owner_0, {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2})), {$: "Some", "value": {$: "Callbacks.Target", "owner": {$: "Callbacks.Owner", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _o_2}, "effect": {$: "Callbacks.ReviewServiceRequestSettled", "review_service_request_id": _request_2}, "original_order": _order_0}}, {$: "None"});
   } else if (_event_0.$ === "Canonical.PreparationCompleted") {
     const _p_3 = _event_0["partition"];
     const _l_3 = _event_0["lifetime"];
@@ -20022,29 +20022,29 @@ function $Callbacks$058finish_owned$(_collection_0, _owner_0, _group_0, _round_0
 }
 
 function $Callbacks$058physical_owned$(_effect_0, _owner_0, _dispatch_0, _collection_0) {
-  if (_effect_0.$ === "Callbacks.JevStarted") {
-    const _request_0 = _effect_0["request"];
+  if (_effect_0.$ === "Callbacks.ReviewServiceRequestStarted") {
+    const _request_0 = _effect_0["review_service_request_id"];
     const _p_0 = _owner_0["partition"];
     const _l_0 = _owner_0["lifetime"];
     const _r_0 = _owner_0["round"];
     const _o_0 = _owner_0["operation"];
-    const _requests_0 = _dispatch_0["requests"];
+    const _requests_0 = _dispatch_0["review_service_requests"];
     return $Callbacks$058request_owned$(($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _request_0)));
-  } else if (_effect_0.$ === "Callbacks.JevInterrupted") {
-    const _request_1 = _effect_0["request"];
+  } else if (_effect_0.$ === "Callbacks.ReviewServiceRequestInterrupted") {
+    const _request_1 = _effect_0["review_service_request_id"];
     const _p_1 = _owner_0["partition"];
     const _l_1 = _owner_0["lifetime"];
     const _r_1 = _owner_0["round"];
     const _o_1 = _owner_0["operation"];
-    const _requests_1 = _dispatch_0["requests"];
+    const _requests_1 = _dispatch_0["review_service_requests"];
     return $Callbacks$058request_owned$(($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_1, _p_1, _l_1, _r_1, _o_1, _request_1)));
-  } else if (_effect_0.$ === "Callbacks.JevSettled") {
-    const _request_2 = _effect_0["request"];
+  } else if (_effect_0.$ === "Callbacks.ReviewServiceRequestSettled") {
+    const _request_2 = _effect_0["review_service_request_id"];
     const _p_2 = _owner_0["partition"];
     const _l_2 = _owner_0["lifetime"];
     const _r_2 = _owner_0["round"];
     const _o_2 = _owner_0["operation"];
-    const _requests_2 = _dispatch_0["requests"];
+    const _requests_2 = _dispatch_0["review_service_requests"];
     return $Callbacks$058request_owned$(($$$$047agent$045flow$045bend$047Dispatch$058request_phase$(_requests_2, _p_2, _l_2, _r_2, _o_2, _request_2)));
   } else if (_effect_0.$ === "Callbacks.PreparationCompleted") {
     const _p_3 = _owner_0["partition"];
@@ -22132,8 +22132,8 @@ function $NoticeScenario$058create_key$($0) {
         return false;
       } else {
         const _t_0 = _outputs_0["head"];
-        if (_t_0.$ === "Canonical.ActionRequested") {
-          const _t_1 = _t_0["request"];
+        if (_t_0.$ === "Canonical.ResidentActionRequested") {
+          const _t_1 = _t_0["command"];
           if (_t_1.$ === "Canonical.CreateNoticeKey") {
             return true;
           } else {
@@ -23589,16 +23589,16 @@ function $CredentialContext$058candidate_generation$(_state_0, _candidate_0, _su
 }
 
 function $CredentialContext$058event_generation$(_state_0, _event_0, _supplied_0) {
-  if (_event_0.$ === "Canonical.JevRequestReady") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _operation_0 = _event_0["operation"];
     return $CredentialContext$058operation_generation$(_state_0, _operation_0, _supplied_0);
-  } else if (_event_0.$ === "Canonical.JevRequestStarted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _operation_1 = _event_0["operation"];
     return $CredentialContext$058operation_generation$(_state_0, _operation_1, _supplied_0);
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _operation_2 = _event_0["operation"];
     return $CredentialContext$058operation_generation$(_state_0, _operation_2, _supplied_0);
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _operation_3 = _event_0["operation"];
     return $CredentialContext$058operation_generation$(_state_0, _operation_3, _supplied_0);
   } else if (_event_0.$ === "Canonical.CollectionReady") {
@@ -23831,7 +23831,7 @@ function $AdviceeScope$058request_owner$(_requests_0, _operation_0) {
 function $AdviceeScope$058dispatch_owner$(_dispatch_0, _operation_0) {
   const _queued_0 = _dispatch_0["queued"];
   const _running_0 = _dispatch_0["running"];
-  const _requests_0 = _dispatch_0["requests"];
+  const _requests_0 = _dispatch_0["review_service_requests"];
   return $AdviceeScope$058first$(($AdviceeScope$058entry_owner$(_queued_0, _operation_0)), ($AdviceeScope$058first$(($AdviceeScope$058entry_owner$(_running_0, _operation_0)), ($AdviceeScope$058request_owner$(_requests_0, _operation_0)))));
 }
 
@@ -24028,16 +24028,16 @@ function $AdviceeScope$058event_reference$(_value_0) {
   } else if (_value_0.$ === "Canonical.StartReview") {
     const _partition_18 = _value_0["partition"];
     return {$: "AdviceeScope.Direct", "partition": _partition_18};
-  } else if (_value_0.$ === "Canonical.JevRequestReady") {
+  } else if (_value_0.$ === "Canonical.ReviewServiceRequestReady") {
     const _partition_19 = _value_0["partition"];
     return {$: "AdviceeScope.Direct", "partition": _partition_19};
-  } else if (_value_0.$ === "Canonical.JevRequestStarted") {
+  } else if (_value_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _partition_20 = _value_0["partition"];
     return {$: "AdviceeScope.Direct", "partition": _partition_20};
-  } else if (_value_0.$ === "Canonical.JevRequestInterrupted") {
+  } else if (_value_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _partition_21 = _value_0["partition"];
     return {$: "AdviceeScope.Direct", "partition": _partition_21};
-  } else if (_value_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_value_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _partition_22 = _value_0["partition"];
     return {$: "AdviceeScope.Direct", "partition": _partition_22};
   } else if (_value_0.$ === "Canonical.ReviewCompleted") {
@@ -24362,14 +24362,14 @@ function $AdviceeScope$058command_reference$(_value_0) {
       return {$: "AdviceeScope.Reservation", "reservation": _id_4};
     } else if (_t_0.$ === "Canonical.ReviewStarted") {
       return {$: "AdviceeScope.Context"};
-    } else if (_t_0.$ === "Canonical.JevRequestIssued") {
+    } else if (_t_0.$ === "Canonical.ReviewServiceRequestIssued") {
       const _partition_0 = _t_0["partition"];
       return {$: "AdviceeScope.Direct", "partition": _partition_0};
-    } else if (_t_0.$ === "Canonical.JevRequestStartRecorded") {
+    } else if (_t_0.$ === "Canonical.ReviewServiceRequestStartRecorded") {
       return {$: "AdviceeScope.Context"};
-    } else if (_t_0.$ === "Canonical.JevInterruptionRecorded") {
+    } else if (_t_0.$ === "Canonical.ReviewServiceRequestInterruptionRecorded") {
       return {$: "AdviceeScope.Context"};
-    } else if (_t_0.$ === "Canonical.JevRequestOutcomeRecorded") {
+    } else if (_t_0.$ === "Canonical.ReviewServiceRequestOutcomeRecorded") {
       return {$: "AdviceeScope.Context"};
     } else if (_t_0.$ === "Canonical.ReservationReleased") {
       const _id_5 = _t_0["id"];
@@ -24510,9 +24510,9 @@ function $AdviceeScope$058command_reference$(_value_0) {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.UnitRefused") {
       return {$: "AdviceeScope.Context"};
-    } else if (_t_1.$ === "Canonical.JevRequestUnavailable") {
+    } else if (_t_1.$ === "Canonical.ReviewServiceRequestUnavailable") {
       return {$: "AdviceeScope.Context"};
-    } else if (_t_1.$ === "Canonical.JevObservationIgnored") {
+    } else if (_t_1.$ === "Canonical.ReviewServiceRequestObservationIgnored") {
       return {$: "AdviceeScope.Context"};
     } else if (_t_1.$ === "Canonical.PreparedSkipped") {
       return {$: "AdviceeScope.Context"};
@@ -24758,7 +24758,7 @@ function $AdviceeScope$058command_reference$(_value_0) {
       return {$: "AdviceeScope.Context"};
     }
   } else {
-    const _t_2 = _value_0["request"];
+    const _t_2 = _value_0["command"];
     if (_t_2.$ === "Canonical.Prepare") {
       const _operation_4 = _t_2["operation"];
       return {$: "AdviceeScope.Operation", "operation": _operation_4};
@@ -26389,7 +26389,7 @@ function $PreparationScenario$058generate$(_seed_0, _operation_0, _unit_0, _prof
 
 function $FaultTargets$058request$(_state_0, _target_0) {
   const _t_0 = _state_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _p_0 = _target_0["partition"];
   const _l_0 = _target_0["lifetime"];
   const _r_0 = _target_0["round"];
@@ -26404,30 +26404,30 @@ function $FaultTargets$058identity$(_p_0, _l_0, _r_0, _o_0, _id_0, _target_0) {
   const _tr_0 = _target_0["round"];
   const _to_0 = _target_0["operation"];
   const _tid_0 = _target_0["request"];
-  return $$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.Request", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "started": false, "interrupted": false}, _tp_0, _tl_0, _tr_0, _to_0, _tid_0);
+  return $$$$047agent$045flow$045bend$047Dispatch$058request_matches$({$: "Dispatch.ReviewServiceRequestRecord", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "review_service_request_id": _id_0, "started": false, "interrupted": false}, _tp_0, _tl_0, _tr_0, _to_0, _tid_0);
 }
 
 function $FaultTargets$058callback$(_event_0, _target_0) {
-  if (_event_0.$ === "Canonical.JevRequestStarted") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _id_0 = _event_0["request"];
+    const _id_0 = _event_0["review_service_request_id"];
     return $FaultTargets$058identity$(_p_0, _l_0, _r_0, _o_0, _id_0, _target_0);
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
-    const _id_1 = _event_0["request"];
+    const _id_1 = _event_0["review_service_request_id"];
     return $FaultTargets$058identity$(_p_1, _l_1, _r_1, _o_1, _id_1, _target_0);
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
     const _o_2 = _event_0["operation"];
-    const _id_2 = _event_0["request"];
+    const _id_2 = _event_0["review_service_request_id"];
     return $FaultTargets$058identity$(_p_2, _l_2, _r_2, _o_2, _id_2, _target_0);
   } else {
     return false;
@@ -26878,7 +26878,7 @@ function $Postprocess$058released$(_before_0, _event_0) {
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return $Postprocess$058preparation_parent$(($$$$047agent$045flow$045bend$047Canonical$058find_work$(_p_0, _l_0, _r_0, _o_0, ($Driver$058work_list$(_before_0)))));
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
@@ -26937,7 +26937,7 @@ function $Postprocess$058readiness$($0, $1) {
 function $Postprocess$058refresh$(_event_0) {
   if (_event_0.$ === "Canonical.CompleteObservation") {
     return true;
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     return true;
   } else if (_event_0.$ === "Canonical.ReviewCompleted") {
     return true;
@@ -26979,7 +26979,7 @@ function $captured_commands$($0, $1) {
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "Canonical.EventEstablished") {
           const _t_1 = _t_0["event"];
-          if (_t_1.$ === "Canonical.JevRequestIssued") {
+          if (_t_1.$ === "Canonical.ReviewServiceRequestIssued") {
             const _operation_0 = _t_1["operation"];
             const _tail_0 = _outputs_0["tail"];
             $0 = _tail_0;
@@ -27031,7 +27031,7 @@ function $captured_request_present$(_operation_0, _requests_0) {
 function $captured_authority_present$(_operation_0, _canonical_0) {
   const _work_0 = _canonical_0["work"];
   const _t_0 = _canonical_0["dispatch"];
-  const _requests_0 = _t_0["requests"];
+  const _requests_0 = _t_0["review_service_requests"];
   const _x_0 = ($captured_work_present$(_operation_0, _work_0));
   const _x_1 = ($captured_request_present$(_operation_0, _requests_0));
   return (_x_0 || _x_1);
@@ -27163,8 +27163,8 @@ function $cancellation_preparations$($0, $1, $2) {
         return _items_0;
       } else {
         const _t_0 = _outputs_0["head"];
-        if (_t_0.$ === "Canonical.ActionRequested") {
-          const _t_1 = _t_0["request"];
+        if (_t_0.$ === "Canonical.ResidentActionRequested") {
+          const _t_1 = _t_0["command"];
           if (_t_1.$ === "Canonical.CancelWork") {
             const _operation_0 = _t_1["operation"];
             const _tail_0 = _outputs_0["tail"];
@@ -27558,12 +27558,12 @@ function $source_outcome$(_job_0) {
 function $prepared_outcome$(_state_0, _command_0, _job_0, _selected_0, _source_0, _before_0, _after_0, _context_0) {
   if (_command_0.$ === "Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "Canonical.JevRequestIssued") {
+    if (_t_0.$ === "Canonical.ReviewServiceRequestIssued") {
       const _p_0 = _t_0["partition"];
       const _l_0 = _t_0["lifetime"];
       const _r_0 = _t_0["round"];
       const _o_0 = _t_0["operation"];
-      const _request_0 = _t_0["request"];
+      const _request_0 = _t_0["review_service_request_id"];
       if (_selected_0.$ === "Some") {
         const _outcome_0 = _selected_0["value"];
         return {$: "PreparedCommandContext", "state": _state_0, "context": ($Driver$058with_outcome$(_context_0, {$: "Some", "value": _outcome_0})), "receipt": {$: "Some", "value": {$: "Driver.OutcomeReceipt", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "source": _source_0, "job": _job_0, "stream_before": _before_0, "stream_after": _after_0}}};
@@ -27607,13 +27607,13 @@ function $prepared_source$(_override_0, _environment_0, _state_0, _command_0, _j
 function $prepare_command_context$(_state_0, _command_0, _source_job_0, _environment_0, _context_0) {
   if (_command_0.$ === "Canonical.EventEstablished") {
     const _t_0 = _command_0["event"];
-    if (_t_0.$ === "Canonical.JevRequestIssued") {
+    if (_t_0.$ === "Canonical.ReviewServiceRequestIssued") {
       const __0 = _t_0["partition"];
       const __1 = _t_0["lifetime"];
       const __2 = _t_0["round"];
       const __3 = _t_0["operation"];
-      const __4 = _t_0["request"];
-      return $prepared_source$(($source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.JevRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "request": __4}}, _source_job_0, _context_0);
+      const __4 = _t_0["review_service_request_id"];
+      return $prepared_source$(($source_outcome$(_source_job_0)), _environment_0, _state_0, {$: "Canonical.EventEstablished", "event": {$: "Canonical.ReviewServiceRequestIssued", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "review_service_request_id": __4}}, _source_job_0, _context_0);
     } else {
       return {$: "PreparedCommandContext", "state": _state_0, "context": _context_0, "receipt": {$: "None"}};
     }
@@ -28381,19 +28381,19 @@ function $callback_finish_slot$(_canonical_0, _found_0, _group_0, _round_0, _att
 }
 
 function $callback_owner$(_state_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestStarted") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestStarted") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
     return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}};
-  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestInterrupted") {
     const _p_1 = _event_0["partition"];
     const _l_1 = _event_0["lifetime"];
     const _r_1 = _event_0["round"];
     const _o_1 = _event_0["operation"];
     return {$: "Some", "value": {$: "Callbacks.Owner", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1}};
-  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+  } else if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_2 = _event_0["partition"];
     const _l_2 = _event_0["lifetime"];
     const _r_2 = _event_0["round"];
@@ -28880,7 +28880,7 @@ function $recorded_cache_result$($0) {
         const _t_0 = _outputs_0["head"];
         if (_t_0.$ === "Canonical.EventEstablished") {
           const _t_1 = _t_0["event"];
-          if (_t_1.$ === "Canonical.JevRequestOutcomeRecorded") {
+          if (_t_1.$ === "Canonical.ReviewServiceRequestOutcomeRecorded") {
             return true;
           } else {
             const __2 = _outputs_0["tail"];
@@ -28948,12 +28948,12 @@ function $cache_original_found$(_found_0) {
 }
 
 function $cache_original_request$(_state_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
+  if (_event_0.$ === "Canonical.ReviewServiceRequestSettled") {
     const _p_0 = _event_0["partition"];
     const _l_0 = _event_0["lifetime"];
     const _r_0 = _event_0["round"];
     const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
+    const _request_0 = _event_0["review_service_request_id"];
     return $cache_original_found$(($FaultTargets$058request$(_state_0, {$: "FaultTargets.Target", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0})));
   } else {
     return false;
@@ -29646,8 +29646,8 @@ function $0m2(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "Dispatch.Entry": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
-      default: throw "bend: Dispatch.Entry has no tag " + v?.$ + " (its tags: Dispatch.Entry); a tag names its constructor as the"
+      case "Dispatch.ScheduledReviewWork": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "sequence": BigInt(v["sequence"])}; return top[0];
+      default: throw "bend: Dispatch.ScheduledReviewWork has no tag " + v?.$ + " (its tags: Dispatch.ScheduledReviewWork); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -29671,8 +29671,8 @@ function $0m4(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "Dispatch.Request": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "request": BigInt(v["request"])}; return top[0];
-      default: throw "bend: Dispatch.Request has no tag " + v?.$ + " (its tags: Dispatch.Request); a tag names its constructor as the"
+      case "Dispatch.ReviewServiceRequestRecord": at = at[key] = {...v, "partition": BigInt(v["partition"]), "lifetime": BigInt(v["lifetime"]), "round": BigInt(v["round"]), "operation": BigInt(v["operation"]), "review_service_request_id": BigInt(v["review_service_request_id"])}; return top[0];
+      default: throw "bend: Dispatch.ReviewServiceRequestRecord has no tag " + v?.$ + " (its tags: Dispatch.ReviewServiceRequestRecord); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -29693,7 +29693,7 @@ function $0m3(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:24924a87f84f8b24147c55c9657ab4d4079ed8976cfb7da3b1fbeb24d81430d1";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6c6ddf9ebb1945a95132c3bfd0a730106a73aa69965500b0dc5233364c9ff1dc";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4bf47dcf9e6197c160cbd1ba42515da47172af78f80d50cddb56bc90cece88f5";
 
 const facts = value => {

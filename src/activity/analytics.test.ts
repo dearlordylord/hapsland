@@ -30,7 +30,7 @@ describe("opt-in session analytics", () => {
       advicee: advicee({ sessionId: input.sessionId }),
       lifetime: "one",
       controlled: false,
-      kind: "request-started"
+      kind: "review-service-request-started"
     })
     expect(readdirSync(input.statePath)).toEqual([])
     expect(readAnalytics({ ...input, enabled: false })).toMatchObject({
@@ -42,7 +42,7 @@ describe("opt-in session analytics", () => {
   it("keeps whole-session totals when details roll over and combines resident lifetimes", () => {
     const input = fixture()
     const record = { ...input, advicee: advicee({ sessionId: input.sessionId }), lifetime: "one", controlled: false }
-    recordAnalytics({ ...record, kind: "request-started" })
+    recordAnalytics({ ...record, kind: "review-service-request-started" })
     const directory = join(input.statePath, activitySessionKey(input.sessionId))
     const name = readdirSync(directory)[0]
     if (name === undefined) throw new Error("summary missing")
@@ -54,17 +54,17 @@ describe("opt-in session analytics", () => {
     summary.totals.clearReviews = repetitions
     summary.details = Array.from({ length: MAX_ANALYTICS_DETAILS }, (_, index) => ({
       ...summary.details[0],
-      kind: index % 2 === 0 ? "request-started" : "request-clear"
+      kind: index % 2 === 0 ? "review-service-request-started" : "review-service-request-clear"
     }))
     summary.detailsDropped = 2 * repetitions - MAX_ANALYTICS_DETAILS
     writeFileSync(path, JSON.stringify(summary))
-    recordAnalytics({ ...record, kind: "request-started" })
-    recordAnalytics({ ...record, kind: "request-clear" })
-    recordAnalytics({ ...record, lifetime: "two", kind: "request-started" })
+    recordAnalytics({ ...record, kind: "review-service-request-started" })
+    recordAnalytics({ ...record, kind: "review-service-request-clear" })
+    recordAnalytics({ ...record, lifetime: "two", kind: "review-service-request-started" })
     recordAnalytics({
       ...record,
       lifetime: "two",
-      kind: "request-findings",
+      kind: "review-service-request-findings",
       findings: 2,
       ruleIds: ["r1", "namespace/check"]
     })
@@ -95,15 +95,19 @@ describe("opt-in session analytics", () => {
   it("distinguishes failures, missing settlements, reused work and controlled fixtures", () => {
     const input = fixture()
     const record = { ...input, advicee: advicee({ sessionId: input.sessionId }), lifetime: "one", controlled: false }
-    for (const kind of ["request-failed", "request-timeout", "request-interrupted"] as const) {
-      recordAnalytics({ ...record, kind: "request-started" })
+    for (const kind of [
+      "review-service-request-failed",
+      "review-service-request-timeout",
+      "review-service-request-interrupted"
+    ] as const) {
+      recordAnalytics({ ...record, kind: "review-service-request-started" })
       recordAnalytics({ ...record, kind })
     }
-    recordAnalytics({ ...record, kind: "request-started" })
-    recordAnalytics({ ...record, kind: "request-never-sent" })
+    recordAnalytics({ ...record, kind: "review-service-request-started" })
+    recordAnalytics({ ...record, kind: "review-service-request-never-sent" })
     recordAnalytics({ ...record, kind: "joined-review" })
-    recordAnalytics({ ...record, controlled: true, kind: "request-started" })
-    recordAnalytics({ ...record, controlled: true, kind: "request-clear" })
+    recordAnalytics({ ...record, controlled: true, kind: "review-service-request-started" })
+    recordAnalytics({ ...record, controlled: true, kind: "review-service-request-clear" })
     expect(readAnalytics(input)).toMatchObject({
       unsettledRequests: 1,
       totals: {
@@ -127,7 +131,7 @@ describe("opt-in session analytics", () => {
       advicee: advicee({ sessionId: input.sessionId, toolUseId: "private-tool", subagentId: "private-child" }),
       lifetime: "private-lifetime",
       controlled: false,
-      kind: "request-findings",
+      kind: "review-service-request-findings",
       findings: 70,
       ruleIds: [...Array.from({ length: 70 }, (_, i) => `namespace/rule-${i}`), "\u001b[31m"]
     })
@@ -158,7 +162,7 @@ describe("opt-in session analytics", () => {
       advicee: advicee({ sessionId: input.sessionId }),
       lifetime: "one",
       controlled: false,
-      kind: "request-started" as const
+      kind: "review-service-request-started" as const
     }
     recordAnalytics(record)
     const directory = join(input.statePath, activitySessionKey(input.sessionId))

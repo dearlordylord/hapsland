@@ -1,11 +1,11 @@
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { expect, it } from "@effect/vitest"
 import { Cause, Effect } from "effect"
 import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit
+  type PreparedReviewUnit
 } from "@hapsland/review-definition/direct-event/model"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
@@ -68,7 +68,7 @@ it.effect("keeps connection ownership and immutable statistics through physical 
     const snapshot = yield* owner.runtime.snapshot()
     expect(Object.isFrozen(snapshot)).toBe(true)
     const reservation = (yield* owner.reserve("fixture", 20, "preparation"))!
-    yield* owner.runtime.observePreparedUnits(3)
+    yield* owner.runtime.observePreparedReviewUnits(3)
     yield* owner.runtime.rejectCapacity()
     expect(yield* owner.runtime.nextAuthoritySequence()).toBe(1)
     expect(yield* owner.runtime.nextAuthoritySequence()).toBe(2)
@@ -81,7 +81,7 @@ it.effect("keeps connection ownership and immutable statistics through physical 
       connections: 1,
       rejectedCapacity: 1,
       peakLedgerBytes: 20,
-      maxMaterializedPreparedUnits: 3
+      maxMaterializedPreparedReviewUnits: 3
     })
     expect(yield* owner.runtime.releaseConnection(connection)).toBe(true)
     expect((yield* owner.runtime.snapshot()).connections).toBe(0)
@@ -127,7 +127,7 @@ const cacheFixture = Effect.gen(function* () {
     sourceHash: "source"
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "count.ts",
@@ -136,7 +136,12 @@ const cacheFixture = Effect.gen(function* () {
     rules: freezeRules([]),
     interpretation: "probability-strictly-greater-than-threshold"
   })
-  const prepared: PreparedUnit = { root: "/fixture", advicee: advicee(), input, identity: semanticIdentity(input) }
+  const prepared: PreparedReviewUnit = {
+    root: "/fixture",
+    advicee: advicee(),
+    input,
+    identity: semanticIdentity(input)
+  }
   const reuse = owner.reuse(() => 10)
   const key = reuse.key("agent", prepared)
   const evaluation = { prepared, findings: [] }

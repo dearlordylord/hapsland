@@ -18,7 +18,12 @@ import ./minimal-scenario.bend as Minimal
 # One source-free input stream, resident, queue and clock. Job facts are payload
 # storage only; actual Driver actions and Canonical outputs own the lifecycle.
 type Job is Data:
-  Job{partition: Nat, bytes: Nat, units: List<&2, Nat>, outcome: Canonical.RequestOutcome}
+  Job{
+    partition: Nat,
+    bytes: Nat,
+    units: List<&2, Nat>,
+    outcome: Canonical.ReviewServiceRequestOutcome
+  }
 type Stored is Data:
   Stored{operation: Nat, job: Job}
 type Input is Data:
@@ -53,7 +58,7 @@ def remember(command: Canonical.Output, jobs: List<&2, Stored>, job: Job) -> Lis
       operation,
       job
     } <> jobs
-    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: Stored{operation, job} <> jobs
+    case Canonical.ResidentActionRequested{Canonical.Prepare{operation, _}}: Stored{operation, job} <> jobs
     case Canonical.EventEstablished{Canonical.UnitAdmitted{operation, _, _, _, _}}: Stored{
       operation,
       job
@@ -93,21 +98,44 @@ def state_counts(state: Canonical.State) -> List<&2, Nat>:
       _,
       _
     }:
-      List.append(&2, Nat, Minimal.usage_counts(Ledger.total(charges)),
-        List.append(&2, Nat, Minimal.usage_counts(Ledger.partition_usage(charges, 1n)),
-          List.append(&2, Nat, Minimal.usage_counts(Ledger.partition_usage(charges, 2n)),
-            [Dispatch.preparation_count(running), List.length(&2, Dispatch.Request, requests)])))
+      List.append(
+        &2,
+        Nat,
+        Minimal.usage_counts(Ledger.total(charges)),
+        List.append(
+          &2,
+          Nat,
+          Minimal.usage_counts(Ledger.partition_usage(charges, 1n)),
+          List.append(
+            &2,
+            Nat,
+            Minimal.usage_counts(Ledger.partition_usage(charges, 2n)),
+            [
+              Dispatch.preparation_count(running),
+              List.length(&2, Dispatch.ReviewServiceRequestRecord, requests)
+            ]
+          )
+        )
+      )
 
 def event_code(event: Canonical.CanonicalEvent) -> Nat:
   match event:
     case Canonical.StopPolled{_, _, _, _}: 26n
-    case Canonical.JevRequestInterrupted{_, _, _, _, _}: 25n
+    case Canonical.ReviewServiceRequestInterrupted{_, _, _, _, _}: 25n
     case event: Minimal.event_code(event)
 
 def identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
   match event:
     case Canonical.StopPolled{p, l, r, _}: [p, l, r, 0n, 0n, 0n, 0n]
-    case Canonical.JevRequestInterrupted{p, l, r, o, request}: [p, l, r, o, request, 0n, 0n]
+    case Canonical.ReviewServiceRequestInterrupted{p, l, r, o, request}: [
+      p,
+      l,
+      r,
+      o,
+      request,
+      0n,
+      0n
+    ]
     case event: Minimal.event_identity(event)
 
 def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
@@ -124,22 +152,22 @@ def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
 
 def command_code(command: Canonical.Output) -> Nat:
   match command:
-    case Canonical.PolicyDecided{Canonical.JevObservationIgnored{}}: 31n
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestObservationIgnored{}}: 31n
     case Canonical.EventEstablished{Canonical.FinishReady{}}: 32n
-    case Canonical.ActionRequested{Canonical.CancelWork{_}}: 33n
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: 29n
-    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: 30n
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{_}}: 33n
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}}: 29n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestInterruptionRecorded{}}: 30n
     case command: Minimal.command_code(command)
 
 def command_id(command: Canonical.Output) -> Nat:
   match command:
-    case Canonical.ActionRequested{Canonical.CancelWork{id}}: id
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{id}}: id
     case Canonical.EventEstablished{Canonical.RoundStarted{id}}: id
     case Canonical.EventEstablished{Canonical.ObservationAdmitted{id}}: id
     case Canonical.EventEstablished{Canonical.DispatchStarted{id, _}}: id
-    case Canonical.ActionRequested{Canonical.Prepare{id, _}}: id
+    case Canonical.ResidentActionRequested{Canonical.Prepare{id, _}}: id
     case Canonical.EventEstablished{Canonical.UnitAdmitted{id, _, _, _, _}}: id
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, _, id}}: id
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, _, id}}: id
     case Canonical.EventEstablished{Canonical.PreparationReleased{id, _}}: id
     case Canonical.EventEstablished{Canonical.ReservationReleased{id}}: id
     case _: 0n
@@ -166,7 +194,7 @@ def original(+index: Nat) -> Job:
     Bool.pick(Nat, Nat.is_eq(parity, 0n), 10n, 20n),
     [Bool.pick(Nat, Nat.is_eq(parity, 0n), 5n, 7n)],
     Bool.pick(
-      Canonical.RequestOutcome,
+      Canonical.ReviewServiceRequestOutcome,
       Nat.is_eq(index, 0n),
       Canonical.RequestInterrupted{},
       Canonical.RequestClear{}
@@ -308,7 +336,7 @@ def command_job(command: Canonical.Output, jobs: List<&2, Stored>, fallback: Job
       operation,
       fallback
     )
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, operation, _}}: lookup_job(
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, operation, _}}: lookup_job(
       jobs,
       operation,
       fallback
@@ -483,7 +511,7 @@ def interpret(
   candidate: Maybe<&2, Driver.Candidate>
 ) -> Runtime:
   match value:
-    case Canonical.ActionRequested{Canonical.Prepare{+operation, _}}:
+    case Canonical.ResidentActionRequested{Canonical.Prepare{+operation, _}}:
       Runtime{
         state,
         generated(

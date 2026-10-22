@@ -1,4 +1,4 @@
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { describe, expect, it } from "vitest"
 import { Effect } from "effect"
 import { it as effectIt } from "@effect/vitest"
@@ -6,7 +6,7 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit,
+  type PreparedReviewUnit,
   type ReviewInput
 } from "@hapsland/review-definition/direct-event/model"
 import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
@@ -31,7 +31,7 @@ const artifact = (source: string): TypeDeclaration => ({
 const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   const declaration = artifact("type OrderCount = number")
   return freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",
@@ -43,7 +43,7 @@ const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   })
 }
 
-const prepared = (value: ReviewInput, toolUseId = "event-a"): PreparedUnit => ({
+const prepared = (value: ReviewInput, toolUseId = "event-a"): PreparedReviewUnit => ({
   root: "/canonical/root",
   advicee: advicee({ toolUseId }),
   input: value,

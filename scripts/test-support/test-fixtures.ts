@@ -35,9 +35,11 @@ export const stageFiles = async (root: string, paths: ReadonlyArray<string>) => 
   await execFileAsync("git", ["-C", root, "add", "--", ...paths])
 }
 
-export const advicee = (overrides: Partial<Extract<DirectAdvicee, { host: "codex-cli" }>> = {}): DirectAdvicee => ({
-  host: "codex-cli",
-  hostVersion: "0.155.1",
+export const advicee = (
+  overrides: Partial<Extract<DirectAdvicee, { agentRuntime: "codex-cli" }>> = {}
+): DirectAdvicee => ({
+  agentRuntime: "codex-cli",
+  agentRuntimeVersion: "0.155.1",
   sessionId: "session",
   turnId: "turn",
   toolUseId: "tool-use",

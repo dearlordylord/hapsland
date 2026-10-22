@@ -171,7 +171,7 @@ for (const seed of [0,3,17,41]) {
               for (const frame of publicFrames.slice(firstFrame)) {
                 if (frame.kind !== "canonical") continue;
                 const event = frame.observation.event;
-                if (event.kind !== "jevRequestSettled" || event.outcome !== "finding" || !event.currentWork) continue;
+                if (event.kind !== "reviewServiceRequestSettled" || event.outcome !== "finding" || !event.currentWork) continue;
                 const work = run.observe().projection.work.find(item => item.partition === event.partition &&
                   item.lifetime === event.lifetime && item.round === event.round && item.operation === event.operation);
                 if (work?.kind !== "pendingFinding") continue;
@@ -209,7 +209,7 @@ for (const seed of [0,3,17,41]) {
         assert.equal(ticks, 100, "the first midpoint is exactly 100 active game ticks");
         assert.ok(afterWorld.offered > 0, "actual continuous input reaches admitted game activity");
         assert.ok(run.observations.some(frame => frame.event.kind === "admitObservation"));
-        assert.equal(run.observations.some(frame => frame.event.kind === "jevRequestSettled"), false,
+        assert.equal(run.observations.some(frame => frame.event.kind === "reviewServiceRequestSettled"), false,
           "800-ms preparation and 3200-ms Jev facts cannot settle at the 2000-ms midpoint");
       }
     }

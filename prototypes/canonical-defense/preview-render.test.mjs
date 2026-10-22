@@ -21,7 +21,7 @@ const operation=target=>target.value.owner.operation;
 const globalProgram=P;
 const cover=(world,kind,P=globalProgram)=>{
  for(const target of list(P.live_targets(world))){
-  if(kind===3&&!/PreparationCompleted|JevSettled/.test(target.effect.$))continue;
+  if(kind===3&&!/PreparationCompleted|ReviewServiceRequestSettled/.test(target.effect.$))continue;
   if(kind===4&&!/OutputTerminal|FinishTerminal/.test(target.effect.$))continue;
   const point=P.physics_body(target,world);
   for(let dx=-72;dx<=72;dx+=16)for(let dy=-72;dy<=72;dy+=16){
@@ -74,7 +74,7 @@ test("removing preview from the actual scene fails the same visible-target witne
 
 test("cancelled work is not previewed even while its physical callback remains queued",()=>{
  const world=P.cancelled_world();
- const stale=list(P.original_callbacks(world)).filter(item=>/Queued$/.test(item.status.$)&&/JevSettled$/.test(item.fact.target.effect.$));
+ const stale=list(P.original_callbacks(world)).filter(item=>/Queued$/.test(item.status.$)&&/ReviewServiceRequestSettled$/.test(item.fact.target.effect.$));
  assert.equal(stale.length,2,"Stop cancels ownership, not the already scheduled physical deliveries");
  assert.equal(P.targets(world,3),0n);assert.equal(crosses(world).length,0);
 });

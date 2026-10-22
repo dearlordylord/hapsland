@@ -17,7 +17,7 @@ import {
   ResidentUpdateNotice,
   releaseComposedBackgroundEffect,
   admitAndCollectEffect,
-  makeResidentDispatchContextEffect,
+  makeResidentReviewExecutionContextEffect,
   admitObservationEffect,
   residentRequestEffect as residentRequest,
   residentRequestEffect,
@@ -98,7 +98,11 @@ describe("resident client trust boundary", () => {
         root: "/repo",
         advicee,
         token: "claim",
-        updateRecipient: { host: advicee.host, sessionId: advicee.sessionId, subagentId: advicee.subagentId }
+        updateRecipient: {
+          agentRuntime: advicee.agentRuntime,
+          sessionId: advicee.sessionId,
+          subagentId: advicee.subagentId
+        }
       }
     ])
   })
@@ -399,8 +403,8 @@ describe("resident client trust boundary", () => {
         root: "/fixture",
         rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
         advicee: {
-          host: "codex-cli",
-          hostVersion: "0.155.1",
+          agentRuntime: "codex-cli",
+          agentRuntimeVersion: "0.155.1",
           sessionId: "session",
           turnId: "turn",
           toolUseId: "tool",
@@ -446,8 +450,8 @@ describe("resident client trust boundary", () => {
             lifetime: "lifetime",
             root: "/tmp/root",
             advicee: {
-              host: "codex-cli",
-              hostVersion: "0.155.1",
+              agentRuntime: "codex-cli",
+              agentRuntimeVersion: "0.155.1",
               sessionId: "session",
               turnId: "turn",
               toolUseId: "tool",
@@ -490,8 +494,8 @@ describe("resident client trust boundary", () => {
             lifetime: "lifetime",
             root: "/tmp/root",
             advicee: {
-              host: "codex-cli",
-              hostVersion: "0.155.1",
+              agentRuntime: "codex-cli",
+              agentRuntimeVersion: "0.155.1",
               sessionId: "session",
               turnId: "turn",
               toolUseId: "tool",
@@ -523,7 +527,7 @@ effectIt.effect("dispatch credentials and paths use the supplied configuration p
     const root = yield* Effect.promise(makeGitFixture)
     directories.push(root)
     const credentialStatePath = join(root, "credential-state.json")
-    const acquire = makeResidentDispatchContextEffect(
+    const acquire = makeResidentReviewExecutionContextEffect(
       root,
       join(root, "consent"),
       join(root, "activity"),
@@ -599,18 +603,22 @@ effectIt.effect("serializes only portable controlled dispatch options and keeps 
         inspectRequest: () => Effect.void,
         extraDecisionKey: "not-portable"
       }
-    const context = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, options).pipe(
-      Effect.provide(provider)
-    )
+    const context = yield* makeResidentReviewExecutionContextEffect(
+      root,
+      "consent",
+      "activity",
+      undefined,
+      options
+    ).pipe(Effect.provide(provider))
     const { onRequest: _onRequest, inspectRequest: _inspect, extraDecisionKey: _extra, ...portable } = options
     expect(context.controlled).toEqual(portable)
     expect(context.credential).toBeNull()
-    const empty = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, {}).pipe(
+    const empty = yield* makeResidentReviewExecutionContextEffect(root, "consent", "activity", undefined, {}).pipe(
       Effect.provide(provider)
     )
     expect(empty.controlled).toEqual({})
     expect(empty.credential).toBeNull()
-    const required = yield* makeResidentDispatchContextEffect(root, "consent", "activity", undefined, {
+    const required = yield* makeResidentReviewExecutionContextEffect(root, "consent", "activity", undefined, {
       requireCredential: true
     }).pipe(Effect.provide(provider))
     expect(required.controlled).toEqual({ requireCredential: true })
@@ -651,8 +659,8 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
     root: "/fixture",
     rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
     advicee: {
-      host: "claude-code",
-      hostVersion: "2.1.218",
+      agentRuntime: "claude-code",
+      agentRuntimeVersion: "2.1.218",
       sessionId: "session",
       turnId: null,
       toolUseId: "tool",
@@ -660,7 +668,7 @@ it("preserves edit polling and rejection outcomes through bounded IPC", async ()
     },
     candidates: []
   }
-  const dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext = {
+  const dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentReviewExecutionContext = {
     statePath: "/fixture/consent",
     activityPath: "/fixture/activity",
     sessionAnalytics: false,

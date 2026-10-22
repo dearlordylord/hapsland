@@ -2,12 +2,12 @@ import type { DirectReviewContext } from "@hapsland/review-execution/direct-even
 import type { makeResidentInspection } from "../../inspection/observer.ts"
 import { type DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import type { captureInspectionFate } from "@hapsland/review-execution/inspection/capture"
-import type { Advice } from "../../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../../state/advice-records.ts"
 import type { PendingNoticeSnapshot as PendingNotice } from "../../state/notice-records.ts"
 import type { RoundWork } from "../../state/round-records.ts"
 import { type WorkRevision } from "../../state/revision.ts"
 import type * as Effect from "effect/Effect"
-import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import { type ResidentResponse } from "@hapsland/resident-transport/resident/protocol"
 import { type FindingSelectionFacts, type CanonicalFindingOffer } from "../../state/collection-facts.ts"
 import type { ReviewControls } from "../../execution-controls/review-controls.ts"
@@ -21,9 +21,9 @@ export type Dependencies = {
   readonly releaseComposedSubmission: (token: string) => Effect.Effect<ResidentResponse>
   readonly residentLedger: ResidentLedger
   readonly residentRoundActive: (round: RoundWork | undefined) => Effect.Effect<boolean, never, never>
-  readonly residentAdvice: () => Effect.Effect<readonly Advice[], never, never>
+  readonly residentAdvice: () => Effect.Effect<readonly PendingAdviceHandle[], never, never>
   readonly residentAdviceExpired: (
-    advice: Pick<Advice, "pendingAt">,
+    advice: Pick<PendingAdviceHandle, "pendingAt">,
     now: number
   ) => Effect.Effect<boolean, never, never>
   readonly residentCollectionWorkCount: (
@@ -32,11 +32,11 @@ export type Dependencies = {
     composed?: boolean
   ) => Effect.Effect<number, never, never>
   readonly residentReviewControls: ReviewControls
-  readonly residentLifetimeController: AbortController
+  readonly residentInstanceIdController: AbortController
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
   readonly residentIsCurrentWork: (
     revision: WorkRevision,
-    prepared: PreparedUnit
+    prepared: PreparedReviewUnit
   ) => Effect.Effect<boolean, never, never>
   readonly residentCaptureSource: DirectReviewContext["captureSource"]
   readonly inspection: Effect.Success<ReturnType<typeof makeResidentInspection>>["recorder"]
@@ -74,7 +74,7 @@ export type Dependencies = {
           readonly hasFindings: boolean
         }
   ) => Effect.Effect<CandidateRoute, never, never>
-  readonly residentReleaseAdviceLease: (advice: Advice) => Effect.Effect<boolean, never, never>
+  readonly residentReleaseAdviceLease: (advice: PendingAdviceHandle) => Effect.Effect<boolean, never, never>
   readonly residentRemoveAdvice: (
     id: string,
     token?: string | undefined,
@@ -87,7 +87,7 @@ export type Dependencies = {
   ) => Effect.Effect<boolean, never, never>
   readonly residentPendingCanonicalFindings: (operation: number) => Effect.Effect<number, never, never>
   readonly residentFindingSelectionFacts: (
-    advice: Advice,
+    advice: PendingAdviceHandle,
     partition: string,
     credentialGeneration: number | null,
     now: number,

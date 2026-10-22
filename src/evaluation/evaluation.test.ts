@@ -28,7 +28,7 @@ import {
   stableStringify
 } from "@hapsland/administration/evaluation/digest"
 import {
-  makeBackendIdentity,
+  makeReviewServiceIdentity,
   makeEvaluationRun,
   makeEvaluationScenario,
   makeInputContractIdentity,
@@ -49,7 +49,7 @@ import {
   reportIsConformant
 } from "@hapsland/administration/evaluation/report"
 
-const backend = makeBackendIdentity({ id: "controlled", version: "1", mode: "controlled" })
+const backend = makeReviewServiceIdentity({ id: "controlled", version: "1", mode: "controlled" })
 const inputContract = makeInputContractIdentity({
   id: "full-file-plus-path",
   version: "1",

@@ -3,7 +3,7 @@ import {
   adviceRecordOperations,
   emptyAdviceContent,
   type AdviceRecordOperations,
-  type Advice,
+  type PendingAdviceHandle,
   type AdviceInitial
 } from "../advice-records.ts"
 import { draftJoinedReviews, joinedReviewOperations, type JoinedReviewOutcome } from "../joined-reviews.ts"
@@ -16,7 +16,7 @@ import { capacityOperations } from "../capacity/operations.ts"
 export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
   read,
   commitAllEffect,
-  residentLifetime
+  residentInstanceId
 }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) => {
   const adviceChange =
     <A>(operation: (operations: AdviceRecordOperations) => A): Parameters<typeof commitAllEffect<A>>[0] =>
@@ -25,7 +25,7 @@ export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
       const owner = capacityOperations(
         (run) => run(draft),
         (run) => run(draft),
-        residentLifetime
+        residentInstanceId
       )
       const operations = adviceRecordOperations(advice, owner)
       const value = operation(operations)
@@ -44,7 +44,7 @@ export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
         )
       )
     ),
-    current: Effect.fn("AdviceRecords.current")((capability: Advice) =>
+    current: Effect.fn("AdviceRecords.current")((capability: PendingAdviceHandle) =>
       read.pipe(
         Effect.map((snapshot) => {
           const retained = snapshot.records.advice.entries.get(capability.id)
@@ -64,7 +64,7 @@ export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
       )
     ),
     insert: Effect.fn("AdviceRecords.insert")(
-      (initial: AdviceInitial): Effect.Effect<Advice> =>
+      (initial: AdviceInitial): Effect.Effect<PendingAdviceHandle> =>
         commitAllEffect(
           adviceChange((operations) =>
             operations.insert(initial, (metadata) => {
@@ -74,13 +74,13 @@ export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
         )
     ),
     publish: Effect.fn("AdviceRecords.publish")(
-      (capability: Advice): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
+      (capability: PendingAdviceHandle): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
         commitAllEffect((draft, records) => {
           if (records.advice.entries.get(capability.id)?.capability !== capability) return [[], records]
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           const joined = draftJoinedReviews(records.joined)
           const revisions = revisionOperations(draftRevision(records.revision), owner)
@@ -112,13 +112,13 @@ export const residentAdvice = <Pending, DispatchKey, DispatchValue>({
         commitAllEffect(adviceChange((operations) => operations.updateDelivery(...args)))
     ),
     remove: Effect.fn("AdviceRecords.remove")(
-      (capability: Advice, reason: "expired" | "stale", token?: string): Effect.Effect<boolean> =>
+      (capability: PendingAdviceHandle, reason: "expired" | "stale", token?: string): Effect.Effect<boolean> =>
         commitAllEffect((draft, records) => {
           const advice = draftAdviceRecords(records.advice)
           const owner = capacityOperations(
             (run) => run(draft),
             (run) => run(draft),
-            residentLifetime
+            residentInstanceId
           )
           const operations = adviceRecordOperations(advice, owner)
           if (!operations.remove(capability, token)) return [false, records]

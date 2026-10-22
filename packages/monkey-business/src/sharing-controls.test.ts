@@ -27,13 +27,15 @@ it("encodes a complete scoped identity without a host equivalence or evaluation 
   expect(member.scope).toEqual({ $: "FreshnessScenario.Scope", partition: 1, lifetime: 3, round: 5, operation: 9 })
   expect(Object.isFrozen(member.scope)).toBe(true)
   expect(Object.isFrozen(member.source)).toBe(true)
-  expect(encodeSharingPhysical({ partition: 1, lifetime: 3, round: 5, operation: 7, request: 19 })).toEqual({
+  expect(
+    encodeSharingPhysical({ partition: 1, lifetime: 3, round: 5, operation: 7, reviewServiceRequestId: 19 })
+  ).toEqual({
     $: "SharingScenario.Physical",
     partition: 1,
     lifetime: 3,
     round: 5,
     operation: 7,
-    request: 19
+    review_service_request_id: 19
   })
 })
 it("requires original leave scope and rejects manufactured result/authority facts", () => {

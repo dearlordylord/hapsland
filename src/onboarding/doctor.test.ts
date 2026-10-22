@@ -99,7 +99,7 @@ describe("offline installed integration doctor", () => {
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8")
     const secret = "doctor-secret-must-not-appear"
     execFileSync("git", ["init", "--quiet", "--initial-branch=master", root])
-    const publicDoctor = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--doctor"], {
+    const publicDoctor = spawnSync(bunExecutable(), ["--no-env-file", "packages/cli-entry/src/cli.ts", "--doctor"], {
       cwd: process.cwd(),
       input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
       encoding: "utf8",
@@ -133,19 +133,23 @@ else console.log('{"version":1,"status":"available"}');
 `,
       { mode: 0o700 }
     )
-    const savedCredentialDoctor = spawnSync(bunExecutable(), ["packages/cli-entry/src/cli.ts", "--doctor"], {
-      cwd: process.cwd(),
-      input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        TYPESAFE_API_KEY: undefined,
-        XDG_CONFIG_HOME: join(root, "config"),
-        REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
-        REVIEW_CREDENTIAL_HELPER: credentialHelper,
-        REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json")
+    const savedCredentialDoctor = spawnSync(
+      bunExecutable(),
+      ["--no-env-file", "packages/cli-entry/src/cli.ts", "--doctor"],
+      {
+        cwd: process.cwd(),
+        input: JSON.stringify({ version: 1, operation: "doctor", cwd: root, ...request }),
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          TYPESAFE_API_KEY: undefined,
+          XDG_CONFIG_HOME: join(root, "config"),
+          REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
+          REVIEW_CREDENTIAL_HELPER: credentialHelper,
+          REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json")
+        }
       }
-    })
+    )
     const savedCredentialResult = JSON.parse(savedCredentialDoctor.stdout) as { checks: Array<DoctorCheck> }
     expect(savedCredentialResult.checks).toEqual(
       expect.arrayContaining([

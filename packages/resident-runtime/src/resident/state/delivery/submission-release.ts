@@ -12,19 +12,19 @@ import { type DeliveryPorts } from "./ports.ts"
 
 export const deliverySubmissionRelease = (
   state: DeliveryDraft,
-  canonicalOwner: Pick<CapacityLedger, "partitionId" | "roundId" | "collectionTokenId" | "transition">,
+  canonicalOwner: Pick<CapacityLedger, "partitionId" | "roundId" | "internAdviceHandoffIdentity" | "transition">,
   {
     submissionAdviceId,
-    readGeneration,
+    readAdmissionRoundId,
     fingerprintId
-  }: Pick<DeliveryPorts, "submissionAdviceId" | "readGeneration" | "fingerprintId">
+  }: Pick<DeliveryPorts, "submissionAdviceId" | "readAdmissionRoundId" | "fingerprintId">
 ) => {
   function releaseFinishSlot(token: string, permit: FinishPermit, stop: StopRecord): void {
     const common = {
       group: canonicalOwner.partitionId(permit.partition),
       round: canonicalOwner.roundId(permit.partition),
       attempt: stop.id,
-      token: canonicalOwner.collectionTokenId(token)
+      token: canonicalOwner.internAdviceHandoffIdentity(token)
     }
     const result = permit.authorized
       ? canonicalOwner.transition({ kind: "finishTerminal", ...common, selected: permit.selected, outcome: "failed" })
@@ -85,7 +85,7 @@ export const deliverySubmissionRelease = (
     if (
       submission === undefined ||
       submission.partition !== partition ||
-      submission.generation !== readGeneration(partition)
+      submission.admissionRoundId !== readAdmissionRoundId(partition)
     )
       return false
     const digest = fingerprint(finding)

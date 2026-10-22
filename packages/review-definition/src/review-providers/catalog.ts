@@ -1,14 +1,15 @@
 import {
   REVIEW_PROVIDERS,
-  type BackendId,
+  type ReviewServiceId,
   type ReviewBackendSettings,
   type ReviewModel
 } from "@hapsland/runtime-environment/runtime/backend"
 
 export { type ProviderLimits, type ReviewModel } from "@hapsland/runtime-environment/runtime/backend"
-export type ProviderIdentity = Readonly<{ provider: BackendId; model: ReviewModel; destination: string }>
+/** The review service, model and destination selected for a prepared unit. */
+export type ReviewServiceIdentity = Readonly<{ provider: ReviewServiceId; model: ReviewModel; destination: string }>
 
-export const providerIdentity = (selection: ReviewBackendSettings): ProviderIdentity => {
+export const reviewServiceIdentity = (selection: ReviewBackendSettings): ReviewServiceIdentity => {
   const provider = REVIEW_PROVIDERS[selection.provider]
   const model = "model" in selection ? selection.model : provider.defaultModel
   if (model === undefined) throw new TypeError("Review provider has no model")
@@ -21,4 +22,4 @@ export const providerIdentity = (selection: ReviewBackendSettings): ProviderIden
   return { provider: selection.provider, model, destination }
 }
 
-export const providerApiBase = (identity: ProviderIdentity): string => REVIEW_PROVIDERS[identity.provider].apiBase
+export const providerApiBase = (identity: ReviewServiceIdentity): string => REVIEW_PROVIDERS[identity.provider].apiBase

@@ -82,7 +82,7 @@ describe("ongoing public sessions", () => {
     )
     expect(started.map((effect) => effect.due)).toEqual([22, 45])
     const outcomes = run.observations.flatMap((observation) =>
-      observation.event.kind === "jevRequestSettled" ? [observation.event.outcome] : []
+      observation.event.kind === "reviewServiceRequestSettled" ? [observation.event.outcome] : []
     )
     expect(outcomes).toEqual(["clear", "backendFailure"])
   })
@@ -110,8 +110,8 @@ describe("ongoing public sessions", () => {
     run.advance({ untilTime: 12 })
     run.applyControl({ kind: "suspendArrivals", suspended: true })
     expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
-    expect(run.projection.dispatch.requests.length === 0).toBe(true)
-    expect(run.observations.some((observation) => observation.event.kind === "jevRequestSettled")).toBe(true)
+    expect(run.projection.dispatch.reviewServiceRequests.length === 0).toBe(true)
+    expect(run.observations.some((observation) => observation.event.kind === "reviewServiceRequestSettled")).toBe(true)
   })
 
   it("keeps submitted composed advice reofferable until checked expiry, then drains retained records", () => {

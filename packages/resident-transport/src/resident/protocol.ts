@@ -7,8 +7,8 @@ import {
 } from "@hapsland/inspection-records/inspection/contract"
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "@hapsland/activity-observation/activity/status"
 import {
-  isCodexHostVersion,
-  isClaudeHostVersion,
+  isCodexAgentRuntimeVersion,
+  isClaudeAgentRuntimeVersion,
   type NativeEditMetadata,
   type DirectObservation,
   type DirectAdvicee
@@ -48,14 +48,16 @@ export type ResidentEditPolicy = {
   readonly sessionAnalytics: boolean
 }
 
-export type ResidentSourceDispatchContext = {
+/** Credential and analytics context for one working root within a review execution. */
+export type SourceReviewExecutionContext = {
   readonly root: string
-  readonly credential: ResidentDispatchContext["credential"]
+  readonly credential: ResidentReviewExecutionContext["credential"]
   readonly sessionAnalytics: boolean
 }
 
-export type ResidentDispatchContext = {
-  readonly sourceContexts?: ReadonlyArray<ResidentSourceDispatchContext>
+/** Configuration, credential and output context sent to the resident for review execution. */
+export type ResidentReviewExecutionContext = {
+  readonly sourceContexts?: ReadonlyArray<SourceReviewExecutionContext>
   readonly deliveryCwd?: string
   readonly statePath: string
   readonly activityPath?: string
@@ -95,7 +97,7 @@ export type ResidentRequest = (
       readonly observation: DirectObservation
       readonly controlledWriter: true
       readonly composed: true
-      readonly dispatch: ResidentDispatchContext
+      readonly dispatch: ResidentReviewExecutionContext
       readonly waitMs: number
     }
   | { readonly requestRoute: "shared"; readonly operation: "hello" }
@@ -165,7 +167,7 @@ export type ResidentRequest = (
       readonly observation: DirectObservation
       readonly controlledWriter: true
       readonly composed: true
-      readonly dispatch: ResidentDispatchContext
+      readonly dispatch: ResidentReviewExecutionContext
     }
   | {
       readonly requestRoute: "shared"
@@ -173,7 +175,7 @@ export type ResidentRequest = (
       readonly lifetime: string
       readonly root: string
       readonly advicee: DirectAdvicee
-      readonly dispatch: ResidentDispatchContext
+      readonly dispatch: ResidentReviewExecutionContext
       readonly mode?: CollectionMode
       readonly reportWorkState?: true
       readonly finish?: { readonly token: string; readonly deadlineReached: boolean }
@@ -282,23 +284,23 @@ const SafeNatural = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Num
 const adviceeFields = { sessionId: BoundedString, toolUseId: BoundedString, subagentId: Schema.NullOr(BoundedString) }
 const ClaudeAdvicee = Schema.Struct({
   ...adviceeFields,
-  host: Schema.Literal("claude-code"),
-  hostVersion: BoundedString.check(Schema.makeFilter(isClaudeHostVersion)),
+  agentRuntime: Schema.Literal("claude-code"),
+  agentRuntimeVersion: BoundedString.check(Schema.makeFilter(isClaudeAgentRuntimeVersion)),
   turnId: Schema.Null
 })
 const Advicee = Schema.Union([
   ClaudeAdvicee,
   Schema.Struct({
     ...adviceeFields,
-    host: Schema.Literal("pi"),
-    hostVersion: Schema.Literal("1.0.0"),
+    agentRuntime: Schema.Literal("pi"),
+    agentRuntimeVersion: Schema.Literal("1.0.0"),
     turnId: Schema.Null,
     subagentId: Schema.Null
   }),
   Schema.Struct({
     ...adviceeFields,
-    host: Schema.Literal("codex-cli"),
-    hostVersion: BoundedString.check(Schema.makeFilter(isCodexHostVersion)),
+    agentRuntime: Schema.Literal("codex-cli"),
+    agentRuntimeVersion: BoundedString.check(Schema.makeFilter(isCodexAgentRuntimeVersion)),
     turnId: BoundedString
   })
 ])
@@ -712,20 +714,20 @@ export const decodeResidentResponse = (value: unknown): ResidentResponse | undef
   return Option.isSome(decoded) ? decoded.value : undefined
 }
 
-export type UpdateRecipient = Pick<DirectAdvicee, "host" | "sessionId" | "subagentId">
+export type UpdateRecipient = Pick<DirectAdvicee, "agentRuntime" | "sessionId" | "subagentId">
 export const residentUpdateRecipient = (request: ResidentRequest): UpdateRecipient | undefined => {
   const recipient =
     "advicee" in request ? request.advicee : "observation" in request ? request.observation.advicee : undefined
   return recipient === undefined
     ? undefined
-    : { host: recipient.host, sessionId: recipient.sessionId, subagentId: recipient.subagentId }
+    : { agentRuntime: recipient.agentRuntime, sessionId: recipient.sessionId, subagentId: recipient.subagentId }
 }
 export const residentUpdateOpportunity = (request: ResidentRequest): boolean => {
   const recipient = residentUpdateRecipient(request)
   return (
     request.updateNotice ??
     (["admit", "admit-and-collect", "edit-policy", "prompt-marker"].includes(request.operation) ||
-      (request.operation === "register-edit" && recipient?.host !== "pi") ||
+      (request.operation === "register-edit" && recipient?.agentRuntime !== "pi") ||
       (request.operation === "collect" && request.mode === "ordinary"))
   )
 }
@@ -752,7 +754,7 @@ const CurrentRequestEnvelope = Schema.StructWithRest(
     updateNotice: Schema.optionalKey(Schema.Boolean),
     updateRecipient: Schema.optionalKey(
       Schema.Struct({
-        host: Schema.Literals(["codex-cli", "claude-code", "pi", "opencode"]),
+        agentRuntime: Schema.Literals(["codex-cli", "claude-code", "pi", "opencode"]),
         sessionId: BoundedString,
         subagentId: Schema.NullOr(BoundedString)
       })

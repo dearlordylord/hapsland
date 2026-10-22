@@ -182,7 +182,7 @@ ledger, a preparation release followed by accepted → refused → accepted unit
 admission, a duplicate event rejection, purpose changes, and exact releases.
 Six further sequences cover work, Stop, uncertain output, deadline cancellation,
 and lifetime retirement.
-The independent `canonical-jev-request-v1.json` traces add explicit Jev
+The independent `canonical-review-service-request-v1.json` traces add explicit Jev
 readiness, command, observed start, result, interruption, and eight-permit
 saturation cases. A ninth ready request is immediately unavailable in the
 guided trace; it never appears as a Jev queue entry.

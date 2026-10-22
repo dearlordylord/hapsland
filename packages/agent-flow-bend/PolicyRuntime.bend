@@ -128,7 +128,7 @@ def sample_work() -> Work.Work:
 
 def sample_unit_work() -> Work.Work:
   Work.Work{2n, 2n, Flow.Capacity{3n, 0n}, Flow.Capacity{3n, 0n}, Nil{},
-    Work.ReviewUnit{1n, 1n, Work.AtJev{}, 0n, 0n} <> Nil{}}
+    Work.ReviewUnit{1n, 1n, Work.ReviewServiceRequestOutstanding{}, 0n, 0n} <> Nil{}}
 
 def sample_reserved_lease() -> Handoff.Lease:
   Handoff.Lease{1n, 1n, False{}, False{}, Handoff.Reserved{1n, Handoff.Background{}}}
@@ -173,7 +173,7 @@ def main() -> Smoke:
     Work.set_source_capacity(sample_work(), Flow.Capacity{2n, 0n}),
     Work.set_review_capacity(sample_unit_work(), Flow.Capacity{2n, 0n}),
     Handoff.select(Handoff.initial(1n, 1n),
-      Handoff.Advice{1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 100n, True{}}, 100n),
+      Handoff.FindingCandidate{1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 100n, True{}}, 100n),
     Handoff.fits_batch(1n, 100n),
     Handoff.notice_offer(6n, 100n, True{}),
     Notice.prune(True{}, True{}, True{}, False{}, False{}, False{}),
@@ -197,7 +197,12 @@ def main() -> Smoke:
     Round.begin_decision(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}}, 1n),
     Round.consume(Round.initial()),
     Round.reserve_output(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}, 1n),
-    Round.finish_stop(Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}}, 1n, True{}, 2n),
+    Round.finish_stop(
+      Round.Round{1n, True{}, 0n, 0n, 1n, False{}, False{}, False{}},
+      1n,
+      True{},
+      2n
+    ),
     Round.stop_terminal(True{}, False{}, False{}),
     Round.expire_close(False{}),
     Round.reopen(Round.Round{1n, False{}, 2n, 0n, 0n, False{}, False{}, False{}}, 2n),

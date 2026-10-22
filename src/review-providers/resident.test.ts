@@ -11,7 +11,7 @@ import {
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { acquireResidentFixture } from "../resident/runtime-fixture.ts"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import { makeDispatchControls } from "@hapsland/build-tooling/test-support/dispatch-controls"
 
 const config = (model = "clef") =>
@@ -23,7 +23,7 @@ const fixture = async () => {
   await put(root, "user.jsonc", config())
   const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)))
   if (observation === undefined) throw new Error("missing observation")
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath: join(root, "state"),
     userConfigPath: join(root, "user.jsonc"),
     controlled: null,

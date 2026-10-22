@@ -35,7 +35,7 @@ export const InspectionCorrelation = Schema.Struct({
   receiptId: Schema.optionalKey(Id),
   roundId: Schema.optionalKey(Id),
   unitId: Schema.optionalKey(Id),
-  requestId: Schema.optionalKey(Id),
+  reviewServiceRequestId: Schema.optionalKey(Id),
   evaluationId: Schema.optionalKey(Id),
   originalRequestId: Schema.optionalKey(Id),
   batchId: Schema.optionalKey(Id),

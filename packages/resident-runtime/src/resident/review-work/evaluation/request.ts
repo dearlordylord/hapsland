@@ -18,8 +18,8 @@ import { readCredentialState } from "@hapsland/runtime-inputs/credentials/state"
 import { claimDemoBudget } from "@hapsland/activity-observation/activity/demo-budget"
 import { physicalRequest } from "../../work-ownership/cancellation.ts"
 import { type EvaluationContext } from "./context.ts"
-import { resolveEvaluationCredentials, authorizePreparedUnit } from "./authorization.ts"
-import { observeRequest } from "./observation.ts"
+import { resolveEvaluationCredentials, authorizePreparedReviewUnit } from "./authorization.ts"
+import { observeReviewServiceRequest } from "./observation.ts"
 import { reportInterruption } from "./settlement.ts"
 
 export const residentControlledOutcomePath = (controlled: ControlledDecisionModelOptions): string =>
@@ -40,7 +40,7 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
     | "residentJobActive"
     | "residentLedger"
     | "residentObserveDispatchAuthority"
-    | "residentObserveJevRequest"
+    | "residentObserveReviewServiceRequest"
     | "residentOfflineHttpClient"
     | "residentRecordAnalytics"
   >,
@@ -54,7 +54,7 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
   // Source and credential authority may change while waiting. Configuration
   // and rules remain the edit-owned snapshot through dispatch and delivery.
 
-  const ready = yield* authorizePreparedUnit(context, resolved)
+  const ready = yield* authorizePreparedReviewUnit(context, resolved)
   const deniedAuthorization = () =>
     ready.status === "notAuthorized" ? ready : { status: "notAuthorized" as const, reason: undefined }
   if (ready.status !== "issued") return deniedAuthorization()
@@ -116,17 +116,17 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
     Effect.andThen(
       Effect.gen(function* () {
         if (
-          !(yield* context.deps.residentLedger.startJevRequest(
+          !(yield* context.deps.residentLedger.startReviewServiceRequest(
             context.job.partition,
             context.job.canonicalOperationId,
-            ready.request
+            ready.reviewServiceRequestId
           ))
         ) {
           throw new Error("canonical Jev request start refused")
         }
-        context.state.requestStarted = true
-        context.job.requestStarted = true
-        yield* observeRequest(context, "started", ready.request)
+        context.state.reviewServiceRequestStarted = true
+        context.job.reviewServiceRequestStarted = true
+        yield* observeReviewServiceRequest(context, "started", ready.reviewServiceRequestId)
         if (context.signal?.aborted) yield* reportInterruption(context)
       })
     )
@@ -162,7 +162,11 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
           : evidence
     context.deps.inspection.offer(
       context.job.inspectionReceipt.scope,
-      context.deps.residentInspection.unitCorrelation(context.job, context.job.inspectionReceipt, ready.request),
+      context.deps.residentInspection.unitCorrelation(
+        context.job,
+        context.job.inspectionReceipt,
+        ready.reviewServiceRequestId
+      ),
       fact
     )
   }).pipe(
@@ -184,7 +188,7 @@ export const evaluateAuthorizedUnit = Effect.fn("ResidentRuntime.evaluateAuthori
                 }
         context.deps.inspection.offer(
           receipt.scope,
-          context.deps.residentInspection.unitCorrelation(context.job, receipt, ready.request),
+          context.deps.residentInspection.unitCorrelation(context.job, receipt, ready.reviewServiceRequestId),
           { kind: "transport-invoked", representation: "http-body-base64", payload }
         )
       }

@@ -5,7 +5,7 @@ import { noticeAction } from "../notice-controls"
 import { callbackAction } from "../callback-controls"
 import { adviceeLifecycleAction } from "../advicee-lifecycle-controls"
 import { permitAction } from "../permit-controls"
-import { jevFaultAction } from "../jev-fault-controls"
+import { reviewServiceFaultAction } from "../review-service-fault-controls"
 
 import { type SimulationModel } from "./model"
 
@@ -111,7 +111,7 @@ export const applySimulationControl = (
       feedback: report?.result ?? "Advice delivery result requested"
     }
   }
-  const intervention = jevFaultAction(action)
+  const intervention = reviewServiceFaultAction(action)
   if (intervention) {
     if (!run) return { ...model, feedback: "Start a resident run before applying an intervention." }
     run.applyControl(intervention)

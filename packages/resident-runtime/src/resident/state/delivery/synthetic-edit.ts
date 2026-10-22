@@ -3,7 +3,7 @@ import type { CapacityLedger } from "../capacity/operations.ts"
 import { DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "@hapsland/runtime-inputs/configuration/types"
 import {
   type DeliveryDraft,
-  type Round,
+  type VirtualRoundSettings,
   type EditPermitLimits,
   type PermitCommand,
   EDIT_PERMIT_EXPIRY_MS
@@ -26,7 +26,7 @@ export const deliverySyntheticEdit = (
     bendTime,
     checkCompleted,
     startRound,
-    readGeneration,
+    readAdmissionRoundId,
     isActive,
     dropTool,
     toolId
@@ -37,7 +37,7 @@ export const deliverySyntheticEdit = (
     | "bendTime"
     | "checkCompleted"
     | "startRound"
-    | "readGeneration"
+    | "readAdmissionRoundId"
     | "isActive"
     | "dropTool"
     | "toolId"
@@ -49,7 +49,7 @@ export const deliverySyntheticEdit = (
       .admissions.some((item) => item.partition === known && item.round > 0 && !item.active)
   }
 
-  function internalEditEligible(partition: string, key: string, previous: Round | undefined): boolean {
+  function internalEditEligible(partition: string, key: string, previous: VirtualRoundSettings | undefined): boolean {
     // Only deterministic fixtures and the non-installed API may start a first round.
     if (previous !== undefined && !isActive(partition)) return false
     const known = canonicalOwner.knownPartitionId(partition)
@@ -113,23 +113,23 @@ export const deliverySyntheticEdit = (
   function commitSyntheticRound(
     partition: string,
     key: string,
-    previous: Round | undefined,
+    previous: VirtualRoundSettings | undefined,
     round: number
   ): number | undefined {
     if (previous === undefined) startRound(partition, DEFAULT_VIRTUAL_ROUND_QUIET_MS)
-    if (round !== readGeneration(partition)) {
+    if (round !== readAdmissionRoundId(partition)) {
       finishPermit(key, "consumed")
       return undefined
     }
     finishPermit(key, "consumed")
-    return readGeneration(partition)
+    return readAdmissionRoundId(partition)
   }
 
   function admitInternalEdit(
     partition: string,
     key: string,
     now: number,
-    previous: Round | undefined,
+    previous: VirtualRoundSettings | undefined,
     limits: EditPermitLimits
   ): number | undefined {
     if (!internalEditEligible(partition, key, previous)) return undefined

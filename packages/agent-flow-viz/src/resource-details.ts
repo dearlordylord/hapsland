@@ -103,13 +103,13 @@ export const stageResourceDetails = <Message>(
       ),
       h.ul(
         [h.Class("jev-owner-details")],
-        [...resident.dispatch.requests]
-          .sort((left, right) => left.request - right.request)
+        [...resident.dispatch.reviewServiceRequests]
+          .sort((left, right) => left.reviewServiceRequestId - right.reviewServiceRequestId)
           .map((request) =>
             h.li(
               [],
               [
-                `${agents?.find((agent) => agent.partition === request.partition)?.agent ?? `partition ${request.partition}`} · request #${request.request} · ${request.started ? "started" : "authorized, not started"}`
+                `${agents?.find((agent) => agent.partition === request.partition)?.agent ?? `partition ${request.partition}`} · request #${request.reviewServiceRequestId} · ${request.started ? "started" : "authorized, not started"}`
               ]
             )
           )
@@ -120,8 +120,8 @@ export const stageResourceDetails = <Message>(
       resourceMeter(
         h,
         "Resident Jev permits · shared by all agents",
-        resident.dispatch.requests.length,
-        resident.executionLimits.jevRequests
+        resident.dispatch.reviewServiceRequests.length,
+        resident.executionLimits.reviewServiceRequests
       )
     )
   if (stage === "collection" || stage === "advice") {

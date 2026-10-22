@@ -47,7 +47,7 @@ const config = (agents = ["a"], inputs: RunInput[] = []) => ({
 })
 const routes = (run: Run) =>
   run.observations.flatMap(({ event, partition }) => (event.kind === "reuseRoute" ? [{ partition, id: event.id }] : []))
-const requests = (run: Run) => run.observations.filter(({ event }) => event.kind === "jevRequestStarted")
+const requests = (run: Run) => run.observations.filter(({ event }) => event.kind === "reviewServiceRequestStarted")
 const replay = (run: Run) =>
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
 
@@ -85,7 +85,7 @@ it("equal generated source spellings have distinct unit identities in distinct p
   for (const id of firstIdentities) expect(selected.filter((route) => route.id === id)).toHaveLength(2)
   expect(
     requests(run)
-      .map(({ event }) => (event.kind === "jevRequestStarted" ? event.partition : undefined))
+      .map(({ event }) => (event.kind === "reviewServiceRequestStarted" ? event.partition : undefined))
       .sort()
   ).toEqual([1, 2])
   expect(requests(run)).toHaveLength(2)

@@ -53,14 +53,14 @@ for (const owner of [
   "let residentRetirementScheduled",
   "let residentRejectedCapacity",
   "let residentPeakLedgerBytes",
-  "let residentMaxMaterializedPreparedUnits",
+  "let residentMaxMaterializedPreparedReviewUnits",
   "let residentNextDispatchAuthoritySequence"
 ]) {
   if (server.includes(owner)) throw new Error(`independent runtime lifetime owner returned: ${owner}`)
 }
 if (
   !server.includes("residentLedger.runtime.cleanup(logicalBytes)") ||
-  !capacity.includes("runtimeRecordOperations(runtime, residentLifetime).retire()")
+  !capacity.includes("runtimeRecordOperations(runtime, residentInstanceId).retire()")
 ) {
   throw new Error("runtime retirement must publish with canonical cleanup in the shared owner")
 }

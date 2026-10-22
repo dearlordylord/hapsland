@@ -32,5 +32,5 @@ export type CapacityMetadata = {
   }
   readonly continuationBudget: 4
   readonly preparationWorkers: 8
-  readonly jevRequests: 8
+  readonly reviewServiceRequests: 8
 }

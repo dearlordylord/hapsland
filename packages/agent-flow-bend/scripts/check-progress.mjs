@@ -26,9 +26,10 @@ const laws = new Map(
 const nat = (n) => `${n}n`
 const bool = (n) => (n ? "True{}" : "False{}")
 const list = (items) => (items.length ? `${items.join(" <> ")} <> Nil{}` : "Nil{}")
-const entry = (i, seed) => `Dispatch.Entry{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i)}, False{}, ${bool(i % 2)}}`
+const entry = (i, seed) =>
+  `Dispatch.ScheduledReviewWork{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i)}, False{}, ${bool(i % 2)}}`
 const request = (i, seed) =>
-  `Dispatch.Request{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i + 1)}, ${bool(i % 2)}, ${bool(i % 2)}}`
+  `Dispatch.ReviewServiceRequestRecord{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i + 1)}, ${bool(i % 2)}, ${bool(i % 2)}}`
 const responsiveWitness = (n) => (n === 0 ? "Unit{}" : `({==}, ${responsiveWitness(n - 1)})`)
 const instances = []
 const add = (law, at) => {
@@ -40,10 +41,10 @@ const add = (law, at) => {
   )
   if (law === "every_responsive_completion_order_resolves") {
     const responsiveType = `Laws.Responsive(${at.responses}, ${at.requests})`
-    const witness = responsiveWitness((at.responses.match(/Dispatch.Request\{/g) ?? []).length)
+    const witness = responsiveWitness((at.responses.match(/Dispatch.ReviewServiceRequestRecord\{/g) ?? []).length)
     hypotheses.push({ type: responsiveType, witness })
     hypotheses.push(
-      `{List.length(&2, Dispatch.Request, ${at.responses}) == List.length(&2, Dispatch.Request, ${at.requests}) : Nat}`
+      `{List.length(&2, Dispatch.ReviewServiceRequestRecord, ${at.responses}) == List.length(&2, Dispatch.ReviewServiceRequestRecord, ${at.requests}) : Nat}`
     )
   }
   instances.push({ law, claim: claim.replace(pattern, (name) => at[name]), hypotheses })
@@ -215,7 +216,7 @@ try {
       const instance = instances.find(
         (instance) =>
           instance.law === mutant.law &&
-          (mutant.instance !== "nonempty" || instance.claim.includes("Dispatch.Request{"))
+          (mutant.instance !== "nonempty" || instance.claim.includes("Dispatch.ReviewServiceRequestRecord{"))
       )
       assert.ok(instance, `${mutant.law}: literal witness`)
       writeFileSync(probe, probes([instance]))

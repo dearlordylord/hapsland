@@ -24,12 +24,18 @@ def applied_callback(result: Controls.Applied) -> Bool:
     case _: False{}
 
 def target() -> Callbacks.Target:
-  Callbacks.Target{Callbacks.Owner{1n, 1n, 1n, 3n}, Callbacks.JevStarted{4n}, 9n}
+  Callbacks.Target{Callbacks.Owner{1n, 1n, 1n, 3n}, Callbacks.ReviewServiceRequestStarted{4n}, 9n}
 
 def queued() -> T.State:
   Run.schedule_action(
     Literals.state(),
-    Driver.Action{Canonical.JevRequestStarted{1n, 1n, 1n, 3n, 4n}, 10n, None{}, False{}, None{}},
+    Driver.Action{
+      Canonical.ReviewServiceRequestStarted{1n, 1n, 1n, 3n, 4n},
+      10n,
+      None{},
+      False{},
+      None{}
+    },
     None{}
   )
 
@@ -55,7 +61,7 @@ def released_source(input: Maybe<&2, T.Input>) -> Bool:
     case Some{
       T.Event{
         Driver.Action{
-          Canonical.JevRequestStarted{1n, 1n, 1n, 3n, 4n},
+          Canonical.ReviewServiceRequestStarted{1n, 1n, 1n, 3n, 4n},
           10n,
           None{},
           False{},

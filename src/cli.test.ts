@@ -219,7 +219,7 @@ describe("JSON subprocess contract", () => {
     expect(existsSync(capturePath)).toBe(false)
   })
 
-  const checkNativeControlledWriterAdd = (hostVersion: "0.155.1" | "0.156.0") => {
+  const checkNativeControlledWriterAdd = (agentRuntimeVersion: "0.155.1" | "0.156.0") => {
     const root = makeTemporaryDirectory("r-")
     roots.push(root)
     const statePath = initializeRepository(root)
@@ -258,7 +258,7 @@ describe("JSON subprocess contract", () => {
         "--codex-hook",
         "--controlled-writer",
         "--controlled-reviewer",
-        `--codex-version=${hostVersion}`
+        `--codex-version=${agentRuntimeVersion}`
       ],
       { cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8", env: residentEnv }
     )

@@ -10,27 +10,32 @@ import ./DefenseMap.bend as Map
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
 
-def key(work: C.Work) -> V.WorkIdentity:
+def key(work: C.ReviewWorkRecord) -> V.WorkIdentity:
   match work:
-    case C.Work{p, l, r, o, _, _, _}: V.WorkIdentity{p, l, r, o}
+    case C.ReviewWorkRecord{p, l, r, o, _, _, _}: V.WorkIdentity{p, l, r, o}
 def same(a: V.WorkIdentity, b: V.WorkIdentity) -> Bool:
   match a b:
     case V.WorkIdentity{ap, al, ar, ao} V.WorkIdentity{bp, bl, br, bo}:
       Nat.is_eq(ap, bp) && Nat.is_eq(al, bl) && Nat.is_eq(ar, br) && Nat.is_eq(ao, bo)
-def phase(work: C.Work) -> U32:
+def phase(work: C.ReviewWorkRecord) -> U32:
   match work:
-    case C.Work{_, _, _, _, _, C.AwaitingSourceRead{}, _}: 0
-    case C.Work{_, _, _, _, _, C.SourceReading{}, _}: 1
-    case C.Work{_, _, _, _, _, C.Preparing{}, _}: 2
-    case C.Work{_, _, _, _, _, C.Reviewing{}, _}: 3
-    case C.Work{_, _, _, _, _, C.AtJev{}, _}: 4
+    case C.ReviewWorkRecord{_, _, _, _, _, C.AwaitingSourceRead{}, _}: 0
+    case C.ReviewWorkRecord{_, _, _, _, _, C.SourceReading{}, _}: 1
+    case C.ReviewWorkRecord{_, _, _, _, _, C.Preparing{}, _}: 2
+    case C.ReviewWorkRecord{_, _, _, _, _, C.Reviewing{}, _}: 3
+    case C.ReviewWorkRecord{_, _, _, _, _, C.ReviewServiceRequestOutstanding{}, _}: 4
     case _: 5
-def family(work: C.Work) -> Nat:
+def family(work: C.ReviewWorkRecord) -> Nat:
   match work:
-    case C.Work{_, _, _, +id, _, _, +parent}: Bool.pick(Nat, Nat.is_eq(parent, 0n), id, parent)
-def parent(work: C.Work) -> List<&2, V.WorkIdentity>:
+    case C.ReviewWorkRecord{_, _, _, +id, _, _, +parent}: Bool.pick(
+      Nat,
+      Nat.is_eq(parent, 0n),
+      id,
+      parent
+    )
+def parent(work: C.ReviewWorkRecord) -> List<&2, V.WorkIdentity>:
   match work:
-    case C.Work{p, l, r, _, _, _, +owner}:
+    case C.ReviewWorkRecord{p, l, r, _, _, _, +owner}:
       Bool.pick(
         List<&2, V.WorkIdentity>,
         Nat.is_eq(owner, 0n),
@@ -90,15 +95,15 @@ def route(+layout: U32, p: U32, +lane: U32) -> List<&2, Map.Point>:
       rule_snake(Map.center(layout, 4, lane))
     )
     case _: List.append(&2, Map.Point, Map.retained_route(layout), Map.room_route(layout, 5, lane))
-def present(+id: V.WorkIdentity, items: List<&2, C.Work>) -> Bool:
+def present(+id: V.WorkIdentity, items: List<&2, C.ReviewWorkRecord>) -> Bool:
   match items:
     case Nil{}: False{}
     case work <> rest: same(id, key(work)) || present(id, rest)
-def work(items: List<&2, C.State>) -> List<&2, C.Work>:
+def work(items: List<&2, C.State>) -> List<&2, C.ReviewWorkRecord>:
   match items:
     case C.State{_, _, items, _, _, _, _, _, _} <> _: items
     case _: []
-def changed(+actor: V.Actor, +item: C.Work, +layout: U32, at: Nat) -> V.Actor:
+def changed(+actor: V.Actor, +item: C.ReviewWorkRecord, +layout: U32, at: Nat) -> V.Actor:
   match actor:
     case V.Actor{k, f, +lane, x, y, p, seen, steps, t, parent, shown, cause, released}:
       +next = phase(item)
@@ -141,7 +146,12 @@ def changed(+actor: V.Actor, +item: C.Work, +layout: U32, at: Nat) -> V.Actor:
         cause,
         released
       }
-def update_one(+actor: V.Actor, items: List<&2, C.Work>, +layout: U32, +at: Nat) -> V.Actor:
+def update_one(
+  +actor: V.Actor,
+  items: List<&2, C.ReviewWorkRecord>,
+  +layout: U32,
+  +at: Nat
+) -> V.Actor:
   match items:
     case Nil{}: actor
     case +item <> rest:
@@ -182,7 +192,7 @@ def refused(items: List<&2, C.Output>) -> Bool:
     case Nil{}: False{}
     case C.PolicyDecided{C.PreparationRefused{}} <> _: True{}
     case _ <> rest: refused(rest)
-def request_outcome(value: C.RequestOutcome) -> U32:
+def request_outcome(value: C.ReviewServiceRequestOutcome) -> U32:
   match value:
     case C.RequestClear{}: 2
     case C.RequestFinding{}: 0
@@ -203,7 +213,7 @@ def submission_recorded(items: List<&2, C.Output>) -> Bool:
     case _ <> rest: submission_recorded(rest)
 def witnessed(event: C.CanonicalEvent, outputs: List<&2, C.Output>, +actor: V.Actor) -> V.Actor:
   match event:
-    case C.JevRequestSettled{p, l, r, o, _, result, _}:
+    case C.ReviewServiceRequestSettled{p, l, r, o, _, result, _}:
       Bool.pick(
         V.Actor,
         same(actor_key(actor), V.WorkIdentity{p, l, r, o}),
@@ -289,7 +299,7 @@ def witnessed_all(
   +event: C.CanonicalEvent,
   +outputs: List<&2, C.Output>,
   actors: List<&2, V.Actor>,
-  +before: List<&2, C.Work>,
+  +before: List<&2, C.ReviewWorkRecord>,
   +states: List<&2, C.State>
 ) -> List<&2, V.Actor>:
   match actors:
@@ -334,7 +344,7 @@ def retire(actor: V.Actor, layout: U32, at: Nat) -> V.Actor:
         released
       }
 def update(
-  +items: List<&2, C.Work>,
+  +items: List<&2, C.ReviewWorkRecord>,
   actors: List<&2, V.Actor>,
   +layout: U32,
   +at: Nat
@@ -361,7 +371,7 @@ def birth_point(+layout: U32, p: U32, lane: U32) -> Map.Point:
     case 4: Map.entry_port(layout, 4, lane)
     case _: Map.entry_port(layout, 5, lane)
 def birth_actor(
-  +item: C.Work,
+  +item: C.ReviewWorkRecord,
   +layout: U32,
   +at: Nat,
   +lane: U32,
@@ -384,28 +394,28 @@ def birth_actor(
     0,
     False{}
   }
-def born(+item: C.Work, layout: U32, at: Nat) -> V.Actor:
+def born(+item: C.ReviewWorkRecord, layout: U32, at: Nat) -> V.Actor:
   birth_actor(item, layout, at, 0, parent(item))
-def charge_bytes(+id: Nat, items: List<&2, Ledger.Charge>) -> Nat:
+def charge_bytes(+id: Nat, items: List<&2, Ledger.ReviewCapacityReservationRecord>) -> Nat:
   match items:
     case Nil{}: 0n
-    case Ledger.Charge{charge, _, bytes, _} <> rest:
+    case Ledger.ReviewCapacityReservationRecord{charge, _, bytes, _} <> rest:
       Bool.pick(Nat, Nat.is_eq(id, charge), bytes, charge_bytes(id, rest))
-def unit_lane(item: C.Work, states: List<&2, C.State>) -> U32:
+def unit_lane(item: C.ReviewWorkRecord, states: List<&2, C.State>) -> U32:
   match item states:
-    case C.Work{_, _, _, _, charge, _, _} Con{
+    case C.ReviewWorkRecord{_, _, _, _, charge, _, _} Con{
       C.State{Ledger.Ledger{_, _, charges}, _, _, _, _, _, _, _, _},
       _
     }:
       Bool.to_u32(Nat.is_eq(charge_bytes(charge, charges), 20n))
     case _ _: 0
-def predecessor(event: C.CanonicalEvent, item: C.Work) -> List<&2, V.WorkIdentity>:
+def predecessor(event: C.CanonicalEvent, item: C.ReviewWorkRecord) -> List<&2, V.WorkIdentity>:
   match event:
     case C.BeginObservedPreparation{p, l, r, o, _}: [V.WorkIdentity{p, l, r, o}]
     case C.PreparationCompleted{p, l, r, o, _}: [V.WorkIdentity{p, l, r, o}]
     case _: parent(item)
 def births(
-  items: List<&2, C.Work>,
+  items: List<&2, C.ReviewWorkRecord>,
   +actors: List<&2, V.Actor>,
   +layout: U32,
   +at: Nat,

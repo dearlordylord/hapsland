@@ -12,9 +12,9 @@ const Selected = Schema.Array(PositiveNat).check(
   Schema.makeFilter((values) => values.length > 0 && new Set(values).size === values.length)
 )
 const Effect = Schema.Union([
-  Schema.Struct({ kind: Schema.Literal("jevStarted"), request: PositiveNat }),
-  Schema.Struct({ kind: Schema.Literal("jevInterrupted"), request: PositiveNat }),
-  Schema.Struct({ kind: Schema.Literal("jevSettled"), request: PositiveNat }),
+  Schema.Struct({ kind: Schema.Literal("reviewServiceRequestStarted"), reviewServiceRequestId: PositiveNat }),
+  Schema.Struct({ kind: Schema.Literal("reviewServiceRequestInterrupted"), reviewServiceRequestId: PositiveNat }),
+  Schema.Struct({ kind: Schema.Literal("reviewServiceRequestSettled"), reviewServiceRequestId: PositiveNat }),
   Schema.Struct({ kind: Schema.Literal("preparationCompleted") }),
   Schema.Struct({ kind: Schema.Literal("outputTerminal"), advice: PositiveNat, token: PositiveNat }),
   Schema.Struct({ kind: Schema.Literal("outputExpiry"), advice: PositiveNat, token: PositiveNat }),
@@ -70,9 +70,9 @@ export function validateCallbackControl(value: CallbackControl): CallbackControl
 }
 
 const effectNames = {
-  jevStarted: "JevStarted",
-  jevInterrupted: "JevInterrupted",
-  jevSettled: "JevSettled",
+  reviewServiceRequestStarted: "ReviewServiceRequestStarted",
+  reviewServiceRequestInterrupted: "ReviewServiceRequestInterrupted",
+  reviewServiceRequestSettled: "ReviewServiceRequestSettled",
   preparationCompleted: "PreparationCompleted",
   outputTerminal: "OutputTerminal",
   outputExpiry: "OutputExpiry",
@@ -81,12 +81,14 @@ const effectNames = {
 export function encodeCallbackTarget(target: CallbackTarget) {
   const checked = validateCallbackControl({ kind: "callback", action: "hold", target }).target
   const { kind, ...fields } = checked.effect
+  const nativeFields =
+    "reviewServiceRequestId" in fields ? { review_service_request_id: fields.reviewServiceRequestId } : fields
   return {
     $: "Callbacks.Target",
     owner: { $: "Callbacks.Owner", ...checked.owner },
     effect: {
       $: `Callbacks.${effectNames[kind]}`,
-      ...fields,
+      ...nativeFields,
       ...(checked.effect.kind === "finishTerminal"
         ? {
             selected: checked.effect.selected.reduceRight<unknown>(
@@ -120,9 +122,12 @@ const RawOwner = Schema.Struct({
   operation: RawPositive
 })
 const RawEffect = Schema.Union([
-  Schema.Struct({ $: Schema.Literal("Callbacks.JevStarted"), request: RawPositive }),
-  Schema.Struct({ $: Schema.Literal("Callbacks.JevInterrupted"), request: RawPositive }),
-  Schema.Struct({ $: Schema.Literal("Callbacks.JevSettled"), request: RawPositive }),
+  Schema.Struct({ $: Schema.Literal("Callbacks.ReviewServiceRequestStarted"), review_service_request_id: RawPositive }),
+  Schema.Struct({
+    $: Schema.Literal("Callbacks.ReviewServiceRequestInterrupted"),
+    review_service_request_id: RawPositive
+  }),
+  Schema.Struct({ $: Schema.Literal("Callbacks.ReviewServiceRequestSettled"), review_service_request_id: RawPositive }),
   Schema.Struct({ $: Schema.Literal("Callbacks.PreparationCompleted") }),
   Schema.Struct({ $: Schema.Literal("Callbacks.OutputTerminal"), advice: RawPositive, token: RawPositive }),
   Schema.Struct({ $: Schema.Literal("Callbacks.OutputExpiry"), advice: RawPositive, token: RawPositive }),
@@ -169,14 +174,23 @@ export function decodeCallbackTarget(value: unknown): CallbackTarget {
         selected: readBendList(target.effect.selected, (value) => Number(readRawPositive(value)), 2048)
       }
       break
-    case "Callbacks.JevStarted":
-      effect = { kind: "jevStarted", request: Number(target.effect.request) }
+    case "Callbacks.ReviewServiceRequestStarted":
+      effect = {
+        kind: "reviewServiceRequestStarted",
+        reviewServiceRequestId: Number(target.effect.review_service_request_id)
+      }
       break
-    case "Callbacks.JevInterrupted":
-      effect = { kind: "jevInterrupted", request: Number(target.effect.request) }
+    case "Callbacks.ReviewServiceRequestInterrupted":
+      effect = {
+        kind: "reviewServiceRequestInterrupted",
+        reviewServiceRequestId: Number(target.effect.review_service_request_id)
+      }
       break
-    case "Callbacks.JevSettled":
-      effect = { kind: "jevSettled", request: Number(target.effect.request) }
+    case "Callbacks.ReviewServiceRequestSettled":
+      effect = {
+        kind: "reviewServiceRequestSettled",
+        reviewServiceRequestId: Number(target.effect.review_service_request_id)
+      }
       break
   }
   return validateCallbackControl({

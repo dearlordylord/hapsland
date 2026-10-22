@@ -10,7 +10,7 @@ import { runClient } from "@hapsland/build-tooling/test-support/client-runtime"
 import { residentRequestEffect } from "@hapsland/resident-transport/resident/client"
 import { monotonicNow } from "@hapsland/resident-transport/resident/hook-clock"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts"
 
 const rule = (message: string) =>
@@ -44,7 +44,7 @@ const fixture = async (options: Parameters<typeof acquireResidentFixture>[2] = {
     })
   )
   if (observation === undefined) throw new Error("missing edit observation")
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath: join(root, "state"),
     userConfigPath: user,
     credential: null,
@@ -70,7 +70,7 @@ const register = async (server: ResidentRuntime, observation: DirectObservation,
     ).status
   ).toBe("advanced")
 }
-const send = (server: ResidentRuntime, observation: DirectObservation, dispatch: ResidentDispatchContext) =>
+const send = (server: ResidentRuntime, observation: DirectObservation, dispatch: ResidentReviewExecutionContext) =>
   runClient(
     residentRequestEffect(
       server.paths,
@@ -225,7 +225,7 @@ describe("edit-owned settings", () => {
     await put(f.root, "credential-state.json", JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }))
     await register(f.server, f.observation, f.user)
     await put(f.root, "user.jsonc", JSON.stringify({ version: 1 }))
-    const dispatch: ResidentDispatchContext = {
+    const dispatch: ResidentReviewExecutionContext = {
       ...f.dispatch,
       credential: {
         name: "TYPESAFE_API_KEY",

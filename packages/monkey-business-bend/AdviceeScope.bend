@@ -47,22 +47,25 @@ def owner_if(found: Bool, partition: Nat, tail: Maybe<&2, Nat>) -> Maybe<&2, Nat
     case True{}: Some{partition}
     case False{}: tail
 
-def work_owner(work: List<&2, Canonical.Work>, +operation: Nat) -> Maybe<&2, Nat>:
+def work_owner(work: List<&2, Canonical.ReviewWorkRecord>, +operation: Nat) -> Maybe<&2, Nat>:
   match work:
     case Nil{}: None{}
-    case Canonical.Work{partition, _, _, id, _, _, _} <> tail:
+    case Canonical.ReviewWorkRecord{partition, _, _, id, _, _, _} <> tail:
       owner_if(Nat.is_eq(id, operation), partition, work_owner(tail, operation))
 
-def entry_owner(entries: List<&2, Dispatch.Entry>, +operation: Nat) -> Maybe<&2, Nat>:
+def entry_owner(entries: List<&2, Dispatch.ScheduledReviewWork>, +operation: Nat) -> Maybe<&2, Nat>:
   match entries:
     case Nil{}: None{}
-    case Dispatch.Entry{partition, _, _, id, _, _, _} <> tail:
+    case Dispatch.ScheduledReviewWork{partition, _, _, id, _, _, _} <> tail:
       owner_if(Nat.is_eq(id, operation), partition, entry_owner(tail, operation))
 
-def request_owner(requests: List<&2, Dispatch.Request>, +operation: Nat) -> Maybe<&2, Nat>:
+def request_owner(
+  requests: List<&2, Dispatch.ReviewServiceRequestRecord>,
+  +operation: Nat
+) -> Maybe<&2, Nat>:
   match requests:
     case Nil{}: None{}
-    case Dispatch.Request{partition, _, _, id, _, _, _} <> tail:
+    case Dispatch.ReviewServiceRequestRecord{partition, _, _, id, _, _, _} <> tail:
       owner_if(Nat.is_eq(id, operation), partition, request_owner(tail, operation))
 
 def dispatch_owner(dispatch: Dispatch.State, +operation: Nat) -> Maybe<&2, Nat>:
@@ -73,10 +76,13 @@ def dispatch_owner(dispatch: Dispatch.State, +operation: Nat) -> Maybe<&2, Nat>:
         first(entry_owner(running, operation), request_owner(requests, operation))
       )
 
-def charge_owner(charges: List<&2, Ledger.Charge>, +reservation: Nat) -> Maybe<&2, Nat>:
+def charge_owner(
+  charges: List<&2, Ledger.ReviewCapacityReservationRecord>,
+  +reservation: Nat
+) -> Maybe<&2, Nat>:
   match charges:
     case Nil{}: None{}
-    case Ledger.Charge{id, partition, _, _} <> tail:
+    case Ledger.ReviewCapacityReservationRecord{id, partition, _, _} <> tail:
       owner_if(Nat.is_eq(id, reservation), partition, charge_owner(tail, reservation))
 
 def round_owner(rounds: List<&2, Canonical.Round>, +round: Nat) -> Maybe<&2, Nat>:
@@ -173,10 +179,12 @@ def event_reference(value: Canonical.CanonicalEvent) -> Reference:
     case Canonical.InterruptPreparation{partition, _, _, _}: Direct{partition}
     case Canonical.PreparationCompleted{partition, _, _, _, _}: Direct{partition}
     case Canonical.StartReview{partition, _, _, _}: Direct{partition}
-    case Canonical.JevRequestReady{partition, _, _, _, _, _, _, _, _, _}: Direct{partition}
-    case Canonical.JevRequestStarted{partition, _, _, _, _}: Direct{partition}
-    case Canonical.JevRequestInterrupted{partition, _, _, _, _}: Direct{partition}
-    case Canonical.JevRequestSettled{partition, _, _, _, _, _, _}: Direct{partition}
+    case Canonical.ReviewServiceRequestReady{partition, _, _, _, _, _, _, _, _, _}: Direct{
+      partition
+    }
+    case Canonical.ReviewServiceRequestStarted{partition, _, _, _, _}: Direct{partition}
+    case Canonical.ReviewServiceRequestInterrupted{partition, _, _, _, _}: Direct{partition}
+    case Canonical.ReviewServiceRequestSettled{partition, _, _, _, _, _, _}: Direct{partition}
     case Canonical.ReviewCompleted{partition, _, _, _, _}: Direct{partition}
     case Canonical.RetireReview{partition, _, _, _}: Direct{partition}
     case Canonical.CancelReview{partition, _, _, _}: Direct{partition}
@@ -324,7 +332,7 @@ def command_reference(value: Canonical.Output) -> Reference:
     case Canonical.EventEstablished{Canonical.ObservationStarted{}}: Context{}
     case Canonical.EventEstablished{Canonical.ObservationCompleted{}}: Context{}
     case Canonical.EventEstablished{Canonical.ObservationInterrupted{}}: Context{}
-    case Canonical.ActionRequested{Canonical.Prepare{operation, _}}: Operation{operation}
+    case Canonical.ResidentActionRequested{Canonical.Prepare{operation, _}}: Operation{operation}
     case Canonical.PolicyDecided{Canonical.PreparationRefused{}}: Context{}
     case Canonical.EventEstablished{Canonical.UnitAdmitted{operation, _, _, _, _}}: Operation{
       operation
@@ -332,14 +340,14 @@ def command_reference(value: Canonical.Output) -> Reference:
     case Canonical.PolicyDecided{Canonical.UnitRefused{_, _, _, _}}: Context{}
     case Canonical.EventEstablished{Canonical.PreparationReleased{id, _}}: Reservation{id}
     case Canonical.EventEstablished{Canonical.ReviewStarted{}}: Context{}
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{partition, _, _, _, _}}: Direct{
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{partition, _, _, _, _}}: Direct{
       partition
     }
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: Context{}
-    case Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: Context{}
-    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: Context{}
-    case Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: Context{}
-    case Canonical.PolicyDecided{Canonical.JevObservationIgnored{}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestStartRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestInterruptionRecorded{}}: Context{}
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestOutcomeRecorded{_}}: Context{}
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestObservationIgnored{}}: Context{}
     case Canonical.EventEstablished{Canonical.ReservationReleased{id}}: Reservation{id}
     case Canonical.EventEstablished{Canonical.ReviewRecorded{_}}: Context{}
     case Canonical.EventEstablished{Canonical.FindingRetained{}}: Context{}
@@ -361,7 +369,7 @@ def command_reference(value: Canonical.Output) -> Reference:
     case Canonical.PolicyDecided{Canonical.DiscardNamedOnly{}}: Context{}
     case Canonical.PolicyDecided{Canonical.DiscardAllUnfinished{}}: Context{}
     case Canonical.EventEstablished{Canonical.WaitForWork{}}: Context{}
-    case Canonical.ActionRequested{Canonical.CancelWork{operation}}: Operation{operation}
+    case Canonical.ResidentActionRequested{Canonical.CancelWork{operation}}: Operation{operation}
     case Canonical.EventEstablished{Canonical.FinishReady{}}: Context{}
     case Canonical.EventEstablished{Canonical.FinishLimit{}}: Context{}
     case Canonical.EventEstablished{Canonical.StopEnded{}}: Context{}
@@ -498,7 +506,7 @@ def command_reference(value: Canonical.Output) -> Reference:
     case Canonical.EventEstablished{Canonical.CacheDiscarded{_}}: Context{}
     case Canonical.EventEstablished{Canonical.NoticeSuppressed{_}}: Context{}
     case Canonical.PolicyDecided{Canonical.NoticeRejectedFull{}}: Context{}
-    case Canonical.ActionRequested{Canonical.CreateNoticeKey{}}: Context{}
+    case Canonical.ResidentActionRequested{Canonical.CreateNoticeKey{}}: Context{}
     case Canonical.EventEstablished{Canonical.NoticePendingCreated{_}}: Context{}
     case Canonical.EventEstablished{Canonical.NoticePendingMerged{_}}: Context{}
     case Canonical.EventEstablished{Canonical.NoticeLeaseKept{}}: Context{}

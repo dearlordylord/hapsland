@@ -160,7 +160,9 @@ export const SQUARES: Record<Place, Square> = {
     facets: (s, n) => [
       facet(
         "unstarted requests",
-        s.dispatch.requests.filter((x) => !x.started).map((x) => recordLabel("request", x.request, n))
+        s.dispatch.reviewServiceRequests
+          .filter((x) => !x.started)
+          .map((x) => recordLabel("request", x.reviewServiceRequestId, n))
       )
     ]
   }),
@@ -172,7 +174,9 @@ export const SQUARES: Record<Place, Square> = {
     facets: (s, n) => [
       facet(
         "started requests",
-        s.dispatch.requests.filter((x) => x.started).map((x) => recordLabel("request", x.request, n))
+        s.dispatch.reviewServiceRequests
+          .filter((x) => x.started)
+          .map((x) => recordLabel("request", x.reviewServiceRequestId, n))
       )
     ]
   }),
@@ -182,10 +186,10 @@ export const SQUARES: Record<Place, Square> = {
     x: 588,
     y: 350,
     facets: (s, n) => [
-      facet("at Jev work", work(s, "atJev", n)),
+      facet("outstanding review service work", work(s, "reviewServiceRequestOutstanding", n)),
       facet(
         "request permits",
-        s.dispatch.requests.map((x) => recordLabel("request", x.request, n))
+        s.dispatch.reviewServiceRequests.map((x) => recordLabel("request", x.reviewServiceRequestId, n))
       )
     ]
   }),
@@ -202,7 +206,7 @@ export const SQUARES: Record<Place, Square> = {
       const sample =
         first === undefined || blocker === undefined
           ? undefined
-          : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "atJev" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`
+          : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "reviewServiceRequestOutstanding" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`
       return [
         facet("finding work", work(s, "pendingFinding", n)),
         facet(

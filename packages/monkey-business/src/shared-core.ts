@@ -1,5 +1,5 @@
 import {
-  type JevRequestOutcome,
+  type ReviewServiceRequestOutcome,
   type CanonicalEvent,
   type initialCanonical
 } from "@hapsland/canonical-policy/canonical/adapter"
@@ -387,7 +387,7 @@ export class SharedCore {
       readonly lifetime: number
       readonly round: number
       readonly operation: number
-      readonly request: number
+      readonly reviewServiceRequestId: number
     }
   ) {
     return sharedCallbackMatches(event, target)
@@ -402,7 +402,7 @@ export class SharedCore {
       readonly lifetime: number
       readonly round: number
       readonly operation: number
-      readonly request: number
+      readonly reviewServiceRequestId: number
     },
     outcome: unknown,
     delay: number
@@ -418,7 +418,7 @@ export class SharedCore {
   prepareCommandContext(
     index: number,
     sourceJob: unknown,
-    configured: JevRequestOutcome | undefined,
+    configured: ReviewServiceRequestOutcome | undefined,
     weights: OutcomeWeights,
     context: unknown
   ) {

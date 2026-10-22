@@ -18,7 +18,7 @@ import { SHIPPED_DEFAULT_RULES } from "@hapsland/review-definition/rules/shipped
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
 import { adaptCodexDirectEvent } from "@hapsland/native-observation/direct-event/adapter"
 import {
-  encodedFullJevRequestBytes,
+  encodedFullReviewServiceRequestBytes,
   evaluatePrepared,
   prepareObservation,
   preparedProviderInput
@@ -122,7 +122,7 @@ describe("T-case candidate HTTP body and source scope", () => {
           bytes: bytes(part.source)
         })
       }
-      const localRequestBytes = encodedFullJevRequestBytes(item.prepared)
+      const localRequestBytes = encodedFullReviewServiceRequestBytes(item.prepared)
       let body: string | undefined
       const http = HttpClient.make((request) => {
         expect(request.url).toBe(DEFAULT_DESTINATION)

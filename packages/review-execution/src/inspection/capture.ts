@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import type { PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import type { PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import type { Finding } from "@hapsland/delivery-output/direct-event/output"
 import type { InspectionFact } from "@hapsland/inspection-records/inspection/contract"
 
@@ -7,7 +7,7 @@ const fits = (value: unknown, bytes = 16384): boolean => Buffer.byteLength(JSON.
 
 /** Read only the already-frozen policy; never reload configuration or apply review decisions. */
 export const captureInspectionPolicy = (
-  prepared: PreparedUnit,
+  prepared: PreparedReviewUnit,
   controlled: boolean
 ): Extract<InspectionFact, { kind: "unit-policy" }> => {
   const rules = prepared.input.rules.map((rule) => ({
@@ -22,8 +22,8 @@ export const captureInspectionPolicy = (
   }))
   return {
     kind: "unit-policy",
-    provider: prepared.input.providerIdentity.provider,
-    model: prepared.input.providerIdentity.model,
+    provider: prepared.input.reviewServiceIdentity.provider,
+    model: prepared.input.reviewServiceIdentity.model,
     activity: controlled ? "controlled" : "live",
     interpretation: prepared.input.interpretation,
     payload:

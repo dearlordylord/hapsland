@@ -353,7 +353,10 @@ try {
   )
   await advanceGuided(27, 29, 34)
   await waitForText(".canonical-progress", "Guided step 29 of 34")
-  assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/)
+  assert.match(
+    await page.locator(".topology-step").innerText(),
+    /reviewServiceRequestReady accepted.*reviewServiceRequestUnavailable/
+  )
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/)
   assert.equal(
     await page.locator(".topology-route.active").filter({ hasText: "request unavailable or refused" }).count(),

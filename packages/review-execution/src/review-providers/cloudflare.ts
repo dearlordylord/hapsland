@@ -10,7 +10,7 @@ import { AiError, DecisionModel } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
-import type { ProviderIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import type { ReviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { probabilityRequest, requestLimitViolation, type ProbabilityRule } from "./request.ts"
 
 assertReviewEngineBoundary(CLOUDFLARE_PROVIDER.id)
@@ -83,7 +83,7 @@ const decodeAnswers = Effect.fn("CloudflareDecisionModel.decodeAnswers")(functio
 })
 
 /** One Workers AI REST request, without retries or alternate destinations. */
-export const liveLayer = (options: { readonly identity: ProviderIdentity; readonly credentialEnvVar: string }) =>
+export const liveLayer = (options: { readonly identity: ReviewServiceIdentity; readonly credentialEnvVar: string }) =>
   Layer.effect(
     DecisionModel.DecisionModel,
     Effect.gen(function* () {

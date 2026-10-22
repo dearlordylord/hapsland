@@ -20,7 +20,7 @@ it("pins the complete private descriptor inventory to actual Bend owners", () =>
   expect(generated.status, generated.stdout + generated.stderr).toBe(0)
   expect(callbackNativeDescriptors.canonical_canonicalevent.constructors).toHaveLength(137)
   expect(callbackNativeDescriptors.canonical_output.constructors).toEqual([
-    { tag: "Canonical.ActionRequested", fields: [["request", "canonical_actionrequest"]] },
+    { tag: "Canonical.ResidentActionRequested", fields: [["command", "canonical_residentactioncommand"]] },
     { tag: "Canonical.EventEstablished", fields: [["event", "canonical_domainevent"]] },
     { tag: "Canonical.PolicyDecided", fields: [["decision", "canonical_policydecision"]] }
   ])
@@ -29,7 +29,7 @@ it("pins the complete private descriptor inventory to actual Bend owners", () =>
     fields: [["delivery_at", "nat"]]
   })
   const categorized = [
-    ...callbackNativeDescriptors.canonical_actionrequest.constructors,
+    ...callbackNativeDescriptors.canonical_residentactioncommand.constructors,
     ...callbackNativeDescriptors.canonical_domainevent.constructors,
     ...callbackNativeDescriptors.canonical_policydecision.constructors
   ]

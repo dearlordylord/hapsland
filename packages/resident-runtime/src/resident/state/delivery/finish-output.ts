@@ -7,7 +7,7 @@ import {
   type Submission,
   fingerprint,
   type StopRecord,
-  type Round
+  type VirtualRoundSettings
 } from "./model.ts"
 import { type DeliveryPorts } from "./ports.ts"
 
@@ -15,7 +15,7 @@ export const deliveryFinishOutput = (
   state: DeliveryDraft,
   canonicalOwner: Pick<
     CapacityLedger,
-    "transition" | "partitionId" | "roundId" | "collectionTokenId" | "canonicalProjection"
+    "transition" | "partitionId" | "roundId" | "internAdviceHandoffIdentity" | "canonicalProjection"
   >,
   ports: Pick<
     DeliveryPorts,
@@ -94,7 +94,7 @@ export const deliveryFinishOutput = (
     const selected = advice.flatMap((item) => item.findings.map(() => item.unit))
     const group = canonicalOwner.partitionId(partition)
     const currentRound = canonicalOwner.roundId(partition)
-    const tokenId = canonicalOwner.collectionTokenId(outputToken)
+    const tokenId = canonicalOwner.internAdviceHandoffIdentity(outputToken)
     const decision = canonicalOwner.transition({
       kind: "finishReserve",
       group,
@@ -127,7 +127,7 @@ export const deliveryFinishOutput = (
     stop.outputToken = outputToken
     state.finishPermits.set(outputToken, {
       partition,
-      generation: stop.generation,
+      admissionRoundId: stop.admissionRoundId,
       attempt,
       selected,
       advice: advice.map((item) => ({ id: item.id, fingerprints: item.findings.map(fingerprint) })),
@@ -141,7 +141,7 @@ export const deliveryFinishOutput = (
 
   function provisionalStopCurrent(
     stop: StopRecord | undefined,
-    round: Round | undefined,
+    round: VirtualRoundSettings | undefined,
     attempt: string,
     token: string
   ): stop is StopRecord {
@@ -159,7 +159,7 @@ export const deliveryFinishOutput = (
       group: canonicalOwner.partitionId(partition),
       round: canonicalOwner.roundId(partition),
       attempt: stop.id,
-      token: canonicalOwner.collectionTokenId(outputToken)
+      token: canonicalOwner.internAdviceHandoffIdentity(outputToken)
     })
     if (released.rejection !== undefined || released.outputs[0]?.kind !== "finishReleased") return false
     permit.revoked = true

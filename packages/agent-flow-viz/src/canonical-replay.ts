@@ -5,7 +5,7 @@ import {
   type PreparationFrame
 } from "../../monkey-business/src/preparation"
 import fixture from "../../../conformance/canonical-v1.json"
-import requestFixture from "../../../conformance/canonical-jev-request-v1.json"
+import requestFixture from "../../../conformance/canonical-review-service-request-v1.json"
 import {
   initialCanonical,
   projectCanonical,
@@ -89,23 +89,44 @@ export const SHOWCASE_SCENARIO = {
     { kind: "dispatchSettled", ...showcaseScope, operation: 2 },
     { kind: "queueDispatch", ...showcaseScope, operation: 4 },
     { kind: "startReview", ...showcaseScope, operation: 4 },
-    { kind: "jevRequestReady", ...showcaseReady, operation: 4 },
-    { kind: "jevRequestStarted", ...showcaseScope, operation: 4, request: 8 },
+    { kind: "reviewServiceRequestReady", ...showcaseReady, operation: 4 },
+    { kind: "reviewServiceRequestStarted", ...showcaseScope, operation: 4, request: 8 },
     { kind: "queueDispatch", ...showcaseScope, operation: 6 },
     { kind: "startReview", ...showcaseScope, operation: 6 },
-    { kind: "jevRequestReady", ...showcaseReady, operation: 6 },
-    { kind: "jevRequestStarted", ...showcaseScope, operation: 6, request: 9 },
-    { kind: "jevRequestSettled", ...showcaseScope, operation: 4, request: 8, outcome: "finding", currentWork: true },
+    { kind: "reviewServiceRequestReady", ...showcaseReady, operation: 6 },
+    { kind: "reviewServiceRequestStarted", ...showcaseScope, operation: 6, request: 9 },
+    {
+      kind: "reviewServiceRequestSettled",
+      ...showcaseScope,
+      operation: 4,
+      request: 8,
+      outcome: "finding",
+      currentWork: true
+    },
     // Readiness is a later Bend decision linked to the retained finding and its edit.
     { kind: "collectionReady", advice: 4, ...showcaseScope, observation: 1, joinedPending: false },
     { kind: "dispatchSettled", ...showcaseScope, operation: 4 },
-    { kind: "jevRequestSettled", ...showcaseScope, operation: 6, request: 9, outcome: "finding", currentWork: true },
+    {
+      kind: "reviewServiceRequestSettled",
+      ...showcaseScope,
+      operation: 6,
+      request: 9,
+      outcome: "finding",
+      currentWork: true
+    },
     { kind: "dispatchSettled", ...showcaseScope, operation: 6 },
     { kind: "queueDispatch", ...showcaseScope, operation: 7 },
     { kind: "startReview", ...showcaseScope, operation: 7 },
-    { kind: "jevRequestReady", ...showcaseReady, operation: 7 },
-    { kind: "jevRequestStarted", ...showcaseScope, operation: 7, request: 10 },
-    { kind: "jevRequestSettled", ...showcaseScope, operation: 7, request: 10, outcome: "clear", currentWork: true },
+    { kind: "reviewServiceRequestReady", ...showcaseReady, operation: 7 },
+    { kind: "reviewServiceRequestStarted", ...showcaseScope, operation: 7, request: 10 },
+    {
+      kind: "reviewServiceRequestSettled",
+      ...showcaseScope,
+      operation: 7,
+      request: 10,
+      outcome: "clear",
+      currentWork: true
+    },
     { kind: "dispatchSettled", ...showcaseScope, operation: 7 },
     { kind: "collectionReady", advice: 6, ...showcaseScope, observation: 2, joinedPending: false },
     { kind: "stopPolled", ...showcaseScope, deadline: false },
@@ -222,11 +243,11 @@ export const CANONICAL_SCENARIOS = [
     limits: requestFixture.limits,
     events: trace.events.map(({ expect: _expect, ...raw }) => {
       const {
-        issuedRequest: _issuedRequest,
+        issuedReviewServiceRequestId: _issuedReviewServiceRequestId,
         requestAfter: _requestAfter,
         requestCount: _requestCount,
         ...event
-      } = raw as typeof raw & { issuedRequest?: unknown; requestAfter?: unknown; requestCount?: unknown }
+      } = raw as typeof raw & { issuedReviewServiceRequestId?: unknown; requestAfter?: unknown; requestCount?: unknown }
       return event as CanonicalEvent
     })
   })),

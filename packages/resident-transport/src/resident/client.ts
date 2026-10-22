@@ -32,7 +32,7 @@ import {
   decodeCurrentResidentResponse,
   encodeCurrentResidentRequest,
   type ResidentEditPolicy,
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentRequest,
   type ResidentResponse,
   type CollectionMode
@@ -441,58 +441,60 @@ export const readComposedEditPolicyEffect = Effect.fn("ResidentClient.readCompos
   return undefined
 })
 
-export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
-  root: string,
-  statePath: string,
-  activityPath: string,
-  userConfigPath: string | undefined,
-  controlledOptions: ResidentControlledOptions | undefined,
-  editPolicy?: ResidentEditPolicy
-): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
-  const capture =
-    editPolicy === undefined
-      ? yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
-          Effect.mapError(
-            (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
+export const makeResidentReviewExecutionContextEffect = Effect.fn("ResidentClient.makeResidentReviewExecutionContext")(
+  function* (
+    root: string,
+    statePath: string,
+    activityPath: string,
+    userConfigPath: string | undefined,
+    controlledOptions: ResidentControlledOptions | undefined,
+    editPolicy?: ResidentEditPolicy
+  ): Effect.fn.Return<ResidentReviewExecutionContext, ResidentIpcError | ReviewConfigError> {
+    const capture =
+      editPolicy === undefined
+        ? yield* loadConfiguration(root, userConfigurationOptions(userConfigPath)).pipe(
+            Effect.mapError(
+              (error) => new ReviewConfigError({ source: error.source, field: error.field, reason: error.reason })
+            )
           )
+        : undefined
+    const credentialEnvVar = editPolicy?.credentialEnvVar ?? capture!.policy.credentialEnvVar.value
+    const sessionAnalytics = editPolicy?.sessionAnalytics ?? effectiveSessionAnalytics(capture!.policy)
+    const controlled = controlledDispatchOptions(controlledOptions)
+    const configuration = yield* Config.all({
+      credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(
+        Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)
+      ),
+      demoBudgetPath: Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"))
+    }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })))
+    const credentialInput = !dispatchUsesCredential(controlled)
+      ? undefined
+      : yield* resolveCredentialInput({ envVar: credentialEnvVar, root }).pipe(
+          Effect.mapError(() => new ResidentIpcError({ message: "resident credential input unavailable" }))
         )
-      : undefined
-  const credentialEnvVar = editPolicy?.credentialEnvVar ?? capture!.policy.credentialEnvVar.value
-  const sessionAnalytics = editPolicy?.sessionAnalytics ?? effectiveSessionAnalytics(capture!.policy)
-  const controlled = controlledDispatchOptions(controlledOptions)
-  const configuration = yield* Config.all({
-    credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(
-      Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)
-    ),
-    demoBudgetPath: Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH"))
-  }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })))
-  const credentialInput = !dispatchUsesCredential(controlled)
-    ? undefined
-    : yield* resolveCredentialInput({ envVar: credentialEnvVar, root }).pipe(
-        Effect.mapError(() => new ResidentIpcError({ message: "resident credential input unavailable" }))
-      )
-  const credentialStatePath = resolve(configuration.credentialStatePath)
-  const credentialState = yield* Effect.try({
-    try: () => readCredentialState(credentialStatePath),
-    catch: () => new ResidentIpcError({ message: "resident credential metadata unavailable" })
-  })
-  return {
-    statePath: resolve(statePath),
-    activityPath: resolve(activityPath),
-    sessionAnalytics,
-    userConfigPath: nullableResolvedPath(userConfigPath),
-    demoBudgetPath: nullableResolvedPath(Option.getOrUndefined(configuration.demoBudgetPath)),
-    credential: !dispatchUsesCredential(controlled)
-      ? null
-      : {
-          name: credentialEnvVar,
-          environmentValue: credentialInput?.value === undefined ? null : Redacted.value(credentialInput.value),
-          generation: credentialState.generation,
-          statePath: credentialStatePath
-        },
-    controlled
+    const credentialStatePath = resolve(configuration.credentialStatePath)
+    const credentialState = yield* Effect.try({
+      try: () => readCredentialState(credentialStatePath),
+      catch: () => new ResidentIpcError({ message: "resident credential metadata unavailable" })
+    })
+    return {
+      statePath: resolve(statePath),
+      activityPath: resolve(activityPath),
+      sessionAnalytics,
+      userConfigPath: nullableResolvedPath(userConfigPath),
+      demoBudgetPath: nullableResolvedPath(Option.getOrUndefined(configuration.demoBudgetPath)),
+      credential: !dispatchUsesCredential(controlled)
+        ? null
+        : {
+            name: credentialEnvVar,
+            environmentValue: credentialInput?.value === undefined ? null : Redacted.value(credentialInput.value),
+            generation: credentialState.generation,
+            statePath: credentialStatePath
+          },
+      controlled
+    }
   }
-})
+)
 
 export type CollectedAdvice = {
   readonly output: ClaudeHostOutput
@@ -508,7 +510,7 @@ export type CollectedAdvice = {
 export const admitObservationEffect = Effect.fn("ResidentClient.admitObservation")(function* (
   observation: DirectObservation,
   controlledWriter: boolean,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   paths: ResidentPaths | undefined = undefined,
   composed = true
 ) {
@@ -558,7 +560,7 @@ const editCollectionOutcome = (
   owner: { readonly lifetime: string },
   paths: ResidentPaths,
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ): CollectionOutcome => {
   if (response === undefined) return { status: "unavailable", reason: "lost" }
   if (response.status !== "advice") return editNonAdviceOutcome(response)
@@ -588,7 +590,7 @@ const collectedSharedAdvice = (
   paths: ResidentPaths,
   root: string,
   advicee: DirectAdvicee,
-  dispatch: ResidentDispatchContext
+  dispatch: ResidentReviewExecutionContext
 ) => ({
   output: response.output,
   token: response.token,
@@ -613,11 +615,11 @@ const promptOnlyIfMissing = (onlyIfMissing: true | undefined) =>
 /** One bounded response attempt, tied to its originating resident lifetime. */
 export const admitAndCollectEffect = Effect.fn("ResidentClient.admitAndCollect")(function* (
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   deadlineAt: number,
   paths: ResidentPaths | undefined = undefined
 ): Effect.fn.Return<CollectionOutcome, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
-  if (observation.advicee.host !== "claude-code") return { status: "unavailable", reason: "lost" }
+  if (observation.advicee.agentRuntime !== "claude-code") return { status: "unavailable", reason: "lost" }
   paths ??= yield* resolveResidentPaths()
   const owner = yield* ensureResidentEffect(
     paths,
@@ -645,7 +647,7 @@ export const admitAndCollectEffect = Effect.fn("ResidentClient.admitAndCollect")
 export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(function* (
   root: string,
   advicee: DirectAdvicee,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary"
 ): Effect.fn.Return<
@@ -678,7 +680,7 @@ export type AdviceeCollectionOutcome =
 export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdviceeOutcome")(function* (
   root: string,
   advicee: DirectAdvicee,
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
@@ -816,27 +818,29 @@ export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.release
   return response.status === "released"
 })
 
-export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvice")(function* (
-  advice: CollectedAdvice
-) {
-  const deadline = (yield* monotonicMillis) + CLIENT_REQUEST_DEADLINE_MS
-  const acknowledged = yield* residentRequestEffect(advice.paths, {
-    requestRoute: "shared",
-    operation: "acknowledge",
-    lifetime: advice.lifetime,
-    token: advice.token
-  }).pipe(Effect.catch(() => Effect.succeed(undefined)))
-  if (acknowledged?.status !== "acknowledged") return false
+/** Reports the supported runtime submission boundary, then finalizes resident bookkeeping.
+ * This does not establish agent receipt; false may follow an already-recorded report. */
+export const recordAdviceSubmissionAndFinalizeEffect = Effect.fn("ResidentClient.recordAdviceSubmissionAndFinalize")(
+  function* (advice: CollectedAdvice) {
+    const deadline = (yield* monotonicMillis) + CLIENT_REQUEST_DEADLINE_MS
+    const acknowledged = yield* residentRequestEffect(advice.paths, {
+      requestRoute: "shared",
+      operation: "acknowledge",
+      lifetime: advice.lifetime,
+      token: advice.token
+    }).pipe(Effect.catch(() => Effect.succeed(undefined)))
+    if (acknowledged?.status !== "acknowledged") return false
 
-  const remaining = deadline - (yield* monotonicMillis)
-  if (remaining <= 0) return false
-  const finalized = yield* residentRequestEffect(
-    advice.paths,
-    { requestRoute: "shared", operation: "finalize", lifetime: advice.lifetime, token: advice.token },
-    remaining
-  ).pipe(Effect.catch(() => Effect.succeed(undefined)))
-  return finalized?.status === "finalized"
-})
+    const remaining = deadline - (yield* monotonicMillis)
+    if (remaining <= 0) return false
+    const finalized = yield* residentRequestEffect(
+      advice.paths,
+      { requestRoute: "shared", operation: "finalize", lifetime: advice.lifetime, token: advice.token },
+      remaining
+    ).pipe(Effect.catch(() => Effect.succeed(undefined)))
+    return finalized?.status === "finalized"
+  }
+)
 
 export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStopBoundary")(function* (
   operation: "begin-stop" | "finish-stop",

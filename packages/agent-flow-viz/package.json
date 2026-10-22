@@ -70,7 +70,7 @@
         "authority": "root-conformance"
       },
       {
-        "path": "conformance/canonical-jev-request-v1.json",
+        "path": "conformance/canonical-review-service-request-v1.json",
         "authority": "root-conformance"
       },
       {

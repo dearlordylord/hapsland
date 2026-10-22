@@ -12,7 +12,7 @@ import {
 } from "@hapsland/native-observation/direct-event/adapter"
 import type {
   NativeEditMetadata,
-  CodexHostVersion,
+  CodexAgentRuntimeVersion,
   DirectObservation
 } from "@hapsland/native-observation/direct-event/observation"
 import type { ClaudeHostOutput } from "@hapsland/delivery-output/direct-event/claude-output"
@@ -25,7 +25,7 @@ import {
   admitObservationEffect,
   admitAndCollectEffect,
   ensureResidentEffect,
-  makeResidentDispatchContextEffect,
+  makeResidentReviewExecutionContextEffect,
   readComposedEditPolicyEffect,
   retireComposedEditEffect,
   type ResidentStartup,
@@ -74,7 +74,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   })
   const admitCodexHookObservation = Effect.fn("CodexHook.admitObservation")(function* (
     observation: DirectObservation,
-    dispatch: Effect.Success<ReturnType<typeof makeResidentDispatchContextEffect>> | undefined,
+    dispatch: Effect.Success<ReturnType<typeof makeResidentReviewExecutionContextEffect>> | undefined,
     activityPath: string,
     lifetime: string
   ) {
@@ -91,14 +91,14 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   })
   const retireNativeEditPermits = Effect.fn("NativeHook.retireUnusedPermits")(function* (
     event: unknown,
-    host: "codex-cli" | "claude-code",
-    version: CodexHostVersion = "0.155.1",
+    agentRuntime: "codex-cli" | "claude-code",
+    version: CodexAgentRuntimeVersion = "0.155.1",
     claudeVersion?: string
   ) {
     if (event === null || typeof event !== "object" || Array.isArray(event)) return
     const identity = yield* adaptComposedHookIdentity(
       { ...event, hook_event_name: "PreToolUse" },
-      host,
+      agentRuntime,
       "PreToolUse",
       version,
       claudeVersion
@@ -118,12 +118,12 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     policies: Map<string, import("@hapsland/resident-transport/resident/protocol").ResidentEditPolicy | undefined>,
     options: CodexDispatchOptions
   ) {
-    let dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentDispatchContext | undefined
-    const sourceContexts: import("@hapsland/resident-transport/resident/protocol").ResidentSourceDispatchContext[] = []
+    let dispatch: import("@hapsland/resident-transport/resident/protocol").ResidentReviewExecutionContext | undefined
+    const sourceContexts: import("@hapsland/resident-transport/resident/protocol").SourceReviewExecutionContext[] = []
     // Resolve review authority only after the source-free selection facts exist.
     for (const [root, metadata] of projections) {
       if (!metadata.candidates.some((candidate) => candidate.selection.status === "selected")) continue
-      const selected = yield* makeResidentDispatchContextEffect(
+      const selected = yield* makeResidentReviewExecutionContextEffect(
         root,
         options.statePath,
         options.activityPath,
@@ -229,7 +229,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
     prepared?.dispatch !== undefined && isControlledWriter
   const runDirectCodexHook = (
     nativeEvent: unknown,
-    hostVersion: CodexHostVersion,
+    agentRuntimeVersion: CodexAgentRuntimeVersion,
     controlled: ResidentControlledOptions | undefined,
     statePath: string,
     activityPath: string,
@@ -237,7 +237,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
   ): Effect.Effect<DirectHookDispatch, unknown, ResidentStartup> =>
     Effect.gen(function* () {
       if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const
-      const reply = yield* adaptCodexReply(nativeEvent, hostVersion)
+      const reply = yield* adaptCodexReply(nativeEvent, agentRuntimeVersion)
       const owner = yield* ensureResidentEffect(
         undefined,
         Math.max(1, directHookDeadline - (yield* hookMonotonicMillis) - 500)
@@ -246,7 +246,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
         recordCodexHookActivity(reply, activityPath, "resident-unavailable", "unavailable")
         return { handled: true, output: {} } as const
       }
-      const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion)
+      const observation = yield* adaptCodexDirectEvent(nativeEvent, agentRuntimeVersion)
       const prepared =
         observation === undefined
           ? undefined
@@ -259,7 +259,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
           yield* recordNativeMetadataEffect(prepared.metadata, userConfigPath, activityPath).pipe(
             Effect.catch(() => Effect.void)
           )
-        yield* retireNativeEditPermits(nativeEvent, "codex-cli", hostVersion)
+        yield* retireNativeEditPermits(nativeEvent, "codex-cli", agentRuntimeVersion)
         recordCodexHookActivity(reply, activityPath, owner.value.lifetime, codexObservationStage(observation, prepared))
         return { handled: true, output: {} } as const
       }
@@ -301,7 +301,7 @@ export const makeDirectHookDispatch = (options: DirectHookOptions) => {
       return {}
     }
     const dispatch = yield* bounded(
-      makeResidentDispatchContextEffect(
+      makeResidentReviewExecutionContextEffect(
         observation.root,
         statePath,
         activityPath,

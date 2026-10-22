@@ -25,7 +25,7 @@ test("external finding-count acknowledgement resolves only its missing event own
   assert.deepEqual(resolvedGameOutputScopes(linked([{ $: "None" }]), event, outputs), [3]);
   assert.deepEqual(resolvedGameOutputScopes(linked([{ $: "Some", value: 8 }]), event, outputs), [8]);
   assert.deepEqual(resolvedGameOutputScopes(linked([{ $: "None" }]), { $: "Canonical.StartReview", partition: 3 }, outputs), [null]);
-  assert.deepEqual(resolvedGameOutputScopes(linked([{ $: "None" }]), event, linked([{ $: "Canonical.EventEstablished", event: { $: "Canonical.JevRequestIssued" } }])), [null]);
+  assert.deepEqual(resolvedGameOutputScopes(linked([{ $: "None" }]), event, linked([{ $: "Canonical.EventEstablished", event: { $: "Canonical.ReviewServiceRequestIssued" } }])), [null]);
 });
 
 test("native input context requires exactly one optional capsule", () => {

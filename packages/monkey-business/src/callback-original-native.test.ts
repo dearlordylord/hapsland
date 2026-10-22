@@ -16,7 +16,7 @@ function advance(run: Run) {
 }
 function issued(run: Run): CallbackTarget {
   for (let fuel = 0; fuel < 100; fuel++) {
-    const target = run.observe().callbackTargets.find((value) => value.effect.kind === "jevSettled")
+    const target = run.observe().callbackTargets.find((value) => value.effect.kind === "reviewServiceRequestSettled")
     if (target) return target
     run.step()
   }
@@ -125,9 +125,9 @@ function runCase(
   const end = issued(run)
   expect(end.owner).toEqual({ partition: 1, lifetime: 1, round: 1, operation: 3 })
   // One shared allocator: parent1, preparation2, unit3, physical request4.
-  expect(end.effect).toEqual({ kind: "jevSettled", request: 4 })
+  expect(end.effect).toEqual({ kind: "reviewServiceRequestSettled", reviewServiceRequestId: 4 })
   if (kind === "wrongStage" || kind === "reverseOrder") {
-    const start = run.observe().callbackTargets.find((value) => value.effect.kind === "jevStarted")
+    const start = run.observe().callbackTargets.find((value) => value.effect.kind === "reviewServiceRequestStarted")
     if (!start) throw new Error("original start unavailable at issuance boundary")
     if (kind === "wrongStage") {
       control(start, "hold")
@@ -137,38 +137,38 @@ function runCase(
       control(start, "hold")
     }
     advance(run)
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBe(
-      "WrongStage"
-    )
-    expect(run.projection.dispatch.requests).toHaveLength(1)
+    expect(
+      run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)?.rejection
+    ).toBe("WrongStage")
+    expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
     expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
     control(start, "release")
     control(end, "duplicate")
     advance(run)
     expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(1)
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   } else if (kind === "canceled") {
     control(end, "hold")
     const stopped = { kind: "stopPolled" as const, partition: 1, lifetime: 1, round: 1, deadline: true }
     run.schedule({ kind: "canonical", at: 5, event: stopped })
     sources.push({ time: 5, event: encodeCanonicalEvent(stopped) })
     advance(run)
-    expect(run.projection.dispatch.requests).toHaveLength(1)
+    expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
     expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
     control(end, "release")
     advance(run)
     expect(
       run.observations
-        .filter((frame) => frame.event.kind === "jevRequestSettled")
+        .filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
         .at(-1)
         ?.outputs.map((command) => command.kind)
-    ).toEqual(["jevObservationIgnored"])
+    ).toEqual(["reviewServiceRequestObservationIgnored"])
     const released = run.projection
     control(end, "duplicate")
     advance(run)
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBe(
-      "StaleOperation"
-    )
+    expect(
+      run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)?.rejection
+    ).toBe("StaleOperation")
     expect(run.projection).toEqual(released)
     expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toEqual([])
   } else {
@@ -181,9 +181,9 @@ function runCase(
     expect(run.projection).toEqual(before)
     control(end, "drop")
     advance(run)
-    expect(run.projection.dispatch.requests).toHaveLength(1)
+    expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
     expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")).toEqual([])
+    expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")).toEqual([])
   }
   const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())))
   expect(restored.observe()).toEqual(run.observe())

@@ -69,7 +69,7 @@ def exercise(+scope: Scope) -> List<&2, Scheduled>:
 def create_key(outputs: List<&2, Canonical.Output>) -> Bool:
   match outputs:
     case []: False{}
-    case Canonical.ActionRequested{Canonical.CreateNoticeKey{}} <> _: True{}
+    case Canonical.ResidentActionRequested{Canonical.CreateNoticeKey{}} <> _: True{}
     case _ <> tail: create_key(tail)
 
 def granted(outputs: List<&2, Canonical.Output>) -> Maybe<&2, Nat>:

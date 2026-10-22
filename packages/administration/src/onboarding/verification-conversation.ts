@@ -13,7 +13,7 @@ import {
   JEV_PROVIDER,
   REVIEW_PROVIDERS,
   providerEnvironmentOnly,
-  type BackendId
+  type ReviewServiceId
 } from "@hapsland/runtime-environment/runtime/backend"
 import { captureCredential, MaskedInputError } from "../credentials/masked-input.ts"
 import { credentialSourceGuidance } from "./credential-guidance.ts"
@@ -32,7 +32,10 @@ import {
 } from "./verification-model.ts"
 
 export interface VerificationOwner {
-  read: Effect.Effect<{ provider: BackendId; credential: CredentialResolution; guidance: readonly string[] }, unknown>
+  read: Effect.Effect<
+    { provider: ReviewServiceId; credential: CredentialResolution; guidance: readonly string[] },
+    unknown
+  >
   save: (key: string) => Effect.Effect<CredentialLifecycleResult, unknown>
   verify: (key: Redacted.Redacted<string>) => Effect.Effect<KeyVerification>
 }

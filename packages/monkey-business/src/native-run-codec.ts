@@ -256,16 +256,17 @@ export const decodeNativeRunSnapshot = (value: unknown, adapters: NativeRunSnaps
       const stored = nativeRunRecord(value, "NativeRunTypes.StoredJob")
       return [readNat(stored.operation), adapters.job(stored.job)] as const
     }),
-    issuedRequests: nativeRunList(host.issued_requests).map((value) => {
-      const issued = nativeRunRecord(value, "NativeRunTypes.IssuedRequest")
+    issuedReviewServiceRequestIds: nativeRunList(host.issued_requests).map((value) => {
+      const issued = nativeRunRecord(value, "NativeRunTypes.IssuedReviewServiceRequest")
       const decoded = decodeTrustedCanonicalStep({
         $: "Canonical.Advanced",
         state: readRecord(core[0]).canonical,
         outputs: encodeNativeRunList([issued.output])
       })
       const command = decoded.outputs[0]
-      if (!command || command.kind !== "jevRequestIssued") throw new TypeError("invalid NativeRun issued request")
-      return [readNat(issued.request), command] as const
+      if (!command || command.kind !== "reviewServiceRequestIssued")
+        throw new TypeError("invalid NativeRun issued request")
+      return [readNat(issued.review_service_request_id), command] as const
     }),
     retainedCallbacks: nativeRunList(host.retained_callbacks).map(adapters.retained),
     order: readNat(snapshot.next),
@@ -589,8 +590,9 @@ export const decodeNativeRunObservation = (value: unknown, labels: NativeRunPubl
             return false
           return kind === "preparationCompleted"
             ? target.effect.kind === "preparationCompleted"
-            : (target.effect.kind === "jevSettled" || target.effect.kind === "jevInterrupted") &&
-                target.effect.request === request
+            : (target.effect.kind === "reviewServiceRequestSettled" ||
+                target.effect.kind === "reviewServiceRequestInterrupted") &&
+                target.effect.reviewServiceRequestId === request
         })
         const deadlines = [...new Set(actual.map((callback) => readNat(callback.due_at)))]
         if (deadlines.length !== 1) throw new TypeError("started effect lacks one original completion deadline")
@@ -606,7 +608,7 @@ export const decodeNativeRunObservation = (value: unknown, labels: NativeRunPubl
             operation: command.operation,
             due: capturedDue(owner, "preparationCompleted")
           })
-        } else if (command.kind === "jevRequestIssued") {
+        } else if (command.kind === "reviewServiceRequestIssued") {
           const receipts = nativeRunList(details.prepared).map((value) =>
             nativeRunRecord(value, "NativeRunTypes.EmissionContext")
           )
@@ -614,15 +616,15 @@ export const decodeNativeRunObservation = (value: unknown, labels: NativeRunPubl
             .map((value) => nativeRunOptional(value.receipt))
             .filter((value) => value !== undefined)
             .map((value) => nativeRunRecord(value, "Driver.OutcomeReceipt"))
-            .find((value) => readNat(value.request) === command.request)
+            .find((value) => readNat(value.request) === command.reviewServiceRequestId)
           if (!selected) throw new TypeError("issued Jev command lacks outcome receipt")
           if (decodeDriverOutcome(selected.outcome) !== "neverSent")
             effects.push({
               kind: "jev",
               phase: "started",
               operation: command.operation,
-              request: command.request,
-              due: capturedDue(command, "jev", command.request)
+              reviewServiceRequestId: command.reviewServiceRequestId,
+              due: capturedDue(command, "jev", command.reviewServiceRequestId)
             })
         } else if (command.kind === "findingRetained" && "operation" in decodedEvent)
           effects.push({ kind: "advice", phase: "supplied", advice: decodedEvent.operation })
@@ -645,11 +647,16 @@ export const decodeNativeRunObservation = (value: unknown, labels: NativeRunPubl
       }
       if (decodedEvent.kind === "preparationCompleted")
         effects.push({ kind: "preparation", phase: "supplied", operation: decodedEvent.operation })
-      if (decodedEvent.kind === "jevRequestSettled")
+      if (decodedEvent.kind === "reviewServiceRequestSettled")
         effects.push(
           labels.cancellationSuppressed && decodedEvent.outcome === "interrupted"
             ? { kind: "cancellation", phase: "supplied", operation: decodedEvent.operation }
-            : { kind: "jev", phase: "supplied", operation: decodedEvent.operation, request: decodedEvent.request }
+            : {
+                kind: "jev",
+                phase: "supplied",
+                operation: decodedEvent.operation,
+                reviewServiceRequestId: decodedEvent.reviewServiceRequestId
+              }
         )
       const consumedValue = nativeRunOptional(details.consumed)
       const consumedInput =

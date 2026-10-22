@@ -18,7 +18,7 @@ it("integrates one authentic cache result and one hit through the public native 
   expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   expect(run.projection.reuse.cache).toHaveLength(1)
   expect(
-    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
   ).toHaveLength(1)
   expect(
     run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit"))
@@ -38,7 +38,7 @@ it("preserves cache provenance across retained shared Engine states and retries 
     lifecycles: { reuse: { entryLimit: 2, byteLimit: 100 } }
   })
   run.advance({ untilTime: 10, maxEvents: 1000 })
-  const completion = run.observations.findIndex(({ event }) => event.kind === "jevRequestSettled")
+  const completion = run.observations.findIndex(({ event }) => event.kind === "reviewServiceRequestSettled")
   expect(completion).toBeGreaterThanOrEqual(0)
   let state = boundary.configureSharedCache(boundary.initialSharedCanonical(limits), 2, 100)
   let routes: unknown[] = []
@@ -96,9 +96,9 @@ it("preserves cache provenance across retained shared Engine states and retries 
     }
   }
   const event = run.observations[completion]!.event
-  if (event.kind !== "jevRequestSettled") throw new Error("missing genuine Jev completion")
+  if (event.kind !== "reviewServiceRequestSettled") throw new Error("missing genuine Jev completion")
   expect(run.observations[completion]!.outputs).toContainEqual(
-    expect.objectContaining({ category: "event", kind: "jevRequestOutcomeRecorded" })
+    expect.objectContaining({ category: "event", kind: "reviewServiceRequestOutcomeRecorded" })
   )
   const retained = boundary.enqueueShared(state, 100, 999)
   const original = boundary.projectSharedCanonical(state)

@@ -52,10 +52,10 @@ it("applies a physical delivery listener control before its business event and r
   let captured: Replay | undefined
   let capturedRuntime: ReturnType<typeof run.runtimeSnapshot> | undefined
   run.subscribeStructural((frame) => {
-    if (frame.kind !== "callbackDelivery" || frame.receipt.target.effect.kind !== "jevSettled") return
+    if (frame.kind !== "callbackDelivery" || frame.receipt.target.effect.kind !== "reviewServiceRequestSettled") return
     expect(frame.time).toBe(7)
     expect(run.now).toBe(7)
-    expect(run.observations.some((item) => item.event.kind === "jevRequestSettled")).toBe(false)
+    expect(run.observations.some((item) => item.event.kind === "reviewServiceRequestSettled")).toBe(false)
     run.applyControl({ kind: "environment", currentWork: false, credentialReady: true })
     captured = run.exportReplay()
     capturedRuntime = run.runtimeSnapshot()
@@ -83,10 +83,15 @@ it("retains a duplicated receipt through a physical checkpoint and retention-one
   let target: CallbackTarget | undefined
   const delivered: NonNullable<ReturnType<typeof run.step>>[] = []
   run.subscribe((frame) => {
-    if (frame.event.kind === "jevRequestSettled") delivered.push(frame)
+    if (frame.event.kind === "reviewServiceRequestSettled") delivered.push(frame)
   })
   run.subscribeStructural((frame) => {
-    if (checkpoint || frame.kind !== "callbackDelivery" || frame.receipt.target.effect.kind !== "jevSettled") return
+    if (
+      checkpoint ||
+      frame.kind !== "callbackDelivery" ||
+      frame.receipt.target.effect.kind !== "reviewServiceRequestSettled"
+    )
+      return
     target = frame.receipt.target
     run.applyControl({ kind: "environment", currentWork: false, credentialReady: true })
     checkpoint = run.exportReplay()

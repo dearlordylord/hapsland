@@ -361,7 +361,7 @@ def captured(timing: Workload.PreTiming, outcome: Permit.PostOutcome) -> Permit.
 def run(
   +outcome: Permit.PostOutcome,
   +duration: Nat,
-  review: Canonical.RequestOutcome
+  review: Canonical.ReviewServiceRequestOutcome
 ) -> List<&2, List<&2, Nat>>:
   +state = opened(
     Engine.step(

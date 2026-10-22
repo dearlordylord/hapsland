@@ -47,8 +47,10 @@ it("keeps independently expected finding and NeverSent lifecycle observations", 
     ).toBe(false)
     run.advance({ untilTime: 7 })
     const frames = run.observe().observations
-    expect(frames.filter((frame) => frame.event.kind === "jevRequestSettled").map((frame) => frame.time)).toEqual([7])
-    expect(frames.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(
+    expect(
+      frames.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").map((frame) => frame.time)
+    ).toEqual([7])
+    expect(frames.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(
       outcome === "neverSent" ? 0 : 1
     )
     expect(

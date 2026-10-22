@@ -56,7 +56,7 @@ assert.match(eventReader, /canonicalEvents\.has\(value\)/)
 assert.match(eventReader, /canonicalEvents\.add\(event\)/)
 
 const bendOutputs = new Set(
-  ["ActionRequest", "DomainEvent", "PolicyDecision"].flatMap((type) => [...bendConstructors(type)])
+  ["ResidentActionCommand", "DomainEvent", "PolicyDecision"].flatMap((type) => [...bendConstructors(type)])
 )
 const decodedOutputs = matches(
   between(adapter, "const outputDecoders:", "const decodeOutput ="),
@@ -64,12 +64,12 @@ const decodedOutputs = matches(
 )
 sameSet(decodedOutputs, bendOutputs, "Bend Output and runtime decoder coverage")
 const declaredOutputKinds = schemaKinds(
-  between(models, "export const CanonicalActionRequestSchema =", "export type CanonicalOutput =")
+  between(models, "export const ResidentActionCommandSchema =", "export type CanonicalOutput =")
 )
 const bendOutputKinds = new Set([...bendOutputs].map((name) => name[0].toLowerCase() + name.slice(1)))
 sameSet(declaredOutputKinds, bendOutputKinds, "CanonicalOutput type and Bend Output coverage")
 for (const [type, schema, next] of [
-  ["ActionRequest", "CanonicalActionRequestSchema", "CanonicalActionRequest"],
+  ["ResidentActionCommand", "ResidentActionCommandSchema", "ResidentActionCommand"],
   ["DomainEvent", "CanonicalDomainEventSchema", "CanonicalDomainEvent"],
   ["PolicyDecision", "CanonicalPolicyDecisionSchema", "CanonicalPolicyDecision"]
 ]) {

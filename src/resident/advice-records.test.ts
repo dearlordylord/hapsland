@@ -1,6 +1,6 @@
 import { defaultReviewSettings } from "@hapsland/review-definition/runtime/review-config"
 import { settingsSource } from "@hapsland/review-definition/runtime/review-settings"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { it } from "@effect/vitest"
 import { expect } from "vitest"
 import { Cause, Effect } from "effect"
@@ -9,7 +9,7 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit
+  type PreparedReviewUnit
 } from "@hapsland/review-definition/direct-event/model"
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
@@ -23,7 +23,7 @@ const observation: DirectObservation = {
   candidates: [{ operation: "add", path: "count.ts", addedLines: [] }]
 }
 const input = freezeInput({
-  providerIdentity: providerIdentity({ provider: "jev" }),
+  reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
   contract: TYPE_INPUT_CONTRACT,
   completeness: "complete",
   path: "count.ts",
@@ -49,7 +49,7 @@ const input = freezeInput({
   rules: freezeRules([]),
   interpretation: "probability-strictly-greater-than-threshold"
 })
-const prepared: PreparedUnit = {
+const prepared: PreparedReviewUnit = {
   root: observation.root,
   advicee: observation.advicee,
   input,
@@ -67,7 +67,7 @@ type Owner = Effect.Success<ReturnType<typeof makeResidentState<never, string, n
 const fixture = (existing?: Owner) =>
   Effect.gen(function* () {
     const owner = existing ?? (yield* makeResidentState())
-    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.generation
+    const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0))?.admissionRoundId
     if (generation === undefined) throw new Error("fixture edit refused")
     const round = yield* owner.rounds.bind(
       "agent",
@@ -75,22 +75,27 @@ const fixture = (existing?: Owner) =>
       { root: observation.root, advicee: observation.advicee, activityPath: undefined },
       "cohort"
     )
-    const admissionId = yield* owner.admitObservation("agent")
-    yield* owner.observation("agent", admissionId, "startObservation", round.canonicalRound)
-    const preparation = yield* owner.beginObservedPreparation("agent", admissionId, 100, round.canonicalRound)
+    const canonicalObservationId = yield* owner.admitObservation("agent")
+    yield* owner.observation("agent", canonicalObservationId, "startObservation", round.canonicalRoundId)
+    const preparation = yield* owner.beginObservedPreparation(
+      "agent",
+      canonicalObservationId,
+      100,
+      round.canonicalRoundId
+    )
     if (preparation.status !== "admitted") throw new Error("fixture preparation refused")
     const [unit] = yield* owner.completePreparation(
       "agent",
       preparation.operation,
       preparation.reservation,
       [100],
-      round.canonicalRound
+      round.canonicalRoundId
     )
     if (unit === undefined) throw new Error("fixture unit refused")
     expect(
-      yield* owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRound)
+      yield* owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRoundId)
     ).toBe("findingRetained")
-    yield* owner.observation("agent", admissionId, "completeObservation", round.canonicalRound)
+    yield* owner.observation("agent", canonicalObservationId, "completeObservation", round.canonicalRoundId)
     const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision
     const initial: AdviceInitial = {
       settings: {
@@ -100,10 +105,10 @@ const fixture = (existing?: Owner) =>
         ruleDigests: []
       },
       id: "advice",
-      canonicalRound: round.canonicalRound,
+      canonicalRoundId: round.canonicalRoundId,
       round,
       workUnitId: unit.operation,
-      admissionId,
+      canonicalObservationId,
       canonicalOperationId: unit.operation,
       observation,
       partition: "agent",
@@ -140,18 +145,18 @@ it.effect("owns frozen advice content and leases together with canonical state",
     const first = (yield* owner.advice.current(advice)).delivery
     expect(Object.isFrozen(first)).toBe(true)
     expect((yield* owner.canonicalProjection()).collection.leases).toEqual([
-      { advice: initial.canonicalOperationId, owner: yield* owner.collectionTokenId("collector") }
+      { advice: initial.canonicalOperationId, owner: yield* owner.internAdviceHandoffIdentity("collector") }
     ])
-    expect(yield* owner.advice.updateDelivery(advice, "wrong", { acknowledged: true })).toBe(false)
+    expect(yield* owner.advice.updateDelivery(advice, "wrong", { submissionRecorded: true })).toBe(false)
     expect(
       yield* owner.advice.updateDelivery(advice, "collector", {
         findings: [finding],
         leaseUntil: 10,
-        acknowledged: true
+        submissionRecorded: true
       })
     ).toBe(true)
-    expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(true)
-    expect(first?.acknowledged).toBe(false)
+    expect((yield* owner.advice.current(advice)).delivery?.submissionRecorded).toBe(true)
+    expect(first?.submissionRecorded).toBe(false)
     yield* owner.advice.checkLease(advice, 10, false, false, false)
     expect((yield* owner.advice.current(advice)).delivery).toBeUndefined()
     expect((yield* owner.canonicalProjection()).collection.leases).toEqual([])
@@ -271,7 +276,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
     const { owner, initial } = yield* fixture()
     const joined = owner.joinedReviews(() => 1)
     yield* joined.append({
-      admission: initial.admissionId,
+      admission: initial.canonicalObservationId,
       evaluationKey: initial.evaluationKey,
       observation,
       activityPath: undefined,
@@ -279,7 +284,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
     })
     const advice = yield* owner.advice.insert(initial)
     const publish = owner.advice.publish(advice)
-    expect(yield* joined.hasAdmission(initial.admissionId)).toBe(true)
+    expect(yield* joined.hasAdmission(initial.canonicalObservationId)).toBe(true)
     const batches = yield* Effect.all(
       Array.from({ length: 16 }, () => publish),
       { concurrency: 16 }
@@ -287,7 +292,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
     expect(batches.filter((batch) => batch.length > 0)).toHaveLength(1)
     const outcomes = batches.flat()
     expect(outcomes.map(({ stage }) => stage)).toEqual(["findings"])
-    expect(yield* joined.hasAdmission(initial.admissionId)).toBe(false)
+    expect(yield* joined.hasAdmission(initial.canonicalObservationId)).toBe(false)
     yield* owner.advice.remove(advice, "stale")
     expect(yield* owner.advice.publish(advice)).toEqual([])
   })
@@ -351,13 +356,13 @@ it.effect("validates delivery token when a deferred update executes", () =>
     const advice = yield* owner.advice.insert(initial)
     yield* owner.advice.eligible(advice, false)
     yield* owner.advice.reserveLease(advice, "old")
-    const update = owner.advice.updateDelivery(advice, "old", { acknowledged: true })
-    expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(false)
+    const update = owner.advice.updateDelivery(advice, "old", { submissionRecorded: true })
+    expect((yield* owner.advice.current(advice)).delivery?.submissionRecorded).toBe(false)
     yield* owner.advice.releaseLease(advice, "old")
     yield* owner.advice.reserveLease(advice, "new")
     expect(yield* update).toBe(false)
     expect((yield* owner.advice.current(advice)).delivery?.token).toBe("new")
-    expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(false)
+    expect((yield* owner.advice.current(advice)).delivery?.submissionRecorded).toBe(false)
   })
 )
 

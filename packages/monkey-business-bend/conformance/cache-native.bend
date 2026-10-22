@@ -88,17 +88,17 @@ def cache_words(entries: List<&2, Reuse.Entry>) -> List<&2, Nat>:
     case Reuse.Entry{id, partition, bytes, reservation} <> tail:
       id <> partition <> bytes <> reservation <> cache_words(tail)
 
-def charge_words(charges: List<&2, Ledger.Charge>) -> List<&2, Nat>:
+def charge_words(charges: List<&2, Ledger.ReviewCapacityReservationRecord>) -> List<&2, Nat>:
   match charges:
     case []: []
-    case Ledger.Charge{id, partition, bytes, _} <> tail: id <> partition <> bytes <> charge_words(
+    case Ledger.ReviewCapacityReservationRecord{id, partition, bytes, _} <> tail: id <> partition <> bytes <> charge_words(
       tail
     )
 
 def row_value(
   usage: Ledger.Usage,
   reuse: Reuse.State,
-  charges: List<&2, Ledger.Charge>,
+  charges: List<&2, Ledger.ReviewCapacityReservationRecord>,
   payloads: Nat
 ) -> List<&2, List<&2, Nat>>:
   match usage reuse:

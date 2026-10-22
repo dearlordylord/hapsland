@@ -42,8 +42,8 @@ export type ComparisonId = typeof ComparisonId.Type
 export const RunId = Identifier.pipe(Schema.brand("EvaluationRunId"))
 export type RunId = typeof RunId.Type
 
-export const BackendId = Identifier.pipe(Schema.brand("EvaluationBackendId"))
-export type BackendId = typeof BackendId.Type
+export const ReviewServiceId = Identifier.pipe(Schema.brand("EvaluationReviewServiceId"))
+export type ReviewServiceId = typeof ReviewServiceId.Type
 
 export const InputContractId = Identifier.pipe(Schema.brand("EvaluationInputContractId"))
 export type InputContractId = typeof InputContractId.Type
@@ -158,7 +158,7 @@ export interface ConfigurationLayer extends Schema.Schema.Type<typeof Configurat
 
 export const ConsentState = Schema.Struct({
   repositoryId: Schema.NonEmptyString,
-  backendId: BackendId,
+  backendId: ReviewServiceId,
   destinationId: Schema.NonEmptyString,
   granted: Schema.Boolean
 })
@@ -192,12 +192,12 @@ export const ConfigurationCase = Schema.Struct({
 })
 export interface ConfigurationCase extends Schema.Schema.Type<typeof ConfigurationCase> {}
 
-export const BackendIdentity = Schema.Struct({
-  id: BackendId,
+export const ReviewServiceIdentity = Schema.Struct({
+  id: ReviewServiceId,
   version: Version,
   mode: Schema.Literals(["controlled", "fake-http", "live"] as const)
 })
-export interface BackendIdentity extends Schema.Schema.Type<typeof BackendIdentity> {}
+export interface ReviewServiceIdentity extends Schema.Schema.Type<typeof ReviewServiceIdentity> {}
 
 export const InputContractIdentity = Schema.Struct({ id: InputContractId, version: Version, digest: EvaluationDigest })
 export interface InputContractIdentity extends Schema.Schema.Type<typeof InputContractIdentity> {}
@@ -231,7 +231,7 @@ const EvaluationScenarioFields = Schema.Struct({
   ruleSet: Schema.Array(RuleReference),
   configurationCaseId: ConfigurationCaseId,
   effectiveConfigurationDigest: EvaluationDigest,
-  backend: BackendIdentity,
+  backend: ReviewServiceIdentity,
   inputContract: InputContractIdentity,
   rendererAdapter: RendererAdapterIdentity,
   eventSequence: Schema.Array(ScenarioAction),
@@ -463,7 +463,7 @@ export const EvaluationRun = Schema.Struct({
   fixtureDigests: Schema.Array(EvaluationDigest),
   ruleDefinitionDigests: Schema.Array(EvaluationDigest),
   expectationDigests: Schema.Array(EvaluationDigest),
-  backend: BackendIdentity,
+  backend: ReviewServiceIdentity,
   inputContract: InputContractIdentity,
   rendererAdapter: RendererAdapterIdentity,
   repetitions: PositiveInteger,

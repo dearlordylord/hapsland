@@ -11,7 +11,7 @@ it("decodes completion delivery actions without changing original identity", () 
     }
   }
   expect(callbackAction(`completion:${encodeURIComponent(JSON.stringify(control))}`)).toEqual(control)
-  expect(callbackAction("jev-request:unrelated")).toBeUndefined()
+  expect(callbackAction("review-service-request:unrelated")).toBeUndefined()
   expect(() => callbackAction("completion:%broken")).toThrow()
   expect(() =>
     callbackAction(`completion:${encodeURIComponent(JSON.stringify({ ...control, extra: true }))}`)

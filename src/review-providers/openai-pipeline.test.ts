@@ -35,7 +35,7 @@ describe("OpenAI review integration", () => {
       const prepared = yield* prepareObservation(observation, context)
       const outcome = prepared.outcomes.find((entry) => entry.status === "ready")
       if (outcome?.status !== "ready") throw new Error("missing prepared unit")
-      expect(outcome.prepared.input.providerIdentity).toEqual(settings.providerIdentity)
+      expect(outcome.prepared.input.reviewServiceIdentity).toEqual(settings.reviewServiceIdentity)
       let calls = 0
       const httpClient = HttpClient.make((request) => {
         calls++

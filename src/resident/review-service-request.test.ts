@@ -13,7 +13,7 @@ import {
 } from "@hapsland/build-tooling/test-support/test-fixtures"
 import { configuredRules } from "@hapsland/build-tooling/test-support/default-rules"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import { type JevRequestObservation } from "@hapsland/resident-runtime/resident/server"
+import { type ReviewServiceRequestObservation } from "@hapsland/resident-runtime/resident/server"
 import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 import { captureStable } from "@hapsland/native-observation/direct-event/capture"
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
@@ -104,10 +104,10 @@ describe("canonical Jev request boundary", () => {
         identity
       )
     const capturePath = join(root, "provider-calls.txt")
-    const commands: JevRequestObservation[] = []
+    const commands: ReviewServiceRequestObservation[] = []
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource,
-      jevRequestObserver: (value) => {
+      reviewServiceRequestObserver: (value) => {
         commands.push(value)
       }
     })
@@ -156,9 +156,9 @@ describe("canonical Jev request boundary", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])))
     if (observation === undefined) throw new Error("fixture observation missing")
     const capturePath = join(root, "provider-calls.txt")
-    const commands: JevRequestObservation[] = []
+    const commands: ReviewServiceRequestObservation[] = []
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      jevRequestObserver: (value) => {
+      reviewServiceRequestObserver: (value) => {
         commands.push(value)
       }
     })
@@ -269,7 +269,7 @@ describe("canonical Jev request boundary", () => {
       return observation
     }
     const capturePath = join(root, "provider-calls.txt")
-    const observations: JevRequestObservation[] = []
+    const observations: ReviewServiceRequestObservation[] = []
     const dispatch = {
       statePath,
       userConfigPath: join(dirname(statePath), "absent-fixture-user.jsonc"),
@@ -277,7 +277,7 @@ describe("canonical Jev request boundary", () => {
       controlled: { capturePath }
     }
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      jevRequestObserver: (observation) => {
+      reviewServiceRequestObserver: (observation) => {
         observations.push(observation)
       }
     })
@@ -298,10 +298,10 @@ describe("canonical Jev request boundary", () => {
         observations.every(
           (item) =>
             item.lifetime === server.lifetime &&
-            item.canonicalLifetime === 1 &&
+            item.canonicalLifetimeId === 1 &&
             item.canonicalPartition > 0 &&
             item.round > 0 &&
-            item.hapslandRound === null
+            item.admissionRoundId === null
         )
       ).toBe(true)
       expect(existsSync(capturePath)).toBe(false)
@@ -315,9 +315,9 @@ describe("canonical Jev request boundary", () => {
     } finally {
       await Effect.runPromise(server.close)
     }
-    const nextLifetime: JevRequestObservation[] = []
+    const nextLifetime: ReviewServiceRequestObservation[] = []
     const restarted = await acquireResidentFixture(residentPaths(join(root, "restarted-runtime")), undefined, {
-      jevRequestObserver: (observation) => {
+      reviewServiceRequestObserver: (observation) => {
         nextLifetime.push(observation)
       }
     })
@@ -326,9 +326,9 @@ describe("canonical Jev request boundary", () => {
       await Effect.runPromise(restarted.whenIdle())
       expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"])
       expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true)
-      expect(nextLifetime.every((item) => (item.hapslandRound ?? 0) > 0)).toBe(true)
+      expect(nextLifetime.every((item) => (item.admissionRoundId ?? 0) > 0)).toBe(true)
       expect(restarted.lifetime).not.toBe(server.lifetime)
-      expect(nextLifetime[0]?.canonicalLifetime).toBe(observations[0]?.canonicalLifetime)
+      expect(nextLifetime[0]?.canonicalLifetimeId).toBe(observations[0]?.canonicalLifetimeId)
       expect(nextLifetime[0]?.round).toBe(observations[0]?.round)
     } finally {
       await Effect.runPromise(restarted.close)
@@ -363,7 +363,7 @@ describe("canonical Jev request boundary", () => {
     const eightEntered = deferred()
     const release = deferred()
     const ninthUnavailable = deferred()
-    const observations: JevRequestObservation[] = []
+    const observations: ReviewServiceRequestObservation[] = []
     let effectsEntered = 0
     const controls = await Effect.runPromise(makePreparationControls())
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -373,7 +373,7 @@ describe("canonical Jev request boundary", () => {
         if (effectsEntered === 8) eightEntered.resolve()
         if (effectsEntered <= 8) await release.promise
       },
-      jevRequestObserver: (observation) => {
+      reviewServiceRequestObserver: (observation) => {
         observations.push(observation)
         if (observation.stage === "unavailable") ninthUnavailable.resolve()
       }
@@ -410,7 +410,9 @@ describe("canonical Jev request boundary", () => {
             .slice(0, index)
             .some(
               (prior) =>
-                prior.stage === "issued" && prior.operation === item.operation && prior.request === item.request
+                prior.stage === "issued" &&
+                prior.operation === item.operation &&
+                prior.reviewServiceRequestId === item.reviewServiceRequestId
             )
         ).toBe(true)
       }
@@ -453,7 +455,7 @@ describe("canonical Jev request boundary", () => {
     const physicallySettled = deferred()
     let physicallyRunning = 0
     let peakPhysicallyRunning = 0
-    const observations: JevRequestObservation[] = []
+    const observations: ReviewServiceRequestObservation[] = []
     let effectsEntered = 0
     let unavailableCount = 0
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -466,7 +468,7 @@ describe("canonical Jev request boundary", () => {
         await releases[requestIndex]!.promise
         physicallyRunning -= 1
       },
-      jevRequestObserver: (observation) => {
+      reviewServiceRequestObserver: (observation) => {
         observations.push(observation)
         if (observation.stage === "interrupted") interruptedRequest.resolve()
         if (observation.stage === "settled") physicallySettled.resolve()
@@ -530,7 +532,7 @@ describe("canonical Jev request boundary", () => {
       expect(interruptionIndex).toBeGreaterThanOrEqual(0)
       const interrupted = observations[interruptionIndex]!
       const settlementIndex = observations.findIndex(
-        (item) => item.stage === "settled" && item.request === interrupted.request
+        (item) => item.stage === "settled" && item.reviewServiceRequestId === interrupted.reviewServiceRequestId
       )
       const startIndices = observations.flatMap((item, index) => (item.stage === "started" ? [index] : []))
       const reusedStartIndex = startIndices[8] ?? -1
@@ -572,7 +574,7 @@ describe("canonical Jev request boundary", () => {
     const reusedStarted = deferred()
     const secondUnavailable = deferred()
     const release = deferred()
-    const observations: JevRequestObservation[] = []
+    const observations: ReviewServiceRequestObservation[] = []
     let effectsEntered = 0
     let unavailableCount = 0
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
@@ -586,7 +588,7 @@ describe("canonical Jev request boundary", () => {
         if (effectsEntered === 9) reusedStarted.resolve()
         await release.promise
       },
-      jevRequestObserver: (item) => {
+      reviewServiceRequestObserver: (item) => {
         observations.push(item)
         if (item.stage === "settled" && item.outcome === "timeout") firstTimeout.resolve()
         if (item.stage === "unavailable") {
@@ -690,7 +692,7 @@ describe("canonical Jev request boundary", () => {
     const held = Array.from({ length: 8 }, () => {
       const unit = reviewUnit()
       const ready = Effect.runSync(
-        ledger.readyJevRequest(
+        ledger.readyReviewServiceRequest(
           partition,
           unit.operation,
           unit.reservation,
@@ -699,19 +701,21 @@ describe("canonical Jev request boundary", () => {
         )
       )
       if (ready.status !== "issued") throw new Error("Jev permit refused before saturation")
-      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true)
-      return { unit, request: ready.request }
+      expect(
+        Effect.runSync(ledger.startReviewServiceRequest(partition, unit.operation, ready.reviewServiceRequestId))
+      ).toBe(true)
+      return { unit, request: ready.reviewServiceRequestId }
     })
     const interrupted = held[0]!
-    expect(Effect.runSync(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request))).toBe(
-      true
-    )
+    expect(
+      Effect.runSync(ledger.interruptReviewServiceRequest(partition, interrupted.unit.operation, interrupted.request))
+    ).toBe(true)
     Effect.runSync(ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition))))
     const nextPartition = partition
     const premature = reviewUnit(nextPartition)
     expect(
       Effect.runSync(
-        ledger.readyJevRequest(
+        ledger.readyReviewServiceRequest(
           nextPartition,
           premature.operation,
           premature.reservation,
@@ -722,7 +726,7 @@ describe("canonical Jev request boundary", () => {
     ).toBe("unavailable")
     expect(
       Effect.runSync(
-        ledger.settleJevRequest(
+        ledger.settleReviewServiceRequest(
           partition,
           interrupted.unit.operation,
           interrupted.request,
@@ -734,7 +738,7 @@ describe("canonical Jev request boundary", () => {
     ).not.toBe("stale")
     const replacement = reviewUnit(nextPartition)
     const ready = Effect.runSync(
-      ledger.readyJevRequest(
+      ledger.readyReviewServiceRequest(
         nextPartition,
         replacement.operation,
         replacement.reservation,
@@ -744,11 +748,15 @@ describe("canonical Jev request boundary", () => {
     )
     expect(ready.status).toBe("issued")
     if (ready.status !== "issued") return
-    expect(Effect.runSync(ledger.startJevRequest(nextPartition, replacement.operation, ready.request))).toBe(true)
+    expect(
+      Effect.runSync(
+        ledger.startReviewServiceRequest(nextPartition, replacement.operation, ready.reviewServiceRequestId)
+      )
+    ).toBe(true)
     const excess = reviewUnit(nextPartition)
     expect(
       Effect.runSync(
-        ledger.readyJevRequest(
+        ledger.readyReviewServiceRequest(
           nextPartition,
           excess.operation,
           excess.reservation,
@@ -758,6 +766,103 @@ describe("canonical Jev request boundary", () => {
       ).status
     ).toBe("unavailable")
   })
+
+  it.each(["interruption-first", "completion-first"] as const)(
+    "isolates late terminal callbacks after newer work starts (%s)",
+    (order) => {
+      const ledger = Effect.runSync(makeResidentState(undefined, `terminal-race-${order}`))
+      const partition = "review-partition"
+      const facts = {
+        rootValid: true,
+        configurationValid: true,
+        credentialReady: true,
+        selected: true,
+        currentWork: true,
+        physicalAvailable: true
+      }
+      const issue = () => {
+        const round = Effect.runSync(ledger.roundId(partition))
+        const observation = Effect.runSync(ledger.admitObservation(partition))
+        expect(Effect.runSync(ledger.observation(partition, observation, "startObservation", round))).toBe(true)
+        const preparation = Effect.runSync(ledger.beginObservedPreparation(partition, observation, 100, round))
+        if (preparation.status !== "admitted") throw new Error("preparation refused")
+        expect(Effect.runSync(ledger.observation(partition, observation, "completeObservation", round))).toBe(true)
+        const unit = Effect.runSync(
+          ledger.completePreparation(partition, preparation.operation, preparation.reservation, [10], round)
+        )[0]
+        if (unit === undefined) throw new Error("unit refused")
+        expect(Effect.runSync(ledger.startReview(partition, unit.operation, round))).toBe(true)
+        const ready = Effect.runSync(
+          ledger.readyReviewServiceRequest(partition, unit.operation, unit.reservation, facts, round)
+        )
+        if (ready.status !== "issued") throw new Error("request refused")
+        expect(
+          Effect.runSync(ledger.startReviewServiceRequest(partition, unit.operation, ready.reviewServiceRequestId))
+        ).toBe(true)
+        return { unit, request: ready.reviewServiceRequestId }
+      }
+      const old = issue()
+      const interruptOld = () =>
+        Effect.runSync(ledger.interruptReviewServiceRequest(partition, old.unit.operation, old.request))
+      if (order === "interruption-first") {
+        expect(interruptOld()).toBe(true)
+        // Interrupting the Effect is not physical settlement: its permit stays held.
+        expect(Effect.runSync(ledger.canonicalProjection()).dispatch.reviewServiceRequests).toMatchObject([
+          { operation: old.unit.operation, reviewServiceRequestId: old.request, started: true, interrupted: true }
+        ])
+        expect(Effect.runSync(ledger.reservationSnapshot(old.unit.reservation))).toEqual({
+          bytes: 10,
+          purpose: "reviewUnit"
+        })
+      }
+      expect(
+        Effect.runSync(
+          ledger.settleReviewServiceRequest(
+            partition,
+            old.unit.operation,
+            old.request,
+            old.unit.reservation,
+            order === "interruption-first" ? "interrupted" : "finding",
+            true
+          )
+        )
+      ).toBe(order === "interruption-first" ? "unavailable" : "findingRetained")
+
+      const replacement = issue()
+      const beforeLateCallbacks = Effect.runSync(ledger.canonicalProjection())
+      expect(interruptOld()).toBe(false)
+      expect(
+        Effect.runSync(
+          ledger.settleReviewServiceRequest(
+            partition,
+            old.unit.operation,
+            old.request,
+            old.unit.reservation,
+            "finding",
+            true
+          )
+        )
+      ).toBe("stale")
+      expect(Effect.runSync(ledger.canonicalProjection())).toEqual(beforeLateCallbacks)
+      expect(Effect.runSync(ledger.reservationSnapshot(old.unit.reservation))).toEqual(
+        order === "completion-first" ? { bytes: 10, purpose: "storedResult" } : undefined
+      )
+      // A duplicate old terminal must not consume the newer request's identity.
+      expect(
+        Effect.runSync(
+          ledger.settleReviewServiceRequest(
+            partition,
+            replacement.unit.operation,
+            replacement.request,
+            replacement.unit.reservation,
+            "clear",
+            true
+          )
+        )
+      ).toBe("clearSettled")
+      expect(Effect.runSync(ledger.reservationSnapshot(replacement.unit.reservation))).toBeUndefined()
+    }
+  )
 
   it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
     const first = Effect.runSync(makeResidentState(undefined, "resident-a"))
@@ -801,7 +906,7 @@ describe("canonical Jev request boundary", () => {
         Effect.runSync(ledger.startReview(partition, unit.operation, Effect.runSync(ledger.roundId(partition))))
       ).toBe(true)
       const ready = Effect.runSync(
-        ledger.readyJevRequest(
+        ledger.readyReviewServiceRequest(
           partition,
           unit.operation,
           unit.reservation,
@@ -810,20 +915,29 @@ describe("canonical Jev request boundary", () => {
         )
       )
       if (ready.status !== "issued") throw new Error("request refused")
-      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true)
+      expect(
+        Effect.runSync(ledger.startReviewServiceRequest(partition, unit.operation, ready.reviewServiceRequestId))
+      ).toBe(true)
       expect(
         Effect.runSync(
-          ledger.settleJevRequest(partition, unit.operation, ready.request, unit.reservation, "clear", true)
+          ledger.settleReviewServiceRequest(
+            partition,
+            unit.operation,
+            ready.reviewServiceRequestId,
+            unit.reservation,
+            "clear",
+            true
+          )
         )
       ).toBe("clearSettled")
       return ready.round
     }
     const firstRound = issue(first)
     const otherLifetimeRound = issue(second)
-    expect(first.residentLifetime).toBe("resident-a")
-    expect(second.residentLifetime).toBe("resident-b")
-    expect(first.canonicalLifetime).toBe(1)
-    expect(second.canonicalLifetime).toBe(1)
+    expect(first.residentInstanceId).toBe("resident-a")
+    expect(second.residentInstanceId).toBe("resident-b")
+    expect(first.canonicalLifetimeId).toBe(1)
+    expect(second.canonicalLifetimeId).toBe(1)
     expect(firstRound).toBe(otherLifetimeRound)
     Effect.runSync(first.retireRound("review-partition", Effect.runSync(first.roundId("review-partition"))))
     expect(issue(first)).toBeGreaterThan(firstRound)

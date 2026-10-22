@@ -122,7 +122,7 @@ export function runExperiment(input: Experiment) {
     peakOwnedBytes = Math.max(peakOwnedBytes, frame.after.global.bytes)
     if (frame.event.kind === "submissionTerminal" && frame.event.certain) certainOutputs++
     if (frame.event.kind === "finishTerminal" && frame.event.outcome === "acknowledged") certainOutputs++
-    if (frame.event.kind === "jevRequestStarted") requestsStarted++
+    if (frame.event.kind === "reviewServiceRequestStarted") requestsStarted++
   })
   const actions: ActionReport[] = []
   let spent = 0

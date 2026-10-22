@@ -1,14 +1,14 @@
 import { type DirectObservation } from "@hapsland/native-observation/direct-event/observation"
 import { toCodexDirectEventOutput, type Finding } from "@hapsland/delivery-output/direct-event/output"
 import { workSubject, type WorkRevision } from "../state/revision.ts"
-import { type PreparedUnit, type MaterializationAdmission } from "@hapsland/review-definition/direct-event/model"
-import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { type PreparedReviewUnit, type MaterializationAdmission } from "@hapsland/review-definition/direct-event/model"
+import { type ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 import { type CapacityResize } from "../state/resident/state.ts"
 import { residentEvaluationIdentity } from "../state/evaluation-reuse.ts"
 import { findingFromProbability } from "@hapsland/review-definition/rules/decision"
 import { logicalBytes } from "../state/encoded-size.ts"
-import { recipientPartition, sourcePartition } from "../recipient/identity.ts"
-import { evaluationSourcePartition } from "./identity.ts"
+import { adviceeScopeKey, sourceScopeKey } from "../recipient/identity.ts"
+import { evaluationReuseScopeKey } from "./identity.ts"
 
 export const resizePreparationAdmission = (
   result: CapacityResize,
@@ -34,13 +34,13 @@ export const RESERVATION_OVERHEAD_BYTES = 1024
 
 const MAX_PROBABILITY_ENCODING_BYTES = 24
 
-const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
+const reservedRevision = (partition: string, prepared: PreparedReviewUnit): WorkRevision => ({
   subject: workSubject(partition, prepared),
-  token: "00000000-0000-0000-0000-000000000000",
-  generation: Number.MAX_SAFE_INTEGER
+  revisionToken: "00000000-0000-0000-0000-000000000000",
+  revisionGeneration: Number.MAX_SAFE_INTEGER
 })
 
-const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
+const worstCaseFindings = (prepared: PreparedReviewUnit): ReadonlyArray<Finding> =>
   prepared.input.rules.flatMap((rule) =>
     findingFromProbability(1, rule.threshold)
       ? [
@@ -56,7 +56,7 @@ const worstCaseFindings = (prepared: PreparedUnit): ReadonlyArray<Finding> =>
       : []
   )
 
-export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number => {
+export const residentUnitWorstOutcomeBytes = (prepared: PreparedReviewUnit): number => {
   const findings = worstCaseFindings(prepared)
   return (
     logicalBytes({ findings, output: toCodexDirectEventOutput(findings) }) +
@@ -66,13 +66,13 @@ export const residentUnitWorstOutcomeBytes = (prepared: PreparedUnit): number =>
 
 export const residentUnitReservationBytes = (
   observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
-  prepared: PreparedUnit
+  dispatch: ResidentReviewExecutionContext,
+  prepared: PreparedReviewUnit
 ): number => {
   const findings = worstCaseFindings(prepared)
-  const partition = recipientPartition(observation.advicee)
+  const partition = adviceeScopeKey(observation.advicee)
   const evaluationKey = residentEvaluationIdentity(
-    evaluationSourcePartition(
+    evaluationReuseScopeKey(
       observation,
       "00000000-0000-0000-0000-000000000000",
       Number.MAX_SAFE_INTEGER,
@@ -80,11 +80,11 @@ export const residentUnitReservationBytes = (
     ),
     prepared
   )
-  const revision = reservedRevision(sourcePartition(observation.root, observation.advicee), prepared)
+  const revision = reservedRevision(sourceScopeKey(observation.root, observation.advicee), prepared)
   const currentWork = {
     subject: revision.subject,
-    token: revision.token,
-    generation: revision.generation,
+    token: revision.revisionToken,
+    generation: revision.revisionGeneration,
     input: prepared.input,
     members: 1
   }

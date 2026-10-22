@@ -38,7 +38,7 @@ def captured(items: List<&2, T.RetainedCallback>, +output: Bool) -> Nat:
       issued,
       due,
       _,
-      Callbacks.Fact{Callbacks.Target{_, Callbacks.JevSettled{_}, _}, _, _, _}
+      Callbacks.Fact{Callbacks.Target{_, Callbacks.ReviewServiceRequestSettled{_}, _}, _, _, _}
     } <> rest:
       Bool.pick(Nat, output, captured(rest, output), (due - issued : Nat))
     case T.RetainedCallback{
@@ -184,7 +184,7 @@ def access(state: T.State) -> Bool:
     }: True{}
     case _: False{}
 def empty_work(world: M.World) -> Bool:
-  Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n)
+  Nat.is_eq(List.length(&2, C.ReviewWorkRecord, M.work(M.core(world))), 0n)
 def bounded(+origin: M.World) -> Bool:
   +one: List<&2, M.World> = [tick_world(Lab.tick_bounded(origin, 1n))]
   +none: List<&2, M.World> = [tick_world(Lab.tick_bounded(value(one), 0n))]
@@ -333,9 +333,9 @@ def no_target(receipt: Lab.Receipt, budget: U32) -> Bool:
   match receipt:
     case Lab.Receipt{world, Lab.NoTarget{}, 0}: U32.is_eq(M.gold(world), budget)
     case _: False{}
-def has_phase(found: Maybe<&2, C.Work>, phase: U32) -> Bool:
+def has_phase(found: Maybe<&2, C.ReviewWorkRecord>, phase: U32) -> Bool:
   match found:
-    case Some{C.Work{_, _, _, _, _, kind, _}}: U32.is_eq(M.phase(kind), phase)
+    case Some{C.ReviewWorkRecord{_, _, _, _, _, kind, _}}: U32.is_eq(M.phase(kind), phase)
     case None{}: False{}
 def test_20(+seed: Nat, +budget: U32) -> Bool:
   charged(Lab.apply(active_created(seed, budget, 2), Lab.Build{424, 392, 3}), 50, M.sub(budget, 50)) &&

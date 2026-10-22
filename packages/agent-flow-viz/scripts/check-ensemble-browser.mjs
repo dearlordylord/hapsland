@@ -197,13 +197,13 @@ try {
           bytes: 100
         }))
       })
-      for (let i = 0; i < 3000 && run.projection.dispatch.requests.length < 8; i++) run.step()
+      for (let i = 0; i < 3000 && run.projection.dispatch.reviewServiceRequests.length < 8; i++) run.step()
       return { replay: run.exportReplay(), projection: run.projection, observations: run.observations }
     },
     `/@fs${fileURLToPath(new URL("../../monkey-business/src/index.ts", import.meta.url))}`
   )
-  assert.equal(saturation.projection.dispatch.requests.length, 8)
-  assert.ok(new Set(saturation.projection.dispatch.requests.map((request) => request.partition)).size > 1)
+  assert.equal(saturation.projection.dispatch.reviewServiceRequests.length, 8)
+  assert.ok(new Set(saturation.projection.dispatch.reviewServiceRequests.map((request) => request.partition)).size > 1)
   await inspector.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(saturation.replay))
   await click("Load replay")
   for (const pool of await ensemble.locator(".stage-jev-pool").all()) {
@@ -241,7 +241,10 @@ try {
     `${prior.after.global.items} / ${prior.after.limits.globalItems}`
   )
   for (const pool of await ensemble.locator(".stage-jev-pool").all())
-    assert.equal(await pool.locator(".stage-jev-slot.occupied").count(), prior.after.dispatch.requests.length)
+    assert.equal(
+      await pool.locator(".stage-jev-slot.occupied").count(),
+      prior.after.dispatch.reviewServiceRequests.length
+    )
   await click("Return to latest")
   assert.equal(await ensemble.locator(".shared-resident").textContent(), finalResourceText)
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-three.png" })

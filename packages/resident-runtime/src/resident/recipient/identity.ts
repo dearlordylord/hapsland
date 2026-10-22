@@ -1,29 +1,31 @@
 import {
-  isCodexHostVersion,
-  isClaudeHostVersion,
+  isCodexAgentRuntimeVersion,
+  isClaudeAgentRuntimeVersion,
   type DirectAdvicee
 } from "@hapsland/native-observation/direct-event/observation"
 import { canonicalValue } from "@hapsland/review-definition/direct-event/model"
-import { type ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import { type ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 
-export const recipientPartition = (advicee: DirectAdvicee) =>
+/** Identifies the recipient across runtime, version, session and child agent; excludes the working root. */
+export const adviceeScopeKey = (advicee: DirectAdvicee) =>
   canonicalValue({
-    host: advicee.host,
-    hostVersion: advicee.hostVersion,
+    agentRuntime: advicee.agentRuntime,
+    agentRuntimeVersion: advicee.agentRuntimeVersion,
     sessionId: advicee.sessionId,
     subagentId: advicee.subagentId
   })
 
-export const sourcePartition = (root: string, advicee: DirectAdvicee) =>
-  canonicalValue({ root, recipient: recipientPartition(advicee) })
+/** Identifies one recipient and working root, so equal paths in different roots stay separate. */
+export const sourceScopeKey = (root: string, advicee: DirectAdvicee) =>
+  canonicalValue({ root, recipient: adviceeScopeKey(advicee) })
 
 export const editPermitIdentity = (root: string, advicee: DirectAdvicee) =>
   canonicalValue({ root, tool: advicee.toolUseId })
 
 export const dispatchForSourceRoot = (
-  dispatch: ResidentDispatchContext,
+  dispatch: ResidentReviewExecutionContext,
   root: string
-): ResidentDispatchContext | undefined => {
+): ResidentReviewExecutionContext | undefined => {
   const { sourceContexts, ...shared } = dispatch
   if (sourceContexts === undefined) return shared
   const source = sourceContexts.find((context) => context.root === root)
@@ -32,17 +34,17 @@ export const dispatchForSourceRoot = (
     : { ...shared, credential: source.credential, sessionAnalytics: source.sessionAnalytics }
 }
 
-const exactHostVersions = { pi: "1.0.0", opencode: "1.14.44" } as const
+const exactAgentRuntimeVersions = { pi: "1.0.0", opencode: "1.14.44" } as const
 
 const supportedAdviceeVersion = (advicee: DirectAdvicee): boolean =>
-  advicee.host === "codex-cli"
-    ? isCodexHostVersion(advicee.hostVersion)
-    : advicee.host === "claude-code"
-      ? isClaudeHostVersion(advicee.hostVersion)
-      : advicee.hostVersion === exactHostVersions[advicee.host]
+  advicee.agentRuntime === "codex-cli"
+    ? isCodexAgentRuntimeVersion(advicee.agentRuntimeVersion)
+    : advicee.agentRuntime === "claude-code"
+      ? isClaudeAgentRuntimeVersion(advicee.agentRuntimeVersion)
+      : advicee.agentRuntimeVersion === exactAgentRuntimeVersions[advicee.agentRuntime]
 
 export const addressableAdvicee = (advicee: DirectAdvicee): boolean =>
   supportedAdviceeVersion(advicee) &&
   advicee.sessionId.length > 0 &&
   advicee.toolUseId.length > 0 &&
-  (advicee.host !== "codex-cli" || advicee.turnId.length > 0)
+  (advicee.agentRuntime !== "codex-cli" || advicee.turnId.length > 0)

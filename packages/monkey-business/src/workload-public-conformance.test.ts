@@ -24,7 +24,7 @@ const inputs = Array.from({ length: 16 }, (_, index) => ({
   unitBytes: [5]
 }))
 const outcomes = (run: Run) =>
-  run.observations.flatMap((frame) => (frame.event.kind === "jevRequestSettled" ? [frame.event.outcome] : []))
+  run.observations.flatMap((frame) => (frame.event.kind === "reviewServiceRequestSettled" ? [frame.event.outcome] : []))
 const drain = (run: Run) => run.advance({ maxEvents: 2000 })
 const session: RunConfig = {
   retention: 10000,
@@ -139,7 +139,7 @@ it("keeps an issued request's outcome and deadline across a profile control", ()
   const run = createRun({ seed: 7, inputs: inputs.slice(0, 2), jevDelay: 20, outcomeWeights: weights({ clear: 1 }) })
   for (let count = 0; count < 100; count++) {
     const frame = run.step()
-    if (frame?.outputs.some((command) => command.kind === "jevRequestIssued")) break
+    if (frame?.outputs.some((command) => command.kind === "reviewServiceRequestIssued")) break
   }
   const started = run.observations.flatMap((frame) =>
     frame.effects.flatMap((effect) => (effect.kind === "jev" && effect.phase === "started" ? [effect.due] : []))
@@ -147,7 +147,7 @@ it("keeps an issued request's outcome and deadline across a profile control", ()
   expect(started).toHaveLength(1)
   run.applyControl({ kind: "jevProfile", delayMs: 1, outcomeWeights: weights({ backendFailure: 1 }) })
   drain(run)
-  const settled = run.observations.filter((frame) => frame.event.kind === "jevRequestSettled")
+  const settled = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled")
   expect(settled.map((frame) => frame.time)).toEqual([started[0], 53])
   expect(outcomes(run)).toEqual(["clear", "backendFailure"])
   expect(run.projection.dispatch.running).toEqual([])
@@ -380,9 +380,9 @@ it(
       completeObservation: 7,
       dispatchSettled: 8,
       startReview: 9,
-      jevRequestReady: 10,
-      jevRequestStarted: 11,
-      jevRequestSettled: 12
+      reviewServiceRequestReady: 10,
+      reviewServiceRequestStarted: 11,
+      reviewServiceRequestSettled: 12
     }
     const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 }
     const publicTrace = run.observations.map((frame) => {
@@ -390,7 +390,7 @@ it(
         frame.after.global.items,
         frame.after.global.bytes,
         frame.after.dispatch.running.length,
-        frame.after.dispatch.requests.length,
+        frame.after.dispatch.reviewServiceRequests.length,
         frame.after.collection.leases.length
       ]
       if (frame.preparation)

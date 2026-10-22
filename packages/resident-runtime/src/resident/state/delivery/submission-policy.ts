@@ -59,7 +59,7 @@ export const deliverySubmissionPolicy = (
     return result.outputs[0]?.kind === "deliveryExistingTokenAllowed"
   }
 
-  function readGeneration(partition: string): number {
+  function readAdmissionRoundId(partition: string): number {
     const known = canonicalOwner.knownPartitionId(partition)
     if (known === undefined) return 0
     const admission = canonicalOwner.canonicalProjection().admissions.find((item) => item.partition === known)
@@ -115,7 +115,7 @@ export const deliverySubmissionPolicy = (
     canSubmit,
     canBeginSubmission,
     canBeginExistingToken,
-    readGeneration,
+    readAdmissionRoundId,
     consumeStop,
     hasVirtualRoundContinuationBudget,
     stopBarrier,

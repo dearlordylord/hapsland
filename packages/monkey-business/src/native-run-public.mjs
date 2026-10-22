@@ -11,9 +11,9 @@ const events = Object.fromEntries(
     "completeObservation",
     "dispatchSettled",
     "startReview",
-    "jevRequestReady",
-    "jevRequestStarted",
-    "jevRequestSettled",
+    "reviewServiceRequestReady",
+    "reviewServiceRequestStarted",
+    "reviewServiceRequestSettled",
     "collectionReady",
     "finalCandidateCheck",
     "submissionSuppressCheck",
@@ -28,7 +28,7 @@ Object.assign(events, {
   collectionRetireAdvice: 22,
   submissionForget: 23,
   retireReview: 24,
-  jevRequestInterrupted: 25,
+  reviewServiceRequestInterrupted: 25,
   stopPolled: 40,
   roundContinuationBudgetCheck: 41,
   finishReserve: 42,
@@ -46,7 +46,7 @@ const outputs = Object.fromEntries(
     "dispatchStarted",
     "prepare",
     "unitAdmitted",
-    "jevRequestIssued",
+    "reviewServiceRequestIssued",
     "findingRetained",
     "collectionEligible",
     "retainCandidate",
@@ -58,8 +58,8 @@ const outputs = Object.fromEntries(
     "preparationReleased",
     "observationCompleted",
     "reviewStarted",
-    "jevRequestStartRecorded",
-    "jevRequestOutcomeRecorded",
+    "reviewServiceRequestStartRecorded",
+    "reviewServiceRequestOutcomeRecorded",
     "reservationReleased",
     "collectionLeaseKept",
     "collectionLeaseReleased",
@@ -72,8 +72,8 @@ const outputs = Object.fromEntries(
   ].map((kind, index) => [kind, index + 1])
 )
 Object.assign(outputs, {
-  jevInterruptionRecorded: 29,
-  jevRequestUnavailable: 30,
+  reviewServiceRequestInterruptionRecorded: 29,
+  reviewServiceRequestUnavailable: 30,
   waitForWork: 40,
   waitForOutput: 41,
   finishReady: 42,
@@ -98,7 +98,7 @@ const identityOperations = new Set([
   "preparationCompleted",
   "dispatchSettled",
   "startReview",
-  "jevRequestReady",
+  "reviewServiceRequestReady",
   "retireReview"
 ])
 function identity(event) {
@@ -110,8 +110,12 @@ function identity(event) {
   if (["startObservation", "beginObservedPreparation", "completeObservation"].includes(event.kind))
     return [p, l, r, event.observation, 0, 0, 0]
   if (identityOperations.has(event.kind)) return [p, l, r, event.operation, 0, 0, 0]
-  if (["jevRequestStarted", "jevRequestSettled", "jevRequestInterrupted"].includes(event.kind))
-    return [p, l, r, event.operation, event.request, 0, 0]
+  if (
+    ["reviewServiceRequestStarted", "reviewServiceRequestSettled", "reviewServiceRequestInterrupted"].includes(
+      event.kind
+    )
+  )
+    return [p, l, r, event.operation, event.reviewServiceRequestId, 0, 0]
   switch (event.kind) {
     case "collectionReady":
       return [p, l, r, event.observation, 0, event.advice, 0]
@@ -152,7 +156,7 @@ function facts(event) {
         event.workCurrent,
         event.hasFindings
       ].map(Number)
-    case "jevRequestReady":
+    case "reviewServiceRequestReady":
       return [
         event.rootValid,
         event.configurationValid,
@@ -161,7 +165,7 @@ function facts(event) {
         event.currentWork,
         event.physicalAvailable
       ].map(Number)
-    case "jevRequestSettled":
+    case "reviewServiceRequestSettled":
       return [
         Number(event.currentWork),
         { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[event.outcome],
@@ -228,7 +232,7 @@ export function publicRows(observations) {
       after.global.items,
       after.global.bytes,
       after.dispatch.running.length,
-      after.dispatch.requests.length,
+      after.dispatch.reviewServiceRequests.length,
       after.collection.leases.length
     ]
     if (frame.preparation) {
@@ -259,7 +263,7 @@ export function publicRows(observations) {
       frame.before.global.items,
       frame.before.global.bytes,
       frame.before.dispatch.running.length,
-      frame.before.dispatch.requests.length,
+      frame.before.dispatch.reviewServiceRequests.length,
       frame.before.collection.leases.length
     ]
   })

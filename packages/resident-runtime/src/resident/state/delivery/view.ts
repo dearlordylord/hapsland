@@ -25,7 +25,7 @@ export const deliveryView = <Owner extends Pick<CapacityLedger, "canonicalProjec
       for (const digest of batch.fingerprints) live.add(`submission-finding\0${adviceId}\0${digest}`)
     }
   }
-  function liveCollectionTokenKeys(): Set<string> {
+  function liveAdviceHandoffIdentityKeys(): Set<string> {
     const live = new Set<string>()
     for (const waiter of state.backgroundWaiters.values()) live.add(waiter.token)
     for (const stop of state.stops.values()) if (stop.outputToken !== undefined) live.add(stop.outputToken)
@@ -53,7 +53,7 @@ export const deliveryView = <Owner extends Pick<CapacityLedger, "canonicalProjec
     recentEditCount,
     registeredEditSettings,
     editIdentityMappingCount,
-    liveCollectionTokenKeys,
+    liveAdviceHandoffIdentityKeys,
     hasFinishPermit,
     isFinishAuthorized,
     hasToken

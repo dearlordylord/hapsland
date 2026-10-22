@@ -45,7 +45,7 @@ it("reuses an identical evaluation without issuing another physical request", ()
   })
   expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle")
   expect(
-    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued"))
+    run.observations.filter((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
   ).toHaveLength(1)
   expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reuseCacheHit"))).toBe(true)
   expect(run.observations.flatMap((frame) => (frame.rejection ? [frame.rejection] : []))).toEqual([])
@@ -89,7 +89,7 @@ it("keeps a finding during credential loss and delivers it after recovery", () =
   }
   expect(restored.observe()).toEqual(run.observe())
   expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(1)
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
   restore(run)
 })
 
@@ -108,25 +108,25 @@ it.each([8, 10])("settles original work around the Stop deadline with delay %s",
   const run = createRun(config)
   run.advance({ untilTime: 3, maxEvents: 100 })
   expect(run.observations.some((frame) => frame.outputs.some((command) => command.kind === "waitForWork"))).toBe(true)
-  const original = run.observe().callbackTargets.find((target) => target.effect.kind === "jevSettled")!
+  const original = run.observe().callbackTargets.find((target) => target.effect.kind === "reviewServiceRequestSettled")!
   const restored = restore(run)
   for (const candidate of [run, restored]) candidate.advance({ untilTime: 20, maxEvents: 100 })
   expect(restored.observe()).toEqual(run.observe())
   const ready = run.observations.find((frame) => frame.outputs.some((command) => command.kind === "finishReady"))!
   expect(ready.time).toBe(delay === 8 ? 10 : 11)
-  const settled = run.observations.find((frame) => frame.event.kind === "jevRequestSettled")!
+  const settled = run.observations.find((frame) => frame.event.kind === "reviewServiceRequestSettled")!
   expect(settled.time).toBe(2 + delay)
   if (delay === 10) {
-    expect(settled.outputs.map((command) => command.kind)).toEqual(["jevObservationIgnored"])
+    expect(settled.outputs.map((command) => command.kind)).toEqual(["reviewServiceRequestObservationIgnored"])
     const before = run.projection
     run.applyControl({ kind: "callback", action: "duplicate", target: original })
     run.advance({ untilTime: 20, maxEvents: 100 })
-    expect(run.observations.filter((frame) => frame.event.kind === "jevRequestSettled").at(-1)?.rejection).toBe(
-      "StaleOperation"
-    )
+    expect(
+      run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestSettled").at(-1)?.rejection
+    ).toBe("StaleOperation")
     expect(run.projection).toEqual(before)
   }
-  expect(run.projection.dispatch.requests).toEqual([])
+  expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   expect(run.projection.dispatch.running).toEqual([])
   expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   restore(run)
@@ -196,5 +196,5 @@ it("changes the outcome of an original authorized output attempt without issuing
   expect(terminal).toHaveLength(1)
   expect(terminal[0]?.event).toMatchObject({ certain: false })
   expect(run.projection.collection.leases).toEqual([])
-  expect(run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")).toHaveLength(1)
+  expect(run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")).toHaveLength(1)
 })

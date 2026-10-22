@@ -16,7 +16,10 @@ export const SharingMemberSchema = Schema.Struct({
   generation: PositiveNat
 })
 export const SharingKeySchema = Schema.Struct({ partition: PositiveNat, prepared: PositiveNat })
-export const SharingPhysicalSchema = Schema.Struct({ ...SharingScopeSchema.fields, request: PositiveNat })
+export const SharingPhysicalSchema = Schema.Struct({
+  ...SharingScopeSchema.fields,
+  reviewServiceRequestId: PositiveNat
+})
 const Agent = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2048))
 export const SharingControlSchema = Schema.Union([
   Schema.Struct({
@@ -53,8 +56,10 @@ export const encodeSharingMember = (value: unknown) => {
 }
 export const encodeSharingKey = (value: unknown) =>
   Object.freeze({ $: "SharingScenario.SharingKey", ...readKey(value) })
-export const encodeSharingPhysical = (value: unknown) =>
-  Object.freeze({ $: "SharingScenario.Physical", ...readPhysical(value) })
+export const encodeSharingPhysical = (value: unknown) => {
+  const { reviewServiceRequestId, ...scope } = readPhysical(value)
+  return Object.freeze({ $: "SharingScenario.Physical", ...scope, review_service_request_id: reviewServiceRequestId })
+}
 export const validateSharingControl = (value: unknown): SharingControl => {
   const control = readControl(value)
   return Object.freeze(control.action === "leave" ? { ...control, target: Object.freeze(control.target) } : control)

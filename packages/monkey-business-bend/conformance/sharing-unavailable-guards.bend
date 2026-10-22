@@ -41,7 +41,7 @@ def reviewing(state: C.State) -> C.State:
       C.State{
         ledger,
         rounds,
-        [C.Work{1n, 1n, 1n, 3n, 1n, C.Reviewing{}, 0n}],
+        [C.ReviewWorkRecord{1n, 1n, 1n, 3n, 1n, C.Reviewing{}, 0n}],
         nr,
         no,
         admissions,
@@ -51,10 +51,21 @@ def reviewing(state: C.State) -> C.State:
       }
 
 def ready(operation: Nat) -> C.CanonicalEvent:
-  C.JevRequestReady{1n, 1n, 1n, operation, True{}, True{}, False{}, True{}, True{}, True{}}
+  C.ReviewServiceRequestReady{
+    1n,
+    1n,
+    1n,
+    operation,
+    True{},
+    True{},
+    False{},
+    True{},
+    True{},
+    True{}
+  }
 
 def accepted() -> Runtime.State:
-  Runtime.feedback(captured(), ready(3n), [C.PolicyDecided{C.JevRequestUnavailable{}}])
+  Runtime.feedback(captured(), ready(3n), [C.PolicyDecided{C.ReviewServiceRequestUnavailable{}}])
 
 def physical() -> Runtime.State:
   Runtime.State{
@@ -76,13 +87,13 @@ def physical() -> Runtime.State:
   }
 
 def callback(request: Nat) -> C.CanonicalEvent:
-  C.JevRequestSettled{1n, 1n, 1n, 3n, request, C.RequestBackendFailure{}, True{}}
+  C.ReviewServiceRequestSettled{1n, 1n, 1n, 3n, request, C.RequestBackendFailure{}, True{}}
 
 def consumed() -> Runtime.State:
   Runtime.feedback(
     physical(),
     callback(7n),
-    [C.EventEstablished{C.JevRequestOutcomeRecorded{C.RequestBackendFailure{}}}]
+    [C.EventEstablished{C.ReviewServiceRequestOutcomeRecorded{C.RequestBackendFailure{}}}]
   )
 
 def facts(
@@ -122,12 +133,16 @@ def engine() -> Types.State:
   Engine.initial(Ledger.Limits{10n, 100n, 10n, 100n})
 
 def clear_callback() -> C.CanonicalEvent:
-  C.JevRequestSettled{1n, 1n, 1n, 3n, 7n, C.RequestClear{}, False{}}
+  C.ReviewServiceRequestSettled{1n, 1n, 1n, 3n, 7n, C.RequestClear{}, False{}}
 
 def clear_result() -> Types.State:
   Engine.with_sharing_runtime(
     engine(),
-    Runtime.feedback(physical(), clear_callback(), [C.PolicyDecided{C.JevObservationIgnored{}}])
+    Runtime.feedback(
+      physical(),
+      clear_callback(),
+      [C.PolicyDecided{C.ReviewServiceRequestObservationIgnored{}}]
+    )
   )
 
 def cache_guards() -> Bool:
@@ -145,7 +160,7 @@ def cache_guards() -> Bool:
       engine(),
       clear_result(),
       clear_callback(),
-      [C.PolicyDecided{C.JevObservationIgnored{}}]
+      [C.PolicyDecided{C.ReviewServiceRequestObservationIgnored{}}]
     )
   )
 

@@ -1,7 +1,7 @@
 import { Schema } from "effect"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { isCodexHostVersion } from "@hapsland/native-observation/direct-event/codex-version"
+import { isCodexAgentRuntimeVersion } from "@hapsland/native-observation/direct-event/codex-version"
 
 export class TargetPackageMetadataInvalid extends Error {}
 
@@ -49,7 +49,7 @@ const declaredCodexVersions = (codex: unknown): ReadonlyArray<string> => {
   if (codex === undefined) return ["0.155.1"]
   try {
     const { testedVersions } = Schema.decodeUnknownSync(DeclaredCodex)(codex)
-    if (!testedVersions.every(isCodexHostVersion)) throw new Error("unsupported")
+    if (!testedVersions.every(isCodexAgentRuntimeVersion)) throw new Error("unsupported")
     return testedVersions
   } catch {
     throw new Error("package-runtime.json declares unsupported Codex versions")

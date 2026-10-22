@@ -146,8 +146,8 @@ export const installedResidentUpdateJourney = async (
     await update(nextCli)
     second = await rpc({ operation: "hello" })
     const advicee = {
-      host: "codex-cli",
-      hostVersion: "0.155.1",
+      agentRuntime: "codex-cli",
+      agentRuntimeVersion: "0.155.1",
       sessionId: "update-busy",
       turnId: "turn",
       toolUseId: "edit",

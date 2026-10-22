@@ -6,7 +6,7 @@ import {
   type DeliveryDraft,
   type EditPermit,
   type PermitTransition,
-  type Round,
+  type VirtualRoundSettings,
   type EditAdmission,
   type EditPermitLimits
 } from "./model.ts"
@@ -33,7 +33,7 @@ export const deliveryEditAdmission = (
     | "bendTime"
     | "checkCompleted"
     | "startRound"
-    | "readGeneration"
+    | "readAdmissionRoundId"
     | "isActive"
     | "dropTool"
     | "toolId"
@@ -46,7 +46,7 @@ export const deliveryEditAdmission = (
     bendTime,
     checkCompleted,
     startRound,
-    readGeneration
+    readAdmissionRoundId
   } = ports
   function releaseCompletedPermit(partition: string, key: string, permit: { readonly token: number }): void {
     releaseAdmissionPermit(partition, permit.token)
@@ -57,12 +57,14 @@ export const deliveryEditAdmission = (
     const admission = canonicalOwner
       .canonicalProjection()
       .admissions.find((item) => item.partition === canonicalOwner.partitionId(partition))
-    return admission !== undefined && permit.generation === nextAdmissionRound(admission)
+    return admission !== undefined && permit.admissionRoundId === nextAdmissionRound(admission)
   }
 
   function validPermitConsumed(result: PermitTransition, permit: EditPermit): boolean {
     const command = result.outputs[0]
-    return result.rejection === undefined && command?.kind === "permitConsumed" && command.round === permit.generation
+    return (
+      result.rejection === undefined && command?.kind === "permitConsumed" && command.round === permit.admissionRoundId
+    )
   }
 
   function consumeRegisteredPermit(partition: string, permit: EditPermit, now: number): boolean {
@@ -85,7 +87,7 @@ export const deliveryEditAdmission = (
     partition: string,
     key: string,
     now: number,
-    previous: Round | undefined
+    previous: VirtualRoundSettings | undefined
   ): EditAdmission | undefined {
     expirePermits(now)
     const permit = state.permits.get(key)
@@ -104,7 +106,7 @@ export const deliveryEditAdmission = (
     finishPermit(key, "consumed")
     if (previous === undefined) startRound(partition, permit.quietMs)
     return {
-      generation: readGeneration(partition),
+      admissionRoundId: readAdmissionRoundId(partition),
       ...(permit.settings === undefined ? {} : { settings: permit.settings })
     }
   }
@@ -121,17 +123,17 @@ export const deliveryEditAdmission = (
     const previous = state.rounds.get(partition)
     const key = `${partition}\0${eventId}`
     if (requirePermit) return admitPermittedEdit(partition, key, now, previous)
-    const generation = admitInternalEdit(partition, key, now, previous, limits)
-    return generation === undefined ? undefined : { generation }
+    const admissionRoundId = admitInternalEdit(partition, key, now, previous, limits)
+    return admissionRoundId === undefined ? undefined : { admissionRoundId }
   }
 
   /** Permit consumption and canonical observation admission publish in one resident-state commit. */
   function admitEditObservation(partition: string, eventId: string, now: number, requirePermit = false) {
     const admitted = admitEdit(partition, eventId, now, requirePermit)
     if (admitted === undefined) return undefined
-    const canonicalRound = canonicalOwner.currentRoundId(partition)!
-    const canonicalObservationId = canonicalOwner.admitObservation(partition, canonicalRound)
-    return { ...admitted, canonicalRound, canonicalObservationId }
+    const canonicalRoundId = canonicalOwner.currentRoundId(partition)!
+    const canonicalObservationId = canonicalOwner.admitObservation(partition, canonicalRoundId)
+    return { ...admitted, canonicalRoundId, canonicalObservationId }
   }
 
   function expirePermits(now = monotonicNow()): void {

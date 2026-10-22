@@ -59,7 +59,7 @@ export const projectAgent = (state: CanonicalProjection, partition: number): Can
       ...state.dispatch,
       queued: scoped(state.dispatch.queued, partition, (item) => item.partition),
       running: scoped(state.dispatch.running, partition, (item) => item.partition),
-      requests: scoped(state.dispatch.requests, partition, (item) => item.partition)
+      reviewServiceRequests: scoped(state.dispatch.reviewServiceRequests, partition, (item) => item.partition)
     },
     collection: {
       ready: state.collection.ready.filter((id) => operations.has(id)),

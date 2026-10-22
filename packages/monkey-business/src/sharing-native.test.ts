@@ -262,7 +262,7 @@ function publicCase(mode: number) {
     (frame) => frame.event.kind === "beginObservedPreparation" && frame.partition === 1
   )
   const capturedMember = memberFrames[1]?.event
-  const originalRequests = run.projection.dispatch.requests.map((request) => ({ ...request }))
+  const originalRequests = run.projection.dispatch.reviewServiceRequests.map((request) => ({ ...request }))
   if (mode < 6) {
     expect(run.projection.global).toEqual({ items: mode === 3 ? 2 : 1, bytes: mode === 3 ? 10 : 5 })
     expect(originalRequests).toHaveLength(mode === 3 ? 2 : 1)
@@ -294,17 +294,17 @@ function publicCase(mode: number) {
       })
     }
     advance(3, 200)
-    expect(run.projection.dispatch.requests).toEqual(originalRequests)
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual(originalRequests)
     expect(run.projection.global).toEqual({ items: mode === 4 ? 0 : 1, bytes: mode === 4 ? 0 : 5 })
   }
   advance(33, mode === 6 ? 800 : 1000)
-  const started = run.observations.filter((frame) => frame.event.kind === "jevRequestStarted")
+  const started = run.observations.filter((frame) => frame.event.kind === "reviewServiceRequestStarted")
   if (mode < 6) {
     expect(started).toHaveLength(mode === 3 ? 2 : 1)
     expect(run.observations.filter((frame) => frame.event.kind === "submissionTerminal")).toHaveLength(
       mode === 4 ? 0 : 1
     )
-    expect(run.projection.dispatch.requests).toEqual([])
+    expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
     if (mode === 5)
       expect(
         run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reuseAdviceJoined"))
@@ -414,7 +414,7 @@ function compareOriginalCases(output: unknown, expectedCases: readonly ReturnTyp
     if (mode < 6) {
       expect(actual.endpoint.projection.global, name).toEqual(expected.endpoint.projection.global)
       expect(actual.endpoint.projection.partitions, name).toEqual(expected.endpoint.projection.partitions)
-      expect(actual.endpoint.projection.dispatch.requests, name).toEqual([])
+      expect(actual.endpoint.projection.dispatch.reviewServiceRequests, name).toEqual([])
     }
   }
 }

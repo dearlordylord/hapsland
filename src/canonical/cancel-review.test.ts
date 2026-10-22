@@ -36,7 +36,7 @@ const fixture = () => {
 }
 
 it.each([false, true])(
-  "cancels running Reviewing before physical issue or AtJev after Started (started=%s)",
+  "cancels running Reviewing before physical issue or ReviewServiceRequestOutstanding after Started (started=%s)",
   (started) => {
     const f = fixture()
     const healthy = f.unit()
@@ -46,11 +46,11 @@ it.each([false, true])(
     const target = f.unit()
     f.apply({ kind: "queueDispatch", ...target })
     f.apply({ kind: "startReview", ...target })
-    let request: number | undefined
+    let reviewServiceRequestId: number | undefined
     if (started) {
       const issued = f
         .apply({
-          kind: "jevRequestReady",
+          kind: "reviewServiceRequestReady",
           ...target,
           rootValid: true,
           configurationValid: true,
@@ -59,15 +59,17 @@ it.each([false, true])(
           currentWork: true,
           physicalAvailable: true
         })
-        .find((c) => c.kind === "jevRequestIssued")
-      if (issued?.kind !== "jevRequestIssued") throw new Error("missing physical request")
-      request = issued.request
-      f.apply({ kind: "jevRequestStarted", ...target, request })
+        .find((c) => c.kind === "reviewServiceRequestIssued")
+      if (issued?.kind !== "reviewServiceRequestIssued") throw new Error("missing physical reviewServiceRequestId")
+      reviewServiceRequestId = issued.reviewServiceRequestId
+      f.apply({ kind: "reviewServiceRequestStarted", ...target, reviewServiceRequestId })
     }
     const before = projectCanonical(f.state())
     const charge = before.work.find((w) => w.operation === target.operation)!.reservation
     expect(charge).toBeGreaterThan(0)
-    expect(before.dispatch.requests).toEqual(started ? [{ ...target, request, started: true, interrupted: false }] : [])
+    expect(before.dispatch.reviewServiceRequests).toEqual(
+      started ? [{ ...target, reviewServiceRequestId, started: true, interrupted: false }] : []
+    )
     expect(before.dispatch.running.some((entry) => entry.operation === target.operation)).toBe(true)
     for (const field of ["partition", "lifetime", "round", "operation"] as const) {
       const refused = stepCanonical(f.state(), { kind: "cancelReview", ...target, [field]: target[field] + 100 })
@@ -78,26 +80,26 @@ it.each([false, true])(
     const outputs = f.apply({ kind: "cancelReview", ...target })
     expect(outputs).toEqual([
       { category: "event", kind: "reservationReleased", id: charge },
-      { category: "request", kind: "cancelWork", operation: target.operation },
+      { category: "action", kind: "cancelWork", operation: target.operation },
       { category: "event", kind: "dispatchDiscarded", operation: target.operation, running: true }
     ])
     const after = projectCanonical(f.state())
-    expect(after.dispatch.requests).toEqual(before.dispatch.requests)
+    expect(after.dispatch.reviewServiceRequests).toEqual(before.dispatch.reviewServiceRequests)
     expect(after.pendingFindings).toEqual(finding)
     expect(after.charges).toEqual(before.charges.filter((c) => c.id !== charge))
     const duplicateCancel = stepCanonical(f.state(), { kind: "cancelReview", ...target })
     expect(duplicateCancel.rejection).toBeDefined()
     expect(projectCanonical(duplicateCancel.state)).toEqual(after)
-    if (request !== undefined) {
+    if (reviewServiceRequestId !== undefined) {
       const terminal: CanonicalEvent = {
-        kind: "jevRequestSettled",
+        kind: "reviewServiceRequestSettled",
         ...target,
-        request,
+        reviewServiceRequestId,
         outcome: "clear",
         currentWork: true
       }
-      expect(f.apply(terminal)).toEqual([{ category: "decision", kind: "jevObservationIgnored" }])
-      expect(projectCanonical(f.state()).dispatch.requests).toEqual([])
+      expect(f.apply(terminal)).toEqual([{ category: "decision", kind: "reviewServiceRequestObservationIgnored" }])
+      expect(projectCanonical(f.state()).dispatch.reviewServiceRequests).toEqual([])
       expect(projectCanonical(f.state()).pendingFindings).toEqual(finding)
       const duplicate = stepCanonical(f.state(), terminal)
       expect(duplicate.rejection).toBeDefined()

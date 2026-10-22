@@ -60,7 +60,7 @@ type FlowEvent is Data:
   ReviewCapacitySet{capacity: Capacity}
   IngressStarted{}
   UnitDispatched{}
-  JevRequestSent{}
+  ReviewServiceRequestSent{}
   BackgroundWaitStarted{}
   StopAllowed{}
   FinishResponseRequested{}
@@ -87,8 +87,17 @@ type Rejection is Data:
 
 type Decision is Data:
   NoDecision{}
-  ContinueWithAdvice{ids: List<&2, Nat>, discarded: List<&2, Nat>, cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>}
-  AllowFinish{discarded: List<&2, Nat>, cancelled_source: List<&2, Nat>, cancelled_jev: List<&2, Nat>}
+  ContinueWithAdvice{
+    ids: List<&2, Nat>,
+    discarded: List<&2, Nat>,
+    cancelled_source: List<&2, Nat>,
+    cancelled_jev: List<&2, Nat>
+  }
+  AllowFinish{
+    discarded: List<&2, Nat>,
+    cancelled_source: List<&2, Nat>,
+    cancelled_jev: List<&2, Nat>
+  }
 
 # Stable route metadata is part of the Bend domain, not a second TS table.
 type Node is Data:
@@ -138,7 +147,7 @@ def route_of(event: FlowEvent) -> Route:
       DataRoute{PreparationNode{}, ReviewQueueNode{}, CaptureJob{}, ReviewWorkItem{}, False{}}
     case UnitDispatched{}:
       DataRoute{ReviewQueueNode{}, JevDispatchNode{}, ReviewWorkItem{}, DecisionRequest{}, False{}}
-    case JevRequestSent{}:
+    case ReviewServiceRequestSent{}:
       DataRoute{JevDispatchNode{}, JevNode{}, DecisionRequest{}, NetworkRequest{}, False{}}
     case JevFindingReceived{}:
       DataRoute{JevNode{}, AdviceStoreNode{}, NetworkRequest{}, Advice{}, False{}}
@@ -163,7 +172,13 @@ def route_of(event: FlowEvent) -> Route:
     case AdviceReofferedAtStop{}:
       DataRoute{AdviceStoreNode{}, AdvicePolicyNode{}, Advice{}, LeasedBatch{}, True{}}
     case HostOutputSubmitted{}:
-      DataRoute{AdvicePolicyNode{}, ObservedWriteNode{}, LeasedBatch{}, RuntimeSubmission{}, False{}}
+      DataRoute{
+        AdvicePolicyNode{},
+        ObservedWriteNode{},
+        LeasedBatch{},
+        RuntimeSubmission{},
+        False{}
+      }
     case StopAllowed{}:
       ControlRoute{AdvicePolicyNode{}, DeliveryStateNode{}, AllowSignal{}}
     case FinishResponseRequested{}:
@@ -186,7 +201,22 @@ type Step is Data:
   Rejected{state: Flow, reason: Rejection}
 
 def initial() -> Flow:
-  Flow{Nil{}, 1n, Capacity{3n, 0n}, Capacity{3n, 0n}, 0n, False{}, 0n, False{}, False{}, None{}, None{}, None{}, None{}, Nil{}}
+  Flow{
+    Nil{},
+    1n,
+    Capacity{3n, 0n},
+    Capacity{3n, 0n},
+    0n,
+    False{},
+    0n,
+    False{},
+    False{},
+    None{},
+    None{},
+    None{},
+    None{},
+    Nil{}
+  }
 
 def same_place(a: Place, b: Place) -> Bool:
   match a b:
@@ -262,7 +292,12 @@ def find.id_match(id: Nat, fallback: Maybe<&2, Nat>, hit: Bool) -> Maybe<&2, Nat
     case False{}:
       fallback
 
-def find.pick(+id: Nat, +selected: Maybe<&2, Nat>, fallback: Maybe<&2, Nat>, same_place: Bool) -> Maybe<&2, Nat>:
+def find.pick(
+  +id: Nat,
+  +selected: Maybe<&2, Nat>,
+  fallback: Maybe<&2, Nat>,
+  same_place: Bool
+) -> Maybe<&2, Nat>:
   match selected same_place:
     case _ False{}:
       fallback
@@ -278,7 +313,14 @@ def find(+place: Place, +selected: Maybe<&2, Nat>, packets: List<&2, Packet>) ->
     case Packet{+id, +location} <> rest:
       find.pick(id, selected, find(place, selected, rest), same_place(location, place))
 
-def move_one.pick(+pid: Nat, location: Place, tail: List<&2, Packet>, target: Place, copy: Bool, hit: Bool) -> List<&2, Packet>:
+def move_one.pick(
+  +pid: Nat,
+  location: Place,
+  tail: List<&2, Packet>,
+  target: Place,
+  copy: Bool,
+  hit: Bool
+) -> List<&2, Packet>:
   match copy hit:
     case True{} True{}:
       Packet{pid, location} <> List.append(&2, Packet, tail, Packet{pid, target} <> Nil{})
@@ -287,7 +329,13 @@ def move_one.pick(+pid: Nat, location: Place, tail: List<&2, Packet>, target: Pl
     case _ False{}:
       Packet{pid, location} <> tail
 
-def move_one(+id: Nat, +source: Place, +target: Place, +copy: Bool, packets: List<&2, Packet>) -> List<&2, Packet>:
+def move_one(
+  +id: Nat,
+  +source: Place,
+  +target: Place,
+  +copy: Bool,
+  packets: List<&2, Packet>
+) -> List<&2, Packet>:
   match packets:
     case Nil{}:
       Nil{}
@@ -296,7 +344,12 @@ def move_one(+id: Nat, +source: Place, +target: Place, +copy: Bool, packets: Lis
       tail = move_one(id, source, target, copy, rest)
       move_one.pick(pid, location, tail, target, copy, hit)
 
-def remove_one.pick(pid: Nat, location: Place, tail: List<&2, Packet>, hit: Bool) -> List<&2, Packet>:
+def remove_one.pick(
+  pid: Nat,
+  location: Place,
+  tail: List<&2, Packet>,
+  hit: Bool
+) -> List<&2, Packet>:
   match hit:
     case True{}:
       tail
@@ -342,18 +395,93 @@ def fill_jev(packets: List<&2, Packet>, +capacity: Capacity, +occupied: Nat) -> 
 
 def settle(flow: Flow) -> Flow:
   match flow:
-    case Flow{+packets, next_id, +source_capacity, +review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}:
+    case Flow{
+      +packets,
+      next_id,
+      +source_capacity,
+      +review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    }:
       match active:
         case False{}:
-          Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}
+          Flow{
+            packets,
+            next_id,
+            source_capacity,
+            review_capacity,
+            round_id,
+            active,
+            continuations,
+            waiting,
+            background_available,
+            lease,
+            leased_id,
+            last_surface,
+            last_id,
+            background_submitted
+          }
         case True{}:
           +started = fill_source(packets, source_capacity, count(Preparation{}, packets))
-          Flow{fill_jev(started, review_capacity, count(Jev{}, started)), next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}
+          Flow{
+            fill_jev(started, review_capacity, count(Jev{}, started)),
+            next_id,
+            source_capacity,
+            review_capacity,
+            round_id,
+            active,
+            continuations,
+            waiting,
+            background_available,
+            lease,
+            leased_id,
+            last_surface,
+            last_id,
+            background_submitted
+          }
 
 def replace_packets(flow: Flow, new_packets: List<&2, Packet>) -> Flow:
   match flow:
-    case Flow{_, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}:
-      Flow{new_packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}
+    case Flow{
+      _,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    }:
+      Flow{
+        new_packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        waiting,
+        background_available,
+        lease,
+        leased_id,
+        last_surface,
+        last_id,
+        background_submitted
+      }
 
 def has_lease(lease: Maybe<&2, Surface>) -> Bool:
   match lease:
@@ -400,24 +528,106 @@ def discarded(ids_all: List<&2, Nat>, +advice: List<&2, Nat>, +keep_advice: Bool
     case Nil{}:
       Nil{}
     case +id <> rest:
-      discarded.pick(id, discarded(rest, advice, keep_advice), Bool.and(keep_advice, contains(id, advice)))
+      discarded.pick(
+        id,
+        discarded(rest, advice, keep_advice),
+        Bool.and(keep_advice, contains(id, advice))
+      )
 
-def finish.choose(+original: Flow, +packets: List<&2, Packet>, +next_id: Nat, +source_capacity: Capacity, +review_capacity: Capacity, +round_id: Nat, +continuations: Nat, submitted: List<&2, Nat>, +advice: List<&2, Nat>, can_continue: Bool) -> Step:
+def finish.choose(
+  +original: Flow,
+  +packets: List<&2, Packet>,
+  +next_id: Nat,
+  +source_capacity: Capacity,
+  +review_capacity: Capacity,
+  +round_id: Nat,
+  +continuations: Nat,
+  submitted: List<&2, Nat>,
+  +advice: List<&2, Nat>,
+  can_continue: Bool
+) -> Step:
   match can_continue:
     case True{}:
       dropped = discarded(distinct(all_ids(packets), Nil{}), advice, True{})
       decision = {ContinueWithAdvice{advice, dropped, ids(Preparation{}, packets), ids(Jev{}, packets)} : Decision}
-      Accepted{Flow{Nil{}, next_id, source_capacity, review_capacity, round_id, True{}, (continuations + 1n : Nat), False{}, False{}, None{}, None{}, None{}, None{}, Nil{}}, decision, original}
+      Accepted{
+        Flow{
+          Nil{},
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          True{},
+          (continuations + 1n : Nat),
+          False{},
+          False{},
+          None{},
+          None{},
+          None{},
+          None{},
+          Nil{}
+        },
+        decision,
+        original
+      }
     case False{}:
       decision = {AllowFinish{distinct(all_ids(packets), Nil{}), ids(Preparation{}, packets), ids(Jev{}, packets)} : Decision}
-      Accepted{Flow{Nil{}, next_id, source_capacity, review_capacity, round_id, False{}, continuations, False{}, False{}, None{}, None{}, None{}, None{}, Nil{}}, decision, original}
+      Accepted{
+        Flow{
+          Nil{},
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          False{},
+          continuations,
+          False{},
+          False{},
+          None{},
+          None{},
+          None{},
+          None{},
+          Nil{}
+        },
+        decision,
+        original
+      }
 
 def finish(+flow: Flow) -> Step:
   match flow:
-    case Flow{+packets, next_id, source_capacity, review_capacity, round_id, _, +continuations, _, _, _, _, _, _, +submitted}:
+    case Flow{
+      +packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      _,
+      +continuations,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      +submitted
+    }:
       +advice = ids(AdviceStore{}, packets)
-      can_continue = Bool.and(Bool.not(List.is_empty(&2, Nat, advice)), Nat.is_lt(continuations, 4n))
-      finish.choose(flow, packets, next_id, source_capacity, review_capacity, round_id, continuations, submitted, advice, can_continue)
+      can_continue = Bool.and(
+        Bool.not(List.is_empty(&2, Nat, advice)),
+        Nat.is_lt(continuations, 4n)
+      )
+      finish.choose(
+        flow,
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        continuations,
+        submitted,
+        advice,
+        can_continue
+      )
 
 def ready_to_finish(+flow: Flow) -> Bool:
   match flow:
@@ -438,24 +648,165 @@ def accept(flow: Flow) -> Step:
 def reject(flow: Flow, reason: Rejection) -> Step:
   Rejected{flow, reason}
 
-def edit.open(packets: List<&2, Packet>, +next_id: Nat, source_capacity: Capacity, review_capacity: Capacity, round_id: Nat, active: Bool, continuations: Nat, waiting: Bool, lease: Maybe<&2, Surface>, leased_id: Maybe<&2, Nat>, last_surface: Maybe<&2, Surface>, last_id: Maybe<&2, Nat>, background_submitted: List<&2, Nat>) -> Step:
+def edit.open(
+  packets: List<&2, Packet>,
+  +next_id: Nat,
+  source_capacity: Capacity,
+  review_capacity: Capacity,
+  round_id: Nat,
+  active: Bool,
+  continuations: Nat,
+  waiting: Bool,
+  lease: Maybe<&2, Surface>,
+  leased_id: Maybe<&2, Nat>,
+  last_surface: Maybe<&2, Surface>,
+  last_id: Maybe<&2, Nat>,
+  background_submitted: List<&2, Nat>
+) -> Step:
   match active:
     case True{}:
-      accept(Flow{List.append(&2, Packet, packets, Packet{next_id, EditQueue{}} <> Nil{}), (next_id + 1n : Nat), source_capacity, review_capacity, round_id, True{}, continuations, waiting, True{}, lease, leased_id, last_surface, last_id, background_submitted})
+      accept(
+        Flow{
+          List.append(&2, Packet, packets, Packet{next_id, EditQueue{}} <> Nil{}),
+          (next_id + 1n : Nat),
+          source_capacity,
+          review_capacity,
+          round_id,
+          True{},
+          continuations,
+          waiting,
+          True{},
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        }
+      )
     case False{}:
-      accept(Flow{Packet{next_id, EditQueue{}} <> Nil{}, (next_id + 1n : Nat), source_capacity, review_capacity, (round_id + 1n : Nat), True{}, 0n, False{}, True{}, None{}, None{}, None{}, None{}, Nil{}})
+      accept(
+        Flow{
+          Packet{next_id, EditQueue{}} <> Nil{},
+          (next_id + 1n : Nat),
+          source_capacity,
+          review_capacity,
+          (round_id + 1n : Nat),
+          True{},
+          0n,
+          False{},
+          True{},
+          None{},
+          None{},
+          None{},
+          None{},
+          Nil{}
+        }
+      )
 
 def edit(flow: Flow) -> Step:
   match flow:
-    case Flow{packets, +next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, _, lease, leased_id, last_surface, last_id, background_submitted}:
-      edit.open(packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, lease, leased_id, last_surface, last_id, background_submitted)
+    case Flow{
+      packets,
+      +next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      _,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    }:
+      edit.open(
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        waiting,
+        lease,
+        leased_id,
+        last_surface,
+        last_id,
+        background_submitted
+      )
 
 def set_capacity.valid(flow: Flow, capacity: Capacity, source: Bool) -> Step:
   match flow source:
-    case Flow{packets, next_id, _, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted} True{}:
-      accept(Flow{packets, next_id, capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted})
-    case Flow{packets, next_id, source_capacity, _, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted} False{}:
-      accept(Flow{packets, next_id, source_capacity, capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted})
+    case Flow{
+      packets,
+      next_id,
+      _,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    } True{}:
+      accept(
+        Flow{
+          packets,
+          next_id,
+          capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        }
+      )
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      _,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    } False{}:
+      accept(
+        Flow{
+          packets,
+          next_id,
+          source_capacity,
+          capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        }
+      )
 
 def set_capacity.choose(flow: Flow, capacity: Capacity, source: Bool, valid: Bool) -> Step:
   match valid:
@@ -467,23 +818,150 @@ def set_capacity.choose(flow: Flow, capacity: Capacity, source: Bool, valid: Boo
 def set_capacity(flow: Flow, +capacity: Capacity, source: Bool) -> Step:
   set_capacity.choose(flow, capacity, source, capacity_valid(capacity))
 
-def stop.budget(packets: List<&2, Packet>, next_id: Nat, source_capacity: Capacity, review_capacity: Capacity, round_id: Nat, active: Bool, continuations: Nat, background_available: Bool, lease: Maybe<&2, Surface>, leased_id: Maybe<&2, Nat>, last_surface: Maybe<&2, Surface>, last_id: Maybe<&2, Nat>, background_submitted: List<&2, Nat>, under_budget: Bool) -> Step:
+def stop.budget(
+  packets: List<&2, Packet>,
+  next_id: Nat,
+  source_capacity: Capacity,
+  review_capacity: Capacity,
+  round_id: Nat,
+  active: Bool,
+  continuations: Nat,
+  background_available: Bool,
+  lease: Maybe<&2, Surface>,
+  leased_id: Maybe<&2, Nat>,
+  last_surface: Maybe<&2, Surface>,
+  last_id: Maybe<&2, Nat>,
+  background_submitted: List<&2, Nat>,
+  under_budget: Bool
+) -> Step:
   match under_budget:
     case True{}:
-      accept(Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, True{}, background_available, lease, leased_id, last_surface, last_id, background_submitted})
+      accept(
+        Flow{
+          packets,
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          True{},
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        }
+      )
     case False{}:
-      finish(Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, True{}, background_available, lease, leased_id, last_surface, last_id, background_submitted})
-def stop.choose(packets: List<&2, Packet>, next_id: Nat, source_capacity: Capacity, review_capacity: Capacity, round_id: Nat, active: Bool, +continuations: Nat, waiting: Bool, background_available: Bool, lease: Maybe<&2, Surface>, leased_id: Maybe<&2, Nat>, last_surface: Maybe<&2, Surface>, last_id: Maybe<&2, Nat>, background_submitted: List<&2, Nat>) -> Step:
+      finish(
+        Flow{
+          packets,
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          True{},
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        }
+      )
+def stop.choose(
+  packets: List<&2, Packet>,
+  next_id: Nat,
+  source_capacity: Capacity,
+  review_capacity: Capacity,
+  round_id: Nat,
+  active: Bool,
+  +continuations: Nat,
+  waiting: Bool,
+  background_available: Bool,
+  lease: Maybe<&2, Surface>,
+  leased_id: Maybe<&2, Nat>,
+  last_surface: Maybe<&2, Surface>,
+  last_id: Maybe<&2, Nat>,
+  background_submitted: List<&2, Nat>
+) -> Step:
   match waiting:
     case True{}:
-      reject(Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, True{}, background_available, lease, leased_id, last_surface, last_id, background_submitted}, FinishDecisionAlreadyOpen{})
+      reject(
+        Flow{
+          packets,
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          True{},
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          background_submitted
+        },
+        FinishDecisionAlreadyOpen{}
+      )
     case False{}:
-      stop.budget(packets, next_id, source_capacity, review_capacity, round_id, active, continuations, background_available, lease, leased_id, last_surface, last_id, background_submitted, Nat.is_lt(continuations, 4n))
+      stop.budget(
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        background_available,
+        lease,
+        leased_id,
+        last_surface,
+        last_id,
+        background_submitted,
+        Nat.is_lt(continuations, 4n)
+      )
 
 def stop(flow: Flow) -> Step:
   match flow:
-    case Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted}:
-      stop.choose(packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, background_submitted)
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      background_submitted
+    }:
+      stop.choose(
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        waiting,
+        background_available,
+        lease,
+        leased_id,
+        last_surface,
+        last_id,
+        background_submitted
+      )
 
 
 def is_active(flow: Flow) -> Bool:
@@ -491,21 +969,106 @@ def is_active(flow: Flow) -> Bool:
     case Flow{_, _, _, _, _, active, _, _, _, _, _, _, _, _}:
       active
 
-def apply_move.do(flow: Flow, source: Place, target: Place, copy: Bool, terminal: Bool, id: Nat) -> Step:
+def apply_move.do(
+  flow: Flow,
+  source: Place,
+  target: Place,
+  copy: Bool,
+  terminal: Bool,
+  id: Nat
+) -> Step:
   match flow terminal:
-    case Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, submitted} True{}:
-      accept(Flow{remove_one(id, source, packets), next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, submitted})
-    case Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, submitted} False{}:
-      accept(Flow{move_one(id, source, target, copy, packets), next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, background_available, lease, leased_id, last_surface, last_id, submitted})
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      submitted
+    } True{}:
+      accept(
+        Flow{
+          remove_one(id, source, packets),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          submitted
+        }
+      )
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      background_available,
+      lease,
+      leased_id,
+      last_surface,
+      last_id,
+      submitted
+    } False{}:
+      accept(
+        Flow{
+          move_one(id, source, target, copy, packets),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          background_available,
+          lease,
+          leased_id,
+          last_surface,
+          last_id,
+          submitted
+        }
+      )
 
-def apply_move.found(flow: Flow, source: Place, target: Place, copy: Bool, terminal: Bool, found: Maybe<&2, Nat>) -> Step:
+def apply_move.found(
+  flow: Flow,
+  source: Place,
+  target: Place,
+  copy: Bool,
+  terminal: Bool,
+  found: Maybe<&2, Nat>
+) -> Step:
   match found:
     case None{}:
       reject(flow, MissingPacket{})
     case Some{id}:
       apply_move.do(flow, source, target, copy, terminal, id)
 
-def apply_move(+flow: Flow, +source: Place, target: Place, copy: Bool, terminal: Bool, selected: Maybe<&2, Nat>) -> Step:
+def apply_move(
+  +flow: Flow,
+  +source: Place,
+  target: Place,
+  copy: Bool,
+  terminal: Bool,
+  selected: Maybe<&2, Nat>
+) -> Step:
   match flow:
     case Flow{packets, _, _, _, _, _, _, _, _, _, _, _, _, _}:
       apply_move.found(flow, source, target, copy, terminal, find(source, selected, packets))
@@ -545,17 +1108,96 @@ def deadline(+flow: Flow, kind: FlowEvent) -> Step:
     case Flow{_, _, _, _, _, _, continuations, waiting, _, _, _, _, _, _}:
       deadline.wait(flow, kind, continuations, waiting)
 
-def lease_apply.surface(packets: List<&2, Packet>, next_id: Nat, source_capacity: Capacity, review_capacity: Capacity, round_id: Nat, active: Bool, continuations: Nat, waiting: Bool, available: Bool, last_surface: Maybe<&2, Surface>, last_id: Maybe<&2, Nat>, submitted: List<&2, Nat>, surface: Surface, +id: Nat) -> Step:
+def lease_apply.surface(
+  packets: List<&2, Packet>,
+  next_id: Nat,
+  source_capacity: Capacity,
+  review_capacity: Capacity,
+  round_id: Nat,
+  active: Bool,
+  continuations: Nat,
+  waiting: Bool,
+  available: Bool,
+  last_surface: Maybe<&2, Surface>,
+  last_id: Maybe<&2, Nat>,
+  submitted: List<&2, Nat>,
+  surface: Surface,
+  +id: Nat
+) -> Step:
   match surface:
     case Background{}:
-      accept(Flow{move_one(id, AdviceStore{}, AdvicePolicy{}, True{}, packets), next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, available, Some{Background{}}, Some{id}, last_surface, last_id, submitted})
+      accept(
+        Flow{
+          move_one(id, AdviceStore{}, AdvicePolicy{}, True{}, packets),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          available,
+          Some{Background{}},
+          Some{id},
+          last_surface,
+          last_id,
+          submitted
+        }
+      )
     case Stop{}:
-      accept(Flow{move_one(id, AdviceStore{}, AdvicePolicy{}, True{}, packets), next_id, source_capacity, review_capacity, round_id, active, (continuations + 1n : Nat), waiting, available, Some{Stop{}}, Some{id}, last_surface, last_id, submitted})
+      accept(
+        Flow{
+          move_one(id, AdviceStore{}, AdvicePolicy{}, True{}, packets),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          (continuations + 1n : Nat),
+          waiting,
+          available,
+          Some{Stop{}},
+          Some{id},
+          last_surface,
+          last_id,
+          submitted
+        }
+      )
 
 def lease_apply(flow: Flow, surface: Surface, +id: Nat) -> Step:
   match flow:
-    case Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, available, _, _, last_surface, last_id, submitted}:
-      lease_apply.surface(packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, available, last_surface, last_id, submitted, surface, id)
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      available,
+      _,
+      _,
+      last_surface,
+      last_id,
+      submitted
+    }:
+      lease_apply.surface(
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        waiting,
+        available,
+        last_surface,
+        last_id,
+        submitted,
+        surface,
+        id
+      )
 
 def lease_check.submitted(flow: Flow, surface: Surface, id: Nat, submitted: Bool) -> Step:
   match surface submitted:
@@ -583,7 +1225,12 @@ def lease_find(+flow: Flow, selected: Maybe<&2, Nat>, surface: Surface) -> Step:
     case Flow{packets, _, _, _, _, _, _, _, _, _, _, _, _, _}:
       lease_found(flow, surface, find(AdviceStore{}, selected, packets))
 
-def lease_background.guard(flow: Flow, selected: Maybe<&2, Nat>, available: Bool, busy: Bool) -> Step:
+def lease_background.guard(
+  flow: Flow,
+  selected: Maybe<&2, Nat>,
+  available: Bool,
+  busy: Bool
+) -> Step:
   match available busy:
     case False{} _:
       reject(flow, BackgroundNotRequested{})
@@ -623,14 +1270,26 @@ def lease_stop.find(+flow: Flow, selected: Maybe<&2, Nat>, reoffer: Bool) -> Ste
     case Flow{packets, _, _, _, _, _, _, _, _, _, _, _, _, _}:
       lease_stop.found(flow, reoffer, find(AdviceStore{}, selected, packets))
 
-def lease_stop.budget(flow: Flow, selected: Maybe<&2, Nat>, reoffer: Bool, under_budget: Bool) -> Step:
+def lease_stop.budget(
+  flow: Flow,
+  selected: Maybe<&2, Nat>,
+  reoffer: Bool,
+  under_budget: Bool
+) -> Step:
   match under_budget:
     case False{}:
       reject(flow, ContinuationBudgetExhausted{})
     case True{}:
       lease_stop.find(flow, selected, reoffer)
 
-def lease_stop.guard(flow: Flow, selected: Maybe<&2, Nat>, reoffer: Bool, continuations: Nat, waiting: Bool, busy: Bool) -> Step:
+def lease_stop.guard(
+  flow: Flow,
+  selected: Maybe<&2, Nat>,
+  reoffer: Bool,
+  continuations: Nat,
+  waiting: Bool,
+  busy: Bool
+) -> Step:
   match waiting busy:
     case False{} _:
       reject(flow, StopNotRequested{})
@@ -644,17 +1303,92 @@ def lease_stop(+flow: Flow, selected: Maybe<&2, Nat>, reoffer: Bool) -> Step:
     case Flow{_, _, _, _, _, _, continuations, waiting, _, lease, _, _, _, _}:
       lease_stop.guard(flow, selected, reoffer, continuations, waiting, has_lease(lease))
 
-def submit.surface(packets: List<&2, Packet>, next_id: Nat, source_capacity: Capacity, review_capacity: Capacity, round_id: Nat, active: Bool, continuations: Nat, waiting: Bool, available: Bool, submitted: List<&2, Nat>, surface: Surface, +id: Nat) -> Step:
+def submit.surface(
+  packets: List<&2, Packet>,
+  next_id: Nat,
+  source_capacity: Capacity,
+  review_capacity: Capacity,
+  round_id: Nat,
+  active: Bool,
+  continuations: Nat,
+  waiting: Bool,
+  available: Bool,
+  submitted: List<&2, Nat>,
+  surface: Surface,
+  +id: Nat
+) -> Step:
   match surface:
     case Background{}:
-      accept(Flow{remove_one(id, AdvicePolicy{}, packets), next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, False{}, None{}, None{}, Some{Background{}}, Some{id}, List.append(&2, Nat, submitted, id <> Nil{})})
+      accept(
+        Flow{
+          remove_one(id, AdvicePolicy{}, packets),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          waiting,
+          False{},
+          None{},
+          None{},
+          Some{Background{}},
+          Some{id},
+          List.append(&2, Nat, submitted, id <> Nil{})
+        }
+      )
     case Stop{}:
       next = remove_one(id, AdvicePolicy{}, packets)
-      accept(Flow{remove_one(id, AdviceStore{}, next), next_id, source_capacity, review_capacity, round_id, active, continuations, False{}, available, None{}, None{}, Some{Stop{}}, Some{id}, submitted})
+      accept(
+        Flow{
+          remove_one(id, AdviceStore{}, next),
+          next_id,
+          source_capacity,
+          review_capacity,
+          round_id,
+          active,
+          continuations,
+          False{},
+          available,
+          None{},
+          None{},
+          Some{Stop{}},
+          Some{id},
+          submitted
+        }
+      )
 def submit.run(flow: Flow, surface: Surface, +id: Nat) -> Step:
   match flow:
-    case Flow{packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, available, _, _, _, _, submitted}:
-      submit.surface(packets, next_id, source_capacity, review_capacity, round_id, active, continuations, waiting, available, submitted, surface, id)
+    case Flow{
+      packets,
+      next_id,
+      source_capacity,
+      review_capacity,
+      round_id,
+      active,
+      continuations,
+      waiting,
+      available,
+      _,
+      _,
+      _,
+      _,
+      submitted
+    }:
+      submit.surface(
+        packets,
+        next_id,
+        source_capacity,
+        review_capacity,
+        round_id,
+        active,
+        continuations,
+        waiting,
+        available,
+        submitted,
+        surface,
+        id
+      )
 
 def submit.lease(flow: Flow, lease: Maybe<&2, Surface>, leased_id: Maybe<&2, Nat>) -> Step:
   match lease leased_id:
@@ -716,7 +1450,7 @@ def step(+flow: Flow, +event: FlowEvent, item_id: Maybe<&2, Nat>) -> Step:
       reject(flow, InternalEvent{})
     case UnitDispatched{}:
       reject(flow, InternalEvent{})
-    case JevRequestSent{}:
+    case ReviewServiceRequestSent{}:
       reject(flow, InternalEvent{})
     case BackgroundWaitStarted{}:
       reject(flow, InternalEvent{})
@@ -742,7 +1476,13 @@ def some(value: Maybe<&2, Nat>) -> Bool:
     case Some{_}:
       True{}
 
-def event_item.pick(event: FlowEvent, selected: Maybe<&2, Nat>, packets: List<&2, Packet>, next_id: Nat, leased_id: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+def event_item.pick(
+  event: FlowEvent,
+  selected: Maybe<&2, Nat>,
+  packets: List<&2, Packet>,
+  next_id: Nat,
+  leased_id: Maybe<&2, Nat>
+) -> Maybe<&2, Nat>:
   match event:
     case EditObserved{}:
       Some{next_id}
@@ -818,12 +1558,20 @@ def schedule_source.pick(id: Nat, tail: List<&2, FlowChange>, hit: Bool) -> List
     case False{}:
       tail
 
-def schedule_source(+event: FlowEvent, +next_id: Nat, +old_edit_ids: List<&2, Nat>, packets: List<&2, Packet>) -> List<&2, FlowChange>:
+def schedule_source(
+  +event: FlowEvent,
+  +next_id: Nat,
+  +old_edit_ids: List<&2, Nat>,
+  packets: List<&2, Packet>
+) -> List<&2, FlowChange>:
   match packets:
     case Nil{}:
       Nil{}
     case Packet{+id, place} <> rest:
-      hit = Bool.and(same_place(place, Preparation{}), Bool.or(contains(id, old_edit_ids), Bool.and(is_edit(event), Nat.is_eq(id, next_id))))
+      hit = Bool.and(
+        same_place(place, Preparation{}),
+        Bool.or(contains(id, old_edit_ids), Bool.and(is_edit(event), Nat.is_eq(id, next_id)))
+      )
       schedule_source.pick(id, schedule_source(event, next_id, old_edit_ids, rest), hit)
 
 def selected_is(id: Nat, selected: Maybe<&2, Nat>) -> Bool:
@@ -836,16 +1584,31 @@ def selected_is(id: Nat, selected: Maybe<&2, Nat>) -> Bool:
 def schedule_review.pick(+id: Nat, tail: List<&2, FlowChange>, hit: Bool) -> List<&2, FlowChange>:
   match hit:
     case True{}:
-      Transition{UnitDispatched{}, route_of(UnitDispatched{}), Some{id}} <> Transition{JevRequestSent{}, route_of(JevRequestSent{}), Some{id}} <> tail
+      Transition{UnitDispatched{}, route_of(UnitDispatched{}), Some{id}} <> Transition{
+        ReviewServiceRequestSent{},
+        route_of(ReviewServiceRequestSent{}),
+        Some{id}
+      } <> tail
     case False{}:
       tail
 
-def schedule_review(+event: FlowEvent, +own_item: Maybe<&2, Nat>, +old_review_ids: List<&2, Nat>, packets: List<&2, Packet>) -> List<&2, FlowChange>:
+def schedule_review(
+  +event: FlowEvent,
+  +own_item: Maybe<&2, Nat>,
+  +old_review_ids: List<&2, Nat>,
+  packets: List<&2, Packet>
+) -> List<&2, FlowChange>:
   match packets:
     case Nil{}:
       Nil{}
     case Packet{+id, place} <> rest:
-      hit = Bool.and(same_place(place, Jev{}), Bool.or(contains(id, old_review_ids), Bool.and(is_prepared(event), selected_is(id, own_item))))
+      hit = Bool.and(
+        same_place(place, Jev{}),
+        Bool.or(
+          contains(id, old_review_ids),
+          Bool.and(is_prepared(event), selected_is(id, own_item))
+        )
+      )
       schedule_review.pick(id, schedule_review(event, own_item, old_review_ids, rest), hit)
 
 def first_id(ids: List<&2, Nat>) -> Maybe<&2, Nat>:
@@ -889,14 +1652,26 @@ def finish_leases(ids: List<&2, Nat>, +submitted: List<&2, Nat>) -> List<&2, Flo
     case +id <> rest:
       finish_leases.pick(id, finish_leases(rest, submitted), contains(id, submitted))
 
-def finish_tail.pick(+decision: Decision, packets: List<&2, Packet>, round_id: Nat, submitted: List<&2, Nat>) -> List<&2, FlowChange>:
+def finish_tail.pick(
+  +decision: Decision,
+  packets: List<&2, Packet>,
+  round_id: Nat,
+  submitted: List<&2, Nat>
+) -> List<&2, FlowChange>:
   match decision:
     case NoDecision{}:
       Nil{}
     case ContinueWithAdvice{+advice_ids, _, _, _}:
-      List.append(&2, FlowChange, finish_leases(advice_ids, submitted),
-        Transition{FinishResponseRequested{}, route_of(FinishResponseRequested{}), first_id(advice_ids)} <>
-        FinishDecision{decision} <> Nil{})
+      List.append(
+        &2,
+        FlowChange,
+        finish_leases(advice_ids, submitted),
+        Transition{
+          FinishResponseRequested{},
+          route_of(FinishResponseRequested{}),
+          first_id(advice_ids)
+        } <> FinishDecision{decision} <> Nil{}
+      )
     case AllowFinish{_, _, _}:
       Transition{StopAllowed{}, route_of(StopAllowed{}), None{}} <>
       Transition{FinishResponseRequested{}, route_of(FinishResponseRequested{}), None{}} <>
@@ -908,29 +1683,64 @@ def finish_tail(decision: Decision, mid: Flow) -> List<&2, FlowChange>:
     case Flow{packets, _, _, _, round_id, _, _, _, _, _, _, _, _, submitted}:
       finish_tail.pick(decision, packets, round_id, submitted)
 
-def finish_changes(event: FlowEvent, continuations: Nat, decision: Decision, mid: Flow) -> List<&2, FlowChange>:
+def finish_changes(
+  event: FlowEvent,
+  continuations: Nat,
+  decision: Decision,
+  mid: Flow
+) -> List<&2, FlowChange>:
   match decision:
     case NoDecision{}:
       Nil{}
     case _:
       List.append(&2, FlowChange, finish_trigger(event, continuations), finish_tail(decision, mid))
 
-def background_start(event: FlowEvent, available: Bool, item: Maybe<&2, Nat>) -> List<&2, FlowChange>:
+def background_start(
+  event: FlowEvent,
+  available: Bool,
+  item: Maybe<&2, Nat>
+) -> List<&2, FlowChange>:
   match event available item:
     case EditObserved{} False{} Some{id}:
       Transition{BackgroundWaitStarted{}, route_of(BackgroundWaitStarted{}), Some{id}} <> Nil{}
     case _ _ _:
       Nil{}
 
-def changes.accepted(+before: Flow, +event: FlowEvent, selected: Maybe<&2, Nat>, decision: Decision, +mid: Flow) -> List<&2, FlowChange>:
+def changes.accepted(
+  +before: Flow,
+  +event: FlowEvent,
+  selected: Maybe<&2, Nat>,
+  decision: Decision,
+  +mid: Flow
+) -> List<&2, FlowChange>:
   match before mid:
-    case Flow{+old_packets, +next_id, _, _, _, old_active, continuations, _, old_background, _, _, _, _, _} Flow{+mid_packets, _, _, _, round_id, mid_active, _, _, _, _, _, _, _, _}:
+    case Flow{
+      +old_packets,
+      +next_id,
+      _,
+      _,
+      _,
+      old_active,
+      continuations,
+      _,
+      old_background,
+      _,
+      _,
+      _,
+      _,
+      _
+    } Flow{+mid_packets, _, _, _, round_id, mid_active, _, _, _, _, _, _, _, _}:
       +own_item = event_item(event, selected, before)
       own = own_change(event, before, own_item)
       opening = opened(old_active, mid_active, round_id)
       emitted = emission(event, own_item)
       started_source = schedule_source(event, next_id, ids(EditQueue{}, old_packets), mid_packets)
-      started_review = schedule_review(event, own_item, ids(ReviewQueue{}, old_packets), mid_packets)
+      started_review = schedule_review(
+        event,
+        own_item,
+        ids(ReviewQueue{}, old_packets),
+        mid_packets
+      )
       finished = finish_changes(event, continuations, decision, mid)
       background = background_start(event, old_background, own_item)
       own <> List.append(&2, FlowChange, opening,
@@ -939,7 +1749,12 @@ def changes.accepted(+before: Flow, +event: FlowEvent, selected: Maybe<&2, Nat>,
             List.append(&2, FlowChange, started_review,
               List.append(&2, FlowChange, finished, background)))))
 
-def changes(before: Flow, event: FlowEvent, selected: Maybe<&2, Nat>, result: Step) -> List<&2, FlowChange>:
+def changes(
+  before: Flow,
+  event: FlowEvent,
+  selected: Maybe<&2, Nat>,
+  result: Step
+) -> List<&2, FlowChange>:
   match result:
     case Rejected{_, _}:
       Nil{}

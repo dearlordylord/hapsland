@@ -8,7 +8,7 @@ import { Decision } from "effect/ai"
 import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { decide } from "@hapsland/review-execution/jev-decision"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { liveLayer } from "@hapsland/review-execution/review-providers/cloudflare"
 import { encodedProviderHttpBodyBytes } from "@hapsland/review-execution/direct-event/provider-body-size"
 
@@ -18,7 +18,7 @@ const decision = Decision.probability({
 })
 const tokenLayer = ConfigProvider.layer(ConfigProvider.fromUnknown({ CLOUDFLARE_API_TOKEN: "SECRET-SENTINEL" }))
 const identity = (model: "clef" | "clef-flash" = "clef") =>
-  providerIdentity({ provider: "cloudflare", model, accountId: "a".repeat(32) })
+  reviewServiceIdentity({ provider: "cloudflare", model, accountId: "a".repeat(32) })
 const envelope = (model = "clef", answers: unknown = { q0: { type: "noul", noul: 0.91 } }) => ({
   success: true,
   errors: [],

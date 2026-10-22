@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
 import type { SetupClient } from "./client-selection.ts"
-import { JEV_PROVIDER, REVIEW_PROVIDERS, ReviewProviderId } from "@hapsland/runtime-environment/runtime/backend"
+import { JEV_PROVIDER, REVIEW_PROVIDERS, ReviewServiceId } from "@hapsland/runtime-environment/runtime/backend"
 import { setupCommand } from "@hapsland/runtime-environment/runtime/cli-names"
 
 export const JEV_KEY_ENTRY_GUIDANCE = `Get a ${JEV_PROVIDER.name} API key from ${JEV_PROVIDER.credentialIssuer}: ${JEV_PROVIDER.keysUrl}\nUse the ${JEV_PROVIDER.credentialIssuer} key, not your coding agent or model-provider key. Paste it below and press Enter; input is hidden. Ctrl+C cancels.\n`
@@ -11,7 +11,7 @@ const Source = Schema.Struct({
   file: Schema.optionalKey(Schema.String),
   envVar: Schema.String,
   environmentOnly: Schema.Boolean,
-  provider: ReviewProviderId
+  provider: ReviewServiceId
 })
 
 export const credentialSourceGuidance = (observed: unknown, host: SetupClient, platform: NodeJS.Platform): string[] => {

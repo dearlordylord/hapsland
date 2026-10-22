@@ -222,8 +222,8 @@ def visible_found(found: Maybe<&2, LiveTypes.Mob>, now: Nat) -> Bool:
 def outcome(outputs: List<&2, C.Output>) -> U32:
   match outputs:
     case Nil{}: 0
-    case C.EventEstablished{C.JevRequestOutcomeRecorded{C.RequestClear{}}} <> _: 10
-    case C.EventEstablished{C.JevRequestOutcomeRecorded{C.RequestFinding{}}} <> _: 11
+    case C.EventEstablished{C.ReviewServiceRequestOutcomeRecorded{C.RequestClear{}}} <> _: 10
+    case C.EventEstablished{C.ReviewServiceRequestOutcomeRecorded{C.RequestFinding{}}} <> _: 11
     case C.EventEstablished{C.SubmissionRecorded{}} <> _: 12
     case C.EventEstablished{C.FinishRecorded{C.Acknowledged{}}} <> _: 12
     case C.EventEstablished{C.PreparationReleased{_, _}} <> _: 14

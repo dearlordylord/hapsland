@@ -3,8 +3,9 @@ import Base
 # Each candidate is exactly one finding. A review unit may supply many
 # candidates, each with a distinct finding ID and the same unit ID. The adapter
 # measures exact encoded host lines; Bend decides selection and limitations.
-type Advice is Data:
-  Advice{id: Nat, unit: Nat, partition: Nat, round: Nat,
+# One finding considered for an advice submission; several may belong to one review unit.
+type FindingCandidate is Data:
+  FindingCandidate{id: Nat, unit: Nat, partition: Nat, round: Nat,
     snapshot: Nat, current_snapshot: Nat, credential: Nat, current_credential: Nat,
     age_ms: Nat, solo_bytes: Nat, collection_ready: Bool}
 
@@ -66,9 +67,9 @@ def final_candidate(owner_current: Bool, credential_generation: Bool,
 def initial(partition: Nat, round: Nat) -> Selection:
   Selection{partition, round, Nil{}, Nil{}, 0n, 0n}
 
-def current(advice: Advice, partition: Nat, round: Nat) -> Bool:
+def current(advice: FindingCandidate, partition: Nat, round: Nat) -> Bool:
   match advice:
-    case Advice{_, _, source_partition, source_round, source_snapshot, current_snapshot,
+    case FindingCandidate{_, _, source_partition, source_round, source_snapshot, current_snapshot,
         source_credential, current_credential, age_ms, _, ready}:
       Bool.and(Nat.is_eq(source_partition, partition),
         Bool.and(Nat.is_eq(source_round, round),
@@ -122,20 +123,20 @@ def select.valid(state: Selection, id: Nat, prospective_bytes: Nat, solo_bytes: 
 
 def select.current(
   +state: Selection,
-  advice: Advice,
+  advice: FindingCandidate,
   prospective_bytes: Nat,
   valid: Bool
 ) -> SelectResult:
   match state:
     case Selection{_, _, _, _, count, _}:
       match advice:
-        case Advice{id, _, _, _, _, _, _, _, _, solo_bytes, _}:
+        case FindingCandidate{id, _, _, _, _, _, _, _, _, solo_bytes, _}:
           select.valid(state, id, prospective_bytes, solo_bytes, count, valid)
 
 def contains(id: Nat, ids: List<&2, Nat>) -> Bool:
   List.contains(~Nat, ~Nat.is_eq, ids, id)
 
-def select.duplicate(state: Selection, advice: Advice, prospective_bytes: Nat,
+def select.duplicate(state: Selection, advice: FindingCandidate, prospective_bytes: Nat,
     current: Bool, duplicate: Bool) -> SelectResult:
   match duplicate:
     case True{}:
@@ -143,11 +144,11 @@ def select.duplicate(state: Selection, advice: Advice, prospective_bytes: Nat,
     case False{}:
       select.current(state, advice, prospective_bytes, current)
 
-def select(+state: Selection, +advice: Advice, prospective_bytes: Nat) -> SelectResult:
+def select(+state: Selection, +advice: FindingCandidate, prospective_bytes: Nat) -> SelectResult:
   match state:
     case Selection{partition, round, selected, retained, _, _}:
       match advice:
-        case Advice{id, _, _, _, _, _, _, _, _, _, _}:
+        case FindingCandidate{id, _, _, _, _, _, _, _, _, _, _}:
           select.duplicate(state, advice, prospective_bytes,
             current(advice, partition, round),
             Bool.or(contains(id, selected), contains(id, retained)))

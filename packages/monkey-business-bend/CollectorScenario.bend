@@ -184,19 +184,25 @@ def claimed(event: C.CanonicalEvent, +state: State, context: Driver.Context) -> 
     case _ _: Changed{state, Driver.Handled{False{}, []}}
 
 def retry_live(
-  work: Maybe<&2, C.Work>,
+  work: Maybe<&2, C.ReviewWorkRecord>,
   candidate: Candidate,
   capacity: Nat
 ) -> List<&2, Driver.Action>:
   match work candidate:
-    case Some{C.Work{+p, l, r, _, _, C.PendingFinding{_}, _}} Candidate{cp, cl, cr, _, token}:
+    case Some{C.ReviewWorkRecord{+p, l, r, _, _, C.PendingFinding{_}, _}} Candidate{
+      cp,
+      cl,
+      cr,
+      _,
+      token
+    }:
       Bool.pick(List<&2, Driver.Action>, Nat.is_eq(p, cp) && Nat.is_eq(l, cl) && Nat.is_eq(r, cr),
         [claim(p, token, capacity)], [])
     case _ _: []
 
 def retry(
   candidates: List<&2, Candidate>,
-  +work: List<&2, C.Work>,
+  +work: List<&2, C.ReviewWorkRecord>,
   +capacity: Nat
 ) -> List<&2, Driver.Action>:
   match candidates:
@@ -209,12 +215,15 @@ def retry(
         retry(tail, work, capacity)
       )
 
-def exists(work: Maybe<&2, C.Work>) -> Bool:
+def exists(work: Maybe<&2, C.ReviewWorkRecord>) -> Bool:
   match work:
     case Some{_}: True{}
     case None{}: False{}
 
-def retain(candidates: List<&2, Candidate>, +work: List<&2, C.Work>) -> List<&2, Candidate>:
+def retain(
+  candidates: List<&2, Candidate>,
+  +work: List<&2, C.ReviewWorkRecord>
+) -> List<&2, Candidate>:
   match candidates:
     case Nil{}: []
     case +head <> tail:

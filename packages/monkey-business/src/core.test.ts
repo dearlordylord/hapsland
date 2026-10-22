@@ -6,7 +6,7 @@ describe("scripted public run", () => {
     run.advance({ maxEvents: 100 })
     const outputs = run.observations.flatMap((x) => x.outputs.map((c) => c.kind))
     expect(outputs).toContain("prepare")
-    expect(outputs).toContain("jevRequestIssued")
+    expect(outputs).toContain("reviewServiceRequestIssued")
     expect(outputs).toContain("findingRetained")
     expect(outputs).toContain("submissionRecorded")
     expect(run.observations.some((x) => x.event.kind === "stopPolled")).toBe(true)
@@ -31,14 +31,16 @@ describe("deterministic driver and replay", () => {
       ]
     }
     const run = createRun(config)
-    while (!run.observations.some((frame) => frame.outputs.some((command) => command.kind === "jevRequestIssued")))
+    while (
+      !run.observations.some((frame) => frame.outputs.some((command) => command.kind === "reviewServiceRequestIssued"))
+    )
       run.step()
     run.applyControl({ kind: "jevProfile", delayMs: 12, outcome: "clear" })
     run.advance()
     const replay = replayRun(run.exportReplay())
     while (replay.step());
     expect(replay.observations).toEqual(run.observations)
-    const settled = run.observations.filter((x) => x.event.kind === "jevRequestSettled")
+    const settled = run.observations.filter((x) => x.event.kind === "reviewServiceRequestSettled")
     expect(settled.map((x) => x.time)).toEqual([7, 44])
   })
   it("streams independently of retention and refuses incompatible identities", () => {
@@ -62,12 +64,12 @@ describe("deterministic driver and replay", () => {
           at: 0,
           kind: "canonical",
           event: {
-            kind: "jevRequestSettled",
+            kind: "reviewServiceRequestSettled",
             partition: 1,
             lifetime: 1,
             round: 1,
             operation: 1,
-            request: 99,
+            reviewServiceRequestId: 99,
             outcome: "clear",
             currentWork: true
           }

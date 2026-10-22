@@ -20,16 +20,16 @@ import {
 import {
   CanonicalLimitsSchema,
   CanonicalOutputSchema,
-  type JevRequestOutcome,
+  type ReviewServiceRequestOutcome,
   type CompletedEditReason,
   type CapacityPurpose,
   type CollectorReason,
   type ReuseMemberState,
   type ProspectiveFacts,
   type CapacityRefusal,
-  type CapacityCharge,
+  type ReviewCapacityReservationRecord,
   type CapacityView,
-  type DispatchEntry,
+  type ScheduledReviewWork,
   type CanonicalProjection,
   type CanonicalOutput,
   type CanonicalEvent
@@ -42,11 +42,11 @@ import {
   bendCanonicalStep,
   bendCanonicalTotal,
   bendPreparationLimit,
-  bendJevRequestLimit
+  bendReviewServiceRequestLimit
 } from "@hapsland/agent-flow-bend/canonical"
 import * as Schema from "effect/Schema"
 export type {
-  JevRequestOutcome,
+  ReviewServiceRequestOutcome,
   CompletedEditReason,
   QuietRoundFacts,
   CapacityPurpose,
@@ -55,7 +55,7 @@ export type {
   ProspectiveFacts,
   CleanupFacts,
   CapacityRefusal,
-  CapacityCharge,
+  ReviewCapacityReservationRecord,
   CapacityView,
   CanonicalProjection,
   CanonicalOutput,
@@ -165,7 +165,7 @@ const reuseMemberState = (state: ReuseMemberState): unknown => {
   }[state]
   return { $: `Reuse.${name}` }
 }
-const jevOutcomeTags: Record<JevRequestOutcome, string> = {
+const reviewServiceOutcomeTags: Record<ReviewServiceRequestOutcome, string> = {
   neverSent: "NeverSent",
   finding: "RequestFinding",
   clear: "RequestClear",
@@ -173,13 +173,13 @@ const jevOutcomeTags: Record<JevRequestOutcome, string> = {
   timeout: "RequestTimeout",
   interrupted: "RequestInterrupted"
 }
-const encodeJevRequestOutcome = (outcome: JevRequestOutcome): unknown => {
-  const name = jevOutcomeTags[outcome]
+const encodeReviewServiceRequestOutcome = (outcome: ReviewServiceRequestOutcome): unknown => {
+  const name = reviewServiceOutcomeTags[outcome]
   return { $: `Canonical.${name}` }
 }
-const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
+const decodeReviewServiceRequestOutcome = (value: unknown): ReviewServiceRequestOutcome => {
   const name = tag(value)
-  const outcome = (Object.entries(jevOutcomeTags) as [JevRequestOutcome, string][]).find(
+  const outcome = (Object.entries(reviewServiceOutcomeTags) as [ReviewServiceRequestOutcome, string][]).find(
     ([, variant]) => name === `Canonical.${variant}`
   )?.[0]
   if (outcome === undefined) throw new TypeError("invalid Jev request outcome")
@@ -321,9 +321,11 @@ const encodeStartReview = (
     operation: event.operation
   }
 }
-const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevRequestReady" }>): unknown => {
+const encodeReviewServiceRequestReady = (
+  event: Extract<CanonicalEvent, { kind: "reviewServiceRequestReady" }>
+): unknown => {
   return {
-    $: "Canonical.JevRequestReady",
+    $: "Canonical.ReviewServiceRequestReady",
     ...identity(event),
     round: event.round,
     operation: event.operation,
@@ -335,25 +337,30 @@ const encodeJevRequestReady = (event: Extract<CanonicalEvent, { kind: "jevReques
     physical_available: event.physicalAvailable
   }
 }
-const encodeJevRequestStarted = (
-  event: Extract<CanonicalEvent, { kind: "jevRequestStarted" | "jevRequestInterrupted" }>
+const encodeReviewServiceRequestStarted = (
+  event: Extract<CanonicalEvent, { kind: "reviewServiceRequestStarted" | "reviewServiceRequestInterrupted" }>
 ): unknown => {
   return {
-    $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted",
+    $:
+      event.kind === "reviewServiceRequestStarted"
+        ? "Canonical.ReviewServiceRequestStarted"
+        : "Canonical.ReviewServiceRequestInterrupted",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    request: event.request
+    review_service_request_id: event.reviewServiceRequestId
   }
 }
-const encodeJevRequestSettled = (event: Extract<CanonicalEvent, { kind: "jevRequestSettled" }>): unknown => {
+const encodeReviewServiceRequestSettled = (
+  event: Extract<CanonicalEvent, { kind: "reviewServiceRequestSettled" }>
+): unknown => {
   return {
-    $: "Canonical.JevRequestSettled",
+    $: "Canonical.ReviewServiceRequestSettled",
     ...identity(event),
     round: event.round,
     operation: event.operation,
-    request: event.request,
-    outcome: encodeJevRequestOutcome(event.outcome),
+    review_service_request_id: event.reviewServiceRequestId,
+    outcome: encodeReviewServiceRequestOutcome(event.outcome),
     current_work: event.currentWork
   }
 }
@@ -763,7 +770,7 @@ const encodeCleanupCommit = (_event: Extract<CanonicalEvent, { kind: "cleanupCom
   return { $: "Canonical.CleanupCommit" }
 }
 const encodeDeliveryReleaseCheck = (event: Extract<CanonicalEvent, { kind: "deliveryReleaseCheck" }>): unknown => {
-  return { $: "Canonical.DeliveryReleaseCheck", acknowledged: event.acknowledged }
+  return { $: "Canonical.DeliveryReleaseCheck", submission_recorded: event.submissionRecorded }
 }
 const encodeDeliveryAcknowledgeCheck = (
   event: Extract<CanonicalEvent, { kind: "deliveryAcknowledgeCheck" }>
@@ -1164,10 +1171,10 @@ const eventEncoders: { [Kind in keyof EventByKind]: (event: EventByKind[Kind]) =
   startReview: encodeStartReview,
   retireReview: encodeStartReview,
   cancelReview: encodeStartReview,
-  jevRequestReady: encodeJevRequestReady,
-  jevRequestStarted: encodeJevRequestStarted,
-  jevRequestInterrupted: encodeJevRequestStarted,
-  jevRequestSettled: encodeJevRequestSettled,
+  reviewServiceRequestReady: encodeReviewServiceRequestReady,
+  reviewServiceRequestStarted: encodeReviewServiceRequestStarted,
+  reviewServiceRequestInterrupted: encodeReviewServiceRequestStarted,
+  reviewServiceRequestSettled: encodeReviewServiceRequestSettled,
   reviewCompleted: encodeReviewCompleted,
   reviewObserved: encodeReviewObserved,
   findingCountUpdated: encodeFindingCountUpdated,
@@ -1336,8 +1343,8 @@ const purpose = (
 const charge = (
   value: unknown,
   decode: typeof decodeCanonicalConstructor = decodeCanonicalConstructor
-): CapacityCharge => {
-  const x = decode(value, "Ledger.Charge")
+): ReviewCapacityReservationRecord => {
+  const x = decode(value, "Ledger.ReviewCapacityReservationRecord")
   return {
     id: nat(x.id, true),
     partition: nat(x.partition, true),
@@ -1531,37 +1538,39 @@ const decodeReviewStarted = (value: unknown): DecodedOutputFields => {
   decodeCanonicalConstructor(value, "Canonical.ReviewStarted")
   return { kind: "reviewStarted" }
 }
-const decodeJevRequestIssued = (value: unknown): DecodedOutputFields => {
-  const x = decodeCanonicalConstructor(value, "Canonical.JevRequestIssued")
+const decodeReviewServiceRequestIssued = (value: unknown): DecodedOutputFields => {
+  const x = decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestIssued")
   return {
-    kind: "jevRequestIssued",
+    kind: "reviewServiceRequestIssued",
     partition: nat(x.partition, true),
     lifetime: nat(x.lifetime, true),
     round: nat(x.round, true),
     operation: nat(x.operation, true),
-    request: nat(x.request, true)
+    reviewServiceRequestId: nat(x.review_service_request_id, true)
   }
 }
-const decodeJevRequestUnavailable = (value: unknown): DecodedOutputFields => {
-  decodeCanonicalConstructor(value, "Canonical.JevRequestUnavailable")
-  return { kind: "jevRequestUnavailable" }
+const decodeReviewServiceRequestUnavailable = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestUnavailable")
+  return { kind: "reviewServiceRequestUnavailable" }
 }
-const decodeJevRequestStartRecorded = (value: unknown): DecodedOutputFields => {
-  decodeCanonicalConstructor(value, "Canonical.JevRequestStartRecorded")
-  return { kind: "jevRequestStartRecorded" }
+const decodeReviewServiceRequestStartRecorded = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestStartRecorded")
+  return { kind: "reviewServiceRequestStartRecorded" }
 }
-const decodeJevInterruptionRecorded = (value: unknown): DecodedOutputFields => {
-  decodeCanonicalConstructor(value, "Canonical.JevInterruptionRecorded")
-  return { kind: "jevInterruptionRecorded" }
+const decodeReviewServiceRequestInterruptionRecorded = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestInterruptionRecorded")
+  return { kind: "reviewServiceRequestInterruptionRecorded" }
 }
-const decodeJevObservationIgnored = (value: unknown): DecodedOutputFields => {
-  decodeCanonicalConstructor(value, "Canonical.JevObservationIgnored")
-  return { kind: "jevObservationIgnored" }
+const decodeReviewServiceRequestObservationIgnored = (value: unknown): DecodedOutputFields => {
+  decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestObservationIgnored")
+  return { kind: "reviewServiceRequestObservationIgnored" }
 }
-const decodeJevRequestOutcomeRecorded = (value: unknown): DecodedOutputFields => {
+const decodeReviewServiceRequestOutcomeRecorded = (value: unknown): DecodedOutputFields => {
   return {
-    kind: "jevRequestOutcomeRecorded",
-    outcome: decodeJevRequestOutcome(decodeCanonicalConstructor(value, "Canonical.JevRequestOutcomeRecorded").outcome)
+    kind: "reviewServiceRequestOutcomeRecorded",
+    outcome: decodeReviewServiceRequestOutcome(
+      decodeCanonicalConstructor(value, "Canonical.ReviewServiceRequestOutcomeRecorded").outcome
+    )
   }
 }
 const decodeReservationReleased = (value: unknown): DecodedOutputFields => {
@@ -2074,12 +2083,12 @@ const outputDecoders: Readonly<Record<string, (value: unknown) => DecodedOutputF
   "Canonical.UnitRefused": decodeUnitRefused,
   "Canonical.PreparationReleased": decodePreparationReleased,
   "Canonical.ReviewStarted": decodeReviewStarted,
-  "Canonical.JevRequestIssued": decodeJevRequestIssued,
-  "Canonical.JevRequestUnavailable": decodeJevRequestUnavailable,
-  "Canonical.JevRequestStartRecorded": decodeJevRequestStartRecorded,
-  "Canonical.JevInterruptionRecorded": decodeJevInterruptionRecorded,
-  "Canonical.JevObservationIgnored": decodeJevObservationIgnored,
-  "Canonical.JevRequestOutcomeRecorded": decodeJevRequestOutcomeRecorded,
+  "Canonical.ReviewServiceRequestIssued": decodeReviewServiceRequestIssued,
+  "Canonical.ReviewServiceRequestUnavailable": decodeReviewServiceRequestUnavailable,
+  "Canonical.ReviewServiceRequestStartRecorded": decodeReviewServiceRequestStartRecorded,
+  "Canonical.ReviewServiceRequestInterruptionRecorded": decodeReviewServiceRequestInterruptionRecorded,
+  "Canonical.ReviewServiceRequestObservationIgnored": decodeReviewServiceRequestObservationIgnored,
+  "Canonical.ReviewServiceRequestOutcomeRecorded": decodeReviewServiceRequestOutcomeRecorded,
   "Canonical.ReservationReleased": decodeReservationReleased,
   "Canonical.ReviewRecorded": decodeReviewRecorded,
   "Canonical.FindingRetained": decodeFindingRetained,
@@ -2265,8 +2274,8 @@ const outputDecoders: Readonly<Record<string, (value: unknown) => DecodedOutputF
 }
 
 const outputCategory = (wrapper: string) =>
-  wrapper === "Canonical.ActionRequested"
-    ? "request"
+  wrapper === "Canonical.ResidentActionRequested"
+    ? "action"
     : wrapper === "Canonical.EventEstablished"
       ? "event"
       : wrapper === "Canonical.PolicyDecided"
@@ -2277,7 +2286,7 @@ const decodeOutput = (value: unknown): CanonicalOutput => {
   const category = outputCategory(wrapper)
   if (category === undefined) throw new TypeError("unknown canonical output")
   const x = decodeCanonicalConstructor(value, wrapper)
-  const payload = category === "request" ? x.request : category === "event" ? x.event : x.decision
+  const payload = category === "action" ? x.command : category === "event" ? x.event : x.decision
   const name = tag(payload)
   const decode = Object.hasOwn(outputDecoders, name) ? outputDecoders[name] : undefined
   if (decode === undefined) throw new TypeError("unknown canonical output")
@@ -2323,8 +2332,8 @@ const projectCompletedEdits = (value: unknown) => {
 
 const projectDispatch = (value: unknown) => {
   const rawDispatch = decodeCanonicalProjectionConstructor(value, "Dispatch.State")
-  const dispatchEntry = (value: unknown): DispatchEntry => {
-    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.Entry")
+  const dispatchEntry = (value: unknown): ScheduledReviewWork => {
+    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.ScheduledReviewWork")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
@@ -2335,14 +2344,14 @@ const projectDispatch = (value: unknown) => {
       preparation: bool(x.preparation)
     }
   }
-  const requests = readList(rawDispatch.requests, (value) => {
-    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.Request")
+  const reviewServiceRequests = readList(rawDispatch.review_service_requests, (value) => {
+    const x = decodeCanonicalProjectionConstructor(value, "Dispatch.ReviewServiceRequestRecord")
     return {
       partition: nat(x.partition, true),
       lifetime: nat(x.lifetime, true),
       round: nat(x.round, true),
       operation: nat(x.operation, true),
-      request: nat(x.request, true),
+      reviewServiceRequestId: nat(x.review_service_request_id, true),
       started: bool(x.started),
       interrupted: bool(x.interrupted)
     }
@@ -2352,7 +2361,7 @@ const projectDispatch = (value: unknown) => {
     running: readList(rawDispatch.running, dispatchEntry),
     nextSequence: nat(rawDispatch.next_sequence),
     closed: bool(rawDispatch.closed),
-    requests
+    reviewServiceRequests
   }
   return dispatch
 }
@@ -2567,7 +2576,10 @@ const validateDispatch = (
     throw new TypeError("inconsistent canonical dispatch state")
 }
 
-const workReservationMismatch = (work: CanonicalProjection["work"][number], charge: CapacityCharge | undefined) => {
+const workReservationMismatch = (
+  work: CanonicalProjection["work"][number],
+  charge: ReviewCapacityReservationRecord | undefined
+) => {
   if (work.reservation === 0) return !["awaitingSourceRead", "sourceReading"].includes(work.kind)
   if (charge?.partition !== work.partition) return true
   if (work.kind === "pendingFinding") return !["storedResult", "adviceRecheck"].includes(charge.purpose)
@@ -2594,7 +2606,7 @@ const validateStateIdentities = (
 
 const validateWorkReservations = (
   work: CanonicalProjection["work"],
-  chargesById: ReadonlyMap<number, CapacityCharge>,
+  chargesById: ReadonlyMap<number, ReviewCapacityReservationRecord>,
   rounds: CanonicalProjection["rounds"],
   s: ReturnType<typeof decodeState>
 ) => {
@@ -2613,7 +2625,7 @@ const validateWorkReservations = (
 
 const validateCachedReservations = (
   cache: CanonicalProjection["reuse"]["cache"],
-  chargesById: ReadonlyMap<number, CapacityCharge>
+  chargesById: ReadonlyMap<number, ReviewCapacityReservationRecord>
 ) => {
   if (
     cache.some((entry) => {
@@ -2652,10 +2664,12 @@ const validateDispatchRequests = (
 ) => {
   if (
     dispatch.running.filter((entry) => entry.preparation).length > executionLimits.preparation ||
-    dispatch.requests.length > executionLimits.jevRequests ||
-    new Set(dispatch.requests.map((entry) => entry.request)).size !== dispatch.requests.length ||
-    new Set(dispatch.requests.map((entry) => entry.operation)).size !== dispatch.requests.length ||
-    dispatch.requests.some((entry) => entry.interrupted && !entry.started)
+    dispatch.reviewServiceRequests.length > executionLimits.reviewServiceRequests ||
+    new Set(dispatch.reviewServiceRequests.map((entry) => entry.reviewServiceRequestId)).size !==
+      dispatch.reviewServiceRequests.length ||
+    new Set(dispatch.reviewServiceRequests.map((entry) => entry.operation)).size !==
+      dispatch.reviewServiceRequests.length ||
+    dispatch.reviewServiceRequests.some((entry) => entry.interrupted && !entry.started)
   )
     throw new TypeError("inconsistent canonical dispatch state")
 }
@@ -2734,7 +2748,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     const delivery = projectDelivery(collectionState.delivery)
     const executionLimits = {
       preparation: nat(bendPreparationLimit(), true),
-      jevRequests: nat(bendJevRequestLimit(), true)
+      reviewServiceRequests: nat(bendReviewServiceRequestLimit(), true)
     }
     validateDispatch(dispatch, executionLimits)
     const ledger = decodeLedger(s.ledger)
@@ -2794,7 +2808,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       }
     })
     const work = readList(s.work, (value) => {
-      const x = decodeCanonicalProjectionConstructor(value, "Canonical.Work")
+      const x = decodeCanonicalProjectionConstructor(value, "Canonical.ReviewWorkRecord")
       const kind = tag(x.kind)
       decodeCanonicalProjectionConstructor(x.kind, kind)
       const names = {
@@ -2802,7 +2816,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         "Canonical.SourceReading": "sourceReading",
         "Canonical.Preparing": "preparing",
         "Canonical.Reviewing": "reviewing",
-        "Canonical.AtJev": "atJev",
+        "Canonical.ReviewServiceRequestOutstanding": "reviewServiceRequestOutstanding",
         "Canonical.PendingFinding": "pendingFinding"
       } as const
       const stage = names[kind as keyof typeof names]
@@ -2818,7 +2832,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       }
     })
     const pendingFindings = readList(s.work, (value) => {
-      const x = decodeCanonicalProjectionConstructor(value, "Canonical.Work")
+      const x = decodeCanonicalProjectionConstructor(value, "Canonical.ReviewWorkRecord")
       return tag(x.kind) === "Canonical.PendingFinding"
         ? {
             operation: nat(x.operation, true),

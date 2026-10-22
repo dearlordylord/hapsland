@@ -107,7 +107,7 @@ it.each(["before-edit", "background", "stop", "prompt"])(
     await run([`--composed-${kind}-hook`, "--composed-host=claude-code"])
     expect(ports.composed).toHaveBeenCalledWith({
       kind,
-      host: "claude-code",
+      agentRuntime: "claude-code",
       event: undefined,
       codexVersion: "0.155.1",
       statePath: "/tmp/fixture-state",

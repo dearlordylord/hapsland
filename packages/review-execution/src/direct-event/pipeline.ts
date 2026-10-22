@@ -16,7 +16,7 @@ import { applicableRules } from "../policy/rules.ts"
 import { compareRuleRank, findingFromProbability } from "@hapsland/review-definition/rules/decision"
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts"
 import { admitReview } from "@hapsland/runtime-inputs/configuration/decision"
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import { probabilityRequest, requestLimitViolation } from "../review-providers/request.ts"
 import { effectiveReviewBackend, effectiveGraphLimits } from "@hapsland/runtime-inputs/configuration/resolve"
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "@hapsland/canonical-policy/canonical/graph-limits"
@@ -57,7 +57,7 @@ import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit,
+  type PreparedReviewUnit,
   type ReviewInput,
   type ObservationResult,
   type MaterializationAdmission,
@@ -87,7 +87,7 @@ export type DirectReviewContext = {
   /** The only advicee for whom this invocation may produce advice. */
   readonly advicee: DirectAdvicee
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
-    Partial<Pick<ReviewSettings, "configuration" | "rules" | "providerIdentity">>
+    Partial<Pick<ReviewSettings, "configuration" | "rules" | "reviewServiceIdentity">>
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy)
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>)
   readonly inputContract?: string | (() => string)
@@ -116,7 +116,7 @@ export type DirectReviewContext = {
 }
 
 /** Source preparation has no authority to publish advice to an agent. */
-export type PreparedSource = Omit<PreparedUnit, "advicee">
+export type PreparedSource = Omit<PreparedReviewUnit, "advicee">
 type SourcePrepareOutcome =
   | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedSource }
   | { readonly status: "skipped"; readonly path: string }
@@ -135,7 +135,7 @@ type PreparationObservation = Omit<DirectObservation, "advicee"> & {
 export type SourcePreparationContext = Omit<DirectReviewContext, "controlledWriter" | "advicee">
 
 export type PrepareOutcome =
-  | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedUnit }
+  | { readonly status: "ready"; readonly path: string; readonly prepared: PreparedReviewUnit }
   | { readonly status: "skipped"; readonly path: string }
 
 export type PreparedObservation = {
@@ -144,12 +144,13 @@ export type PreparedObservation = {
 }
 
 /** Complete evaluated inputs retained until handoff; digests alone are not freshness. */
-export type EvaluatedUnit = { readonly prepared: PreparedUnit; readonly findings: ReadonlyArray<Finding> }
+/** A prepared review unit together with the findings produced by its evaluation. */
+export type EvaluatedReviewUnit = { readonly prepared: PreparedReviewUnit; readonly findings: ReadonlyArray<Finding> }
 
 export type RevalidationResult =
   | {
       readonly status: "current"
-      readonly evaluations: ReadonlyArray<EvaluatedUnit>
+      readonly evaluations: ReadonlyArray<EvaluatedReviewUnit>
       readonly findings: ReadonlyArray<Finding>
     }
   | { readonly status: "stale"; readonly findings: readonly [] }
@@ -161,7 +162,7 @@ export type RevalidationResult =
  * that a later resident observation has not superseded completed work.
  */
 export type ResidentPublicationAuthority = {
-  readonly isCurrentWork: (prepared: PreparedUnit) => Effect.Effect<boolean>
+  readonly isCurrentWork: (prepared: PreparedReviewUnit) => Effect.Effect<boolean>
 }
 
 export type DirectReviewResult =
@@ -172,7 +173,7 @@ export type DirectReviewResult =
   | {
       readonly status: "ready"
       readonly findings: ReadonlyArray<Finding>
-      readonly evaluations: ReadonlyArray<EvaluatedUnit>
+      readonly evaluations: ReadonlyArray<EvaluatedReviewUnit>
       readonly output: CodexDirectEventOutput
     }
 
@@ -230,10 +231,10 @@ const unitSourceFingerprints = (
   return fingerprints.every((item): item is NonNullable<typeof item> => item !== undefined) ? fingerprints : undefined
 }
 
-const preparedBelongsTo = (prepared: PreparedUnit, observation: DirectObservation): boolean =>
+const preparedBelongsTo = (prepared: PreparedReviewUnit, observation: DirectObservation): boolean =>
   prepared.root === observation.root && sameAdvicee(prepared.advicee, observation.advicee)
 
-const validEvaluation = (evaluation: EvaluatedUnit): boolean =>
+const validEvaluation = (evaluation: EvaluatedReviewUnit): boolean =>
   evaluation.prepared.identity === semanticIdentity(evaluation.prepared.input) &&
   evaluation.findings.every(
     (finding) =>
@@ -352,7 +353,7 @@ const preparationCapabilities = (contract: string, partial: boolean) => {
         : (["signature", "body", "resolved-local-calls", "resolved-outbound-types"] as const)
       : undefined
 }
-const freezePreparedUnitInput = (
+const freezePreparedReviewUnitInput = (
   path: string,
   unit: ReviewUnit,
   rules: readonly CompiledRule[],
@@ -366,10 +367,10 @@ const freezePreparedUnitInput = (
   const artifactKind = declaration.kind === "function" ? ("function" as const) : ("typeShape" as const)
   return freezeInput({
     contract: frame.contract,
-    providerIdentity:
+    reviewServiceIdentity:
       frame.context.settings.configuration !== undefined
-        ? providerIdentity(effectiveReviewBackend(frame.context.settings.configuration.policy))
-        : (frame.context.settings.providerIdentity ?? providerIdentity(DEFAULT_REVIEW_BACKEND)),
+        ? reviewServiceIdentity(effectiveReviewBackend(frame.context.settings.configuration.policy))
+        : (frame.context.settings.reviewServiceIdentity ?? reviewServiceIdentity(DEFAULT_REVIEW_BACKEND)),
     graphLimits: frame.graphLimits,
     candidateProjection: true,
     ...(rootLocation === undefined ? {} : { rootLocation }),
@@ -420,7 +421,16 @@ const prepareResolvedUnit = (
     ...(capabilities === undefined ? {} : { capabilities })
   })
   if (rules.length === 0) return omitted("no-applicable-rule")
-  const input = freezePreparedUnitInput(path, unit, rules, rootLocation, sourceFingerprints, frame, partial, language)
+  const input = freezePreparedReviewUnitInput(
+    path,
+    unit,
+    rules,
+    rootLocation,
+    sourceFingerprints,
+    frame,
+    partial,
+    language
+  )
   return { status: "ready", path, prepared: { root: frame.observation.root, input, identity: semanticIdentity(input) } }
 }
 const prepareReadyUnits = (
@@ -582,7 +592,7 @@ const isGraphInputContract = (contract: string): boolean =>
   contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT
 
 const hasVerifiedClaudeSpan = (observation: PreparationObservation, path: string): boolean =>
-  observation.advicee?.host === "claude-code" &&
+  observation.advicee?.agentRuntime === "claude-code" &&
   observation.verifiedPostEditHunks?.path === path &&
   observation.verifiedPostEditHunks.hunks.length > 0
 const metadataOnlyCandidate = (
@@ -1083,7 +1093,7 @@ export const preparedSourceLineStillCurrent = Effect.fn("DirectEvent.preparedSou
 /** Explicit snapshot comparison for analysis callers; the review loop checks at publication. */
 export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStillCurrent")(function* (
   observation: DirectObservation,
-  prepared: PreparedUnit,
+  prepared: PreparedReviewUnit,
   context: DirectReviewContext
 ) {
   if (!(yield* verifyObservationRoot(observation))) return false
@@ -1241,7 +1251,7 @@ export const encodedPreparedProviderInputBytes = (prepared: PreparedSource): num
     ? Number.POSITIVE_INFINITY
     : Buffer.byteLength(JSON.stringify(preparedProviderInput(prepared)), "utf8")
 
-export const encodedFullJevRequestBytes = (prepared: PreparedSource): number => {
+export const encodedFullReviewServiceRequestBytes = (prepared: PreparedSource): number => {
   const input = preparedProviderInput(prepared)
   if (input === undefined) return Number.POSITIVE_INFINITY
   return Buffer.byteLength(
@@ -1258,7 +1268,7 @@ export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedSource): 
   const input = preparedProviderInput(prepared)
   return input === undefined
     ? Number.POSITIVE_INFINITY
-    : encodedProviderHttpBodyBytes(input, prepared.input.rules, prepared.input.providerIdentity.model)
+    : encodedProviderHttpBodyBytes(input, prepared.input.rules, prepared.input.reviewServiceIdentity.model)
 }
 
 type ProbabilityAnswers = Readonly<Record<string, { readonly probability: number }>>
@@ -1398,7 +1408,7 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   const providerInput = preparedProviderInput(prepared, (failure) => {
     inputFailure = failure
   })
-  const modelId = prepared.input.providerIdentity.model
+  const modelId = prepared.input.reviewServiceIdentity.model
   if (providerInput === undefined)
     return yield* reportInputFailure(
       prepared,
@@ -1470,7 +1480,7 @@ const beginObservationReview = Effect.fn("DirectEvent.beginObservationReview")(f
 })
 const evaluateObservedUnit = Effect.fn("DirectEvent.evaluateObservedUnit")(function* (
   observation: DirectObservation,
-  prepared: PreparedUnit,
+  prepared: PreparedReviewUnit,
   context: DirectReviewContext
 ) {
   yield* context.beforeDispatch ?? Effect.void
@@ -1492,7 +1502,7 @@ const evaluateObservationUnits = Effect.fn("DirectEvent.evaluateObservationUnits
   context: DirectReviewContext
 ) {
   const findings: Array<Finding> = []
-  const evaluations: Array<EvaluatedUnit> = []
+  const evaluations: Array<EvaluatedReviewUnit> = []
   let unavailable: "backend" | "timeout" | undefined
   for (const outcome of ready) {
     const evaluation = yield* evaluateObservedUnit(observation, outcome.prepared, context)
@@ -1514,7 +1524,7 @@ const noObservationAdvice = (unavailable: "backend" | "timeout" | undefined): Di
 }
 const finishObservationPublication = Effect.fn("DirectEvent.finishObservationPublication")(function* (
   observation: DirectObservation,
-  evaluations: readonly EvaluatedUnit[],
+  evaluations: readonly EvaluatedReviewUnit[],
   context: DirectReviewContext
 ) {
   yield* context.beforeHandoff ?? Effect.void
@@ -1546,7 +1556,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
   return yield* finishObservationPublication(observation, evaluated.evaluations, context)
 })
 
-const evaluatedNames = (evaluations: readonly EvaluatedUnit[]): ReadonlyMap<string, ReadonlySet<string>> => {
+const evaluatedNames = (evaluations: readonly EvaluatedReviewUnit[]): ReadonlyMap<string, ReadonlySet<string>> => {
   const frozenNames = new Map<string, Set<string>>()
   for (const evaluation of evaluations) {
     const input = evaluation.prepared.input
@@ -1556,8 +1566,11 @@ const evaluatedNames = (evaluations: readonly EvaluatedUnit[]): ReadonlyMap<stri
   }
   return frozenNames
 }
-const retainMatchingEvaluations = (evaluations: readonly EvaluatedUnit[], current: readonly PreparedUnit[]) => {
-  const retained: Array<EvaluatedUnit> = []
+const retainMatchingEvaluations = (
+  evaluations: readonly EvaluatedReviewUnit[],
+  current: readonly PreparedReviewUnit[]
+) => {
+  const retained: Array<EvaluatedReviewUnit> = []
   let foundChangedInput = false
   for (const evaluation of evaluations) {
     const expected = evaluation.prepared.input
@@ -1574,12 +1587,12 @@ const retainMatchingEvaluations = (evaluations: readonly EvaluatedUnit[], curren
   return { retained, foundChangedInput }
 }
 const publishRetainedEvaluations = Effect.fn("DirectEvent.publishRetainedEvaluations")(function* (
-  retained: readonly EvaluatedUnit[],
+  retained: readonly EvaluatedReviewUnit[],
   authority: ResidentPublicationAuthority | undefined
 ): Effect.fn.Return<RevalidationResult> {
   // Keep the scheduler-owned supersession check last: semantic capture does
   // not prove that a later accepted observation has not replaced this work.
-  const publishable: Array<EvaluatedUnit> = []
+  const publishable: Array<EvaluatedReviewUnit> = []
   for (const evaluation of retained) {
     if (authority === undefined || (yield* authority.isCurrentWork(evaluation.prepared))) {
       publishable.push(evaluation)
@@ -1590,13 +1603,13 @@ const publishRetainedEvaluations = Effect.fn("DirectEvent.publishRetainedEvaluat
 })
 const publicationAttributed = (
   observation: DirectObservation,
-  evaluations: readonly EvaluatedUnit[],
+  evaluations: readonly EvaluatedReviewUnit[],
   context: DirectReviewContext
 ): boolean =>
   context.controlledWriter &&
   sameAdvicee(observation.advicee, context.advicee) &&
   evaluations.every((evaluation) => preparedBelongsTo(evaluation.prepared, observation))
-const validPublicationEvaluations = (evaluations: readonly EvaluatedUnit[]): boolean =>
+const validPublicationEvaluations = (evaluations: readonly EvaluatedReviewUnit[]): boolean =>
   evaluations.length > 0 && evaluations.every(validEvaluation)
 
 /**
@@ -1605,7 +1618,7 @@ const validPublicationEvaluations = (evaluations: readonly EvaluatedUnit[]): boo
  */
 const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication")(function* (
   observation: DirectObservation,
-  evaluations: ReadonlyArray<EvaluatedUnit>,
+  evaluations: ReadonlyArray<EvaluatedReviewUnit>,
   context: DirectReviewContext,
   authority: ResidentPublicationAuthority | undefined
 ): Effect.fn.Return<RevalidationResult> {
@@ -1631,7 +1644,7 @@ const revalidateForPublication = Effect.fn("DirectEvent.revalidateForPublication
  */
 export const revalidateEvaluations = Effect.fn("DirectEvent.revalidateEvaluations")(function* (
   observation: DirectObservation,
-  evaluations: ReadonlyArray<EvaluatedUnit>,
+  evaluations: ReadonlyArray<EvaluatedReviewUnit>,
   context: DirectReviewContext,
   authority: ResidentPublicationAuthority
 ) {

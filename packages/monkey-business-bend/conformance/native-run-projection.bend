@@ -17,10 +17,10 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.CompleteObservation{_, _, _, _}: 7n
     case Canonical.DispatchSettled{_, _, _, _}: 8n
     case Canonical.StartReview{_, _, _, _}: 9n
-    case Canonical.JevRequestReady{_, _, _, _, _, _, _, _, _, _}: 10n
-    case Canonical.JevRequestInterrupted{_, _, _, _, _}: 25n
-    case Canonical.JevRequestStarted{_, _, _, _, _}: 11n
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: 12n
+    case Canonical.ReviewServiceRequestReady{_, _, _, _, _, _, _, _, _, _}: 10n
+    case Canonical.ReviewServiceRequestInterrupted{_, _, _, _, _}: 25n
+    case Canonical.ReviewServiceRequestStarted{_, _, _, _, _}: 11n
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, _, _}: 12n
     case Canonical.CollectionReady{_, _, _, _, _, _}: 13n
     case Canonical.FinalCandidateCheck{_, _, _, _, _, _}: 14n
     case Canonical.SubmissionSuppressCheck{_, _, _, _}: 15n
@@ -45,10 +45,10 @@ def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.CompleteObservation{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
     case Canonical.DispatchSettled{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
     case Canonical.StartReview{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
-    case Canonical.JevRequestReady{p, l, r, o, _, _, _, _, _, _}: [p, l, r, o, 0n, 0n, 0n]
-    case Canonical.JevRequestInterrupted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
-    case Canonical.JevRequestStarted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
-    case Canonical.JevRequestSettled{p, l, r, o, req, _, _}: [p, l, r, o, req, 0n, 0n]
+    case Canonical.ReviewServiceRequestReady{p, l, r, o, _, _, _, _, _, _}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.ReviewServiceRequestInterrupted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
+    case Canonical.ReviewServiceRequestStarted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
+    case Canonical.ReviewServiceRequestSettled{p, l, r, o, req, _, _}: [p, l, r, o, req, 0n, 0n]
     case Canonical.CollectionReady{a, p, l, r, parent, _}: [p, l, r, parent, 0n, a, 0n]
     case Canonical.SubmissionSuppressCheck{a, t, r, _}: [0n, 0n, r, 0n, 0n, a, t]
     case Canonical.CollectionReserveLease{a, t}: [0n, 0n, 0n, 0n, 0n, a, t]
@@ -71,7 +71,7 @@ def first(items: List<&2, Nat>) -> Nat:
     case Nil{}: 0n
     case head <> _: head
 
-def outcome_code(outcome: Canonical.RequestOutcome) -> Nat:
+def outcome_code(outcome: Canonical.ReviewServiceRequestOutcome) -> Nat:
   match outcome:
     case Canonical.NeverSent{}: 1n
     case Canonical.RequestFinding{}: 2n
@@ -91,7 +91,7 @@ def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
         boolean(current),
         boolean(findings)
       ]
-    case Canonical.JevRequestReady{
+    case Canonical.ReviewServiceRequestReady{
       _,
       _,
       _,
@@ -111,7 +111,7 @@ def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
         boolean(current),
         boolean(physical)
       ]
-    case Canonical.JevRequestSettled{_, _, _, _, _, outcome, current}: [
+    case Canonical.ReviewServiceRequestSettled{_, _, _, _, _, outcome, current}: [
       boolean(current),
       outcome_code(outcome),
       0n,
@@ -147,9 +147,9 @@ def command_code(command: Canonical.Output) -> Nat:
     case Canonical.EventEstablished{Canonical.RoundStarted{_}}: 1n
     case Canonical.EventEstablished{Canonical.ObservationAdmitted{_}}: 2n
     case Canonical.EventEstablished{Canonical.DispatchStarted{_, _}}: 3n
-    case Canonical.ActionRequested{Canonical.Prepare{_, _}}: 4n
+    case Canonical.ResidentActionRequested{Canonical.Prepare{_, _}}: 4n
     case Canonical.EventEstablished{Canonical.UnitAdmitted{_, _, _, _, _}}: 5n
-    case Canonical.EventEstablished{Canonical.JevRequestIssued{_, _, _, _, _}}: 6n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestIssued{_, _, _, _, _}}: 6n
     case Canonical.EventEstablished{Canonical.FindingRetained{}}: 7n
     case Canonical.EventEstablished{Canonical.CollectionEligible{}}: 8n
     case Canonical.PolicyDecided{Canonical.RetainCandidate{}}: 9n
@@ -161,10 +161,10 @@ def command_code(command: Canonical.Output) -> Nat:
     case Canonical.EventEstablished{Canonical.PreparationReleased{_, _}}: 15n
     case Canonical.EventEstablished{Canonical.ObservationCompleted{}}: 16n
     case Canonical.EventEstablished{Canonical.ReviewStarted{}}: 17n
-    case Canonical.EventEstablished{Canonical.JevInterruptionRecorded{}}: 29n
-    case Canonical.PolicyDecided{Canonical.JevRequestUnavailable{}}: 30n
-    case Canonical.EventEstablished{Canonical.JevRequestStartRecorded{}}: 18n
-    case Canonical.EventEstablished{Canonical.JevRequestOutcomeRecorded{_}}: 19n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestInterruptionRecorded{}}: 29n
+    case Canonical.PolicyDecided{Canonical.ReviewServiceRequestUnavailable{}}: 30n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestStartRecorded{}}: 18n
+    case Canonical.EventEstablished{Canonical.ReviewServiceRequestOutcomeRecorded{_}}: 19n
     case Canonical.EventEstablished{Canonical.ReservationReleased{_}}: 20n
     case Canonical.PolicyDecided{Canonical.CollectionLeaseKept{}}: 21n
     case Canonical.EventEstablished{Canonical.CollectionLeaseReleased{}}: 22n
@@ -209,7 +209,10 @@ def ledger_counts(ledger: Ledger.Ledger) -> List<&2, Nat>:
 def dispatch_counts(dispatch: Dispatch.State) -> List<&2, Nat>:
   match dispatch:
     case Dispatch.State{_, running, _, _, requests}:
-      [List.length(&2, Dispatch.Entry, running), List.length(&2, Dispatch.Request, requests)]
+      [
+        List.length(&2, Dispatch.ScheduledReviewWork, running),
+        List.length(&2, Dispatch.ReviewServiceRequestRecord, requests)
+      ]
 
 def lease_count(collection: Collection.State) -> List<&2, Nat>:
   match collection:

@@ -18,7 +18,7 @@ import {
 } from "@hapsland/resident-runtime/resident/review-controls"
 import { makeResidentRuntime } from "@hapsland/resident-runtime/resident/server"
 import { residentPaths } from "@hapsland/resident-transport/resident/paths"
-import type { ResidentDispatchContext } from "@hapsland/resident-transport/resident/protocol"
+import type { ResidentReviewExecutionContext } from "@hapsland/resident-transport/resident/protocol"
 
 const fixture = Effect.fn("ReviewControlsFixture.acquire")(function* (controls: Layer.Layer<ResidentReviewControls>) {
   const root = yield* Effect.promise(() => makeGitFixture())
@@ -26,7 +26,7 @@ const fixture = Effect.fn("ReviewControlsFixture.acquire")(function* (controls: 
   yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number\n"))
   const observation = yield* adaptCodexDirectEvent(addEvent(root))
   if (observation === undefined) return yield* Effect.die(new Error("missing fixture observation"))
-  const dispatch: ResidentDispatchContext = {
+  const dispatch: ResidentReviewExecutionContext = {
     statePath: join(root, "consent"),
     userConfigPath: join(root, "absent-fixture-user.jsonc"),
     credential: null,

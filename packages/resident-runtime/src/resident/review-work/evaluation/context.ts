@@ -6,22 +6,22 @@ import type { captureInspectionFate } from "@hapsland/review-execution/inspectio
 import { type Finding } from "@hapsland/delivery-output/direct-event/output"
 import type { ResidentDispatchControls } from "../../execution-controls/dispatch-controls.ts"
 import type { makeResidentRuntimeConfiguration } from "../../runtime-configuration.ts"
-import type { Advice } from "../../state/advice-records.ts"
+import type { PendingAdviceHandle } from "../../state/advice-records.ts"
 import type { JoinedReviewOutcome } from "../../state/joined-reviews.ts"
 import { type WorkRevision } from "../../state/revision.ts"
 import type * as Effect from "effect/Effect"
-import { type PreparedUnit } from "@hapsland/review-definition/direct-event/model"
+import { type PreparedReviewUnit } from "@hapsland/review-definition/direct-event/model"
 import { type ControlledDecisionModelOptions } from "@hapsland/review-execution/review-execution/controlled-decision-model"
 import {
-  type ResidentDispatchContext,
+  type ResidentReviewExecutionContext,
   type ResidentUnavailableReason
 } from "@hapsland/resident-transport/resident/protocol"
 import type { Context } from "effect"
 import { type OperationalNoticeKind } from "../../state/collection-facts.ts"
 import type { ReviewControls } from "../../execution-controls/review-controls.ts"
-import { type ResidentLedger, type UnitJob, type Job } from "../../work-ownership/jobs.ts"
+import { type ResidentLedger, type ReviewUnitJob, type Job } from "../../work-ownership/jobs.ts"
 import type { ResidentAdapterError } from "../../adapter-error.ts"
-import { type JevRequestObservation } from "../request-observation.ts"
+import { type ReviewServiceRequestObservation } from "../request-observation.ts"
 import { type DispatchAuthorityObservationDetails } from "../../authorization/observation.ts"
 import type { resolveEvaluationCredentials } from "./authorization.ts"
 import type { evaluateAuthorizedUnit } from "./request.ts"
@@ -33,8 +33,8 @@ export type Dependencies = {
     kind: AnalyticsKind,
     findings?: readonly Finding[] | undefined
   ) => Effect.Effect<void>
-  readonly residentObserveJevRequest: (observation: JevRequestObservation) => void
-  readonly residentLifetimeController: AbortController
+  readonly residentObserveReviewServiceRequest: (observation: ReviewServiceRequestObservation) => void
+  readonly residentInstanceIdController: AbortController
   readonly residentLedger: ResidentLedger
   readonly inspection: Effect.Success<ReturnType<typeof makeResidentInspection>>["recorder"]
   readonly residentInspection: Effect.Success<ReturnType<typeof makeResidentInspection>>
@@ -42,9 +42,11 @@ export type Dependencies = {
     key: string,
     reason?: ResidentUnavailableReason | undefined
   ) => Effect.Effect<void>
-  readonly residentReleaseUnit: (job: Pick<UnitJob, "reservation" | "released" | "revision">) => Effect.Effect<void>
+  readonly residentReleaseUnit: (
+    job: Pick<ReviewUnitJob, "reservation" | "released" | "revision">
+  ) => Effect.Effect<void>
   readonly residentJobActive: (job: Job) => Effect.Effect<boolean>
-  readonly residentIsCurrentWork: (revision: WorkRevision, prepared: PreparedUnit) => Effect.Effect<boolean>
+  readonly residentIsCurrentWork: (revision: WorkRevision, prepared: PreparedReviewUnit) => Effect.Effect<boolean>
   readonly residentAwaitBackendGate: () => Effect.Effect<void, ResidentAdapterError, never>
   readonly residentSettleJoined: (
     key: string,
@@ -56,12 +58,12 @@ export type Dependencies = {
   readonly residentOfflineHttpClient: HttpClient.HttpClient | undefined
   readonly residentControlledRequestEffect: ((signal: AbortSignal) => Promise<void>) | undefined
   readonly residentObserveDispatchAuthority: (
-    job: UnitJob,
+    job: ReviewUnitJob,
     details: DispatchAuthorityObservationDetails
   ) => Effect.Effect<void>
   readonly residentCredentialRequired: (controlled: ControlledDecisionModelOptions | undefined) => boolean
   readonly residentCredentialShapeMatches: (
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     name: string,
     required: boolean
   ) => boolean
@@ -73,7 +75,7 @@ export type Dependencies = {
   ) => Effect.Effect<void>
   readonly residentReuse: ReturnType<ResidentLedger["reuse"]>
   readonly runtimeConfiguration: Effect.Success<ReturnType<typeof makeResidentRuntimeConfiguration>>
-  readonly residentAdvice: () => Effect.Effect<readonly Advice[]>
+  readonly residentAdvice: () => Effect.Effect<readonly PendingAdviceHandle[]>
   readonly residentRecordJoinedOutcomes: (
     outcomes: readonly JoinedReviewOutcome[],
     adviceId?: string | undefined
@@ -90,21 +92,21 @@ export type Dependencies = {
 }
 
 export type EvaluationState = {
-  issuedRequest?: number
-  requestStarted: boolean
-  requestSettled: boolean
+  issuedReviewServiceRequestId?: number
+  reviewServiceRequestStarted: boolean
+  reviewServiceRequestSettled: boolean
   interruptionReported: boolean
   readyReported: boolean
   evaluationOutcomeObserved: boolean
-  requestIdentity?: Pick<
-    JevRequestObservation,
-    "partition" | "canonicalPartition" | "lifetime" | "canonicalLifetime" | "round" | "hapslandRound" | "operation"
+  reviewServiceRequestIdentity?: Pick<
+    ReviewServiceRequestObservation,
+    "partition" | "canonicalPartition" | "lifetime" | "canonicalLifetimeId" | "round" | "admissionRoundId" | "operation"
   >
 }
 
 export type EvaluationContext<Needs extends keyof Dependencies = keyof Dependencies> = {
   readonly deps: Pick<Dependencies, Needs>
-  readonly job: UnitJob
+  readonly job: ReviewUnitJob
   readonly sequence: number
   readonly signal: AbortSignal
   readonly state: EvaluationState

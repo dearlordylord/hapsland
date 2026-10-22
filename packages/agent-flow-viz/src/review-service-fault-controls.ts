@@ -1,9 +1,9 @@
 import type { HtmlBuilder } from "foldkit/html"
 import type { CanonicalProjection } from "@hapsland/canonical-policy/canonical/adapter"
 import {
-  validateJevIntervention,
-  type JevInterventionControl,
-  type JevInterventionReport
+  validateReviewServiceIntervention,
+  type ReviewServiceInterventionControl,
+  type ReviewServiceInterventionReport
 } from "../../monkey-business/src/jev-interventions"
 
 const outcomes = [
@@ -22,19 +22,19 @@ const results = {
 } as const
 
 /** Browser action decoding only; shared Bend decides whether the target applies. */
-export const jevFaultAction = (action: string): JevInterventionControl | undefined => {
+export const reviewServiceFaultAction = (action: string): ReviewServiceInterventionControl | undefined => {
   if (action.startsWith("credentials:")) {
     const credential = action.slice("credentials:".length)
     if (credential !== "unavailable" && credential !== "restore" && credential !== "rotate")
       throw new TypeError("invalid credential action")
-    return validateJevIntervention({ kind: "credentials", action: credential })
+    return validateReviewServiceIntervention({ kind: "credentials", action: credential })
   }
-  if (!action.startsWith("jev-request:")) return undefined
-  const [identity, outcome, extra] = action.slice("jev-request:".length).split(":")
+  if (!action.startsWith("review-service-reviewServiceRequestId:")) return undefined
+  const [identity, outcome, extra] = action.slice("review-service-reviewServiceRequestId:".length).split(":")
   if (!identity || extra !== undefined || !outcomes.some(([kind]) => kind === outcome))
-    throw new TypeError("invalid Jev request action")
+    throw new TypeError("invalid Review service request action")
   const values = identity.split(",").map(Number)
-  if (values.length !== 5) throw new TypeError("Jev request target requires its full identity")
+  if (values.length !== 5) throw new TypeError("Review service request target requires its full identity")
   const [partition, lifetime, round, operation, request] = values
   if (
     partition === undefined ||
@@ -43,18 +43,18 @@ export const jevFaultAction = (action: string): JevInterventionControl | undefin
     operation === undefined ||
     request === undefined
   )
-    throw new TypeError("incomplete Jev request target")
-  return validateJevIntervention({
-    kind: "jevRequest",
-    target: { partition, lifetime, round, operation, request },
+    throw new TypeError("incomplete Review service request target")
+  return validateReviewServiceIntervention({
+    kind: "reviewServiceRequest",
+    target: { partition, lifetime, round, operation, reviewServiceRequestId: request },
     outcome: outcome as (typeof outcomes)[number][0]
   })
 }
 
-export const jevFaultControls = <Message>(
+export const reviewServiceFaultControls = <Message>(
   h: HtmlBuilder<Message>,
   projection: CanonicalProjection,
-  reports: readonly JevInterventionReport[],
+  reports: readonly ReviewServiceInterventionReport[],
   act: (action: string) => Message,
   disabled: boolean
 ) => {
@@ -63,7 +63,7 @@ export const jevFaultControls = <Message>(
   return h.details(
     [h.Class("simulation-jev-interventions")],
     [
-      h.summary([], ["Jev request interventions & credentials"]),
+      h.summary([], ["Review service request interventions & credentials"]),
       h.p(
         [],
         [
@@ -78,18 +78,22 @@ export const jevFaultControls = <Message>(
           button("Rotate credentials", "credentials:rotate")
         ]
       ),
-      ...(projection.dispatch.requests.length
-        ? projection.dispatch.requests.map((target) => {
-            const identity = [target.partition, target.lifetime, target.round, target.operation, target.request].join(
-              ","
-            )
+      ...(projection.dispatch.reviewServiceRequests.length
+        ? projection.dispatch.reviewServiceRequests.map((target) => {
+            const identity = [
+              target.partition,
+              target.lifetime,
+              target.round,
+              target.operation,
+              target.reviewServiceRequestId
+            ].join(",")
             return h.fieldset(
               [],
               [
                 h.legend(
                   [],
                   [
-                    `Advicee ${target.partition} · lifetime ${target.lifetime} · round ${target.round} · operation ${target.operation} · request ${target.request}`
+                    `Advicee ${target.partition} · lifetime ${target.lifetime} · round ${target.round} · operation ${target.operation} · request ${target.reviewServiceRequestId}`
                   ]
                 ),
                 h.p(
@@ -104,18 +108,20 @@ export const jevFaultControls = <Message>(
                 ),
                 h.div(
                   [h.Class("simulation-controls")],
-                  outcomes.map(([outcome, label]) => button(label, `jev-request:${identity}:${outcome}`))
+                  outcomes.map(([outcome, label]) =>
+                    button(label, `review-service-reviewServiceRequestId:${identity}:${outcome}`)
+                  )
                 )
               ]
             )
           })
-        : [h.p([], ["No active Jev requests."])]),
+        : [h.p([], ["No active Review service requests."])]),
       h.ol(
         [h.AriaLabel("Jev intervention results")],
         reports.slice(-12).map((report) => {
           const target =
-            report.control.kind === "jevRequest"
-              ? `Advicee ${report.control.target.partition}, lifetime ${report.control.target.lifetime}, round ${report.control.target.round}, operation ${report.control.target.operation}, request ${report.control.target.request}: ${report.control.outcome}`
+            report.control.kind === "reviewServiceRequest"
+              ? `Advicee ${report.control.target.partition}, lifetime ${report.control.target.lifetime}, round ${report.control.target.round}, operation ${report.control.target.operation}, request ${report.control.target.reviewServiceRequestId}: ${report.control.outcome}`
               : `Credentials: ${report.control.action}`
           return h.li(
             [],

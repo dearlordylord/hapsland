@@ -95,7 +95,7 @@ export const bendCanonicalInventory = (state) =>
   run_loop($Ledger$058inventory$(state.ledger.limits));
 export const bendPreparationLimit = () =>
   run_loop($Dispatch$058max_running$());
-export const bendJevRequestLimit = () =>
+export const bendReviewServiceRequestLimit = () =>
   run_loop($Dispatch$058max_requests$());
 `
   )

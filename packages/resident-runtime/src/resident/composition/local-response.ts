@@ -1,6 +1,6 @@
 import type { DirectAdvicee } from "@hapsland/native-observation/direct-event/observation"
 import type {
-  ResidentDispatchContext,
+  ResidentReviewExecutionContext,
   ResidentRequest,
   ResidentResponse,
   CollectionMode
@@ -24,13 +24,13 @@ export const makeLocalResidentOperations = ({ lifetime, adviceCollection, respon
   function collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode?: CollectionMode
   ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>
   function collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode,
     authority: undefined,
     composed: true
@@ -38,7 +38,7 @@ export const makeLocalResidentOperations = ({ lifetime, adviceCollection, respon
   function collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode,
     authority: ResponseAuthority,
     composed?: boolean
@@ -46,7 +46,7 @@ export const makeLocalResidentOperations = ({ lifetime, adviceCollection, respon
   function collect(
     root: string,
     advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
+    dispatch: ResidentReviewExecutionContext,
     mode: CollectionMode = "ordinary",
     authority?: ResponseAuthority,
     composed = false

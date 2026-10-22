@@ -56,8 +56,8 @@ describe("resident protocol bounds", () => {
         gitInode: "3"
       },
       advicee: {
-        host: "claude-code",
-        hostVersion: "2.1.218",
+        agentRuntime: "claude-code",
+        agentRuntimeVersion: "2.1.218",
         sessionId: "session",
         turnId: null,
         subagentId: null,
@@ -82,15 +82,18 @@ describe("resident protocol bounds", () => {
     expect(wire).not.toHaveProperty("requestRoute")
     expect(wire).not.toHaveProperty("ticket")
     expect(decodeCurrentResidentRequest(JSON.stringify(wire))).toEqual(request)
-    for (const hostVersion of ["2.1.293", "3.0.0"]) {
-      const updated = { ...request, observation: { ...observation, advicee: { ...observation.advicee, hostVersion } } }
+    for (const agentRuntimeVersion of ["2.1.293", "3.0.0"]) {
+      const updated = {
+        ...request,
+        observation: { ...observation, advicee: { ...observation.advicee, agentRuntimeVersion } }
+      }
       expect(decodeCurrentResidentRequest(encodeCurrentResidentRequest(updated))).toEqual(updated)
     }
     expect(
       decodeCurrentResidentRequest(
         JSON.stringify({
           ...wire,
-          observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "invalid" } }
+          observation: { ...observation, advicee: { ...observation.advicee, agentRuntimeVersion: "invalid" } }
         })
       )
     ).toBeUndefined()
@@ -106,7 +109,7 @@ describe("resident protocol bounds", () => {
       { requestRoute: "edit" },
       { ticketed: true },
       { ticket: { nonce: "old", lifetime: "owner" } },
-      { observation: { ...observation, advicee: { ...observation.advicee, host: "opencode" } } }
+      { observation: { ...observation, advicee: { ...observation.advicee, agentRuntime: "opencode" } } }
     ]) {
       expect(decodeCurrentResidentRequest(JSON.stringify({ ...wire, ...change }))).toBeUndefined()
     }
@@ -241,7 +244,12 @@ describe("resident protocol bounds", () => {
         requestRoute,
         observation: {
           ...decoded.observation,
-          advicee: { ...decoded.observation.advicee, host: "claude-code", hostVersion: "2.1.218", turnId: null }
+          advicee: {
+            ...decoded.observation.advicee,
+            agentRuntime: "claude-code",
+            agentRuntimeVersion: "2.1.218",
+            turnId: null
+          }
         }
       }
       expect(decodeResidentRequest(JSON.stringify(admission))).toBeDefined()
@@ -271,7 +279,7 @@ describe("resident protocol bounds", () => {
           composed: true,
           lifetime: "lifetime",
           controlledWriter: true,
-          observation: { ...observation, advicee: { ...observation.advicee, hostVersion: "0.156.0" } },
+          observation: { ...observation, advicee: { ...observation.advicee, agentRuntimeVersion: "0.156.0" } },
           dispatch: { statePath: "/tmp/consent", userConfigPath: null, credential: null, controlled: {} }
         })
       )?.operation
@@ -454,7 +462,7 @@ it("bounds source-free native recording independently of review admission", () =
 })
 
 it("identifies incompatible removed operations through the bounded caller header without accepting their payload", () => {
-  const caller = { host: "codex-cli", sessionId: "agent", subagentId: "child" }
+  const caller = { agentRuntime: "codex-cli", sessionId: "agent", subagentId: "child" }
   const wire = {
     version: 1,
     hookContract: 2,

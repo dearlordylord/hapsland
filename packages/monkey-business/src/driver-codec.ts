@@ -10,7 +10,7 @@ import {
   decoder,
   Word
 } from "@hapsland/canonical-policy/canonical/boundary-schema"
-import type { CanonicalEvent, JevRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
+import type { CanonicalEvent, ReviewServiceRequestOutcome } from "@hapsland/canonical-policy/canonical/adapter"
 
 export type DriverCandidate = {
   partition: number
@@ -27,7 +27,7 @@ export type DriverAction = {
   job: boolean
   expiryAdvice?: number
 }
-const outcomeTags: Record<JevRequestOutcome, string> = {
+const outcomeTags: Record<ReviewServiceRequestOutcome, string> = {
   neverSent: "NeverSent",
   finding: "RequestFinding",
   clear: "RequestClear",
@@ -35,8 +35,12 @@ const outcomeTags: Record<JevRequestOutcome, string> = {
   timeout: "RequestTimeout",
   interrupted: "RequestInterrupted"
 }
-export const encodeDriverOutcome = (outcome: JevRequestOutcome): unknown => ({ $: `Canonical.${outcomeTags[outcome]}` })
+export const encodeDriverOutcome = (outcome: ReviewServiceRequestOutcome): unknown => ({
+  $: `Canonical.${outcomeTags[outcome]}`
+})
 const names: Record<string, string> = {
+  review_service_request_id: "reviewServiceRequestId",
+  submission_recorded: "submissionRecorded",
   left_sequence: "leftSequence",
   right_sequence: "rightSequence",
   extra_pending: "extraPending",
@@ -327,12 +331,12 @@ export const encodeDriverAction = (value: DriverAction): unknown => {
   }
 }
 
-export const decodeDriverOutcome = (value: unknown): JevRequestOutcome => {
+export const decodeDriverOutcome = (value: unknown): ReviewServiceRequestOutcome => {
   const tag = readRecord(value).$
   const outcome = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`)?.[0]
   if (outcome === undefined) throw new TypeError("invalid Driver outcome")
   decodeCanonicalConstructor(value, String(tag))
-  return outcome as JevRequestOutcome
+  return outcome as ReviewServiceRequestOutcome
 }
 
 const exactDriverRecord = (value: unknown, tag: string, fields: readonly string[]) => {

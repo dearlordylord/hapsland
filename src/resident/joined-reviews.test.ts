@@ -1,9 +1,9 @@
-import { providerIdentity } from "@hapsland/review-definition/review-providers/catalog"
+import { reviewServiceIdentity } from "@hapsland/review-definition/review-providers/catalog"
 import {
   freezeInput,
   freezeRules,
   semanticIdentity,
-  type PreparedUnit
+  type PreparedReviewUnit
 } from "@hapsland/review-definition/direct-event/model"
 import type { TypeDeclaration } from "@hapsland/source-artifacts/direct-event/artifact-model"
 import { TYPE_INPUT_CONTRACT } from "@hapsland/review-definition/rules/targets"
@@ -14,7 +14,7 @@ import { makeResidentState } from "@hapsland/resident-runtime/resident/capacity"
 import { advicee } from "@hapsland/build-tooling/test-support/test-fixtures"
 
 const measure = (value: unknown) => Buffer.byteLength(JSON.stringify(value))
-const prepare = (source: string): PreparedUnit => {
+const prepare = (source: string): PreparedReviewUnit => {
   const declaration: TypeDeclaration = {
     id: "type.ts::Count",
     kind: "type-alias",
@@ -23,7 +23,7 @@ const prepare = (source: string): PreparedUnit => {
     sourceHash: source
   }
   const input = freezeInput({
-    providerIdentity: providerIdentity({ provider: "jev" }),
+    reviewServiceIdentity: reviewServiceIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",
@@ -118,7 +118,7 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
     const recipe = makeResidentState()
     const first = yield* recipe
     const second = yield* recipe
-    expect(second.residentLifetime).not.toBe(first.residentLifetime)
+    expect(second.residentInstanceId).not.toBe(first.residentInstanceId)
     const before = yield* second.canonicalProjection()
     const joined = first.joinedReviews(measure)
     const revision = (yield* first.revision.register("fixture", prepare("type Count = number"), true, "revision"))

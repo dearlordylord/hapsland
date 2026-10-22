@@ -13,7 +13,7 @@ export const residentNotices =
   <Pending, DispatchKey, DispatchValue>({
     read,
     commitAllEffect,
-    residentLifetime
+    residentInstanceId
   }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) =>
   (maximumKeys: number, cooldownMs: number, lifetimeMs: number, measure: (value: unknown) => number) => {
     const noticeChange =
@@ -26,7 +26,7 @@ export const residentNotices =
         const owner = capacityOperations(
           (run) => run(draft),
           (run) => run(draft),
-          residentLifetime
+          residentInstanceId
         )
         const operations = noticeRecordOperations(
           notices,

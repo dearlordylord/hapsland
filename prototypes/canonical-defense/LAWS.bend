@@ -117,7 +117,7 @@ law ignored_clear_not_counted:
       T.ProductFrame{
         sequence,
         time,
-        C.JevRequestSettled{
+        C.ReviewServiceRequestSettled{
           partition,
           lifetime,
           round,

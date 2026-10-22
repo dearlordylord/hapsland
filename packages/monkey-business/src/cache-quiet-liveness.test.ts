@@ -24,7 +24,7 @@ it.each(["finding", "clear"] as const)(
     })
     run.advance({ untilTime: 2000, maxEvents: 1000 })
     const events = run.observations.map((frame) => frame.event.kind)
-    expect(events).toContain("jevRequestSettled")
+    expect(events).toContain("reviewServiceRequestSettled")
     expect(events).toContain("cachePrepare")
     expect(events).toContain("cacheCommit")
     expect(events).toContain("quietRoundTick")

@@ -1,7 +1,7 @@
 import type { CompletedEditReason } from "@hapsland/canonical-policy/canonical/adapter"
 import {
   type AdmissionProjection,
-  type Round,
+  type VirtualRoundSettings,
   type PermitTransition,
   type StopRecord,
   type DeliverySurface,
@@ -11,7 +11,7 @@ import {
 export type DeliveryPorts = {
   submissionTokenId: (token: string) => number
   expire: (now: number) => void
-  isActive: (partition: string, generation?: number) => boolean
+  isActive: (partition: string, admissionRoundId?: number) => boolean
   release: (token: string) => void
   markUncertain: (token: string) => boolean
   advance: (partition: string, marker: string, now: number, _promptDigest?: string) => boolean
@@ -26,8 +26,8 @@ export type DeliveryPorts = {
   toolId: (key: string) => number
   releaseAdmissionPermit: (partition: string, token: number) => void
   nextAdmissionRound: (admission: AdmissionProjection | undefined) => number
-  startRound: (partition: string, quietMs: number) => Round
-  readGeneration: (partition: string) => number
+  startRound: (partition: string, quietMs: number) => VirtualRoundSettings
+  readAdmissionRoundId: (partition: string) => number
   continuationCount: (partition: string, round?: number) => number
   isDeciding: (partition: string) => boolean
   canonicalCommandAccepted: (result: PermitTransition, expected: PermitTransition["outputs"][number]["kind"]) => boolean

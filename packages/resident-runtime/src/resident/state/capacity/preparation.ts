@@ -1,5 +1,5 @@
 import { CANONICAL_MAX_UNITS } from "@hapsland/canonical-policy/canonical/adapter"
-import { type CapacityDraft, type PreparationAdmission, type CapacityReservation } from "./model.ts"
+import { type CapacityDraft, type PreparationAdmission, type ReviewCapacityReservationHandle } from "./model.ts"
 import { roundId } from "./rounds.ts"
 import { transition } from "./canonical.ts"
 import { partitionId } from "./identities.ts"
@@ -77,10 +77,10 @@ export function completePreparation(
   draft: CapacityDraft,
   partition: string,
   operation: number,
-  reservation: CapacityReservation,
+  reservation: ReviewCapacityReservationHandle,
   sizes: readonly number[],
   round: number
-): ReadonlyArray<{ readonly operation: number; readonly reservation: CapacityReservation } | undefined> {
+): ReadonlyArray<{ readonly operation: number; readonly reservation: ReviewCapacityReservationHandle } | undefined> {
   if (
     draft.reservations.get(reservation.id)?.capability !== reservation ||
     sizes.length > CANONICAL_MAX_UNITS ||

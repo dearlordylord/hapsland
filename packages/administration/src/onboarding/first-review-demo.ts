@@ -548,7 +548,7 @@ export const executeInstalledCodexDemo = Effect.fn("FirstReviewDemo.executeInsta
         timeout: 10_000,
         maxBuffer: 1024 * 1024
       })
-      const hostVersion = version.succeeded ? version.stdout.trim() || "unavailable" : "unavailable"
+      const agentRuntimeVersion = version.succeeded ? version.stdout.trim() || "unavailable" : "unavailable"
       const validator = packageCommand("parser")
       const validationCommand = [validator.executable, ...validator.args, "--demo-validate"]
         .map((value) => `'${value.replaceAll("'", "'\\''")}'`)
@@ -598,7 +598,7 @@ export const executeInstalledCodexDemo = Effect.fn("FirstReviewDemo.executeInsta
       return {
         host: {
           completed: host.completed,
-          version: hostVersion,
+          version: agentRuntimeVersion,
           durationMs: host.durationMs,
           eventCounts,
           stdoutBytes: Buffer.byteLength(host.stdout, "utf8"),
@@ -730,7 +730,7 @@ const hostProcessEvidence = (value: DemoExecution | undefined) => ({
   hostStderrBytes: value?.host.stderrBytes ?? null
 })
 const hostEvidence = (value: DemoExecution | undefined) => ({
-  hostVersion: value?.host.version ?? "unavailable",
+  agentRuntimeVersion: value?.host.version ?? "unavailable",
   hostFailure: value?.host.failure ?? null,
   hostDurationMs: value?.host.durationMs ?? null,
   editChanged: value?.repair.changed ?? false,

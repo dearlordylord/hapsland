@@ -207,11 +207,25 @@ describe("trusted simulation composition boundary", () => {
     const original = initialSharedCanonical(limits)
     const existing = issueSharedCallback(
       original,
-      { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 },
+      {
+        kind: "reviewServiceRequestStarted",
+        partition: 2,
+        lifetime: 3,
+        round: 4,
+        operation: 5,
+        reviewServiceRequestId: 6
+      },
       7,
       2,
       {
-        event: { kind: "jevRequestStarted", partition: 2, lifetime: 3, round: 4, operation: 5, request: 6 },
+        event: {
+          kind: "reviewServiceRequestStarted",
+          partition: 2,
+          lifetime: 3,
+          round: 4,
+          operation: 5,
+          reviewServiceRequestId: 6
+        },
         delay: 0,
         job: false
       }

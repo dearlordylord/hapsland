@@ -190,8 +190,8 @@ describe("Claude Code direct adapter", () => {
     expect(observation).toMatchObject({
       root,
       advicee: {
-        host: "claude-code",
-        hostVersion: "2.1.293",
+        agentRuntime: "claude-code",
+        agentRuntimeVersion: "2.1.293",
         sessionId: "session-a",
         turnId: null,
         toolUseId: "tool-a",

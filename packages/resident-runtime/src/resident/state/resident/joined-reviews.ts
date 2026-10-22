@@ -9,7 +9,7 @@ export const residentJoinedReviews =
   <Pending, DispatchKey, DispatchValue>({
     read,
     commitAllEffect,
-    residentLifetime
+    residentInstanceId
   }: ResidentTransaction<Pending, DispatchKey, DispatchValue>) =>
   (logicalBytes: (value: unknown) => number): JoinedReviews<Pending> => {
     const joinedChange =
@@ -23,7 +23,7 @@ export const residentJoinedReviews =
         const owner = capacityOperations(
           (run) => run(draft),
           (run) => run(draft),
-          residentLifetime
+          residentInstanceId
         )
         const revisionOps = revisionOperations(revision, owner)
         const reuseOps = evaluationReuseOperations(reuse, owner, logicalBytes)
