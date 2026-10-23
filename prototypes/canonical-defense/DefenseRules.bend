@@ -1,5 +1,6 @@
 # Game host interprets actual request receipts; shared NativeRun stays authoritative.
 import Base
+import ./DefenseRouteQueue.bend as Queue
 import ./DefenseLiveMotionTypes.bend as LiveTypes
 import ../../packages/monkey-business-bend/Callbacks.bend as CB
 import ./DefenseRuleTypes.bend as R
@@ -798,16 +799,27 @@ def can_move_actor(+actor: V.Actor, +world: M.World) -> Bool:
   ) || carrier_found(group) || Motion.empty(Motion.path(actor)))
 
 
-def play_when(assigned: Bool, +actor: V.Actor, +all: List<&2, V.Actor>) -> Bool:
+def play_when(
+  assigned: Bool,
+  +actor: V.Actor,
+  +all: List<&2, V.Actor>,
+  tracks: List<&2, Queue.Track>
+) -> Bool:
   match assigned:
     case True{}: Motion.ready(Motion.waiting(actor), all)
-    case False{}: Motion.can_play(actor, all)
-def can_play(+actor: V.Actor, +world: M.World, all: List<&2, V.Actor>) -> Bool:
+    case False{}: Motion.can_play_with(actor, all, tracks)
+def can_play(
+  +actor: V.Actor,
+  +world: M.World,
+  all: List<&2, V.Actor>,
+  tracks: List<&2, Queue.Track>
+) -> Bool:
   +group = find(Motion.actor_key(actor), groups(M.rules(world)))
   play_when(
     (U32.is_eq(Motion.visible_phase(actor), 4) && assigned(group)) || split_owner(group),
     actor,
-    all
+    all,
+    tracks
   )
 
 # Additional movement never advances an already completed actor's terminal TTL.
@@ -816,20 +828,27 @@ def more_actor_steps(on: Bool, actor: V.Actor, continue: V.Actor -> V.Actor) -> 
   match on:
     case True{}: continue(actor)
     case False{}: actor
-def boosted_actor(fuel: Nat, +actor: V.Actor, +world: M.World, +all: List<&2, V.Actor>) -> V.Actor:
+def boosted_actor(
+  fuel: Nat,
+  +actor: V.Actor,
+  +world: M.World,
+  +all: List<&2, V.Actor>,
+  +tracks: List<&2, Queue.Track>
+) -> V.Actor:
   match fuel:
     case 0n: actor
     case 1n+n:
       continue: V.Actor -> V.Actor = +a => boosted_actor(
         n,
-        Motion.move_when(can_play(a, world, all) && can_move_actor(a, world), a),
+        Motion.move_when(can_play(a, world, all, tracks) && can_move_actor(a, world), a),
         world,
-        all
+        all,
+        tracks
       )
       more_actor_steps(
         Bool.not(
           Motion.empty(Motion.path(actor))
-        ) && can_play(actor, world, all) && can_move_actor(actor, world),
+        ) && can_play(actor, world, all, tracks) && can_move_actor(actor, world),
         actor,
         continue
       )
@@ -837,24 +856,29 @@ def boosted_actor(fuel: Nat, +actor: V.Actor, +world: M.World, +all: List<&2, V.
 def actor_steps(
   items: List<&2, V.Actor>,
   +world: M.World,
-  +all: List<&2, V.Actor>
+  +all: List<&2, V.Actor>,
+  +tracks: List<&2, Queue.Track>
 ) -> List<&2, V.Actor>:
   match items:
     case Nil{}: []
     case +actor <> tail:
-      +ordinary = Motion.move_when(
-        can_play(actor, world, all) && can_move_actor(actor, world),
+      +ordinary = Motion.ordinary_step(
+        can_play(actor, world, all, tracks) && can_move_actor(actor, world),
         actor
       )
       +next = boosted_actor(
         Nat.sub(owner_boost(M.mobs(world), Motion.actor_key(actor)), 1n),
         ordinary,
         world,
-        all
+        all,
+        tracks
       )
-      Motion.alive_keep(Motion.alive(next), next, actor_steps(tail, world, all))
+      Motion.alive_keep(Motion.alive(next), next, actor_steps(tail, world, all, tracks))
 def step_actors(+world: M.World) -> M.World:
-  M.with_actors(world, actor_steps(M.actors(world), world, M.actors(world)))
+  M.with_actors(
+    world,
+    actor_steps(M.actors(world), world, M.actors(world), Queue.tracks(M.actors(world)))
+  )
 
 def controlled(world: M.World, result: T.Controlled) -> M.World:
   match result:

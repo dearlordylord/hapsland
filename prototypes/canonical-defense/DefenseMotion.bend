@@ -1,5 +1,6 @@
 # Every accepted frame contributes to the path, including intermediate stages.
 import Base
+import ./DefenseRouteQueue.bend as Queue
 import ../../packages/agent-flow-bend/CollectionState.bend as Collection
 import ../../packages/agent-flow-bend/DeliveryState.bend as Delivery
 import ../../packages/agent-flow-bend/SubmissionState.bend as Submission
@@ -531,75 +532,19 @@ def entrance(actor: V.Actor) -> Bool:
   match actor:
     case V.Actor{+k, f, _, x, _, p, _, _, _, _, _, _, released}:
       Nat.is_eq(operation(k), f) && U32.is_eq(p, 0)
-def entrance_clear(+actor: V.Actor, others: List<&2, V.Actor>) -> Bool:
-  match others:
-    case Nil{}: True{}
-    case +other <> rest:
-      Bool.not(
-        before(
-          actor_key(other),
-          actor_key(actor)
-        ) && entrance(other) && (Map.segment_length(point(actor), point(other)) < 24 : U32)
-      ) && entrance_clear(actor, rest)
-# Shared room paths need physical spacing even while Canonical has advanced ahead.
-def shared_room(+actor: V.Actor, +other: V.Actor) -> Bool:
-  +phase = visible_phase(actor)
-  U32.is_eq(phase, visible_phase(other)) && (U32.is_eq(phase, 1) || U32.is_eq(phase, 2) || U32.is_eq(
-    phase,
-    4
-  ) || U32.is_eq(
-    phase,
-    5
-  ) || U32.is_eq(
-    phase,
-    3
-  ) || U32.is_eq(
-    phase,
-    6
-  ))
-def branch_clear(+actor: V.Actor, others: List<&2, V.Actor>) -> Bool:
-  match others:
-    case Nil{}: True{}
-    case +other <> rest:
-      Bool.not(
-        shared_room(
-          actor,
-          other
-        ) && before(
-          actor_key(other),
-          actor_key(actor)
-        ) && (Map.segment_length(point(actor), point(other)) < 28 : U32)
-      ) && branch_clear(actor, rest)
+# Queue occupancy is directed progress, never proximity across maze walls.
+def branch_clear(+actor: V.Actor, all: List<&2, V.Actor>) -> Bool:
+  Queue.clear(Queue.track(actor), Queue.tracks(all))
+def can_play_with(+actor: V.Actor, +all: List<&2, V.Actor>, tracks: List<&2, Queue.Track>) -> Bool:
+  ready(waiting(actor), all) && Queue.clear(Queue.track(actor), tracks)
 def can_play(+actor: V.Actor, +all: List<&2, V.Actor>) -> Bool:
-  ready(waiting(actor), all) && branch_clear(actor, all) && (Bool.not(entrance(actor)) || entrance_clear(
-    actor,
-    all
-  ))
-def spatial_blocker(+actor: V.Actor, others: List<&2, V.Actor>) -> List<&2, V.WorkIdentity>:
-  match others:
-    case Nil{}: []
-    case +other <> rest:
-      Bool.pick(
-        List<&2, V.WorkIdentity>,
-        before(
-          actor_key(other),
-          actor_key(actor)
-        ) && ((shared_room(
-          actor,
-          other
-        ) && (Map.segment_length(
-          point(actor),
-          point(other)
-        ) < 28 : U32)) || (entrance(
-          actor
-        ) && entrance(other) && (Map.segment_length(point(actor), point(other)) < 24 : U32))),
-        [actor_key(other)],
-        spatial_blocker(actor, rest)
-      )
+  can_play_with(actor, all, Queue.tracks(all))
+def spatial_blocker(actor: V.Actor, all: List<&2, V.Actor>) -> List<&2, V.WorkIdentity>:
+  Queue.blocker(Queue.track(actor), Queue.tracks(all))
 def wait_kind(+actor: V.Actor, +all: List<&2, V.Actor>) -> U32:
   Display.wait_kind(
     ready(waiting(actor), all),
-    branch_clear(actor, all) && (Bool.not(entrance(actor)) || entrance_clear(actor, all)),
+    branch_clear(actor, all),
     Bool.not(empty(path(actor))),
     U32.is_eq(observed_phase(actor), 5) && U32.is_eq(terminal(actor), 0)
   )
@@ -625,10 +570,19 @@ def alive_keep(active: Bool, actor: V.Actor, rest: List<&2, V.Actor>) -> List<&2
     case True{}: actor <> rest
     case False{}: rest
 # One recursive pass. Eager Bool.pick arguments must not duplicate the tail.
-def tick(actors: List<&2, V.Actor>, +all: List<&2, V.Actor>) -> List<&2, V.Actor>:
+# End-history ageing is independent of route occupancy; pause skips this tick.
+def ordinary_step(active: Bool, +actor: V.Actor) -> V.Actor:
+  move_when(active || empty(path(actor)), actor)
+def tick(
+  actors: List<&2, V.Actor>,
+  +all: List<&2, V.Actor>,
+  +tracks: List<&2, Queue.Track>
+) -> List<&2, V.Actor>:
   match actors:
     case Nil{}: []
     case +actor <> rest:
-      +next = move_when(can_play(actor, all), actor)
-      alive_keep(alive(next), next, tick(rest, all))
-def step(+actors: List<&2, V.Actor>) -> List<&2, V.Actor>: tick(actors, actors)
+      +next = ordinary_step(can_play_with(actor, all, tracks), actor)
+      alive_keep(alive(next), next, tick(rest, all, tracks))
+def step(
+  +actors: List<&2, V.Actor>
+) -> List<&2, V.Actor>: tick(actors, actors, Queue.tracks(actors))

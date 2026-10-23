@@ -101,7 +101,7 @@ export function stateSlice(directory, { law, mutate, ownerSource = read("Defense
   writeFileSync(join(directory, "DefenseMotion.bend"), imports + kept.map(([, text]) => text).join("\n"))
   const canonical = read("../../packages/agent-flow-bend/Canonical.bend")
   const declarations = canonical.split(/(?=^(?:type|def|law) )/m)
-  const types = ["Work", "WorkKind"].map(name => {
+  const types = ["ReviewWorkRecord", "ReviewWorkPhase"].map(name => {
     const found = declarations.filter(part => part.startsWith(`type ${name} is Data:`))
     assert.equal(found.length, 1, `Missing exact Canonical type ${name}`)
     return found[0]
@@ -126,5 +126,5 @@ export function stateSlice(directory, { law, mutate, ownerSource = read("Defense
   const redirect = source => source.replace(/^import .*Canonical\.bend as C$/m, "import ./Canonical.bend as C")
   writeFileSync(join(directory, "MotionStateLAWS.bend"), redirect(laws))
   writeFileSync(join(directory, "MotionStatePROOF.bend"), proofs)
-  return { abstractSuffix, selectedDefinitions: kept.map(([name]) => name), selectedMapDefinitions: keptMap.map(([name]) => name), canonicalTypes: ["Work", "WorkKind"] }
+  return { abstractSuffix, selectedDefinitions: kept.map(([name]) => name), selectedMapDefinitions: keptMap.map(([name]) => name), canonicalTypes: ["ReviewWorkRecord", "ReviewWorkPhase"] }
 }

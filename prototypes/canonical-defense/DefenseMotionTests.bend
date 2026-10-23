@@ -132,13 +132,9 @@ def blocked_stays_visible() -> Bool:
       [Motion.birth_actor(C.ReviewWorkRecord{1n, 1n, 1n, 7n, 7n, C.Reviewing{}, 1n}, 0, 0n, 0, [])]
     )
   )
-  +leader = Motion.birth_actor(
+  +leader = single(steps(4n, [Motion.birth_actor(
     C.ReviewWorkRecord{1n, 1n, 1n, 6n, 6n, C.Reviewing{}, 1n},
-    0,
-    0n,
-    0,
-    []
-  )
+    0, 0n, 0, [])]))
   Bool.not(Motion.can_play(actor, [leader, actor])) && Motion.drawable(actor, [leader, actor])
 def edit_roads(+layout: U32) -> Bool:
   separated_pair(

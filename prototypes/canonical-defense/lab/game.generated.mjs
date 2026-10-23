@@ -37834,91 +37834,6 @@ function $DefenseModel$058with_mobs$(_world_0, _value_0) {
   return $DefenseModel$058with_control$(_world_0, ($DefenseModel$058control_with_mobs$(($DefenseModel$058control$(_world_0)), _value_0)));
 }
 
-function $DefensePresentation$058parent$(_actor_0) {
-  const _owner_0 = _actor_0["predecessor"];
-  return _owner_0;
-}
-
-function $DefensePresentation$058outcome$(_actor_0) {
-  const _cause_0 = _actor_0["outcome"];
-  return _cause_0;
-}
-
-function $DefensePresentation$058pending_parent$(_actor_0) {
-  const _owner_0 = _actor_0["predecessor"];
-  const _released_0 = _actor_0["released"];
-  return $Bool$pick$(_released_0, {$: "Nil"}, _owner_0);
-}
-
-function $DefensePresentation$058repose$(_actor_0, _x_0, _y_0, _phase_0, _steps_0, _shown_0) {
-  const _k_0 = _actor_0["key"];
-  const _f_0 = _actor_0["family"];
-  const _l_0 = _actor_0["lane"];
-  const _seen_0 = _actor_0["observed"];
-  const _t_0 = _actor_0["terminal"];
-  const _owner_0 = _actor_0["predecessor"];
-  const _cause_0 = _actor_0["outcome"];
-  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _phase_0, "observed": _seen_0, "path": _steps_0, "terminal": _t_0, "predecessor": _owner_0, "shown": _shown_0, "outcome": _cause_0, "released": true};
-}
-
-function $DefensePresentation$058terminal_display$(_actor_0) {
-  const _t_0 = _actor_0["path"];
-  if (_t_0.$ === "Nil") {
-    const _t_1 = _actor_0["terminal"];
-    return (_t_1 > 0);
-  } else {
-    return false;
-  }
-}
-
-function $DefensePresentation$058keep$(_travelling_0, _handed_off_0, _timer_live_0) {
-  if (_travelling_0) {
-    return true;
-  } else {
-    if (_handed_off_0) {
-      return false;
-    } else {
-      return _timer_live_0;
-    }
-  }
-}
-
-function $DefensePresentation$058wait_kind$(_parent_ready_0, _space_ready_0, _travelling_0, _retained_0) {
-  if (!_parent_ready_0) {
-    return 1;
-  } else {
-    if (!_space_ready_0) {
-      return 2;
-    } else {
-      if (_travelling_0) {
-        return 0;
-      } else {
-        if (_retained_0) {
-          return 3;
-        } else {
-          return 4;
-        }
-      }
-    }
-  }
-}
-
-function $DefensePresentation$058retirement_outcome$(_cause_0) {
-  if (_cause_0 == 10) {
-    return 0;
-  } else if ((_cause_0 & 1) == 0) {
-    const _8_0 = u32_to_word(_cause_0)["tail"]["head"];
-    const _9_0 = u32_to_word(_cause_0)["tail"]["tail"];
-    return word_to_u32({$: "WCon", "head": false, "tail": {$: "WCon", "head": _8_0, "tail": _9_0}});
-  } else if (_cause_0 == 11) {
-    return 0;
-  } else {
-    const _70_0 = u32_to_word(_cause_0)["tail"]["head"];
-    const _71_0 = u32_to_word(_cause_0)["tail"]["tail"];
-    return word_to_u32({$: "WCon", "head": true, "tail": {$: "WCon", "head": _70_0, "tail": _71_0}});
-  }
-}
-
 function $DefenseMap$058px$(_point_0) {
   const _x_0 = _point_0["x"];
   return _x_0;
@@ -40956,6 +40871,216 @@ function $DefenseMap$058layout_valid$(_layout_0) {
   return $Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($Bool$and$(($DefenseMap$058road_entry$(_layout_0, 1, 0, ($DefenseMap$058source_route$(_layout_0)))), ($DefenseMap$058road_exit$(_layout_0, 1, ($DefenseMap$058preparation_route$(_layout_0)))))), ($DefenseMap$058road_entry$(_layout_0, 2, 0, ($DefenseMap$058preparation_route$(_layout_0)))))), ($DefenseMap$058road_exit$(_layout_0, 2, ($DefenseMap$058review_route$(_layout_0, 0)))))), ($DefenseMap$058road_entry$(_layout_0, 4, 0, ($DefenseMap$058review_route$(_layout_0, 0)))))), ($DefenseMap$058road_exit$(_layout_0, 2, ($DefenseMap$058review_route$(_layout_0, 1)))))), ($DefenseMap$058road_entry$(_layout_0, 4, 1, ($DefenseMap$058review_route$(_layout_0, 1)))))), ($DefenseMap$058road_exit$(_layout_0, 4, ($DefenseMap$058retained_route$(_layout_0)))))), ($DefenseMap$058road_entry$(_layout_0, 5, 0, ($DefenseMap$058retained_route$(_layout_0)))))), ($DefenseMap$058normal_port$(($DefenseMap$058center$(_layout_0, 4, 0)), ($DefenseMap$058clear_side$(_layout_0)), ($DefenseMap$058first$(($DefenseMap$058clear_route$(_layout_0)))), ($DefenseMap$058second$(($DefenseMap$058clear_route$(_layout_0)))))))), ($DefenseMap$058road_exit$(_layout_0, 5, ($DefenseMap$058delivery_route$(_layout_0)))))), ($DefenseMap$058room_valid$(_layout_0, 1, 0)))), ($DefenseMap$058room_valid$(_layout_0, 2, 0)))), ($DefenseMap$058room_valid$(_layout_0, 4, 0)))), ($DefenseMap$058room_valid$(_layout_0, 4, 1)))), ($DefenseMap$058room_valid$(_layout_0, 5, 0)));
 }
 
+function $DefenseRouteQueue$058measured$(_point_0, _next_0, _same_0, _result_0) {
+  const _distance_0 = _result_0["fst"];
+  const _end_0 = _result_0["snd"];
+  const _x_0 = ($DefenseMap$058segment_length$(_point_0, _next_0));
+  return $Bool$pick$(_same_0, {$: "Tuple", "fst": nat_chk(_x_0 + _distance_0), "snd": _end_0}, {$: "Tuple", "fst": 0, "snd": _point_0});
+}
+
+function $DefenseRouteQueue$058measure$(_items_0, _point_0, _phase_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Tuple", "fst": 0, "snd": _point_0};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _x_0 = _t_0["x"];
+    const _y_0 = _t_0["y"];
+    const _p_0 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    const _next_0 = {$: "DefenseMap.Point", "x": _x_0, "y": _y_0};
+    return $DefenseRouteQueue$058measured$(_point_0, _next_0, (_p_0 === _phase_0), ($DefenseRouteQueue$058measure$(_rest_0, _next_0, _phase_0)));
+  }
+}
+
+function $DefenseRouteQueue$058tracked$(_k_0, _p_0, _retained_0, _value_0) {
+  const _remaining_0 = _value_0["fst"];
+  const _end_0 = _value_0["snd"];
+  const _x_0 = ($Nat$is_gt$(_remaining_0, 0));
+  return {$: "DefenseRouteQueue.Track", "key": _k_0, "phase": _p_0, "end": _end_0, "remaining": _remaining_0, "moving": (_retained_0 || _x_0)};
+}
+
+function $DefenseRouteQueue$058track$(_actor_0) {
+  const _k_0 = _actor_0["key"];
+  const _x_0 = _actor_0["x"];
+  const _y_0 = _actor_0["y"];
+  const _p_0 = _actor_0["phase"];
+  const _path_0 = _actor_0["path"];
+  const _timer_0 = _actor_0["terminal"];
+  const _cause_0 = _actor_0["outcome"];
+  return $DefenseRouteQueue$058tracked$(_k_0, _p_0, ($Bool$and$((_timer_0 === 0), ($Bool$not$((_cause_0 === 6))))), ($DefenseRouteQueue$058measure$(_path_0, {$: "DefenseMap.Point", "x": _x_0, "y": _y_0}, _p_0)));
+}
+
+function $DefenseRouteQueue$058tracks$(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _actor_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return {$: "Con", "head": ($DefenseRouteQueue$058track$(_actor_0)), "tail": ($DefenseRouteQueue$058tracks$(_rest_0))};
+  }
+}
+
+function $DefenseRouteQueue$058before$(_a_0, _b_0) {
+  const _ap_0 = _a_0["partition"];
+  const _al_0 = _a_0["lifetime"];
+  const _ar_0 = _a_0["round"];
+  const _ao_0 = _a_0["operation"];
+  const _bp_0 = _b_0["partition"];
+  const _bl_0 = _b_0["lifetime"];
+  const _br_0 = _b_0["round"];
+  const _bo_0 = _b_0["operation"];
+  const _x_0 = (_ar_0 < _br_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_ar_0, _br_0)), (_ao_0 < _bo_0)));
+  const _x_2 = (_al_0 < _bl_0);
+  const _x_3 = ($Bool$and$(($Nat$is_eq$(_al_0, _bl_0)), (_x_0 || _x_1)));
+  const _x_4 = (_ap_0 < _bp_0);
+  const _x_5 = ($Bool$and$(($Nat$is_eq$(_ap_0, _bp_0)), (_x_2 || _x_3)));
+  return (_x_4 || _x_5);
+}
+
+function $DefenseRouteQueue$058ahead$(_remaining_0, _other_0, _earlier_0) {
+  const _x_0 = (_other_0 < _remaining_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_other_0, _remaining_0)), _earlier_0));
+  return (_x_0 || _x_1);
+}
+
+function $DefenseRouteQueue$058blocks$(_a_0, _b_0) {
+  const _k_0 = _a_0["key"];
+  const _p_0 = _a_0["phase"];
+  const _end_0 = _a_0["end"];
+  const _remaining_0 = _a_0["remaining"];
+  const _t_0 = _a_0["moving"];
+  if (_t_0) {
+    const _other_0 = _b_0["key"];
+    const _q_0 = _b_0["phase"];
+    const _finish_0 = _b_0["end"];
+    const _left_0 = _b_0["remaining"];
+    const _t_1 = _b_0["moving"];
+    if (_t_1) {
+      const _x_0 = (_remaining_0 < _left_0 ? 0 : _remaining_0 - _left_0);
+      return $Bool$and$(($Bool$and$(($Bool$and$((_p_0 === _q_0), ($DefenseMap$058same$(_end_0, _finish_0)))), ($DefenseRouteQueue$058ahead$(_remaining_0, _left_0, ($DefenseRouteQueue$058before$(_other_0, _k_0)))))), (_x_0 < 28));
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $DefenseRouteQueue$058clear$(_actor_0, _others_0) {
+  if (_others_0.$ === "Nil") {
+    return true;
+  } else {
+    const _other_0 = _others_0["head"];
+    const _rest_0 = _others_0["tail"];
+    return $Bool$and$(($Bool$not$(($DefenseRouteQueue$058blocks$(_actor_0, _other_0)))), ($DefenseRouteQueue$058clear$(_actor_0, _rest_0)));
+  }
+}
+
+function $DefenseRouteQueue$058blocked_key$(_on_0, _item_0, _rest_0) {
+  if (_on_0) {
+    const _k_0 = _item_0["key"];
+    return {$: "Con", "head": _k_0, "tail": {$: "Nil"}};
+  } else {
+    return _rest_0;
+  }
+}
+
+function $DefenseRouteQueue$058blocker$(_actor_0, _others_0) {
+  if (_others_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _other_0 = _others_0["head"];
+    const _rest_0 = _others_0["tail"];
+    return $DefenseRouteQueue$058blocked_key$(($DefenseRouteQueue$058blocks$(_actor_0, _other_0)), _other_0, ($DefenseRouteQueue$058blocker$(_actor_0, _rest_0)));
+  }
+}
+
+function $DefensePresentation$058parent$(_actor_0) {
+  const _owner_0 = _actor_0["predecessor"];
+  return _owner_0;
+}
+
+function $DefensePresentation$058outcome$(_actor_0) {
+  const _cause_0 = _actor_0["outcome"];
+  return _cause_0;
+}
+
+function $DefensePresentation$058pending_parent$(_actor_0) {
+  const _owner_0 = _actor_0["predecessor"];
+  const _released_0 = _actor_0["released"];
+  return $Bool$pick$(_released_0, {$: "Nil"}, _owner_0);
+}
+
+function $DefensePresentation$058repose$(_actor_0, _x_0, _y_0, _phase_0, _steps_0, _shown_0) {
+  const _k_0 = _actor_0["key"];
+  const _f_0 = _actor_0["family"];
+  const _l_0 = _actor_0["lane"];
+  const _seen_0 = _actor_0["observed"];
+  const _t_0 = _actor_0["terminal"];
+  const _owner_0 = _actor_0["predecessor"];
+  const _cause_0 = _actor_0["outcome"];
+  return {$: "DefenseMotionTypes.Actor", "key": _k_0, "family": _f_0, "lane": _l_0, "x": _x_0, "y": _y_0, "phase": _phase_0, "observed": _seen_0, "path": _steps_0, "terminal": _t_0, "predecessor": _owner_0, "shown": _shown_0, "outcome": _cause_0, "released": true};
+}
+
+function $DefensePresentation$058terminal_display$(_actor_0) {
+  const _t_0 = _actor_0["path"];
+  if (_t_0.$ === "Nil") {
+    const _t_1 = _actor_0["terminal"];
+    return (_t_1 > 0);
+  } else {
+    return false;
+  }
+}
+
+function $DefensePresentation$058keep$(_travelling_0, _handed_off_0, _timer_live_0) {
+  if (_travelling_0) {
+    return true;
+  } else {
+    if (_handed_off_0) {
+      return false;
+    } else {
+      return _timer_live_0;
+    }
+  }
+}
+
+function $DefensePresentation$058wait_kind$(_parent_ready_0, _space_ready_0, _travelling_0, _retained_0) {
+  if (!_parent_ready_0) {
+    return 1;
+  } else {
+    if (!_space_ready_0) {
+      return 2;
+    } else {
+      if (_travelling_0) {
+        return 0;
+      } else {
+        if (_retained_0) {
+          return 3;
+        } else {
+          return 4;
+        }
+      }
+    }
+  }
+}
+
+function $DefensePresentation$058retirement_outcome$(_cause_0) {
+  if (_cause_0 == 10) {
+    return 0;
+  } else if ((_cause_0 & 1) == 0) {
+    const _8_0 = u32_to_word(_cause_0)["tail"]["head"];
+    const _9_0 = u32_to_word(_cause_0)["tail"]["tail"];
+    return word_to_u32({$: "WCon", "head": false, "tail": {$: "WCon", "head": _8_0, "tail": _9_0}});
+  } else if (_cause_0 == 11) {
+    return 0;
+  } else {
+    const _70_0 = u32_to_word(_cause_0)["tail"]["head"];
+    const _71_0 = u32_to_word(_cause_0)["tail"]["tail"];
+    return word_to_u32({$: "WCon", "head": true, "tail": {$: "WCon", "head": _70_0, "tail": _71_0}});
+  }
+}
+
 function $DefenseMotion$058key$(_work_0) {
   const _p_0 = _work_0["partition"];
   const _l_0 = _work_0["lifetime"];
@@ -41699,70 +41824,26 @@ function $DefenseMotion$058entrance$(_actor_0) {
   return $Bool$and$(($Nat$is_eq$(($DefenseMotion$058operation$(_k_0)), _f_0)), (_p_0 === 0));
 }
 
-function $DefenseMotion$058entrance_clear$(_actor_0, _others_0) {
-  if (_others_0.$ === "Nil") {
-    return true;
-  } else {
-    const _other_0 = _others_0["head"];
-    const _rest_0 = _others_0["tail"];
-    const _x_0 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
-    return $Bool$and$(($Bool$not$(($Bool$and$(($Bool$and$(($DefenseMotion$058before$(($DefenseMotion$058actor_key$(_other_0)), ($DefenseMotion$058actor_key$(_actor_0)))), ($DefenseMotion$058entrance$(_other_0)))), (_x_0 < 24))))), ($DefenseMotion$058entrance_clear$(_actor_0, _rest_0)));
-  }
+function $DefenseMotion$058branch_clear$(_actor_0, _all_0) {
+  return $DefenseRouteQueue$058clear$(($DefenseRouteQueue$058track$(_actor_0)), ($DefenseRouteQueue$058tracks$(_all_0)));
 }
 
-function $DefenseMotion$058shared_room$(_actor_0, _other_0) {
-  const _phase_0 = ($DefenseMotion$058visible_phase$(_actor_0));
-  const _x_0 = ($DefenseMotion$058visible_phase$(_other_0));
-  const _x_1 = (_phase_0 === 1);
-  const _x_2 = (_phase_0 === 2);
-  const _x_3 = (_x_1 || _x_2);
-  const _x_4 = (_phase_0 === 4);
-  const _x_5 = (_x_3 || _x_4);
-  const _x_6 = (_phase_0 === 5);
-  const _x_7 = (_x_5 || _x_6);
-  const _x_8 = (_phase_0 === 3);
-  const _x_9 = (_x_7 || _x_8);
-  const _x_10 = (_phase_0 === 6);
-  return $Bool$and$((_phase_0 === _x_0), (_x_9 || _x_10));
-}
-
-function $DefenseMotion$058branch_clear$(_actor_0, _others_0) {
-  if (_others_0.$ === "Nil") {
-    return true;
-  } else {
-    const _other_0 = _others_0["head"];
-    const _rest_0 = _others_0["tail"];
-    const _x_0 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
-    return $Bool$and$(($Bool$not$(($Bool$and$(($Bool$and$(($DefenseMotion$058shared_room$(_actor_0, _other_0)), ($DefenseMotion$058before$(($DefenseMotion$058actor_key$(_other_0)), ($DefenseMotion$058actor_key$(_actor_0)))))), (_x_0 < 28))))), ($DefenseMotion$058branch_clear$(_actor_0, _rest_0)));
-  }
+function $DefenseMotion$058can_play_with$(_actor_0, _all_0, _tracks_0) {
+  return $Bool$and$(($DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0)), ($DefenseRouteQueue$058clear$(($DefenseRouteQueue$058track$(_actor_0)), _tracks_0)));
 }
 
 function $DefenseMotion$058can_play$(_actor_0, _all_0) {
-  const _x_0 = ($Bool$not$(($DefenseMotion$058entrance$(_actor_0))));
-  const _x_1 = ($DefenseMotion$058entrance_clear$(_actor_0, _all_0));
-  return $Bool$and$(($Bool$and$(($DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0)), ($DefenseMotion$058branch_clear$(_actor_0, _all_0)))), (_x_0 || _x_1));
+  return $DefenseMotion$058can_play_with$(_actor_0, _all_0, ($DefenseRouteQueue$058tracks$(_all_0)));
 }
 
-function $DefenseMotion$058spatial_blocker$(_actor_0, _others_0) {
-  if (_others_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _other_0 = _others_0["head"];
-    const _rest_0 = _others_0["tail"];
-    const _x_0 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
-    const _x_1 = ($DefenseMap$058segment_length$(($DefenseMotion$058point$(_actor_0)), ($DefenseMotion$058point$(_other_0))));
-    const _x_2 = ($Bool$and$(($DefenseMotion$058shared_room$(_actor_0, _other_0)), (_x_0 < 28)));
-    const _x_3 = ($Bool$and$(($Bool$and$(($DefenseMotion$058entrance$(_actor_0)), ($DefenseMotion$058entrance$(_other_0)))), (_x_1 < 24)));
-    return $Bool$pick$(($Bool$and$(($DefenseMotion$058before$(($DefenseMotion$058actor_key$(_other_0)), ($DefenseMotion$058actor_key$(_actor_0)))), (_x_2 || _x_3))), {$: "Con", "head": ($DefenseMotion$058actor_key$(_other_0)), "tail": {$: "Nil"}}, ($DefenseMotion$058spatial_blocker$(_actor_0, _rest_0)));
-  }
+function $DefenseMotion$058spatial_blocker$(_actor_0, _all_0) {
+  return $DefenseRouteQueue$058blocker$(($DefenseRouteQueue$058track$(_actor_0)), ($DefenseRouteQueue$058tracks$(_all_0)));
 }
 
 function $DefenseMotion$058wait_kind$(_actor_0, _all_0) {
-  const _x_0 = ($Bool$not$(($DefenseMotion$058entrance$(_actor_0))));
-  const _x_1 = ($DefenseMotion$058entrance_clear$(_actor_0, _all_0));
-  const _x_2 = ($DefenseMotion$058observed_phase$(_actor_0));
-  const _x_3 = ($DefenseMotion$058terminal$(_actor_0));
-  return $DefensePresentation$058wait_kind$(($DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0)), ($Bool$and$(($DefenseMotion$058branch_clear$(_actor_0, _all_0)), (_x_0 || _x_1))), ($Bool$not$(($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0)))))), ($Bool$and$((_x_2 === 5), (_x_3 === 0))));
+  const _x_0 = ($DefenseMotion$058observed_phase$(_actor_0));
+  const _x_1 = ($DefenseMotion$058terminal$(_actor_0));
+  return $DefensePresentation$058wait_kind$(($DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0)), ($DefenseMotion$058branch_clear$(_actor_0, _all_0)), ($Bool$not$(($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0)))))), ($Bool$and$((_x_0 === 5), (_x_1 === 0))));
 }
 
 function $DefenseMotion$058released$(_actor_0) {
@@ -41810,19 +41891,24 @@ function $DefenseMotion$058alive_keep$(_active_0, _actor_0, _rest_0) {
   }
 }
 
-function $DefenseMotion$058tick$(_actors_0, _all_0) {
+function $DefenseMotion$058ordinary_step$(_active_0, _actor_0) {
+  const _x_0 = ($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0))));
+  return $DefenseMotion$058move_when$((_active_0 || _x_0), _actor_0);
+}
+
+function $DefenseMotion$058tick$(_actors_0, _all_0, _tracks_0) {
   if (_actors_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _actor_0 = _actors_0["head"];
     const _rest_0 = _actors_0["tail"];
-    const _next_0 = ($DefenseMotion$058move_when$(($DefenseMotion$058can_play$(_actor_0, _all_0)), _actor_0));
-    return $DefenseMotion$058alive_keep$(($DefenseMotion$058alive$(_next_0)), _next_0, ($DefenseMotion$058tick$(_rest_0, _all_0)));
+    const _next_0 = ($DefenseMotion$058ordinary_step$(($DefenseMotion$058can_play_with$(_actor_0, _all_0, _tracks_0)), _actor_0));
+    return $DefenseMotion$058alive_keep$(($DefenseMotion$058alive$(_next_0)), _next_0, ($DefenseMotion$058tick$(_rest_0, _all_0, _tracks_0)));
   }
 }
 
 function $DefenseMotion$058step$(_actors_0) {
-  return $DefenseMotion$058tick$(_actors_0, _actors_0);
+  return $DefenseMotion$058tick$(_actors_0, _actors_0, ($DefenseRouteQueue$058tracks$(_actors_0)));
 }
 
 function $DefenseRules$058target_owns$(_target_0, _key_0) {
@@ -42776,20 +42862,20 @@ function $DefenseRules$058can_move_actor$(_actor_0, _world_0) {
   return $Bool$and$((_x_0 || _x_1), (_x_4 || _x_5));
 }
 
-function $DefenseRules$058play_when$(_assigned_0, _actor_0, _all_0) {
+function $DefenseRules$058play_when$(_assigned_0, _actor_0, _all_0, _tracks_0) {
   if (_assigned_0) {
     return $DefenseMotion$058ready$(($DefenseMotion$058waiting$(_actor_0)), _all_0);
   } else {
-    return $DefenseMotion$058can_play$(_actor_0, _all_0);
+    return $DefenseMotion$058can_play_with$(_actor_0, _all_0, _tracks_0);
   }
 }
 
-function $DefenseRules$058can_play$(_actor_0, _world_0, _all_0) {
+function $DefenseRules$058can_play$(_actor_0, _world_0, _all_0, _tracks_0) {
   const _group_0 = ($DefenseRules$058find$(($DefenseMotion$058actor_key$(_actor_0)), ($DefenseRules$058groups$(($DefenseModel$058rules$(_world_0))))));
   const _x_0 = ($DefenseMotion$058visible_phase$(_actor_0));
   const _x_1 = ($Bool$and$((_x_0 === 4), ($DefenseRules$058assigned$(_group_0))));
   const _x_2 = ($DefenseRules$058split_owner$(_group_0));
-  return $DefenseRules$058play_when$((_x_1 || _x_2), _actor_0, _all_0);
+  return $DefenseRules$058play_when$((_x_1 || _x_2), _actor_0, _all_0, _tracks_0);
 }
 
 function $DefenseRules$058more_actor_steps$(_on_0, _actor_0, _continue_0) {
@@ -42800,33 +42886,33 @@ function $DefenseRules$058more_actor_steps$(_on_0, _actor_0, _continue_0) {
   }
 }
 
-function $DefenseRules$058boosted_actor$(_fuel_0, _actor_0, _world_0, _all_0) {
+function $DefenseRules$058boosted_actor$(_fuel_0, _actor_0, _world_0, _all_0, _tracks_0) {
   if (_fuel_0 === 0) {
     return _actor_0;
   } else {
     const _n_0 = (_fuel_0 - 1);
     const _continue_0 = run_clo((_x_0) => {
-  return $DefenseRules$058boosted_actor$(_n_0, ($DefenseMotion$058move_when$(($Bool$and$(($DefenseRules$058can_play$(_x_0, _world_0, _all_0)), ($DefenseRules$058can_move_actor$(_x_0, _world_0)))), _x_0)), _world_0, _all_0);
+  return $DefenseRules$058boosted_actor$(_n_0, ($DefenseMotion$058move_when$(($Bool$and$(($DefenseRules$058can_play$(_x_0, _world_0, _all_0, _tracks_0)), ($DefenseRules$058can_move_actor$(_x_0, _world_0)))), _x_0)), _world_0, _all_0, _tracks_0);
 });
-    return $DefenseRules$058more_actor_steps$(($Bool$and$(($Bool$and$(($Bool$not$(($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0)))))), ($DefenseRules$058can_play$(_actor_0, _world_0, _all_0)))), ($DefenseRules$058can_move_actor$(_actor_0, _world_0)))), _actor_0, _continue_0);
+    return $DefenseRules$058more_actor_steps$(($Bool$and$(($Bool$and$(($Bool$not$(($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0)))))), ($DefenseRules$058can_play$(_actor_0, _world_0, _all_0, _tracks_0)))), ($DefenseRules$058can_move_actor$(_actor_0, _world_0)))), _actor_0, _continue_0);
   }
 }
 
-function $DefenseRules$058actor_steps$(_items_0, _world_0, _all_0) {
+function $DefenseRules$058actor_steps$(_items_0, _world_0, _all_0, _tracks_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
     const _actor_0 = _items_0["head"];
     const _tail_0 = _items_0["tail"];
-    const _ordinary_0 = ($DefenseMotion$058move_when$(($Bool$and$(($DefenseRules$058can_play$(_actor_0, _world_0, _all_0)), ($DefenseRules$058can_move_actor$(_actor_0, _world_0)))), _actor_0));
+    const _ordinary_0 = ($DefenseMotion$058ordinary_step$(($Bool$and$(($DefenseRules$058can_play$(_actor_0, _world_0, _all_0, _tracks_0)), ($DefenseRules$058can_move_actor$(_actor_0, _world_0)))), _actor_0));
     const _x_0 = ($DefenseRules$058owner_boost$(($DefenseModel$058mobs$(_world_0)), ($DefenseMotion$058actor_key$(_actor_0))));
-    const _next_0 = run_loop($DefenseRules$058boosted_actor$((_x_0 < 1 ? 0 : _x_0 - 1), _ordinary_0, _world_0, _all_0));
-    return $DefenseMotion$058alive_keep$(($DefenseMotion$058alive$(_next_0)), _next_0, ($DefenseRules$058actor_steps$(_tail_0, _world_0, _all_0)));
+    const _next_0 = run_loop($DefenseRules$058boosted_actor$((_x_0 < 1 ? 0 : _x_0 - 1), _ordinary_0, _world_0, _all_0, _tracks_0));
+    return $DefenseMotion$058alive_keep$(($DefenseMotion$058alive$(_next_0)), _next_0, ($DefenseRules$058actor_steps$(_tail_0, _world_0, _all_0, _tracks_0)));
   }
 }
 
 function $DefenseRules$058step_actors$(_world_0) {
-  return $DefenseModel$058with_actors$(_world_0, ($DefenseRules$058actor_steps$(($DefenseModel$058actors$(_world_0)), _world_0, ($DefenseModel$058actors$(_world_0)))));
+  return $DefenseModel$058with_actors$(_world_0, ($DefenseRules$058actor_steps$(($DefenseModel$058actors$(_world_0)), _world_0, ($DefenseModel$058actors$(_world_0)), ($DefenseRouteQueue$058tracks$(($DefenseModel$058actors$(_world_0)))))));
 }
 
 function $DefenseRules$058controlled$(_world_0, _result_0) {
@@ -61057,6 +61143,80 @@ function $0m1059(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
+      case "Tuple": at = at[key] = {...v, "fst": nat_host(v["fst"])}; return top[0];
+      default: throw "bend: Sigma has no tag " + v?.$ + " (its tags: Tuple); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1060(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Tuple": at = at[key] = {...v, "fst": BigInt(v["fst"])}; return top[0];
+      default: throw "bend: Sigma has no tag " + v?.$ + " (its tags: Tuple); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1061(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseRouteQueue.Track": at = at[key] = {...v, "key": $0m339(v["key"]), "remaining": BigInt(v["remaining"])}; return top[0];
+      default: throw "bend: DefenseRouteQueue.Track has no tag " + v?.$ + " (its tags: DefenseRouteQueue.Track); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1062(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1061(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1063(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseRouteQueue.Track": at = at[key] = {...v, "key": $0m1039(v["key"]), "remaining": nat_host(v["remaining"])}; return top[0];
+      default: throw "bend: DefenseRouteQueue.Track has no tag " + v?.$ + " (its tags: DefenseRouteQueue.Track); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1064(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1063(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1065(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
       case "None": at[key] = v; return top[0];
       case "Some": at = at[key] = {...v, "value": $0m1048(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
@@ -61066,7 +61226,7 @@ function $0m1059(v) {
   }
 }
 
-function $0m1060(v) {
+function $0m1066(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61079,7 +61239,7 @@ function $0m1060(v) {
   }
 }
 
-function $0m1061(v) {
+function $0m1067(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61092,7 +61252,7 @@ function $0m1061(v) {
   }
 }
 
-function $0m1062(v) {
+function $0m1068(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61105,7 +61265,7 @@ function $0m1062(v) {
   }
 }
 
-function $0m1063(v) {
+function $0m1069(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61117,7 +61277,7 @@ function $0m1063(v) {
   }
 }
 
-function $0m1064(v) {
+function $0m1070(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61130,7 +61290,7 @@ function $0m1064(v) {
   }
 }
 
-function $0m1065(v) {
+function $0m1071(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61143,7 +61303,7 @@ function $0m1065(v) {
   }
 }
 
-function $0m1066(v) {
+function $0m1072(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61156,7 +61316,7 @@ function $0m1066(v) {
   }
 }
 
-function $0m1067(v) {
+function $0m1073(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61169,7 +61329,7 @@ function $0m1067(v) {
   }
 }
 
-function $0m1068(v) {
+function $0m1074(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61182,7 +61342,7 @@ function $0m1068(v) {
   }
 }
 
-function $0m1069(v) {
+function $0m1075(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61195,7 +61355,7 @@ function $0m1069(v) {
   }
 }
 
-function $0m1070(v) {
+function $0m1076(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61208,7 +61368,7 @@ function $0m1070(v) {
   }
 }
 
-function $0m1071(v) {
+function $0m1077(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61221,7 +61381,7 @@ function $0m1071(v) {
   }
 }
 
-function $0m1073(v) {
+function $0m1079(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61233,12 +61393,12 @@ function $0m1073(v) {
   }
 }
 
-function $0m1072(v) {
+function $0m1078(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1073(v["head"])}; key = "tail"; v = v[key]; continue;
+      case "Con": at = at[key] = {...v, "head": $0m1079(v["head"])}; key = "tail"; v = v[key]; continue;
       default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -61246,7 +61406,7 @@ function $0m1072(v) {
   }
 }
 
-function $0m1074(v) {
+function $0m1080(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61259,7 +61419,7 @@ function $0m1074(v) {
   }
 }
 
-function $0m1075(v) {
+function $0m1081(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61271,7 +61431,7 @@ function $0m1075(v) {
   }
 }
 
-function $0m1076(v) {
+function $0m1082(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61283,7 +61443,7 @@ function $0m1076(v) {
   }
 }
 
-function $0m1078(v) {
+function $0m1084(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61295,12 +61455,12 @@ function $0m1078(v) {
   }
 }
 
-function $0m1077(v) {
+function $0m1083(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m1078(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m1084(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -61308,7 +61468,7 @@ function $0m1077(v) {
   }
 }
 
-function $0m1080(v) {
+function $0m1086(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61320,63 +61480,13 @@ function $0m1080(v) {
   }
 }
 
-function $0m1079(v) {
+function $0m1085(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
       case "None": at[key] = v; return top[0];
-      case "Some": at = at[key] = {...v, "value": $0m1080(v["value"])}; return top[0];
+      case "Some": at = at[key] = {...v, "value": $0m1086(v["value"])}; return top[0];
       default: throw "bend: Maybe has no tag " + v?.$ + " (its tags: None, Some); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1081(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1076(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1082(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1075(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1083(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTowerFire.Shot": at = at[key] = {...v, "world": $0m1057(v["world"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.Shot has no tag " + v?.$ + " (its tags: DefenseTowerFire.Shot); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1084(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTowerFire.Shot": at = at[key] = {...v, "world": $0m1056(v["world"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.Shot has no tag " + v?.$ + " (its tags: DefenseTowerFire.Shot); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -61387,57 +61497,8 @@ function $0m1087(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseTowerFire.AutomaticShot": at = at[key] = {...v, "target": $0m305(v["target"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.AutomaticShot has no tag " + v?.$ + " (its tags: DefenseTowerFire.AutomaticShot); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1086(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
       case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1087(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1085(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTowerFire.Automatic": at = at[key] = {...v, "world": $0m1057(v["world"]), "shots": $0m1086(v["shots"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.Automatic has no tag " + v?.$ + " (its tags: DefenseTowerFire.Automatic); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1090(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTowerFire.AutomaticShot": at = at[key] = {...v, "target": $0m304(v["target"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.AutomaticShot has no tag " + v?.$ + " (its tags: DefenseTowerFire.AutomaticShot); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1089(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1090(v["head"])}; key = "tail"; v = v[key]; continue;
+      case "Con": at = at[key] = {...v, "head": $0m1082(v["head"])}; key = "tail"; v = v[key]; continue;
       default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
@@ -61449,8 +61510,58 @@ function $0m1088(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "DefenseTowerFire.Automatic": at = at[key] = {...v, "world": $0m1056(v["world"]), "shots": $0m1089(v["shots"])}; return top[0];
-      default: throw "bend: DefenseTowerFire.Automatic has no tag " + v?.$ + " (its tags: DefenseTowerFire.Automatic); a tag names its constructor as the"
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1081(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1089(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.Shot": at = at[key] = {...v, "world": $0m1057(v["world"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.Shot has no tag " + v?.$ + " (its tags: DefenseTowerFire.Shot); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1090(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.Shot": at = at[key] = {...v, "world": $0m1056(v["world"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.Shot has no tag " + v?.$ + " (its tags: DefenseTowerFire.Shot); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1093(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.AutomaticShot": at = at[key] = {...v, "target": $0m305(v["target"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.AutomaticShot has no tag " + v?.$ + " (its tags: DefenseTowerFire.AutomaticShot); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1092(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1093(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -61458,6 +61569,55 @@ function $0m1088(v) {
 }
 
 function $0m1091(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.Automatic": at = at[key] = {...v, "world": $0m1057(v["world"]), "shots": $0m1092(v["shots"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.Automatic has no tag " + v?.$ + " (its tags: DefenseTowerFire.Automatic); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1096(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.AutomaticShot": at = at[key] = {...v, "target": $0m304(v["target"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.AutomaticShot has no tag " + v?.$ + " (its tags: DefenseTowerFire.AutomaticShot); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1095(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1096(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1094(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTowerFire.Automatic": at = at[key] = {...v, "world": $0m1056(v["world"]), "shots": $0m1095(v["shots"])}; return top[0];
+      default: throw "bend: DefenseTowerFire.Automatic has no tag " + v?.$ + " (its tags: DefenseTowerFire.Automatic); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1097(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61470,7 +61630,7 @@ function $0m1091(v) {
   }
 }
 
-function $0m1092(v) {
+function $0m1098(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61483,7 +61643,7 @@ function $0m1092(v) {
   }
 }
 
-function $0m1095(v) {
+function $0m1101(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61495,130 +61655,7 @@ function $0m1095(v) {
   }
 }
 
-function $0m1094(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1095(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1093(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTransport.Transported": at = at[key] = {...v, "world": $0m1057(v["world"]), "changes": $0m1094(v["changes"])}; return top[0];
-      default: throw "bend: DefenseTransport.Transported has no tag " + v?.$ + " (its tags: DefenseTransport.Transported); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1098(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTransport.Change": at = at[key] = {...v, "eventCount": nat_host(v["eventCount"]), "target": $0m304(v["target"]), "at": nat_host(v["at"])}; return top[0];
-      default: throw "bend: DefenseTransport.Change has no tag " + v?.$ + " (its tags: DefenseTransport.Change); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1097(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1098(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1096(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseTransport.Transported": at = at[key] = {...v, "world": $0m1056(v["world"]), "changes": $0m1097(v["changes"])}; return top[0];
-      default: throw "bend: DefenseTransport.Transported has no tag " + v?.$ + " (its tags: DefenseTransport.Transported); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1099(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m1057(v["world"]), "frames": $0m892(v["frames"]), "physical": $0m905(v["physical"]), "transport": $0m1094(v["transport"])}; return top[0];
-      default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
 function $0m1100(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m1056(v["world"]), "frames": $0m860(v["frames"]), "physical": $0m876(v["physical"]), "transport": $0m1097(v["transport"])}; return top[0];
-      default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1101(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "TargetPose": at = at[key] = {...v, "target": $0m305(v["target"])}; return top[0];
-      default: throw "bend: TargetPose has no tag " + v?.$ + " (its tags: TargetPose); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1103(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "TargetPose": at = at[key] = {...v, "target": $0m304(v["target"])}; return top[0];
-      default: throw "bend: TargetPose has no tag " + v?.$ + " (its tags: TargetPose); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1102(v) {
-  const top = [v];
-  for (let at = top, key = 0;;) {
-    switch (v.$) {
-      case "Nil": at[key] = v; return top[0];
-      case "Con": at = at[key] = {...v, "head": $0m1103(v["head"])}; key = "tail"; v = v[key]; continue;
-      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
-      + " loading file sees it, which a later version will make the same"
-      + " everywhere (#1105)";
-    }
-  }
-}
-
-function $0m1104(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61631,12 +61668,61 @@ function $0m1104(v) {
   }
 }
 
+function $0m1099(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTransport.Transported": at = at[key] = {...v, "world": $0m1057(v["world"]), "changes": $0m1100(v["changes"])}; return top[0];
+      default: throw "bend: DefenseTransport.Transported has no tag " + v?.$ + " (its tags: DefenseTransport.Transported); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1104(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTransport.Change": at = at[key] = {...v, "eventCount": nat_host(v["eventCount"]), "target": $0m304(v["target"]), "at": nat_host(v["at"])}; return top[0];
+      default: throw "bend: DefenseTransport.Change has no tag " + v?.$ + " (its tags: DefenseTransport.Change); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1103(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1104(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1102(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseTransport.Transported": at = at[key] = {...v, "world": $0m1056(v["world"]), "changes": $0m1103(v["changes"])}; return top[0];
+      default: throw "bend: DefenseTransport.Transported has no tag " + v?.$ + " (its tags: DefenseTransport.Transported); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
 function $0m1105(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
-      case "VisualState": at = at[key] = {...v, "targets": $0m1104(v["targets"])}; return top[0];
-      default: throw "bend: VisualState has no tag " + v?.$ + " (its tags: VisualState); a tag names its constructor as the"
+      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m1057(v["world"]), "frames": $0m892(v["frames"]), "physical": $0m905(v["physical"]), "transport": $0m1100(v["transport"])}; return top[0];
+      default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
       + " loading file sees it, which a later version will make the same"
       + " everywhere (#1105)";
     }
@@ -61644,6 +61730,80 @@ function $0m1105(v) {
 }
 
 function $0m1106(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "DefenseHost.TickObserved": at = at[key] = {...v, "world": $0m1056(v["world"]), "frames": $0m860(v["frames"]), "physical": $0m876(v["physical"]), "transport": $0m1103(v["transport"])}; return top[0];
+      default: throw "bend: DefenseHost.TickObserved has no tag " + v?.$ + " (its tags: DefenseHost.TickObserved); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1107(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "TargetPose": at = at[key] = {...v, "target": $0m305(v["target"])}; return top[0];
+      default: throw "bend: TargetPose has no tag " + v?.$ + " (its tags: TargetPose); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1109(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "TargetPose": at = at[key] = {...v, "target": $0m304(v["target"])}; return top[0];
+      default: throw "bend: TargetPose has no tag " + v?.$ + " (its tags: TargetPose); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1108(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1109(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1110(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m1107(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1111(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "VisualState": at = at[key] = {...v, "targets": $0m1110(v["targets"])}; return top[0];
+      default: throw "bend: VisualState has no tag " + v?.$ + " (its tags: VisualState); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+function $0m1112(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61655,7 +61815,7 @@ function $0m1106(v) {
   }
 }
 
-function $0m1107(v) {
+function $0m1113(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61667,7 +61827,7 @@ function $0m1107(v) {
   }
 }
 
-function $0m1108(v) {
+function $0m1114(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61681,7 +61841,7 @@ function $0m1108(v) {
   }
 }
 
-function $0m1109(v) {
+function $0m1115(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61695,7 +61855,7 @@ function $0m1109(v) {
   }
 }
 
-function $0m1110(v) {
+function $0m1116(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -61707,7 +61867,7 @@ function $0m1110(v) {
   }
 }
 
-function $0m1111(v) {
+function $0m1117(v) {
   const top = [v];
   for (let at = top, key = 0;;) {
     switch (v.$) {
@@ -65103,14 +65263,6 @@ export default {
   "DefenseModel.control_with_mobs": run_lib((a0, a1) => { const r = $0m1023(run_loop($DefenseModel$058control_with_mobs$($0m1035(a0), $0m1051(a1)))); $0m1023(a0); $0m1030(a1); return r; }, 2),
   "DefenseModel.mobs": run_lib((a0) => { const r = $0m1030(run_loop($DefenseModel$058mobs$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseModel.with_mobs": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseModel$058with_mobs$($0m1056(a0), $0m1051(a1)))); $0m1057(a0); $0m1030(a1); return r; }, 2),
-  "DefensePresentation.parent": run_lib((a0) => { const r = $0m1027(run_loop($DefensePresentation$058parent$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefensePresentation.outcome": run_lib((a0) => { const r = (run_loop($DefensePresentation$058outcome$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefensePresentation.pending_parent": run_lib((a0) => { const r = $0m1027(run_loop($DefensePresentation$058pending_parent$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefensePresentation.repose": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m1026(run_loop($DefensePresentation$058repose$($0m1038(a0), (a1), (a2), (a3), $0m1040(a4), nat_host(a5)))); $0m1026(a0); (a1); (a2); (a3); $0m342(a4); BigInt(a5); return r; }, 6),
-  "DefensePresentation.terminal_display": run_lib((a0) => { const r = (run_loop($DefensePresentation$058terminal_display$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefensePresentation.keep": run_lib((a0, a1, a2) => { const r = (run_loop($DefensePresentation$058keep$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
-  "DefensePresentation.wait_kind": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefensePresentation$058wait_kind$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
-  "DefensePresentation.retirement_outcome": run_lib((a0) => { const r = (run_loop($DefensePresentation$058retirement_outcome$((a0)))); (a0); return r; }, 1),
   "DefenseMap.px": run_lib((a0) => { const r = (run_loop($DefenseMap$058px$((a0)))); (a0); return r; }, 1),
   "DefenseMap.py": run_lib((a0) => { const r = (run_loop($DefenseMap$058py$((a0)))); (a0); return r; }, 1),
   "DefenseMap.pick_point": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMap$058pick_point$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
@@ -65173,6 +65325,25 @@ export default {
   "DefenseMap.room_valid_points": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseMap$058room_valid_points$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
   "DefenseMap.room_valid": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMap$058room_valid$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
   "DefenseMap.layout_valid": run_lib((a0) => { const r = (run_loop($DefenseMap$058layout_valid$((a0)))); (a0); return r; }, 1),
+  "DefenseRouteQueue.measured": run_lib((a0, a1, a2, a3) => { const r = $0m1060(run_loop($DefenseRouteQueue$058measured$((a0), (a1), (a2), $0m1059(a3)))); (a0); (a1); (a2); $0m1060(a3); return r; }, 4),
+  "DefenseRouteQueue.measure": run_lib((a0, a1, a2) => { const r = $0m1060(run_loop($DefenseRouteQueue$058measure$($0m1040(a0), (a1), (a2)))); $0m342(a0); (a1); (a2); return r; }, 3),
+  "DefenseRouteQueue.tracked": run_lib((a0, a1, a2, a3) => { const r = $0m1061(run_loop($DefenseRouteQueue$058tracked$($0m1039(a0), (a1), (a2), $0m1059(a3)))); $0m339(a0); (a1); (a2); $0m1060(a3); return r; }, 4),
+  "DefenseRouteQueue.track": run_lib((a0) => { const r = $0m1061(run_loop($DefenseRouteQueue$058track$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
+  "DefenseRouteQueue.tracks": run_lib((a0) => { const r = $0m1062(run_loop($DefenseRouteQueue$058tracks$($0m1037(a0)))); $0m1025(a0); return r; }, 1),
+  "DefenseRouteQueue.before": run_lib((a0, a1) => { const r = (run_loop($DefenseRouteQueue$058before$($0m1039(a0), $0m1039(a1)))); $0m339(a0); $0m339(a1); return r; }, 2),
+  "DefenseRouteQueue.ahead": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRouteQueue$058ahead$(nat_host(a0), nat_host(a1), (a2)))); BigInt(a0); BigInt(a1); (a2); return r; }, 3),
+  "DefenseRouteQueue.blocks": run_lib((a0, a1) => { const r = (run_loop($DefenseRouteQueue$058blocks$($0m1063(a0), $0m1063(a1)))); $0m1061(a0); $0m1061(a1); return r; }, 2),
+  "DefenseRouteQueue.clear": run_lib((a0, a1) => { const r = (run_loop($DefenseRouteQueue$058clear$($0m1063(a0), $0m1064(a1)))); $0m1061(a0); $0m1062(a1); return r; }, 2),
+  "DefenseRouteQueue.blocked_key": run_lib((a0, a1, a2) => { const r = $0m1027(run_loop($DefenseRouteQueue$058blocked_key$((a0), $0m1063(a1), $0m1042(a2)))); (a0); $0m1061(a1); $0m1027(a2); return r; }, 3),
+  "DefenseRouteQueue.blocker": run_lib((a0, a1) => { const r = $0m1027(run_loop($DefenseRouteQueue$058blocker$($0m1063(a0), $0m1064(a1)))); $0m1061(a0); $0m1062(a1); return r; }, 2),
+  "DefensePresentation.parent": run_lib((a0) => { const r = $0m1027(run_loop($DefensePresentation$058parent$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
+  "DefensePresentation.outcome": run_lib((a0) => { const r = (run_loop($DefensePresentation$058outcome$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
+  "DefensePresentation.pending_parent": run_lib((a0) => { const r = $0m1027(run_loop($DefensePresentation$058pending_parent$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
+  "DefensePresentation.repose": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m1026(run_loop($DefensePresentation$058repose$($0m1038(a0), (a1), (a2), (a3), $0m1040(a4), nat_host(a5)))); $0m1026(a0); (a1); (a2); (a3); $0m342(a4); BigInt(a5); return r; }, 6),
+  "DefensePresentation.terminal_display": run_lib((a0) => { const r = (run_loop($DefensePresentation$058terminal_display$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
+  "DefensePresentation.keep": run_lib((a0, a1, a2) => { const r = (run_loop($DefensePresentation$058keep$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
+  "DefensePresentation.wait_kind": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefensePresentation$058wait_kind$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
+  "DefensePresentation.retirement_outcome": run_lib((a0) => { const r = (run_loop($DefensePresentation$058retirement_outcome$((a0)))); (a0); return r; }, 1),
   "DefenseMotion.key": run_lib((a0) => { const r = $0m339(run_loop($DefenseMotion$058key$($0m225(a0)))); $0m218(a0); return r; }, 1),
   "DefenseMotion.same": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058same$($0m1039(a0), $0m1039(a1)))); $0m339(a0); $0m339(a1); return r; }, 2),
   "DefenseMotion.phase": run_lib((a0) => { const r = (run_loop($DefenseMotion$058phase$($0m225(a0)))); $0m218(a0); return r; }, 1),
@@ -65231,9 +65402,8 @@ export default {
   "DefenseMotion.alive": run_lib((a0) => { const r = (run_loop($DefenseMotion$058alive$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
   "DefenseMotion.before": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058before$($0m1039(a0), $0m1039(a1)))); $0m339(a0); $0m339(a1); return r; }, 2),
   "DefenseMotion.entrance": run_lib((a0) => { const r = (run_loop($DefenseMotion$058entrance$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefenseMotion.entrance_clear": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058entrance_clear$($0m1038(a0), $0m1037(a1)))); $0m1026(a0); $0m1025(a1); return r; }, 2),
-  "DefenseMotion.shared_room": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058shared_room$($0m1038(a0), $0m1038(a1)))); $0m1026(a0); $0m1026(a1); return r; }, 2),
   "DefenseMotion.branch_clear": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058branch_clear$($0m1038(a0), $0m1037(a1)))); $0m1026(a0); $0m1025(a1); return r; }, 2),
+  "DefenseMotion.can_play_with": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseMotion$058can_play_with$($0m1038(a0), $0m1037(a1), $0m1064(a2)))); $0m1026(a0); $0m1025(a1); $0m1062(a2); return r; }, 3),
   "DefenseMotion.can_play": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058can_play$($0m1038(a0), $0m1037(a1)))); $0m1026(a0); $0m1025(a1); return r; }, 2),
   "DefenseMotion.spatial_blocker": run_lib((a0, a1) => { const r = $0m1027(run_loop($DefenseMotion$058spatial_blocker$($0m1038(a0), $0m1037(a1)))); $0m1026(a0); $0m1025(a1); return r; }, 2),
   "DefenseMotion.wait_kind": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058wait_kind$($0m1038(a0), $0m1037(a1)))); $0m1026(a0); $0m1025(a1); return r; }, 2),
@@ -65243,7 +65413,8 @@ export default {
   "DefenseMotion.queued": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058queued$($0m1037(a0), $0m1037(a1)))); $0m1025(a0); $0m1025(a1); return r; }, 2),
   "DefenseMotion.move_when": run_lib((a0, a1) => { const r = $0m1026(run_loop($DefenseMotion$058move_when$((a0), $0m1038(a1)))); (a0); $0m1026(a1); return r; }, 2),
   "DefenseMotion.alive_keep": run_lib((a0, a1, a2) => { const r = $0m1025(run_loop($DefenseMotion$058alive_keep$((a0), $0m1038(a1), $0m1037(a2)))); (a0); $0m1026(a1); $0m1025(a2); return r; }, 3),
-  "DefenseMotion.tick": run_lib((a0, a1) => { const r = $0m1025(run_loop($DefenseMotion$058tick$($0m1037(a0), $0m1037(a1)))); $0m1025(a0); $0m1025(a1); return r; }, 2),
+  "DefenseMotion.ordinary_step": run_lib((a0, a1) => { const r = $0m1026(run_loop($DefenseMotion$058ordinary_step$((a0), $0m1038(a1)))); (a0); $0m1026(a1); return r; }, 2),
+  "DefenseMotion.tick": run_lib((a0, a1, a2) => { const r = $0m1025(run_loop($DefenseMotion$058tick$($0m1037(a0), $0m1037(a1), $0m1064(a2)))); $0m1025(a0); $0m1025(a1); $0m1062(a2); return r; }, 3),
   "DefenseMotion.step": run_lib((a0) => { const r = $0m1025(run_loop($DefenseMotion$058step$($0m1037(a0)))); $0m1025(a0); return r; }, 1),
   "DefenseRules.target_owns": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058target_owns$($0m304(a0), $0m1039(a1)))); $0m305(a0); $0m339(a1); return r; }, 2),
   "DefenseRules.owner_boost": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseRules$058owner_boost$($0m1051(a0), $0m1039(a1)))); $0m1030(a0); $0m339(a1); return r; }, 2),
@@ -65251,8 +65422,8 @@ export default {
   "DefenseRules.carrier": run_lib((a0) => { const r = (run_loop($DefenseRules$058carrier$($0m1048(a0)))); $0m338(a0); return r; }, 1),
   "DefenseRules.with_assembly": run_lib((a0, a1, a2) => { const r = $0m338(run_loop($DefenseRules$058with_assembly$($0m1048(a0), (a1), (a2)))); $0m338(a0); (a1); (a2); return r; }, 3),
   "DefenseRules.finding_total": run_lib((a0) => { const r = (run_loop($DefenseRules$058finding_total$((a0)))); (a0); return r; }, 1),
-  "DefenseRules.assembled_found": run_lib((a0) => { const r = (run_loop($DefenseRules$058assembled_found$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
-  "DefenseRules.carrier_found": run_lib((a0) => { const r = (run_loop($DefenseRules$058carrier_found$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
+  "DefenseRules.assembled_found": run_lib((a0) => { const r = (run_loop($DefenseRules$058assembled_found$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
+  "DefenseRules.carrier_found": run_lib((a0) => { const r = (run_loop($DefenseRules$058carrier_found$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
   "DefenseRules.through_entry": run_lib((a0, a1) => { const r = $0m342(run_loop($DefenseRules$058through_entry$($0m1040(a0), (a1)))); $0m342(a0); (a1); return r; }, 2),
   "DefenseRules.profile": run_lib((a0) => { const r = (run_loop($DefenseRules$058profile$($0m1046(a0)))); $0m336(a0); return r; }, 1),
   "DefenseRules.groups": run_lib((a0) => { const r = $0m337(run_loop($DefenseRules$058groups$($0m1046(a0)))); $0m336(a0); return r; }, 1),
@@ -65263,15 +65434,15 @@ export default {
   "DefenseRules.fragments": run_lib((a0) => { const r = $0m340(run_loop($DefenseRules$058fragments$($0m1048(a0)))); $0m338(a0); return r; }, 1),
   "DefenseRules.retired": run_lib((a0) => { const r = (run_loop($DefenseRules$058retired$($0m1048(a0)))); $0m338(a0); return r; }, 1),
   "DefenseRules.sent": run_lib((a0) => { const r = (run_loop($DefenseRules$058sent$($0m1048(a0)))); $0m338(a0); return r; }, 1),
-  "DefenseRules.find": run_lib((a0, a1) => { const r = $0m1060(run_loop($DefenseRules$058find$($0m1039(a0), $0m1047(a1)))); $0m339(a0); $0m337(a1); return r; }, 2),
+  "DefenseRules.find": run_lib((a0, a1) => { const r = $0m1066(run_loop($DefenseRules$058find$($0m1039(a0), $0m1047(a1)))); $0m339(a0); $0m337(a1); return r; }, 2),
   "DefenseRules.seed": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058seed$($0m1039(a0), nat_host(a1)))); $0m339(a0); BigInt(a1); return r; }, 2),
-  "DefenseRules.unique_group": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058unique_group$($0m1059(a0), $0m1048(a1), $0m1047(a2)))); $0m1060(a0); $0m338(a1); $0m337(a2); return r; }, 3),
+  "DefenseRules.unique_group": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058unique_group$($0m1065(a0), $0m1048(a1), $0m1047(a2)))); $0m1066(a0); $0m338(a1); $0m337(a2); return r; }, 3),
   "DefenseRules.captured": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058captured$($0m823(a0), (a1), $0m1047(a2)))); $0m754(a0); (a1); $0m337(a2); return r; }, 3),
   "DefenseRules.contexts": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058contexts$($0m875(a0), (a1), $0m1047(a2)))); $0m904(a0); (a1); $0m337(a2); return r; }, 3),
   "DefenseRules.details": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058details$($0m863(a0), (a1), $0m1047(a2)))); $0m895(a0); (a1); $0m337(a2); return r; }, 3),
   "DefenseRules.frame": run_lib((a0, a1) => { const r = $0m336(run_loop($DefenseRules$058frame$($0m861(a0), $0m1046(a1)))); $0m893(a0); $0m336(a1); return r; }, 2),
   "DefenseRules.ingest": run_lib((a0, a1) => { const r = $0m336(run_loop($DefenseRules$058ingest$($0m860(a0), $0m1046(a1)))); $0m892(a0); $0m336(a1); return r; }, 2),
-  "DefenseRules.finding_count": run_lib((a0) => { const r = BigInt(run_loop($DefenseRules$058finding_count$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
+  "DefenseRules.finding_count": run_lib((a0) => { const r = BigInt(run_loop($DefenseRules$058finding_count$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
   "DefenseRules.count_event": run_lib((a0, a1) => { const r = $0m451(run_loop($DefenseRules$058count_event$($0m270(a0), $0m1046(a1)))); $0m271(a0); $0m336(a1); return r; }, 2),
   "DefenseRules.count_frames": run_lib((a0, a1) => { const r = $0m451(run_loop($DefenseRules$058count_frames$($0m860(a0), $0m1046(a1)))); $0m892(a0); $0m336(a1); return r; }, 2),
   "DefenseRules.count_supported": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058count_supported$($0m270(a0), $0m224(a1)))); $0m271(a0); $0m217(a1); return r; }, 2),
@@ -65292,13 +65463,13 @@ export default {
   "DefenseRules.finding_departure": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRules$058finding_departure$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
   "DefenseRules.fragment_path": run_lib((a0, a1, a2, a3) => { const r = $0m342(run_loop($DefenseRules$058fragment_path$((a0), $0m1038(a1), (a2), (a3)))); (a0); $0m1026(a1); (a2); (a3); return r; }, 4),
   "DefenseRules.born_fragments": run_lib((a0, a1, a2, a3, a4) => { const r = $0m340(run_loop($DefenseRules$058born_fragments$((a0), $0m1038(a1), (a2), $0m1048(a3), (a4)))); (a0); $0m1026(a1); (a2); $0m338(a3); (a4); return r; }, 5),
-  "DefenseRules.find_actor": run_lib((a0, a1) => { const r = $0m1061(run_loop($DefenseRules$058find_actor$($0m1039(a0), $0m1037(a1)))); $0m339(a0); $0m1025(a1); return r; }, 2),
+  "DefenseRules.find_actor": run_lib((a0, a1) => { const r = $0m1067(run_loop($DefenseRules$058find_actor$($0m1039(a0), $0m1037(a1)))); $0m339(a0); $0m1025(a1); return r; }, 2),
   "DefenseRules.fragment_rule": run_lib((a0) => { const r = (run_loop($DefenseRules$058fragment_rule$($0m1050(a0)))); $0m341(a0); return r; }, 1),
   "DefenseRules.fragment_hit": run_lib((a0) => { const r = (run_loop($DefenseRules$058fragment_hit$($0m1050(a0)))); $0m341(a0); return r; }, 1),
   "DefenseRules.fragment_point": run_lib((a0) => { const r = (run_loop($DefenseRules$058fragment_point$($0m1050(a0)))); $0m341(a0); return r; }, 1),
   "DefenseRules.fragment_steps": run_lib((a0) => { const r = $0m342(run_loop($DefenseRules$058fragment_steps$($0m1050(a0)))); $0m341(a0); return r; }, 1),
   "DefenseRules.finding_remaining": run_lib((a0) => { const r = (run_loop($DefenseRules$058finding_remaining$($0m1049(a0)))); $0m340(a0); return r; }, 1),
-  "DefenseRules.mark_assembly": run_lib((a0, a1, a2) => { const r = $0m338(run_loop($DefenseRules$058mark_assembly$($0m1048(a0), $0m1062(a1), (a2)))); $0m338(a0); $0m1061(a1); (a2); return r; }, 3),
+  "DefenseRules.mark_assembly": run_lib((a0, a1, a2) => { const r = $0m338(run_loop($DefenseRules$058mark_assembly$($0m1048(a0), $0m1068(a1), (a2)))); $0m338(a0); $0m1067(a1); (a2); return r; }, 3),
   "DefenseRules.fragment_speed": run_lib((a0) => { const r = (run_loop($DefenseRules$058fragment_speed$((a0)))); (a0); return r; }, 1),
   "DefenseRules.fragment_move": run_lib((a0) => { const r = $0m341(run_loop($DefenseRules$058fragment_move$($0m1050(a0)))); $0m341(a0); return r; }, 1),
   "DefenseRules.keep_fragment": run_lib((a0) => { const r = (run_loop($DefenseRules$058keep_fragment$($0m1050(a0)))); $0m341(a0); return r; }, 1),
@@ -65310,60 +65481,60 @@ export default {
   "DefenseRules.move_fragment": run_lib((a0, a1) => { const r = $0m341(run_loop($DefenseRules$058move_fragment$((a0), $0m1050(a1)))); (a0); $0m341(a1); return r; }, 2),
   "DefenseRules.tick_fragments": run_lib((a0, a1, a2) => { const r = $0m340(run_loop($DefenseRules$058tick_fragments$($0m1049(a0), $0m1039(a1), $0m1047(a2)))); $0m340(a0); $0m339(a1); $0m337(a2); return r; }, 3),
   "DefenseRules.actor_sent": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058actor_sent$($0m1038(a0), (a1)))); $0m1026(a0); (a1); return r; }, 2),
-  "DefenseRules.update_group": run_lib((a0, a1, a2, a3) => { const r = $0m338(run_loop($DefenseRules$058update_group$($0m1048(a0), $0m1062(a1), (a2), $0m1047(a3)))); $0m338(a0); $0m1061(a1); (a2); $0m337(a3); return r; }, 4),
-  "DefenseRules.actor_present": run_lib((a0) => { const r = (run_loop($DefenseRules$058actor_present$($0m1062(a0)))); $0m1061(a0); return r; }, 1),
-  "DefenseRules.keep_group": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058keep_group$($0m1048(a0), $0m1062(a1)))); $0m338(a0); $0m1061(a1); return r; }, 2),
+  "DefenseRules.update_group": run_lib((a0, a1, a2, a3) => { const r = $0m338(run_loop($DefenseRules$058update_group$($0m1048(a0), $0m1068(a1), (a2), $0m1047(a3)))); $0m338(a0); $0m1067(a1); (a2); $0m337(a3); return r; }, 4),
+  "DefenseRules.actor_present": run_lib((a0) => { const r = (run_loop($DefenseRules$058actor_present$($0m1068(a0)))); $0m1067(a0); return r; }, 1),
+  "DefenseRules.keep_group": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058keep_group$($0m1048(a0), $0m1068(a1)))); $0m338(a0); $0m1067(a1); return r; }, 2),
   "DefenseRules.group_when": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseRules$058group_when$((a0), $0m1048(a1), $0m1047(a2)))); (a0); $0m338(a1); $0m337(a2); return r; }, 3),
   "DefenseRules.tick_groups": run_lib((a0, a1, a2, a3) => { const r = $0m337(run_loop($DefenseRules$058tick_groups$($0m1047(a0), $0m1037(a1), (a2), $0m1047(a3)))); $0m337(a0); $0m1025(a1); (a2); $0m337(a3); return r; }, 4),
   "DefenseRules.fragments_inside": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058fragments_inside$($0m1049(a0), (a1)))); $0m340(a0); (a1); return r; }, 2),
   "DefenseRules.entering": run_lib((a0) => { const r = (run_loop($DefenseRules$058entering$($0m1038(a0)))); $0m1026(a0); return r; }, 1),
-  "DefenseRules.checking": run_lib((a0) => { const r = (run_loop($DefenseRules$058checking$($0m1062(a0)))); $0m1061(a0); return r; }, 1),
+  "DefenseRules.checking": run_lib((a0) => { const r = (run_loop($DefenseRules$058checking$($0m1068(a0)))); $0m1067(a0); return r; }, 1),
   "DefenseRules.occupies": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRules$058occupies$($0m1048(a0), $0m1037(a1), (a2)))); $0m338(a0); $0m1025(a1); (a2); return r; }, 3),
   "DefenseRules.seat_busy": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseRules$058seat_busy$($0m1047(a0), (a1), $0m1037(a2), (a3)))); $0m337(a0); (a1); $0m1025(a2); (a3); return r; }, 4),
   "DefenseRules.available": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRules$058available$($0m1047(a0), $0m1037(a1), (a2)))); $0m337(a0); $0m1025(a1); (a2); return r; }, 3),
-  "DefenseRules.waiting_for_seat": run_lib((a0) => { const r = (run_loop($DefenseRules$058waiting_for_seat$($0m1062(a0)))); $0m1061(a0); return r; }, 1),
+  "DefenseRules.waiting_for_seat": run_lib((a0) => { const r = (run_loop($DefenseRules$058waiting_for_seat$($0m1068(a0)))); $0m1067(a0); return r; }, 1),
   "DefenseRules.with_seat": run_lib((a0, a1) => { const r = $0m338(run_loop($DefenseRules$058with_seat$($0m1048(a0), (a1)))); $0m338(a0); (a1); return r; }, 2),
   "DefenseRules.claim_when": run_lib((a0, a1, a2, a3, a4) => { const r = $0m338(run_loop($DefenseRules$058claim_when$((a0), $0m1048(a1), $0m1037(a2), (a3), $0m1047(a4)))); (a0); $0m338(a1); $0m1025(a2); (a3); $0m337(a4); return r; }, 5),
   "DefenseRules.claim": run_lib((a0, a1, a2, a3) => { const r = $0m338(run_loop($DefenseRules$058claim$($0m1048(a0), $0m1037(a1), (a2), $0m1047(a3)))); $0m338(a0); $0m1025(a1); (a2); $0m337(a3); return r; }, 4),
   "DefenseRules.claim_seats": run_lib((a0, a1, a2, a3) => { const r = $0m337(run_loop($DefenseRules$058claim_seats$($0m1047(a0), $0m1037(a1), (a2), $0m1047(a3)))); $0m337(a0); $0m1025(a1); (a2); $0m337(a3); return r; }, 4),
   "DefenseRules.tick": run_lib((a0) => { const r = $0m1057(run_loop($DefenseRules$058tick$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "DefenseRules.has_seat": run_lib((a0) => { const r = (run_loop($DefenseRules$058has_seat$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
-  "DefenseRules.shown_checking": run_lib((a0) => { const r = (run_loop($DefenseRules$058shown_checking$($0m1062(a0)))); $0m1061(a0); return r; }, 1),
+  "DefenseRules.has_seat": run_lib((a0) => { const r = (run_loop($DefenseRules$058has_seat$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
+  "DefenseRules.shown_checking": run_lib((a0) => { const r = (run_loop($DefenseRules$058shown_checking$($0m1068(a0)))); $0m1067(a0); return r; }, 1),
   "DefenseRules.checking_count": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058checking_count$($0m1047(a0), $0m1037(a1)))); $0m337(a0); $0m1025(a1); return r; }, 2),
-  "DefenseRules.assigned": run_lib((a0) => { const r = (run_loop($DefenseRules$058assigned$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
-  "DefenseRules.split_owner": run_lib((a0) => { const r = (run_loop($DefenseRules$058split_owner$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
+  "DefenseRules.assigned": run_lib((a0) => { const r = (run_loop($DefenseRules$058assigned$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
+  "DefenseRules.split_owner": run_lib((a0) => { const r = (run_loop($DefenseRules$058split_owner$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
   "DefenseRules.can_move_actor": run_lib((a0, a1) => { const r = (run_loop($DefenseRules$058can_move_actor$($0m1038(a0), $0m1056(a1)))); $0m1026(a0); $0m1057(a1); return r; }, 2),
-  "DefenseRules.play_when": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRules$058play_when$((a0), $0m1038(a1), $0m1037(a2)))); (a0); $0m1026(a1); $0m1025(a2); return r; }, 3),
-  "DefenseRules.can_play": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseRules$058can_play$($0m1038(a0), $0m1056(a1), $0m1037(a2)))); $0m1026(a0); $0m1057(a1); $0m1025(a2); return r; }, 3),
+  "DefenseRules.play_when": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseRules$058play_when$((a0), $0m1038(a1), $0m1037(a2), $0m1064(a3)))); (a0); $0m1026(a1); $0m1025(a2); $0m1062(a3); return r; }, 4),
+  "DefenseRules.can_play": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseRules$058can_play$($0m1038(a0), $0m1056(a1), $0m1037(a2), $0m1064(a3)))); $0m1026(a0); $0m1057(a1); $0m1025(a2); $0m1062(a3); return r; }, 4),
   "DefenseRules.more_actor_steps": run_lib((a0, a1, a2) => { const r = $0m1026(run_loop($DefenseRules$058more_actor_steps$((a0), $0m1038(a1), ((f) => (x) => $0m1038(f($0m1026(x))))(a2)))); (a0); $0m1026(a1); ((f) => (x) => $0m1026(f($0m1038(x))))(a2); return r; }, 3),
-  "DefenseRules.boosted_actor": run_lib((a0, a1, a2, a3) => { const r = $0m1026(run_loop($DefenseRules$058boosted_actor$(nat_host(a0), $0m1038(a1), $0m1056(a2), $0m1037(a3)))); BigInt(a0); $0m1026(a1); $0m1057(a2); $0m1025(a3); return r; }, 4),
-  "DefenseRules.actor_steps": run_lib((a0, a1, a2) => { const r = $0m1025(run_loop($DefenseRules$058actor_steps$($0m1037(a0), $0m1056(a1), $0m1037(a2)))); $0m1025(a0); $0m1057(a1); $0m1025(a2); return r; }, 3),
+  "DefenseRules.boosted_actor": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1026(run_loop($DefenseRules$058boosted_actor$(nat_host(a0), $0m1038(a1), $0m1056(a2), $0m1037(a3), $0m1064(a4)))); BigInt(a0); $0m1026(a1); $0m1057(a2); $0m1025(a3); $0m1062(a4); return r; }, 5),
+  "DefenseRules.actor_steps": run_lib((a0, a1, a2, a3) => { const r = $0m1025(run_loop($DefenseRules$058actor_steps$($0m1037(a0), $0m1056(a1), $0m1037(a2), $0m1064(a3)))); $0m1025(a0); $0m1057(a1); $0m1025(a2); $0m1062(a3); return r; }, 4),
   "DefenseRules.step_actors": run_lib((a0) => { const r = $0m1057(run_loop($DefenseRules$058step_actors$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "DefenseRules.controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseRules$058controlled$($0m1056(a0), $0m1063(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
+  "DefenseRules.controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseRules$058controlled$($0m1056(a0), $0m1069(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
   "DefenseRules.configured": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseRules$058configured$($0m1056(a0), (a1)))); $0m1057(a0); (a1); return r; }, 2),
   "DefenseLiveMotion.target": run_lib((a0) => { const r = $0m305(run_loop($DefenseLiveMotion$058target$($0m1052(a0)))); $0m1031(a0); return r; }, 1),
   "DefenseLiveMotion.point": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058point$($0m1052(a0)))); $0m1031(a0); return r; }, 1),
   "DefenseLiveMotion.deadline": run_lib((a0) => { const r = BigInt(run_loop($DefenseLiveMotion$058deadline$($0m1052(a0)))); $0m1031(a0); return r; }, 1),
   "DefenseLiveMotion.boost": run_lib((a0) => { const r = BigInt(run_loop($DefenseLiveMotion$058boost$($0m1052(a0)))); $0m1031(a0); return r; }, 1),
-  "DefenseLiveMotion.find": run_lib((a0, a1) => { const r = $0m1064(run_loop($DefenseLiveMotion$058find$($0m304(a0), $0m1051(a1)))); $0m305(a0); $0m1030(a1); return r; }, 2),
-  "DefenseLiveMotion.exists": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058exists$($0m1065(a0)))); $0m1064(a0); return r; }, 1),
-  "DefenseLiveMotion.position": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058position$($0m1065(a0)))); $0m1064(a0); return r; }, 1),
+  "DefenseLiveMotion.find": run_lib((a0, a1) => { const r = $0m1070(run_loop($DefenseLiveMotion$058find$($0m304(a0), $0m1051(a1)))); $0m305(a0); $0m1030(a1); return r; }, 2),
+  "DefenseLiveMotion.exists": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058exists$($0m1071(a0)))); $0m1070(a0); return r; }, 1),
+  "DefenseLiveMotion.position": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058position$($0m1071(a0)))); $0m1070(a0); return r; }, 1),
   "DefenseLiveMotion.owner": run_lib((a0) => { const r = $0m339(run_loop($DefenseLiveMotion$058owner$($0m304(a0)))); $0m305(a0); return r; }, 1),
-  "DefenseLiveMotion.actor": run_lib((a0, a1) => { const r = $0m1061(run_loop($DefenseLiveMotion$058actor$($0m1039(a0), $0m1037(a1)))); $0m339(a0); $0m1025(a1); return r; }, 2),
-  "DefenseLiveMotion.target_actor": run_lib((a0, a1) => { const r = $0m1061(run_loop($DefenseLiveMotion$058target_actor$($0m304(a0), $0m1037(a1)))); $0m305(a0); $0m1025(a1); return r; }, 2),
+  "DefenseLiveMotion.actor": run_lib((a0, a1) => { const r = $0m1067(run_loop($DefenseLiveMotion$058actor$($0m1039(a0), $0m1037(a1)))); $0m339(a0); $0m1025(a1); return r; }, 2),
+  "DefenseLiveMotion.target_actor": run_lib((a0, a1) => { const r = $0m1067(run_loop($DefenseLiveMotion$058target_actor$($0m304(a0), $0m1037(a1)))); $0m305(a0); $0m1025(a1); return r; }, 2),
   "DefenseLiveMotion.queued_due": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseLiveMotion$058queued_due$($0m676(a0), nat_host(a1)))); $0m677(a0); BigInt(a1); return r; }, 2),
   "DefenseLiveMotion.original_due": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseLiveMotion$058original_due$($0m316(a0), $0m304(a1), $0m676(a2)))); $0m318(a0); $0m305(a1); $0m677(a2); return r; }, 3),
   "DefenseLiveMotion.callback_items": run_lib((a0) => { const r = $0m318(run_loop($DefenseLiveMotion$058callback_items$($0m315(a0)))); $0m317(a0); return r; }, 1),
   "DefenseLiveMotion.due": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseLiveMotion$058due$($0m1056(a0), $0m304(a1)))); $0m1057(a0); $0m305(a1); return r; }, 2),
   "DefenseLiveMotion.fade_beams": run_lib((a0) => { const r = $0m1032(run_loop($DefenseLiveMotion$058fade_beams$($0m1053(a0)))); $0m1032(a0); return r; }, 1),
-  "DefenseLiveMotion.group_visible": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058group_visible$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
-  "DefenseLiveMotion.body_pose": run_lib((a0, a1, a2, a3) => { const r = $0m1031(run_loop($DefenseLiveMotion$058body_pose$($0m1052(a0), $0m1062(a1), $0m1056(a2), (a3)))); $0m1031(a0); $0m1061(a1); $0m1057(a2); (a3); return r; }, 4),
-  "DefenseLiveMotion.present": run_lib((a0, a1) => { const r = $0m1031(run_loop($DefenseLiveMotion$058present$($0m1065(a0), $0m304(a1)))); $0m1064(a0); $0m305(a1); return r; }, 2),
-  "DefenseLiveMotion.reconcile": run_lib((a0, a1, a2, a3) => { const r = $0m1030(run_loop($DefenseLiveMotion$058reconcile$($0m1066(a0), $0m1056(a1), $0m1056(a2), $0m860(a3)))); $0m1067(a0); $0m1057(a1); $0m1057(a2); $0m892(a3); return r; }, 4),
+  "DefenseLiveMotion.group_visible": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058group_visible$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
+  "DefenseLiveMotion.body_pose": run_lib((a0, a1, a2, a3) => { const r = $0m1031(run_loop($DefenseLiveMotion$058body_pose$($0m1052(a0), $0m1068(a1), $0m1056(a2), (a3)))); $0m1031(a0); $0m1067(a1); $0m1057(a2); (a3); return r; }, 4),
+  "DefenseLiveMotion.present": run_lib((a0, a1) => { const r = $0m1031(run_loop($DefenseLiveMotion$058present$($0m1071(a0), $0m304(a1)))); $0m1070(a0); $0m305(a1); return r; }, 2),
+  "DefenseLiveMotion.reconcile": run_lib((a0, a1, a2, a3) => { const r = $0m1030(run_loop($DefenseLiveMotion$058reconcile$($0m1072(a0), $0m1056(a1), $0m1056(a2), $0m860(a3)))); $0m1073(a0); $0m1057(a1); $0m1057(a2); $0m892(a3); return r; }, 4),
   "DefenseLiveMotion.hit": run_lib((a0, a1, a2, a3, a4, a5) => { const r = $0m1031(run_loop($DefenseLiveMotion$058hit$($0m1052(a0), nat_host(a1), (a2), (a3), nat_host(a4), nat_host(a5)))); $0m1031(a0); BigInt(a1); (a2); (a3); BigInt(a4); BigInt(a5); return r; }, 6),
   "DefenseLiveMotion.hit_list": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1030(run_loop($DefenseLiveMotion$058hit_list$($0m1051(a0), $0m304(a1), nat_host(a2), (a3), (a4), nat_host(a5), nat_host(a6)))); $0m1030(a0); $0m305(a1); BigInt(a2); (a3); (a4); BigInt(a5); BigInt(a6); return r; }, 7),
   "DefenseLiveMotion.visible": run_lib((a0, a1) => { const r = (run_loop($DefenseLiveMotion$058visible$($0m1052(a0), nat_host(a1)))); $0m1031(a0); BigInt(a1); return r; }, 2),
-  "DefenseLiveMotion.visible_found": run_lib((a0, a1) => { const r = (run_loop($DefenseLiveMotion$058visible_found$($0m1065(a0), nat_host(a1)))); $0m1064(a0); BigInt(a1); return r; }, 2),
+  "DefenseLiveMotion.visible_found": run_lib((a0, a1) => { const r = (run_loop($DefenseLiveMotion$058visible_found$($0m1071(a0), nat_host(a1)))); $0m1070(a0); BigInt(a1); return r; }, 2),
   "DefenseLiveMotion.outcome": run_lib((a0) => { const r = (run_loop($DefenseLiveMotion$058outcome$($0m249(a0)))); $0m229(a0); return r; }, 1),
   "DefenseLiveMotion.matching": run_lib((a0, a1) => { const r = (run_loop($DefenseLiveMotion$058matching$($0m313(a0), $0m304(a1)))); $0m312(a0); $0m305(a1); return r; }, 2),
   "DefenseLiveMotion.certain_outcome": run_lib((a0, a1) => { const r = (run_loop($DefenseLiveMotion$058certain_outcome$($0m270(a0), (a1)))); $0m271(a0); (a1); return r; }, 2),
@@ -65388,7 +65559,7 @@ export default {
   "DefenseMechanics.upgraded": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058upgraded$((a0)))); (a0); return r; }, 1),
   "DefenseMechanics.max_level": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058max_level$((a0)))); (a0); return r; }, 1),
   "DefenseMechanics.current_environment": run_lib((a0) => { const r = $0m890(run_loop($DefenseMechanics$058current_environment$($0m853(a0)))); $0m885(a0); return r; }, 1),
-  "DefenseMechanics.applied": run_lib((a0) => { const r = $0m885(run_loop($DefenseMechanics$058applied$($0m1063(a0)))); $0m1013(a0); return r; }, 1),
+  "DefenseMechanics.applied": run_lib((a0) => { const r = $0m885(run_loop($DefenseMechanics$058applied$($0m1069(a0)))); $0m1013(a0); return r; }, 1),
   "DefenseMechanics.missing_access": run_lib((a0) => { const r = (run_loop($DefenseMechanics$058missing_access$($0m858(a0)))); $0m890(a0); return r; }, 1),
   "DefenseProjection.ledger": run_lib((a0) => { const r = $0m10(run_loop($DefenseProjection$058ledger$($0m221(a0)))); $0m214(a0); return r; }, 1),
   "DefenseProjection.collection": run_lib((a0) => { const r = $0m200(run_loop($DefenseProjection$058collection$($0m221(a0)))); $0m214(a0); return r; }, 1),
@@ -65474,18 +65645,18 @@ export default {
   "DefenseCues.refused_id": run_lib((a0, a1) => { const r = (run_loop($DefenseCues$058refused_id$($0m1036(a0), nat_host(a1)))); $0m1024(a0); BigInt(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_sources": run_lib((a0) => { const r = $0m902(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_sources$($0m853(a0)))); $0m885(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.matches_target": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058matches_target$($0m870(a0), $0m304(a1)))); $0m902(a0); $0m305(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.selected": run_lib((a0, a1, a2) => { const r = $0m1069(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058selected$((a0), $0m1068(a1), $0m1068(a2)))); (a0); $0m1069(a1); $0m1069(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_source": run_lib((a0, a1) => { const r = $0m1069(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_source$($0m870(a0), $0m304(a1)))); $0m902(a0); $0m305(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.source_value": run_lib((a0) => { const r = $0m1018(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058source_value$($0m1068(a0)))); $0m1069(a0); return r; }, 1),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.live_or_history": run_lib((a0, a1) => { const r = $0m1069(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058live_or_history$($0m1068(a0), $0m1068(a1)))); $0m1069(a0); $0m1069(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_fact": run_lib((a0) => { const r = $0m314(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_fact$($0m1068(a0)))); $0m1069(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.selected": run_lib((a0, a1, a2) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058selected$((a0), $0m1074(a1), $0m1074(a2)))); (a0); $0m1075(a1); $0m1075(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_source": run_lib((a0, a1) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_source$($0m870(a0), $0m304(a1)))); $0m902(a0); $0m305(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.source_value": run_lib((a0) => { const r = $0m1018(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058source_value$($0m1074(a0)))); $0m1075(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.live_or_history": run_lib((a0, a1) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058live_or_history$($0m1074(a0), $0m1074(a1)))); $0m1075(a0); $0m1075(a1); return r; }, 2),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_fact": run_lib((a0) => { const r = $0m314(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_fact$($0m1074(a0)))); $0m1075(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.remaining_items": run_lib((a0) => { const r = $0m887(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058remaining_items$($0m925(a0)))); $0m927(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.cancel_orders": run_lib((a0, a1) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058cancel_orders$($0m55(a0), $0m853(a1)))); $0m52(a0); $0m885(a1); return r; }, 2),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.scheduled_payload": run_lib((a0) => { const r = $0m928(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058scheduled_payload$($0m1068(a0)))); $0m1069(a0); return r; }, 1),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.scheduled_payload": run_lib((a0) => { const r = $0m928(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058scheduled_payload$($0m1074(a0)))); $0m1075(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.queue_exact": run_lib((a0, a1, a2, a3, a4) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058queue_exact$($0m853(a0), nat_host(a1), nat_host(a2), $0m831(a3), $0m857(a4)))); $0m885(a0); BigInt(a1); BigInt(a2); $0m843(a3); $0m889(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.schedule_payload": run_lib((a0, a1, a2, a3, a4) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058schedule_payload$($0m1070(a0), $0m853(a1), nat_host(a2), nat_host(a3), $0m857(a4)))); $0m1071(a0); $0m885(a1); BigInt(a2); BigInt(a3); $0m889(a4); return r; }, 5),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_schedule": run_lib((a0, a1, a2, a3) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_schedule$($0m325(a0), $0m853(a1), $0m1070(a2), $0m857(a3)))); $0m320(a0); $0m885(a1); $0m1071(a2); $0m889(a3); return r; }, 4),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_changed": run_lib((a0, a1, a2) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_changed$($0m853(a0), $0m1068(a1), $0m1072(a2)))); $0m885(a0); $0m1069(a1); $0m1074(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.schedule_payload": run_lib((a0, a1, a2, a3, a4) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058schedule_payload$($0m1076(a0), $0m853(a1), nat_host(a2), nat_host(a3), $0m857(a4)))); $0m1077(a0); $0m885(a1); BigInt(a2); BigInt(a3); $0m889(a4); return r; }, 5),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_schedule": run_lib((a0, a1, a2, a3) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_schedule$($0m325(a0), $0m853(a1), $0m1076(a2), $0m857(a3)))); $0m320(a0); $0m885(a1); $0m1077(a2); $0m889(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.callback_changed": run_lib((a0, a1, a2) => { const r = $0m1081(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058callback_changed$($0m853(a0), $0m1074(a1), $0m1078(a2)))); $0m885(a0); $0m1075(a1); $0m1080(a2); return r; }, 3),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.cleanup_equal": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058cleanup_equal$($0m270(a0), $0m270(a1)))); $0m271(a0); $0m271(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.input_matches": run_lib((a0, a1) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058input_matches$($0m832(a0), $0m270(a1)))); $0m844(a0); $0m271(a1); return r; }, 2),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.cleanup_item": run_lib((a0, a1, a2) => { const r = (run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058cleanup_item$($0m855(a0), nat_host(a1), $0m270(a2)))); $0m887(a0); BigInt(a1); $0m271(a2); return r; }, 3),
@@ -65494,8 +65665,8 @@ export default {
   "../../packages/monkey-business-bend/NativeRunCallbackControls.cleanup_steps": run_lib((a0, a1, a2, a3) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058cleanup_steps$($0m279(a0), $0m853(a1), nat_host(a2), nat_host(a3)))); $0m276(a0); $0m885(a1); BigInt(a2); BigInt(a3); return r; }, 4),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.after_terminal": run_lib((a0) => { const r = $0m276(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058after_terminal$($0m279(a0)))); $0m276(a0); return r; }, 1),
   "../../packages/monkey-business-bend/NativeRunCallbackControls.completion_cleanup": run_lib((a0, a1, a2) => { const r = $0m885(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058completion_cleanup$($0m327(a0), $0m853(a1), nat_host(a2)))); $0m314(a0); $0m885(a1); BigInt(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.transported": run_lib((a0, a1, a2) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058transported$($0m1076(a0), $0m322(a1), $0m1068(a2)))); $0m1075(a0); $0m323(a1); $0m1069(a2); return r; }, 3),
-  "../../packages/monkey-business-bend/NativeRunCallbackControls.apply": run_lib((a0, a1, a2, a3) => { const r = $0m1075(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058apply$($0m853(a0), $0m304(a1), $0m322(a2), $0m1068(a3)))); $0m885(a0); $0m305(a1); $0m323(a2); $0m1069(a3); return r; }, 4),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.transported": run_lib((a0, a1, a2) => { const r = $0m1081(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058transported$($0m1082(a0), $0m322(a1), $0m1074(a2)))); $0m1081(a0); $0m323(a1); $0m1075(a2); return r; }, 3),
+  "../../packages/monkey-business-bend/NativeRunCallbackControls.apply": run_lib((a0, a1, a2, a3) => { const r = $0m1081(run_loop($$$$047$$$047packages$047monkey$045business$045bend$047NativeRunCallbackControls$058apply$($0m853(a0), $0m304(a1), $0m322(a2), $0m1074(a3)))); $0m885(a0); $0m305(a1); $0m323(a2); $0m1075(a3); return r; }, 4),
   "DefenseTowerFire.delivery_at": run_lib((a0) => { const r = BigInt(run_loop($DefenseTowerFire$058delivery_at$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseTowerFire.cooldown": run_lib((a0) => { const r = (run_loop($DefenseTowerFire$058cooldown$((a0)))); (a0); return r; }, 1),
   "DefenseTowerFire.originals": run_lib((a0) => { const r = $0m318(run_loop($DefenseTowerFire$058originals$($0m315(a0)))); $0m317(a0); return r; }, 1),
@@ -65520,64 +65691,64 @@ export default {
   "DefenseTowerFire.suitable": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTowerFire$058suitable$($0m1056(a0), (a1), $0m304(a2)))); $0m1057(a0); (a1); $0m305(a2); return r; }, 3),
   "DefenseTowerFire.live": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTowerFire$058live$($0m304(a0), nat_host(a1), $0m1056(a2)))); $0m305(a0); BigInt(a1); $0m1057(a2); return r; }, 3),
   "DefenseTowerFire.eligible": run_lib((a0, a1, a2, a3, a4) => { const r = (run_loop($DefenseTowerFire$058eligible$($0m304(a0), nat_host(a1), $0m1056(a2), (a3), nat_host(a4)))); $0m305(a0); BigInt(a1); $0m1057(a2); (a3); BigInt(a4); return r; }, 5),
-  "DefenseTowerFire.choose": run_lib((a0, a1, a2, a3) => { const r = $0m1079(run_loop($DefenseTowerFire$058choose$((a0), $0m304(a1), nat_host(a2), $0m1077(a3)))); (a0); $0m305(a1); BigInt(a2); $0m1079(a3); return r; }, 4),
-  "DefenseTowerFire.select": run_lib((a0, a1, a2, a3) => { const r = $0m1079(run_loop($DefenseTowerFire$058select$($0m316(a0), $0m1056(a1), (a2), nat_host(a3)))); $0m318(a0); $0m1057(a1); (a2); BigInt(a3); return r; }, 4),
-  "DefenseTowerFire.found_target": run_lib((a0) => { const r = $0m312(run_loop($DefenseTowerFire$058found_target$($0m1077(a0)))); $0m1079(a0); return r; }, 1),
+  "DefenseTowerFire.choose": run_lib((a0, a1, a2, a3) => { const r = $0m1085(run_loop($DefenseTowerFire$058choose$((a0), $0m304(a1), nat_host(a2), $0m1083(a3)))); (a0); $0m305(a1); BigInt(a2); $0m1085(a3); return r; }, 4),
+  "DefenseTowerFire.select": run_lib((a0, a1, a2, a3) => { const r = $0m1085(run_loop($DefenseTowerFire$058select$($0m316(a0), $0m1056(a1), (a2), nat_host(a3)))); $0m318(a0); $0m1057(a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseTowerFire.found_target": run_lib((a0) => { const r = $0m312(run_loop($DefenseTowerFire$058found_target$($0m1083(a0)))); $0m1085(a0); return r; }, 1),
   "DefenseTowerFire.targeting_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseTowerFire$058targeting_world$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseTowerFire.target": run_lib((a0, a1, a2) => { const r = $0m312(run_loop($DefenseTowerFire$058target$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
-  "DefenseTowerFire.remaining_found": run_lib((a0, a1) => { const r = (run_loop($DefenseTowerFire$058remaining_found$($0m1077(a0), $0m1056(a1)))); $0m1079(a0); $0m1057(a1); return r; }, 2),
+  "DefenseTowerFire.remaining_found": run_lib((a0, a1) => { const r = (run_loop($DefenseTowerFire$058remaining_found$($0m1083(a0), $0m1056(a1)))); $0m1085(a0); $0m1057(a1); return r; }, 2),
   "DefenseTowerFire.remaining": run_lib((a0, a1) => { const r = (run_loop($DefenseTowerFire$058remaining$($0m1056(a0), (a1)))); $0m1057(a0); (a1); return r; }, 2),
   "DefenseTowerFire.target_operation": run_lib((a0) => { const r = BigInt(run_loop($DefenseTowerFire$058target_operation$($0m313(a0)))); $0m312(a0); return r; }, 1),
   "DefenseTowerFire.target_phase": run_lib((a0) => { const r = (run_loop($DefenseTowerFire$058target_phase$($0m313(a0)))); $0m312(a0); return r; }, 1),
   "DefenseTowerFire.arm": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTowerFire$058arm$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
-  "DefenseTowerFire.applied": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1083(run_loop($DefenseTowerFire$058applied$($0m1056(a0), (a1), (a2), $0m304(a3), $0m1081(a4)))); $0m1057(a0); (a1); (a2); $0m305(a3); $0m1082(a4); return r; }, 5),
-  "DefenseTowerFire.fire_target": run_lib((a0, a1, a2, a3) => { const r = $0m1083(run_loop($DefenseTowerFire$058fire_target$($0m313(a0), $0m1056(a1), (a2), (a3)))); $0m312(a0); $0m1057(a1); (a2); (a3); return r; }, 4),
-  "DefenseTowerFire.fire_ready": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1083(run_loop($DefenseTowerFire$058fire_ready$((a0), (a1), (a2), $0m1056(a3), (a4), (a5), nat_host(a6)))); (a0); (a1); (a2); $0m1057(a3); (a4); (a5); BigInt(a6); return r; }, 7),
-  "DefenseTowerFire.fire": run_lib((a0, a1, a2, a3) => { const r = $0m1083(run_loop($DefenseTowerFire$058fire$($0m1056(a0), (a1), (a2), nat_host(a3)))); $0m1057(a0); (a1); (a2); BigInt(a3); return r; }, 4),
-  "DefenseTowerFire.automatic_record": run_lib((a0, a1, a2) => { const r = $0m1085(run_loop($DefenseTowerFire$058automatic_record$($0m313(a0), $0m1084(a1), (a2)))); $0m312(a0); $0m1083(a1); (a2); return r; }, 3),
-  "DefenseTowerFire.automatic_one": run_lib((a0, a1, a2) => { const r = $0m1085(run_loop($DefenseTowerFire$058automatic_one$($0m1056(a0), (a1), (a2)))); $0m1057(a0); (a1); (a2); return r; }, 3),
-  "DefenseTowerFire.automatic_next": run_lib((a0, a1, a2) => { const r = $0m1085(run_loop($DefenseTowerFire$058automatic_next$($0m1088(a0), $0m1089(a1), ((f) => (x) => ((f) => (x) => $0m1088(f($0m1086(x))))(f($0m1057(x))))(a2)))); $0m1085(a0); $0m1086(a1); ((f) => (x) => ((f) => (x) => $0m1085(f($0m1089(x))))(f($0m1056(x))))(a2); return r; }, 3),
-  "DefenseTowerFire.automatic_loop": run_lib((a0, a1, a2, a3) => { const r = $0m1085(run_loop($DefenseTowerFire$058automatic_loop$((a0), $0m1056(a1), (a2), $0m1089(a3)))); (a0); $0m1057(a1); (a2); $0m1086(a3); return r; }, 4),
-  "DefenseTowerFire.automatic_when": run_lib((a0, a1) => { const r = $0m1085(run_loop($DefenseTowerFire$058automatic_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
-  "DefenseTowerFire.automatic_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseTowerFire$058automatic_world$($0m1088(a0)))); $0m1085(a0); return r; }, 1),
-  "DefenseTowerFire.live_keep": run_lib((a0, a1, a2) => { const r = $0m1067(run_loop($DefenseTowerFire$058live_keep$((a0), $0m304(a1), $0m1066(a2)))); (a0); $0m305(a1); $0m1067(a2); return r; }, 3),
-  "DefenseTowerFire.live_targets": run_lib((a0, a1) => { const r = $0m1067(run_loop($DefenseTowerFire$058live_targets$($0m316(a0), $0m1056(a1)))); $0m318(a0); $0m1057(a1); return r; }, 2),
-  "DefenseTowerFire.physical_targets": run_lib((a0) => { const r = $0m1067(run_loop($DefenseTowerFire$058physical_targets$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "DefenseTowerFire.applied": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1089(run_loop($DefenseTowerFire$058applied$($0m1056(a0), (a1), (a2), $0m304(a3), $0m1087(a4)))); $0m1057(a0); (a1); (a2); $0m305(a3); $0m1088(a4); return r; }, 5),
+  "DefenseTowerFire.fire_target": run_lib((a0, a1, a2, a3) => { const r = $0m1089(run_loop($DefenseTowerFire$058fire_target$($0m313(a0), $0m1056(a1), (a2), (a3)))); $0m312(a0); $0m1057(a1); (a2); (a3); return r; }, 4),
+  "DefenseTowerFire.fire_ready": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1089(run_loop($DefenseTowerFire$058fire_ready$((a0), (a1), (a2), $0m1056(a3), (a4), (a5), nat_host(a6)))); (a0); (a1); (a2); $0m1057(a3); (a4); (a5); BigInt(a6); return r; }, 7),
+  "DefenseTowerFire.fire": run_lib((a0, a1, a2, a3) => { const r = $0m1089(run_loop($DefenseTowerFire$058fire$($0m1056(a0), (a1), (a2), nat_host(a3)))); $0m1057(a0); (a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseTowerFire.automatic_record": run_lib((a0, a1, a2) => { const r = $0m1091(run_loop($DefenseTowerFire$058automatic_record$($0m313(a0), $0m1090(a1), (a2)))); $0m312(a0); $0m1089(a1); (a2); return r; }, 3),
+  "DefenseTowerFire.automatic_one": run_lib((a0, a1, a2) => { const r = $0m1091(run_loop($DefenseTowerFire$058automatic_one$($0m1056(a0), (a1), (a2)))); $0m1057(a0); (a1); (a2); return r; }, 3),
+  "DefenseTowerFire.automatic_next": run_lib((a0, a1, a2) => { const r = $0m1091(run_loop($DefenseTowerFire$058automatic_next$($0m1094(a0), $0m1095(a1), ((f) => (x) => ((f) => (x) => $0m1094(f($0m1092(x))))(f($0m1057(x))))(a2)))); $0m1091(a0); $0m1092(a1); ((f) => (x) => ((f) => (x) => $0m1091(f($0m1095(x))))(f($0m1056(x))))(a2); return r; }, 3),
+  "DefenseTowerFire.automatic_loop": run_lib((a0, a1, a2, a3) => { const r = $0m1091(run_loop($DefenseTowerFire$058automatic_loop$((a0), $0m1056(a1), (a2), $0m1095(a3)))); (a0); $0m1057(a1); (a2); $0m1092(a3); return r; }, 4),
+  "DefenseTowerFire.automatic_when": run_lib((a0, a1) => { const r = $0m1091(run_loop($DefenseTowerFire$058automatic_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
+  "DefenseTowerFire.automatic_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseTowerFire$058automatic_world$($0m1094(a0)))); $0m1091(a0); return r; }, 1),
+  "DefenseTowerFire.live_keep": run_lib((a0, a1, a2) => { const r = $0m1073(run_loop($DefenseTowerFire$058live_keep$((a0), $0m304(a1), $0m1072(a2)))); (a0); $0m305(a1); $0m1073(a2); return r; }, 3),
+  "DefenseTowerFire.live_targets": run_lib((a0, a1) => { const r = $0m1073(run_loop($DefenseTowerFire$058live_targets$($0m316(a0), $0m1056(a1)))); $0m318(a0); $0m1057(a1); return r; }, 2),
+  "DefenseTowerFire.physical_targets": run_lib((a0) => { const r = $0m1073(run_loop($DefenseTowerFire$058physical_targets$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseTransport.event_count": run_lib((a0) => { const r = BigInt(run_loop($DefenseTransport$058event_count$($0m853(a0)))); $0m885(a0); return r; }, 1),
   "DefenseTransport.ceil": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseTransport$058ceil$(nat_host(a0), nat_host(a1)))); BigInt(a0); BigInt(a1); return r; }, 2),
   "DefenseTransport.path_ticks": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseTransport$058path_ticks$($0m1040(a0), (a1), nat_host(a2)))); $0m342(a0); (a1); BigInt(a2); return r; }, 3),
-  "DefenseTransport.parent_id": run_lib((a0) => { const r = $0m1091(run_loop($DefenseTransport$058parent_id$($0m1042(a0)))); $0m1027(a0); return r; }, 1),
-  "DefenseTransport.parent_actor": run_lib((a0, a1) => { const r = $0m1061(run_loop($DefenseTransport$058parent_actor$($0m1092(a0), $0m1037(a1)))); $0m1091(a0); $0m1025(a1); return r; }, 2),
-  "DefenseTransport.actor_ticks": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseTransport$058actor_ticks$(nat_host(a0), $0m1062(a1), $0m1056(a2)))); BigInt(a0); $0m1061(a1); $0m1057(a2); return r; }, 3),
+  "DefenseTransport.parent_id": run_lib((a0) => { const r = $0m1097(run_loop($DefenseTransport$058parent_id$($0m1042(a0)))); $0m1027(a0); return r; }, 1),
+  "DefenseTransport.parent_actor": run_lib((a0, a1) => { const r = $0m1067(run_loop($DefenseTransport$058parent_actor$($0m1098(a0), $0m1037(a1)))); $0m1097(a0); $0m1025(a1); return r; }, 2),
+  "DefenseTransport.actor_ticks": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseTransport$058actor_ticks$(nat_host(a0), $0m1068(a1), $0m1056(a2)))); BigInt(a0); $0m1067(a1); $0m1057(a2); return r; }, 3),
   "DefenseTransport.fragment_ticks": run_lib((a0) => { const r = BigInt(run_loop($DefenseTransport$058fragment_ticks$($0m1049(a0)))); $0m340(a0); return r; }, 1),
-  "DefenseTransport.group_ticks": run_lib((a0) => { const r = BigInt(run_loop($DefenseTransport$058group_ticks$($0m1059(a0)))); $0m1060(a0); return r; }, 1),
+  "DefenseTransport.group_ticks": run_lib((a0) => { const r = BigInt(run_loop($DefenseTransport$058group_ticks$($0m1065(a0)))); $0m1066(a0); return r; }, 1),
   "DefenseTransport.owned_actor_ticks": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseTransport$058owned_actor_ticks$((a0), $0m1038(a1), $0m1056(a2)))); (a0); $0m1026(a1); $0m1057(a2); return r; }, 3),
   "DefenseTransport.owned_ticks": run_lib((a0, a1, a2) => { const r = BigInt(run_loop($DefenseTransport$058owned_ticks$($0m1037(a0), $0m304(a1), $0m1056(a2)))); $0m1025(a0); $0m305(a1); $0m1057(a2); return r; }, 3),
   "DefenseTransport.remaining_ticks": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseTransport$058remaining_ticks$($0m304(a0), $0m1056(a1)))); $0m305(a0); $0m1057(a1); return r; }, 2),
   "DefenseTransport.output_target": run_lib((a0) => { const r = (run_loop($DefenseTransport$058output_target$($0m304(a0)))); $0m305(a0); return r; }, 1),
-  "DefenseTransport.representative_found": run_lib((a0, a1) => { const r = (run_loop($DefenseTransport$058representative_found$($0m1062(a0), $0m1039(a1)))); $0m1061(a0); $0m339(a1); return r; }, 2),
+  "DefenseTransport.representative_found": run_lib((a0, a1) => { const r = (run_loop($DefenseTransport$058representative_found$($0m1068(a0), $0m1039(a1)))); $0m1067(a0); $0m339(a1); return r; }, 2),
   "DefenseTransport.representative": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058representative$($0m304(a0), $0m1039(a1), $0m1056(a2)))); $0m305(a0); $0m339(a1); $0m1057(a2); return r; }, 3),
   "DefenseTransport.member_merged": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseTransport$058member_merged$($0m1037(a0), $0m304(a1), nat_host(a2), $0m1056(a3)))); $0m1025(a0); $0m305(a1); BigInt(a2); $0m1057(a3); return r; }, 4),
   "DefenseTransport.members_merged": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058members_merged$($0m55(a0), $0m304(a1), $0m1056(a2)))); $0m52(a0); $0m305(a1); $0m1057(a2); return r; }, 3),
-  "DefenseTransport.assembled_actor": run_lib((a0, a1) => { const r = (run_loop($DefenseTransport$058assembled_actor$($0m1062(a0), $0m1056(a1)))); $0m1061(a0); $0m1057(a1); return r; }, 2),
+  "DefenseTransport.assembled_actor": run_lib((a0, a1) => { const r = (run_loop($DefenseTransport$058assembled_actor$($0m1068(a0), $0m1056(a1)))); $0m1067(a0); $0m1057(a1); return r; }, 2),
   "DefenseTransport.assembled": run_lib((a0, a1) => { const r = (run_loop($DefenseTransport$058assembled$($0m304(a0), $0m1056(a1)))); $0m305(a0); $0m1057(a1); return r; }, 2),
   "DefenseTransport.carrier_candidate": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseTransport$058carrier_candidate$((a0), $0m304(a1), $0m1039(a2), $0m1056(a3)))); (a0); $0m305(a1); $0m339(a2); $0m1057(a3); return r; }, 4),
   "DefenseTransport.absorbed_candidate": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseTransport$058absorbed_candidate$((a0), $0m304(a1), $0m1039(a2), $0m1056(a3)))); (a0); $0m305(a1); $0m339(a2); $0m1057(a3); return r; }, 4),
-  "DefenseTransport.carrier_target": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058carrier_target$($0m1066(a0), $0m1039(a1), $0m1056(a2)))); $0m1067(a0); $0m339(a1); $0m1057(a2); return r; }, 3),
-  "DefenseTransport.absorbed_target": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058absorbed_target$($0m1066(a0), $0m1039(a1), $0m1056(a2)))); $0m1067(a0); $0m339(a1); $0m1057(a2); return r; }, 3),
-  "DefenseTransport.actor_route": run_lib((a0, a1, a2, a3) => { const r = $0m1026(run_loop($DefenseTransport$058actor_route$($0m1038(a0), $0m1066(a1), $0m1056(a2), nat_host(a3)))); $0m1026(a0); $0m1067(a1); $0m1057(a2); BigInt(a3); return r; }, 4),
-  "DefenseTransport.actor_routes": run_lib((a0, a1, a2, a3) => { const r = $0m1025(run_loop($DefenseTransport$058actor_routes$($0m1037(a0), $0m1066(a1), $0m1056(a2), nat_host(a3)))); $0m1025(a0); $0m1067(a1); $0m1057(a2); BigInt(a3); return r; }, 4),
-  "DefenseTransport.group_route": run_lib((a0, a1, a2) => { const r = $0m338(run_loop($DefenseTransport$058group_route$($0m1048(a0), $0m1066(a1), $0m1056(a2)))); $0m338(a0); $0m1067(a1); $0m1057(a2); return r; }, 3),
-  "DefenseTransport.group_routes": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseTransport$058group_routes$($0m1047(a0), $0m1066(a1), $0m1056(a2)))); $0m337(a0); $0m1067(a1); $0m1057(a2); return r; }, 3),
-  "DefenseTransport.route_world": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseTransport$058route_world$($0m1056(a0), $0m1066(a1)))); $0m1057(a0); $0m1067(a1); return r; }, 2),
-  "DefenseTransport.accepted": run_lib((a0, a1, a2, a3) => { const r = $0m1093(run_loop($DefenseTransport$058accepted$($0m1076(a0), $0m1056(a1), $0m304(a2), nat_host(a3)))); $0m1075(a0); $0m1057(a1); $0m305(a2); BigInt(a3); return r; }, 4),
-  "DefenseTransport.delay": run_lib((a0, a1, a2, a3) => { const r = $0m1093(run_loop($DefenseTransport$058delay$((a0), $0m1056(a1), $0m304(a2), nat_host(a3)))); (a0); $0m1057(a1); $0m305(a2); BigInt(a3); return r; }, 4),
+  "DefenseTransport.carrier_target": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058carrier_target$($0m1072(a0), $0m1039(a1), $0m1056(a2)))); $0m1073(a0); $0m339(a1); $0m1057(a2); return r; }, 3),
+  "DefenseTransport.absorbed_target": run_lib((a0, a1, a2) => { const r = (run_loop($DefenseTransport$058absorbed_target$($0m1072(a0), $0m1039(a1), $0m1056(a2)))); $0m1073(a0); $0m339(a1); $0m1057(a2); return r; }, 3),
+  "DefenseTransport.actor_route": run_lib((a0, a1, a2, a3) => { const r = $0m1026(run_loop($DefenseTransport$058actor_route$($0m1038(a0), $0m1072(a1), $0m1056(a2), nat_host(a3)))); $0m1026(a0); $0m1073(a1); $0m1057(a2); BigInt(a3); return r; }, 4),
+  "DefenseTransport.actor_routes": run_lib((a0, a1, a2, a3) => { const r = $0m1025(run_loop($DefenseTransport$058actor_routes$($0m1037(a0), $0m1072(a1), $0m1056(a2), nat_host(a3)))); $0m1025(a0); $0m1073(a1); $0m1057(a2); BigInt(a3); return r; }, 4),
+  "DefenseTransport.group_route": run_lib((a0, a1, a2) => { const r = $0m338(run_loop($DefenseTransport$058group_route$($0m1048(a0), $0m1072(a1), $0m1056(a2)))); $0m338(a0); $0m1073(a1); $0m1057(a2); return r; }, 3),
+  "DefenseTransport.group_routes": run_lib((a0, a1, a2) => { const r = $0m337(run_loop($DefenseTransport$058group_routes$($0m1047(a0), $0m1072(a1), $0m1056(a2)))); $0m337(a0); $0m1073(a1); $0m1057(a2); return r; }, 3),
+  "DefenseTransport.route_world": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseTransport$058route_world$($0m1056(a0), $0m1072(a1)))); $0m1057(a0); $0m1073(a1); return r; }, 2),
+  "DefenseTransport.accepted": run_lib((a0, a1, a2, a3) => { const r = $0m1099(run_loop($DefenseTransport$058accepted$($0m1082(a0), $0m1056(a1), $0m304(a2), nat_host(a3)))); $0m1081(a0); $0m1057(a1); $0m305(a2); BigInt(a3); return r; }, 4),
+  "DefenseTransport.delay": run_lib((a0, a1, a2, a3) => { const r = $0m1099(run_loop($DefenseTransport$058delay$((a0), $0m1056(a1), $0m304(a2), nat_host(a3)))); (a0); $0m1057(a1); $0m305(a2); BigInt(a3); return r; }, 4),
   "DefenseTransport.required": run_lib((a0, a1) => { const r = BigInt(run_loop($DefenseTransport$058required$(nat_host(a0), $0m1056(a1)))); BigInt(a0); $0m1057(a1); return r; }, 2),
-  "DefenseTransport.next": run_lib((a0, a1, a2) => { const r = $0m1093(run_loop($DefenseTransport$058next$($0m1096(a0), $0m1097(a1), ((f) => (x) => ((f) => (x) => $0m1096(f($0m1094(x))))(f($0m1057(x))))(a2)))); $0m1093(a0); $0m1094(a1); ((f) => (x) => ((f) => (x) => $0m1093(f($0m1097(x))))(f($0m1056(x))))(a2); return r; }, 3),
-  "DefenseTransport.sync": run_lib((a0, a1, a2) => { const r = $0m1093(run_loop($DefenseTransport$058sync$($0m1066(a0), $0m1056(a1), $0m1097(a2)))); $0m1067(a0); $0m1057(a1); $0m1094(a2); return r; }, 3),
-  "DefenseTransport.output_targets": run_lib((a0) => { const r = $0m1067(run_loop($DefenseTransport$058output_targets$($0m1066(a0)))); $0m1067(a0); return r; }, 1),
-  "DefenseTransport.synchronize_targets": run_lib((a0, a1) => { const r = $0m1093(run_loop($DefenseTransport$058synchronize_targets$($0m1056(a0), $0m1066(a1)))); $0m1057(a0); $0m1067(a1); return r; }, 2),
-  "DefenseTransport.synchronize": run_lib((a0) => { const r = $0m1093(run_loop($DefenseTransport$058synchronize$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "DefenseTransport.next": run_lib((a0, a1, a2) => { const r = $0m1099(run_loop($DefenseTransport$058next$($0m1102(a0), $0m1103(a1), ((f) => (x) => ((f) => (x) => $0m1102(f($0m1100(x))))(f($0m1057(x))))(a2)))); $0m1099(a0); $0m1100(a1); ((f) => (x) => ((f) => (x) => $0m1099(f($0m1103(x))))(f($0m1056(x))))(a2); return r; }, 3),
+  "DefenseTransport.sync": run_lib((a0, a1, a2) => { const r = $0m1099(run_loop($DefenseTransport$058sync$($0m1072(a0), $0m1056(a1), $0m1103(a2)))); $0m1073(a0); $0m1057(a1); $0m1100(a2); return r; }, 3),
+  "DefenseTransport.output_targets": run_lib((a0) => { const r = $0m1073(run_loop($DefenseTransport$058output_targets$($0m1072(a0)))); $0m1073(a0); return r; }, 1),
+  "DefenseTransport.synchronize_targets": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseTransport$058synchronize_targets$($0m1056(a0), $0m1072(a1)))); $0m1057(a0); $0m1073(a1); return r; }, 2),
+  "DefenseTransport.synchronize": run_lib((a0) => { const r = $0m1099(run_loop($DefenseTransport$058synchronize$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseOutput.lease_ids": run_lib((a0) => { const r = $0m52(run_loop($DefenseOutput$058lease_ids$($0m205(a0)))); $0m201(a0); return r; }, 1),
   "DefenseOutput.core_leases": run_lib((a0) => { const r = $0m201(run_loop($DefenseOutput$058core_leases$($0m221(a0)))); $0m214(a0); return r; }, 1),
   "DefenseOutput.selection_members": run_lib((a0) => { const r = $0m52(run_loop($DefenseOutput$058selection_members$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
@@ -65605,11 +65776,11 @@ export default {
   "DefenseHost.drained": run_lib((a0) => { const r = (run_loop($DefenseHost$058drained$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.run_status": run_lib((a0) => { const r = (run_loop($DefenseHost$058run_status$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.clock_active": run_lib((a0) => { const r = (run_loop($DefenseHost$058clock_active$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "DefenseHost.controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058controlled$($0m1056(a0), $0m1063(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
+  "DefenseHost.controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058controlled$($0m1056(a0), $0m1069(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
   "DefenseHost.action": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058action$($0m1056(a0), $0m1015(a1)))); $0m1057(a0); $0m1017(a1); return r; }, 2),
   "DefenseHost.pick_world": run_lib((a0, a1, a2) => { const r = $0m1057(run_loop($DefenseHost$058pick_world$((a0), $0m1056(a1), $0m1056(a2)))); (a0); $0m1057(a1); $0m1057(a2); return r; }, 3),
   "DefenseHost.started": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058started$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "DefenseHost.burst_controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058burst_controlled$($0m1056(a0), $0m1063(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
+  "DefenseHost.burst_controlled": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058burst_controlled$($0m1056(a0), $0m1069(a1)))); $0m1057(a0); $0m1013(a1); return r; }, 2),
   "DefenseHost.burst": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058burst$($0m1056(a0), (a1)))); $0m1057(a0); (a1); return r; }, 2),
   "DefenseHost.start": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058start$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.next_burst": run_lib((a0) => { const r = (run_loop($DefenseHost$058next_burst$((a0)))); (a0); return r; }, 1),
@@ -65630,21 +65801,21 @@ export default {
   "DefenseHost.with_endings": run_lib((a0, a1, a2) => { const r = $0m1057(run_loop($DefenseHost$058with_endings$($0m1056(a0), $0m1056(a1), $0m860(a2)))); $0m1057(a0); $0m1057(a1); $0m892(a2); return r; }, 3),
   "DefenseHost.damage_when": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058damage_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
   "DefenseHost.completed_tick": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058completed_tick$($0m1056(a0), $0m1056(a1)))); $0m1057(a0); $0m1057(a1); return r; }, 2),
-  "DefenseHost.micro": run_lib((a0, a1) => { const r = $0m1093(run_loop($DefenseHost$058micro$($0m1056(a0), $0m1012(a1)))); $0m1057(a0); $0m1010(a1); return r; }, 2),
-  "DefenseHost.event_result": run_lib((a0, a1, a2, a3) => { const r = $0m1099(run_loop($DefenseHost$058event_result$($0m1096(a0), $0m860(a1), $0m876(a2), $0m1097(a3)))); $0m1093(a0); $0m892(a1); $0m905(a2); $0m1094(a3); return r; }, 4),
-  "DefenseHost.micro_result": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1099(run_loop($DefenseHost$058micro_result$($0m1056(a0), $0m1012(a1), $0m860(a2), $0m876(a3), $0m1097(a4)))); $0m1057(a0); $0m1010(a1); $0m892(a2); $0m905(a3); $0m1094(a4); return r; }, 5),
-  "DefenseHost.advance_event": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1099(run_loop($DefenseHost$058advance_event$((a0), $0m1056(a1), $0m860(a2), $0m876(a3), $0m1097(a4), nat_host(a5), ((f) => (x) => $0m1100(f($0m1099(x))))(a6)))); (a0); $0m1057(a1); $0m892(a2); $0m905(a3); $0m1094(a4); BigInt(a5); ((f) => (x) => $0m1099(f($0m1100(x))))(a6); return r; }, 7),
-  "DefenseHost.event_loop": run_lib((a0, a1, a2) => { const r = $0m1099(run_loop($DefenseHost$058event_loop$(nat_host(a0), $0m1100(a1), nat_host(a2)))); BigInt(a0); $0m1099(a1); BigInt(a2); return r; }, 3),
+  "DefenseHost.micro": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseHost$058micro$($0m1056(a0), $0m1012(a1)))); $0m1057(a0); $0m1010(a1); return r; }, 2),
+  "DefenseHost.event_result": run_lib((a0, a1, a2, a3) => { const r = $0m1105(run_loop($DefenseHost$058event_result$($0m1102(a0), $0m860(a1), $0m876(a2), $0m1103(a3)))); $0m1099(a0); $0m892(a1); $0m905(a2); $0m1100(a3); return r; }, 4),
+  "DefenseHost.micro_result": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1105(run_loop($DefenseHost$058micro_result$($0m1056(a0), $0m1012(a1), $0m860(a2), $0m876(a3), $0m1103(a4)))); $0m1057(a0); $0m1010(a1); $0m892(a2); $0m905(a3); $0m1100(a4); return r; }, 5),
+  "DefenseHost.advance_event": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1105(run_loop($DefenseHost$058advance_event$((a0), $0m1056(a1), $0m860(a2), $0m876(a3), $0m1103(a4), nat_host(a5), ((f) => (x) => $0m1106(f($0m1105(x))))(a6)))); (a0); $0m1057(a1); $0m892(a2); $0m905(a3); $0m1100(a4); BigInt(a5); ((f) => (x) => $0m1105(f($0m1106(x))))(a6); return r; }, 7),
+  "DefenseHost.event_loop": run_lib((a0, a1, a2) => { const r = $0m1105(run_loop($DefenseHost$058event_loop$(nat_host(a0), $0m1106(a1), nat_host(a2)))); BigInt(a0); $0m1105(a1); BigInt(a2); return r; }, 3),
   "DefenseHost.physics_step": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058physics_step$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
-  "DefenseHost.finish_transport": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseHost$058finish_transport$($0m1056(a0), $0m1100(a1)))); $0m1057(a0); $0m1099(a1); return r; }, 2),
-  "DefenseHost.begin_transport": run_lib((a0, a1, a2, a3) => { const r = $0m1099(run_loop($DefenseHost$058begin_transport$($0m1096(a0), $0m1056(a1), nat_host(a2), nat_host(a3)))); $0m1093(a0); $0m1057(a1); BigInt(a2); BigInt(a3); return r; }, 4),
-  "DefenseHost.bounded_observed": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseHost$058bounded_observed$($0m1056(a0), nat_host(a1)))); $0m1057(a0); BigInt(a1); return r; }, 2),
-  "DefenseHost.ticking_observed": run_lib((a0) => { const r = $0m1099(run_loop($DefenseHost$058ticking_observed$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "DefenseHost.finish_transport": run_lib((a0, a1) => { const r = $0m1105(run_loop($DefenseHost$058finish_transport$($0m1056(a0), $0m1106(a1)))); $0m1057(a0); $0m1105(a1); return r; }, 2),
+  "DefenseHost.begin_transport": run_lib((a0, a1, a2, a3) => { const r = $0m1105(run_loop($DefenseHost$058begin_transport$($0m1102(a0), $0m1056(a1), nat_host(a2), nat_host(a3)))); $0m1099(a0); $0m1057(a1); BigInt(a2); BigInt(a3); return r; }, 4),
+  "DefenseHost.bounded_observed": run_lib((a0, a1) => { const r = $0m1105(run_loop($DefenseHost$058bounded_observed$($0m1056(a0), nat_host(a1)))); $0m1057(a0); BigInt(a1); return r; }, 2),
+  "DefenseHost.ticking_observed": run_lib((a0) => { const r = $0m1105(run_loop($DefenseHost$058ticking_observed$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.playback_when": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058playback_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
-  "DefenseHost.tick_when_manual": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseHost$058tick_when_manual$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
-  "DefenseHost.tick_when": run_lib((a0, a1) => { const r = $0m1099(run_loop($DefenseHost$058tick_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
-  "DefenseHost.tick_observed": run_lib((a0) => { const r = $0m1099(run_loop($DefenseHost$058tick_observed$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "DefenseHost.tick_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058tick_world$($0m1100(a0)))); $0m1099(a0); return r; }, 1),
+  "DefenseHost.tick_when_manual": run_lib((a0, a1) => { const r = $0m1105(run_loop($DefenseHost$058tick_when_manual$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
+  "DefenseHost.tick_when": run_lib((a0, a1) => { const r = $0m1105(run_loop($DefenseHost$058tick_when$((a0), $0m1056(a1)))); (a0); $0m1057(a1); return r; }, 2),
+  "DefenseHost.tick_observed": run_lib((a0) => { const r = $0m1105(run_loop($DefenseHost$058tick_observed$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "DefenseHost.tick_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058tick_world$($0m1106(a0)))); $0m1105(a0); return r; }, 1),
   "DefenseHost.ticking": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058ticking$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.tick": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058tick$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "DefenseHost.move": run_lib((a0, a1, a2) => { const r = $0m1057(run_loop($DefenseHost$058move$($0m1056(a0), (a1), (a2)))); $0m1057(a0); (a1); (a2); return r; }, 3),
@@ -65652,9 +65823,9 @@ export default {
   "DefenseHost.selected_tower": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058selected_tower$((a0), (a1)))); (a0); (a1); return r; }, 2),
   "DefenseHost.shot_target_found": run_lib((a0, a1, a2) => { const r = $0m312(run_loop($DefenseHost$058shot_target_found$((a0), $0m1056(a1), nat_host(a2)))); (a0); $0m1057(a1); BigInt(a2); return r; }, 3),
   "DefenseHost.shot_target": run_lib((a0, a1, a2) => { const r = $0m312(run_loop($DefenseHost$058shot_target$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
-  "DefenseHost.fire_found": run_lib((a0, a1, a2, a3) => { const r = $0m1083(run_loop($DefenseHost$058fire_found$((a0), $0m1056(a1), (a2), nat_host(a3)))); (a0); $0m1057(a1); (a2); BigInt(a3); return r; }, 4),
-  "DefenseHost.fire": run_lib((a0, a1, a2) => { const r = $0m1083(run_loop($DefenseHost$058fire$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
-  "DefenseHost.fired_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058fired_world$($0m1084(a0)))); $0m1083(a0); return r; }, 1),
+  "DefenseHost.fire_found": run_lib((a0, a1, a2, a3) => { const r = $0m1089(run_loop($DefenseHost$058fire_found$((a0), $0m1056(a1), (a2), nat_host(a3)))); (a0); $0m1057(a1); (a2); BigInt(a3); return r; }, 4),
+  "DefenseHost.fire": run_lib((a0, a1, a2) => { const r = $0m1089(run_loop($DefenseHost$058fire$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
+  "DefenseHost.fired_world": run_lib((a0) => { const r = $0m1057(run_loop($DefenseHost$058fired_world$($0m1090(a0)))); $0m1089(a0); return r; }, 1),
   "DefenseHost.fire_world": run_lib((a0, a1, a2) => { const r = $0m1057(run_loop($DefenseHost$058fire_world$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
   "DefenseHost.upgrade_items": run_lib((a0, a1) => { const r = (run_loop($DefenseHost$058upgrade_items$((a0), (a1)))); (a0); (a1); return r; }, 2),
   "DefenseHost.upgrade_found": run_lib((a0, a1) => { const r = $0m1057(run_loop($DefenseHost$058upgrade_found$($0m1056(a0), (a1)))); $0m1057(a0); (a1); return r; }, 2),
@@ -65691,41 +65862,41 @@ export default {
   "DefenseHost.preview_before": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_before$($0m1056(a0), (a1), (a2), (a3)))); $0m1057(a0); (a1); (a2); (a3); return r; }, 4),
   "DefenseHost.preview_gain": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefenseHost$058preview_gain$($0m1056(a0), (a1), (a2), (a3)))); $0m1057(a0); (a1); (a2); (a3); return r; }, 4),
   "tower_views": run_lib((a0, a1) => { const r = (run_loop($tower_views$((a0), (a1)))); (a0); (a1); return r; }, 2),
-  "target_pose": run_lib((a0, a1) => { const r = $0m1101(run_loop($target_pose$($0m304(a0), $0m1056(a1)))); $0m305(a0); $0m1057(a1); return r; }, 2),
-  "pose_if": run_lib((a0, a1, a2, a3) => { const r = $0m1104(run_loop($pose_if$((a0), $0m304(a1), $0m1056(a2), $0m1102(a3)))); (a0); $0m305(a1); $0m1057(a2); $0m1104(a3); return r; }, 4),
-  "queued_poses": run_lib((a0, a1) => { const r = $0m1104(run_loop($queued_poses$($0m316(a0), $0m1056(a1)))); $0m318(a0); $0m1057(a1); return r; }, 2),
-  "visual_state": run_lib((a0) => { const r = $0m1105(run_loop($visual_state$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "observe": run_lib((a0) => { const r = $0m1106(run_loop($observe$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "target_pose": run_lib((a0, a1) => { const r = $0m1107(run_loop($target_pose$($0m304(a0), $0m1056(a1)))); $0m305(a0); $0m1057(a1); return r; }, 2),
+  "pose_if": run_lib((a0, a1, a2, a3) => { const r = $0m1110(run_loop($pose_if$((a0), $0m304(a1), $0m1056(a2), $0m1108(a3)))); (a0); $0m305(a1); $0m1057(a2); $0m1110(a3); return r; }, 4),
+  "queued_poses": run_lib((a0, a1) => { const r = $0m1110(run_loop($queued_poses$($0m316(a0), $0m1056(a1)))); $0m318(a0); $0m1057(a1); return r; }, 2),
+  "visual_state": run_lib((a0) => { const r = $0m1111(run_loop($visual_state$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "observe": run_lib((a0) => { const r = $0m1112(run_loop($observe$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "with_budget": run_lib((a0, a1) => { const r = $0m1057(run_loop($with_budget$($0m1056(a0), (a1)))); $0m1057(a0); (a1); return r; }, 2),
   "initial": run_lib((a0, a1, a2) => { const r = $0m1057(run_loop($initial$($0m853(a0), (a1), (a2)))); $0m885(a0); (a1); (a2); return r; }, 3),
   "default_config": run_lib(() => { const r = $0m922(run_loop($default_config$()));  return r; }, 0),
   "create_world": run_lib((a0, a1, a2, a3) => { const r = $0m1057(run_loop($create_world$($0m921(a0), nat_host(a1), (a2), (a3)))); $0m922(a0); BigInt(a1); (a2); (a3); return r; }, 4),
   "engine_observation": run_lib((a0) => { const r = $0m924(run_loop($engine_observation$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
-  "accepted": run_lib((a0, a1) => { const r = $0m1107(run_loop($accepted$($0m1056(a0), $0m1056(a1)))); $0m1057(a0); $0m1057(a1); return r; }, 2),
-  "priced": run_lib((a0, a1, a2) => { const r = $0m1107(run_loop($priced$($0m1056(a0), $0m1056(a1), (a2)))); $0m1057(a0); $0m1057(a1); (a2); return r; }, 3),
-  "build_checked": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) => { const r = $0m1107(run_loop($build_checked$((a0), (a1), (a2), (a3), $0m1056(a4), (a5), (a6), (a7), (a8), (a9), (a10)))); (a0); (a1); (a2); (a3); $0m1057(a4); (a5); (a6); (a7); (a8); (a9); (a10); return r; }, 11),
-  "build_parameters": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m1107(run_loop($build_parameters$((a0), $0m1056(a1), (a2), (a3), (a4), (a5), (a6), (a7)))); (a0); $0m1057(a1); (a2); (a3); (a4); (a5); (a6); (a7); return r; }, 8),
-  "build_tuned": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1107(run_loop($build_tuned$($0m1056(a0), (a1), (a2), (a3), (a4), (a5), (a6)))); $0m1057(a0); (a1); (a2); (a3); (a4); (a5); (a6); return r; }, 7),
-  "build_priced": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1107(run_loop($build_priced$($0m1056(a0), (a1), (a2), (a3), (a4)))); $0m1057(a0); (a1); (a2); (a3); (a4); return r; }, 5),
-  "build": run_lib((a0, a1, a2, a3) => { const r = $0m1107(run_loop($build$($0m1056(a0), (a1), (a2), (a3)))); $0m1057(a0); (a1); (a2); (a3); return r; }, 4),
-  "upgrade_checked": run_lib((a0, a1, a2, a3) => { const r = $0m1107(run_loop($upgrade_checked$((a0), (a1), $0m1056(a2), (a3)))); (a0); (a1); $0m1057(a2); (a3); return r; }, 4),
-  "upgrade_found": run_lib((a0, a1, a2) => { const r = $0m1107(run_loop($upgrade_found$($0m1056(a0), (a1), (a2)))); $0m1057(a0); (a1); (a2); return r; }, 3),
-  "upgrade_alive": run_lib((a0, a1, a2) => { const r = $0m1107(run_loop($upgrade_alive$((a0), $0m1056(a1), (a2)))); (a0); $0m1057(a1); (a2); return r; }, 3),
-  "shot_receipt": run_lib((a0) => { const r = $0m1107(run_loop($shot_receipt$($0m1084(a0)))); $0m1083(a0); return r; }, 1),
+  "accepted": run_lib((a0, a1) => { const r = $0m1113(run_loop($accepted$($0m1056(a0), $0m1056(a1)))); $0m1057(a0); $0m1057(a1); return r; }, 2),
+  "priced": run_lib((a0, a1, a2) => { const r = $0m1113(run_loop($priced$($0m1056(a0), $0m1056(a1), (a2)))); $0m1057(a0); $0m1057(a1); (a2); return r; }, 3),
+  "build_checked": run_lib((a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) => { const r = $0m1113(run_loop($build_checked$((a0), (a1), (a2), (a3), $0m1056(a4), (a5), (a6), (a7), (a8), (a9), (a10)))); (a0); (a1); (a2); (a3); $0m1057(a4); (a5); (a6); (a7); (a8); (a9); (a10); return r; }, 11),
+  "build_parameters": run_lib((a0, a1, a2, a3, a4, a5, a6, a7) => { const r = $0m1113(run_loop($build_parameters$((a0), $0m1056(a1), (a2), (a3), (a4), (a5), (a6), (a7)))); (a0); $0m1057(a1); (a2); (a3); (a4); (a5); (a6); (a7); return r; }, 8),
+  "build_tuned": run_lib((a0, a1, a2, a3, a4, a5, a6) => { const r = $0m1113(run_loop($build_tuned$($0m1056(a0), (a1), (a2), (a3), (a4), (a5), (a6)))); $0m1057(a0); (a1); (a2); (a3); (a4); (a5); (a6); return r; }, 7),
+  "build_priced": run_lib((a0, a1, a2, a3, a4) => { const r = $0m1113(run_loop($build_priced$($0m1056(a0), (a1), (a2), (a3), (a4)))); $0m1057(a0); (a1); (a2); (a3); (a4); return r; }, 5),
+  "build": run_lib((a0, a1, a2, a3) => { const r = $0m1113(run_loop($build$($0m1056(a0), (a1), (a2), (a3)))); $0m1057(a0); (a1); (a2); (a3); return r; }, 4),
+  "upgrade_checked": run_lib((a0, a1, a2, a3) => { const r = $0m1113(run_loop($upgrade_checked$((a0), (a1), $0m1056(a2), (a3)))); (a0); (a1); $0m1057(a2); (a3); return r; }, 4),
+  "upgrade_found": run_lib((a0, a1, a2) => { const r = $0m1113(run_loop($upgrade_found$($0m1056(a0), (a1), (a2)))); $0m1057(a0); (a1); (a2); return r; }, 3),
+  "upgrade_alive": run_lib((a0, a1, a2) => { const r = $0m1113(run_loop($upgrade_alive$((a0), $0m1056(a1), (a2)))); (a0); $0m1057(a1); (a2); return r; }, 3),
+  "shot_receipt": run_lib((a0) => { const r = $0m1113(run_loop($shot_receipt$($0m1090(a0)))); $0m1089(a0); return r; }, 1),
   "shot_target": run_lib((a0, a1, a2) => { const r = $0m312(run_loop($shot_target$($0m1056(a0), (a1), nat_host(a2)))); $0m1057(a0); (a1); BigInt(a2); return r; }, 3),
-  "apply": run_lib((a0, a1) => { const r = $0m1107(run_loop($apply$($0m1056(a0), $0m1108(a1)))); $0m1057(a0); $0m1109(a1); return r; }, 2),
-  "tick": run_lib((a0) => { const r = $0m1099(run_loop($tick$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "apply": run_lib((a0, a1) => { const r = $0m1113(run_loop($apply$($0m1056(a0), $0m1114(a1)))); $0m1057(a0); $0m1115(a1); return r; }, 2),
+  "tick": run_lib((a0) => { const r = $0m1105(run_loop($tick$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
   "consumed_events": run_lib((a0) => { const r = BigInt(run_loop($consumed_events$($0m853(a0)))); $0m885(a0); return r; }, 1),
-  "tick_allowed": run_lib((a0, a1, a2) => { const r = $0m1099(run_loop($tick_allowed$((a0), $0m1056(a1), nat_host(a2)))); (a0); $0m1057(a1); BigInt(a2); return r; }, 3),
-  "tick_budget": run_lib((a0, a1, a2) => { const r = $0m1099(run_loop($tick_budget$((a0), $0m1056(a1), nat_host(a2)))); (a0); $0m1057(a1); BigInt(a2); return r; }, 3),
-  "tick_bounded": run_lib((a0, a1) => { const r = $0m1099(run_loop($tick_bounded$($0m1056(a0), nat_host(a1)))); $0m1057(a0); BigInt(a1); return r; }, 2),
+  "tick_allowed": run_lib((a0, a1, a2) => { const r = $0m1105(run_loop($tick_allowed$((a0), $0m1056(a1), nat_host(a2)))); (a0); $0m1057(a1); BigInt(a2); return r; }, 3),
+  "tick_budget": run_lib((a0, a1, a2) => { const r = $0m1105(run_loop($tick_budget$((a0), $0m1056(a1), nat_host(a2)))); (a0); $0m1057(a1); BigInt(a2); return r; }, 3),
+  "tick_bounded": run_lib((a0, a1) => { const r = $0m1105(run_loop($tick_bounded$($0m1056(a0), nat_host(a1)))); $0m1057(a0); BigInt(a1); return r; }, 2),
   "scenario_outcome": run_lib((a0) => { const r = (run_loop($scenario_outcome$((a0)))); (a0); return r; }, 1),
-  "scenario_environment": run_lib((a0, a1) => { const r = $0m890(run_loop($scenario_environment$($0m1110(a0), $0m858(a1)))); $0m1111(a0); $0m890(a1); return r; }, 2),
+  "scenario_environment": run_lib((a0, a1) => { const r = $0m890(run_loop($scenario_environment$($0m1116(a0), $0m858(a1)))); $0m1117(a0); $0m890(a1); return r; }, 2),
   "scenario_profile": run_lib((a0, a1, a2) => { const r = $0m685(run_loop($scenario_profile$($0m684(a0), (a1), (a2)))); $0m685(a0); (a1); (a2); return r; }, 3),
   "scenario_advicees": run_lib((a0, a1, a2) => { const r = $0m919(run_loop($scenario_advicees$($0m917(a0), nat_host(a1), (a2)))); $0m919(a0); BigInt(a1); (a2); return r; }, 3),
-  "scenario_config": run_lib((a0, a1, a2) => { const r = $0m922(run_loop($scenario_config$($0m1110(a0), $0m921(a1), nat_host(a2)))); $0m1111(a0); $0m922(a1); BigInt(a2); return r; }, 3),
-  "scenario_started": run_lib((a0, a1) => { const r = $0m1057(run_loop($scenario_started$($0m1056(a0), $0m1110(a1)))); $0m1057(a0); $0m1111(a1); return r; }, 2),
-  "create_scenario": run_lib((a0, a1, a2, a3) => { const r = $0m1057(run_loop($create_scenario$($0m1110(a0), nat_host(a1), (a2), (a3)))); $0m1111(a0); BigInt(a1); (a2); (a3); return r; }, 4),
+  "scenario_config": run_lib((a0, a1, a2) => { const r = $0m922(run_loop($scenario_config$($0m1116(a0), $0m921(a1), nat_host(a2)))); $0m1117(a0); $0m922(a1); BigInt(a2); return r; }, 3),
+  "scenario_started": run_lib((a0, a1) => { const r = $0m1057(run_loop($scenario_started$($0m1056(a0), $0m1116(a1)))); $0m1057(a0); $0m1117(a1); return r; }, 2),
+  "create_scenario": run_lib((a0, a1, a2, a3) => { const r = $0m1057(run_loop($create_scenario$($0m1116(a0), nat_host(a1), (a2), (a3)))); $0m1117(a0); BigInt(a1); (a2); (a3); return r; }, 4),
   "schedule_finish": run_lib((a0, a1) => { const r = $0m1057(run_loop($schedule_finish$($0m1056(a0), nat_host(a1)))); $0m1057(a0); BigInt(a1); return r; }, 2),
-  "automatic": run_lib((a0) => { const r = $0m1085(run_loop($automatic$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
+  "automatic": run_lib((a0) => { const r = $0m1091(run_loop($automatic$($0m1056(a0)))); $0m1057(a0); return r; }, 1),
 };

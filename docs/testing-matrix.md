@@ -724,6 +724,10 @@ For changes to movement semantics, run `timeout 130 node prototypes/canonical-de
 
 For native wall-clock pacing changes, run `node --test prototypes/canonical-defense/clock.test.mjs`. It compares complete serialized worlds at 40 ms boundaries, fractional carry, bounded catch-up and pause/resume against unchanged virtual physics ticks. This does not establish platform FPS.
 
+For authored maze queues and captured refusal explanations, run `node --test prototypes/canonical-defense/route-queue-proofs.test.mjs prototypes/canonical-defense/journey-diagnostics.test.mjs`. Queue proofs reject five compiling mutants under the unchanged five-second checker limit. Actual Host tests cover folded maze rows, genuine followers, completed-body ageing, single-release admission and burst refusals against independently summed frame-time reservations, followed by complete work/resource/history drain. These do not prove arbitrary-route merges or scheduler fairness.
+
+For resource flashes, event indicators, result numbering or packet stacks, run `node --test prototypes/canonical-defense/render-clarity.test.mjs`. It tests actual rendered rooms and composed scenes, exact individual/Finish finding counts, global-health isolation and compiled regressions restoring the old event arcs and room flash. A native window remains required for drawing changes.
+
 ### Optional game native raster
 
 For native pixel output changes, run `node --test prototypes/canonical-defense/native-raster.test.mjs`.

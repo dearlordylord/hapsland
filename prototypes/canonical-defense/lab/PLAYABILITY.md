@@ -80,3 +80,11 @@ For Stop teaching, compare equal initial inputs: one accelerated sibling can bec
 A native visual review supports the inspected scenarios and build mode only. Timing/geometry proofs, finite traces, native/emitted agreement and participant learning are distinct claims. Human learning and global balance remain unmeasured until their own studies establish them.
 
 Execution receipts and captures belong under ignored `.test-runs/`; they must name source/build identity, scenario, criteria verdicts and limitations. Keep this framework current rather than accumulating historical reports here.
+
+## Maze and resource counterexamples
+
+A follower on an adjacent maze row must not stop merely because the row is only 8 pixels away. Compare directed progress along the authored route; a close body actually ahead still blocks, an older body behind does not. Completed bodies must release the queue, and their history timer must expire even when movement would be blocked. Pause freezes the entire tick, including history ageing.
+
+For a displayed preparation refusal, inspect the captured event and its pre-decision capacity ledger. A currently empty room does not establish available capacity at that earlier decision. The 19-edit witness accepts four 100-byte preparations and refuses 15 while 400 of 480 bytes are reserved; after drain all work, reservations and historical actors must disappear. The one-edit countercase must have no refusal. These are deterministic observations of that workload, not universal throughput claims.
+
+The global ledger may flash under shared pressure; an empty or occupied room must keep its own phase color and must not display global HP as room HP. Check numbers persist from one review to its separate result fragments. An authorized packet is one body drawn with stack marks and its exact finding count, including captured Finish members; it is never an invented collection of nearby bodies. Event labels have no decorative arcs.

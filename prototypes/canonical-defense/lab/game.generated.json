@@ -1,8 +1,8 @@
 {
   "format": 1,
   "compiler": "Bend 2.0.36: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:46e362c5b6ad48380d29947b2538e6be2ab1b7bdf8fb9738643d844efa2155d7",
-  "moduleIdentity": "sha256:fff0bfb5d7392f8f7ac1af7f59faeae60b886935b607f545d321b052c02b0aa5",
+  "sourceIdentity": "sha256:5f5095fe4eb738b3925326240c41664f63f45884bf01003879df3cb06a0f1894",
+  "moduleIdentity": "sha256:c523d90094a88de84dbbc3227ae732d6bca72fdfbff656a3d2d6254a6a65b21b",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",
@@ -94,6 +94,7 @@
     "prototypes/canonical-defense/DefenseOutput.bend",
     "prototypes/canonical-defense/DefensePresentation.bend",
     "prototypes/canonical-defense/DefenseProjection.bend",
+    "prototypes/canonical-defense/DefenseRouteQueue.bend",
     "prototypes/canonical-defense/DefenseRulePolicy.bend",
     "prototypes/canonical-defense/DefenseRuleTypes.bend",
     "prototypes/canonical-defense/DefenseRules.bend",

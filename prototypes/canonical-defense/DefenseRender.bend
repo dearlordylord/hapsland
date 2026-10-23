@@ -1,5 +1,6 @@
 # Native layouts are read-only projections of the canonical reducer.
 import Base
+import ../../packages/monkey-business-bend/Callbacks.bend as CB
 import ../../packages/monkey-business-bend/NativeRun.bend as Run
 import ../../packages/monkey-business-bend/StopScenario.bend as Stop
 import ../../packages/monkey-business-bend/Engine.bend as Engine
@@ -538,7 +539,7 @@ def building_permits(
     )
     case _: F.text("WRITER OWNERS " ++ U32.show(P.writes(world)), x, (y + 80 : U32), 1, 65483, rest)
 
-def health_bar(
+def room_resources(
   on: Bool,
   +world: M.World,
   +phase: U32,
@@ -556,14 +557,7 @@ def health_bar(
         (y + 69 : U32),
         1,
         Bool.pick(U32, (hot > 0 : U32), 15758447, 12439239),
-        F.put(
-          x,
-          (y + 61 : U32),
-          (64 * M.hp(world) / 100 : U32),
-          3,
-          Bool.pick(U32, (hot > 0 : U32) && (M.hp(world) < 100 : U32), 15758447, 9170322),
-          F.put(x, (y + 61 : U32), 64, 3, 5003871, building_permits(phase, world, x, y, rest))
-        )
+        building_permits(phase, world, x, y, rest)
       )
 
 def queue_caption(+layout: U32, side: U32) -> D.Point:
@@ -650,7 +644,7 @@ def processing_building(
       (y + 53 : U32),
       1,
       History.phase_color(phase),
-      health_bar(
+      room_resources(
         enclosed,
         world,
         phase,
@@ -663,14 +657,7 @@ def processing_building(
           point,
           x,
           y,
-          Bool.pick(
-            U32,
-            (M.damage_flash(
-              world
-            ) > 0 : U32) && (site_pressure(P.tokens(world), world, phase) > 0 : U32),
-            15758447,
-            History.phase_color(phase)
-          ),
+          History.phase_color(phase),
           rest
         )
       )
@@ -1155,7 +1142,7 @@ def cue_label(+cue: M.Cue) -> String:
     Bool.pick(
       String,
       U32.is_eq(M.cue_kind(cue), 2),
-      "E" ++ Nat.show(M.cue_family(cue)) ++ " PREP REFUSED",
+      "E" ++ Nat.show(M.cue_family(cue)) ++ " PREP REFUSED / SHARED CAPACITY",
       Bool.pick(String, U32.is_eq(M.cue_kind(cue), 0), "BURST QUEUED", "ADMITTED")
     )
   )
@@ -1172,14 +1159,7 @@ def cue_draw(+cue: M.Cue, row: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
     (U32.sub(M.cue_y(cue), 28) + row * 12 : U32),
     1,
     color,
-    ring(
-      24n,
-      M.cue_x(cue),
-      M.cue_y(cue),
-      Bool.pick(U32, (M.cue_ttl(cue) > 30 : U32), 12, 8),
-      color,
-      rest
-    )
+    rest
   )
 def cue_visible(on: Bool, cue: M.Cue, row: U32, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match on:
@@ -1252,7 +1232,7 @@ def output_hud(+world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
         24,
         706,
         1,
-        16768133,
+        Bool.pick(U32, (M.damage_flash(world) > 0 : U32), 15758447, 16768133),
         rest
       )
     )
@@ -1543,9 +1523,16 @@ def fragment_bodies(
       +point = Rules.fragment_point(item)
       +hit = Rules.fragment_hit(item)
       +color = Bool.pick(U32, hit, History.phase_color(5), 9170322)
-      # Identity and delivery evidence are shown on hover; eight parallel labels
-      # obscure the bodies when a review forks inside the compact Jev room.
-      monster(point, True{}, color, 0, fragment_bodies(tail, group, world, rest))
+      # Preserve the check number through the visible fork, without repeating
+      # operation/family labels on every result body.
+      F.text(
+        U32.show((Rules.fragment_rule(item) + 1 : U32)),
+        U32.sub(D.px(point), 2),
+        U32.sub(D.py(point), 12),
+        1,
+        15124059,
+        monster(point, True{}, color, 0, fragment_bodies(tail, group, world, rest))
+      )
 
 def assembly_label(
   +group: RuleTypes.Group,
@@ -1566,6 +1553,52 @@ def assembly_label(
     15124059,
     rest
   )
+# Count only findings owned by the exact current physical output packet.
+def packet_findings(items: List<&2, RuleTypes.Group>, +target: CB.Target) -> U32:
+  match items:
+    case Nil{}: 0
+    case +group <> tail:
+      (Bool.pick(
+        U32,
+        Rules.target_owns(target, Rules.owner(group)),
+        Rules.finding_total(Rules.results(group)),
+        0
+      ) + packet_findings(tail, target) : U32)
+def packet_count_in(items: List<&2, CB.Target>, +id: V.WorkIdentity, +world: M.World) -> U32:
+  match items:
+    case Nil{}: 0
+    case +target <> tail:
+      Bool.pick(
+        U32,
+        Rules.target_owns(target, id),
+        packet_findings(Rules.groups(M.rules(world)), target),
+        packet_count_in(tail, id, world)
+      )
+def packet_count(id: V.WorkIdentity, +world: M.World) -> U32:
+  packet_count_in(Fire.physical_targets(world), id, world)
+def packet_badge(+actor: V.Actor, +world: M.World, +rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
+  +point = Motion.point(actor)
+  +count = packet_count(Motion.actor_key(actor), world)
+  Bool.pick(
+    List<&2, F.Rect>,
+    (count > 0 : U32),
+    F.text(
+      "PACKET X" ++ U32.show(count),
+      U32.sub(D.px(point), 12),
+      U32.sub(D.py(point), 30),
+      1,
+      65483,
+      F.put(
+        U32.sub(D.px(point), 6),
+        (D.py(point) + 5 : U32),
+        14,
+        2,
+        65483,
+        F.put(U32.sub(D.px(point), 4), (D.py(point) + 8 : U32), 14, 2, 65483, rest)
+      )
+    ),
+    rest
+  )
 def group_bodies(
   +group: RuleTypes.Group,
   found: Maybe<&2, V.Actor>,
@@ -1583,14 +1616,7 @@ def group_bodies(
           Bool.pick(
             List<&2, F.Rect>,
             U32.is_eq(Motion.outcome(actor), 0),
-            F.text(
-              "PACKET",
-              U32.sub(D.px(Motion.point(actor)), 12),
-              U32.sub(D.py(Motion.point(actor)), 30),
-              1,
-              65483,
-              fragment_bodies(Rules.fragments(group), group, world, rest)
-            ),
+            packet_badge(actor, world, fragment_bodies(Rules.fragments(group), group, world, rest)),
             fragment_bodies(Rules.fragments(group), group, world, rest)
           ),
           Bool.pick(
@@ -1652,12 +1678,7 @@ def actor_at(
       String,
       done,
       History.terminal_short(Motion.outcome(actor)),
-      Bool.pick(
-        String,
-        U32.is_eq(Motion.wait_kind(actor, M.actors(world)), 0),
-        Bool.pick(String, U32.is_eq(p, Motion.observed_phase(actor)), "", ""),
-        History.body_wait(Motion.wait_kind(actor, M.actors(world)))
-      )
+      History.body_wait(Motion.wait_kind(actor, M.actors(world)))
     )
   )
   +x = U32.sub(D.px(point), 8)
