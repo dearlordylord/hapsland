@@ -72,3 +72,32 @@ test('Courier hit boosts only its assembled visible packet, leaving other fragme
  const old=before.find(a=>operation(a)===3n),n=normalActors.find(a=>operation(a)===3n),b=boostedActors.find(a=>operation(a)===3n);
  assert.ok(distance(old,b)>distance(old,n),'the one hit carrier advances faster');
 });
+
+for(const layout of [0,1,2])test(`repeated releases and Stop drain retired packets and reservations: layout ${layout}`,()=>{
+ let w=G.repeated_start(layout);
+ for(let tick=0;tick<4000;tick++){
+  if(tick>0&&tick<=440&&tick%40===0)w=G.release(w);
+  if(tick===640)w=G.stop(w);
+  w=G.tick(w);
+ }
+ assert.ok(G.hp(w)>0,'reproduction remains alive; game-over freeze cannot explain the stuck bodies');
+ assert.equal(G.outstanding(w),0n,'all canonical work retires');
+ assert.equal(G.ledger_bytes(w),0,'every canonical reservation releases');
+ assert.equal(list(G.actors(w)).length,0,'retired packets cannot remain permanently gated at the retained-room entry');
+ assert.equal(list(G.groups(w)).length,0,'retired assembly groups cannot keep ghost packets alive');
+ assert.equal(active(w).length,0,'no actionable delivery target remains after drain');
+});
+
+for(const layout of [0,1,2])test(`recurring arrivals stop and fully drain on a live map: layout ${layout}`,()=>{
+ let w=G.automatic(G.repeated_start(layout));
+ for(let tick=0;tick<21000;tick++){
+  if(tick===16000)w=G.automatic(w);
+  w=G.tick(w);
+ }
+ assert.ok(G.hp(w)>0,'ordinary recurring workload stays alive');
+ assert.ok(G.individual(w)+G.delivered(w)>0,'real packets have been delivered');
+ assert.equal(G.outstanding(w),0n);
+ assert.equal(G.ledger_bytes(w),0);
+ assert.equal(list(G.actors(w)).length,0);
+ assert.equal(list(G.groups(w)).length,0);
+});

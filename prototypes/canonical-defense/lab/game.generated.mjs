@@ -41081,6 +41081,14 @@ function $DefensePresentation$058retirement_outcome$(_cause_0) {
   }
 }
 
+function $DefensePresentation$058route_permission$(_retired_0, _seat_0, _packet_0) {
+  if (_retired_0) {
+    return true;
+  } else {
+    return $Bool$and$(_seat_0, _packet_0);
+  }
+}
+
 function $DefenseMotion$058key$(_work_0) {
   const _p_0 = _work_0["partition"];
   const _l_0 = _work_0["lifetime"];
@@ -42853,13 +42861,14 @@ function $DefenseRules$058split_owner$(_found_0) {
 
 function $DefenseRules$058can_move_actor$(_actor_0, _world_0) {
   const _group_0 = ($DefenseRules$058find$(($DefenseMotion$058actor_key$(_actor_0)), ($DefenseRules$058groups$(($DefenseModel$058rules$(_world_0))))));
-  const _x_0 = ($Bool$not$(($DefenseRules$058entering$(_actor_0))));
-  const _x_1 = ($DefenseRules$058has_seat$(_group_0));
-  const _x_2 = ($Bool$not$(($Bool$and$(($DefenseRules$058split_owner$(_group_0)), ($DefenseMap$058same$(($DefenseMotion$058point$(_actor_0)), ($DefenseMap$058entry_port$(($DefenseModel$058layout$(_world_0)), 5, 0))))))));
-  const _x_3 = ($DefenseRules$058carrier_found$(_group_0));
-  const _x_4 = (_x_2 || _x_3);
-  const _x_5 = ($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0))));
-  return $Bool$and$((_x_0 || _x_1), (_x_4 || _x_5));
+  const _x_0 = ($DefenseMotion$058terminal$(_actor_0));
+  const _x_1 = ($Bool$not$(($DefenseRules$058entering$(_actor_0))));
+  const _x_2 = ($DefenseRules$058has_seat$(_group_0));
+  const _x_3 = ($Bool$not$(($Bool$and$(($DefenseRules$058split_owner$(_group_0)), ($DefenseMap$058same$(($DefenseMotion$058point$(_actor_0)), ($DefenseMap$058entry_port$(($DefenseModel$058layout$(_world_0)), 5, 0))))))));
+  const _x_4 = ($DefenseRules$058carrier_found$(_group_0));
+  const _x_5 = (_x_3 || _x_4);
+  const _x_6 = ($DefenseMotion$058empty$(($DefenseMotion$058path$(_actor_0))));
+  return $DefensePresentation$058route_permission$((_x_0 > 0), (_x_1 || _x_2), (_x_5 || _x_6));
 }
 
 function $DefenseRules$058play_when$(_assigned_0, _actor_0, _all_0, _tracks_0) {
@@ -65344,6 +65353,7 @@ export default {
   "DefensePresentation.keep": run_lib((a0, a1, a2) => { const r = (run_loop($DefensePresentation$058keep$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
   "DefensePresentation.wait_kind": run_lib((a0, a1, a2, a3) => { const r = (run_loop($DefensePresentation$058wait_kind$((a0), (a1), (a2), (a3)))); (a0); (a1); (a2); (a3); return r; }, 4),
   "DefensePresentation.retirement_outcome": run_lib((a0) => { const r = (run_loop($DefensePresentation$058retirement_outcome$((a0)))); (a0); return r; }, 1),
+  "DefensePresentation.route_permission": run_lib((a0, a1, a2) => { const r = (run_loop($DefensePresentation$058route_permission$((a0), (a1), (a2)))); (a0); (a1); (a2); return r; }, 3),
   "DefenseMotion.key": run_lib((a0) => { const r = $0m339(run_loop($DefenseMotion$058key$($0m225(a0)))); $0m218(a0); return r; }, 1),
   "DefenseMotion.same": run_lib((a0, a1) => { const r = (run_loop($DefenseMotion$058same$($0m1039(a0), $0m1039(a1)))); $0m339(a0); $0m339(a1); return r; }, 2),
   "DefenseMotion.phase": run_lib((a0) => { const r = (run_loop($DefenseMotion$058phase$($0m225(a0)))); $0m218(a0); return r; }, 1),

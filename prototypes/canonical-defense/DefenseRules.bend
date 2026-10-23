@@ -1,5 +1,6 @@
 # Game host interprets actual request receipts; shared NativeRun stays authoritative.
 import Base
+import ./DefensePresentation.bend as Display
 import ./DefenseRouteQueue.bend as Queue
 import ./DefenseLiveMotionTypes.bend as LiveTypes
 import ../../packages/monkey-business-bend/Callbacks.bend as CB
@@ -793,10 +794,13 @@ def split_owner(found: Maybe<&2, R.Group>) -> Bool:
     case None{}: False{}
 def can_move_actor(+actor: V.Actor, +world: M.World) -> Bool:
   +group = find(Motion.actor_key(actor), groups(M.rules(world)))
-  (Bool.not(entering(actor)) || has_seat(group)) &&
-  (Bool.not(
-    split_owner(group) && Map.same(Motion.point(actor), Map.entry_port(M.layout(world), 5, 0))
-  ) || carrier_found(group) || Motion.empty(Motion.path(actor)))
+  Display.route_permission(
+    (Motion.terminal(actor) > 0 : U32),
+    Bool.not(entering(actor)) || has_seat(group),
+    Bool.not(
+      split_owner(group) && Map.same(Motion.point(actor), Map.entry_port(M.layout(world), 5, 0))
+    ) || carrier_found(group) || Motion.empty(Motion.path(actor))
+  )
 
 
 def play_when(

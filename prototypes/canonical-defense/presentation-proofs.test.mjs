@@ -1,3 +1,4 @@
+import { replaceTokens } from "./motion-state-slice.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -8,6 +9,8 @@ import { test } from "node:test";
 const files = ["DefenseMotionTypes.bend", "DefensePresentation.bend", "PresentationLAWS.bend", "PresentationPROOF.bend"];
 const sources = new Map(files.map(file => [file, readFileSync(new URL(file, import.meta.url), "utf8")]));
 const mutants = [
+  ["retired packet waits forever", "case True{}: True{}", "case True{}: seat && packet"],
+  ["live unassembled packet escapes", "case False{}: seat && packet", "case False{}: True{}"],
   ["unfinished travel disappears", "case True{} _: True{}", "case True{} _: False{}"],
   ["silent parent wait", "case False{} _ _ _: 1", "case False{} _ _ _: 0"],
   ["playback called retained", "case True{} True{} True{} _: 0", "case True{} True{} True{} _: 3"],
@@ -29,8 +32,7 @@ function check(replacement, verdict = false) {
       let contents = original;
       if (file === "DefensePresentation.bend" && replacement) {
         const [before, after] = replacement;
-        assert.equal(original.split(before).length, 2, "mutation must have exactly one target");
-        contents = original.replace(before, after);
+        contents = replaceTokens(original, before, after);
       }
       writeFileSync(join(directory, file), contents);
     }

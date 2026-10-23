@@ -1,5 +1,7 @@
 # Actual Host witnesses for physical result assembly and exact visible recipients.
 import Base
+import ../../packages/agent-flow-bend/Canonical.bend as C
+import ./DefenseProjection.bend as P
 import ./DefenseLab.bend as Lab
 import ./DefenseHost.bend as H
 import ./DefenseModel.bend as M
@@ -40,3 +42,12 @@ def stop(world: M.World) -> M.World: H.key(world, 115)
 def schedule_finish(world: M.World, at: Nat) -> M.World: Lab.schedule_finish(world, at)
 def individual(world: M.World) -> U32: M.submissions(world)
 def delivered(world: M.World) -> U32: M.delivered(world)
+
+# Repeated ordinary user releases, not the two-unit Lab workload.
+def repeated_start(layout: U32) -> M.World: H.key(H.key(H.reset_layout(layout), 110), 97)
+def release(world: M.World) -> M.World: H.key(world, 110)
+def hp(world: M.World) -> U32: M.hp(world)
+def ledger_bytes(world: M.World) -> U32: P.ledger_bytes(world)
+def outstanding(world: M.World) -> Nat: List.length(&2, C.ReviewWorkRecord, M.work(M.core(world)))
+
+def automatic(world: M.World) -> M.World: H.key(world, 97)
