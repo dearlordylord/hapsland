@@ -281,3 +281,5 @@ def hit_animation(x: U32, y: U32, on: Bool) -> List<&2, F.Rect>:
     []
   )
 def mobs(world: M.World) -> List<&2, LiveTypes.Mob>: M.mobs(world)
+
+def activity_note(world: M.World) -> String: R.activity_line(world)

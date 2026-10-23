@@ -45,9 +45,9 @@ it("a held captured old result cannot become current delivery after source repla
   const immutableAfter = JSON.parse(JSON.stringify(originalFrame.after))
   run.applyControl({ kind: "callback", target, action: "hold" })
   expect(run.advance({ untilTime: 15, maxEvents: 120 }).reason).not.toBe("eventLimit")
-  expect(run.projection.global).toEqual({ items: 2, bytes: 10 })
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
   expect(run.projection.dispatch.reviewServiceRequests).toHaveLength(1)
-  expect(run.projection.pendingFindings).toHaveLength(1)
+  expect(run.projection.pendingFindings).toEqual([])
   const fresh = run.observations.find((frame) => frame.event.kind === "submissionTerminal")!
   expect(fresh.time).toBe(10)
   expect(fresh.event).toMatchObject({ advice: 7, certain: true })
@@ -73,7 +73,7 @@ it("a held captured old result cannot become current delivery after source repla
     { category: "event", kind: "staleFindingRetired" },
     { category: "event", kind: "reviewServiceRequestOutcomeRecorded", outcome: "finding" }
   ])
-  expect(run.projection.global).toEqual({ items: 1, bytes: 5 })
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
   const settled = JSON.parse(JSON.stringify(run.projection))
   run.applyControl({ kind: "callback", target, action: "duplicate" })

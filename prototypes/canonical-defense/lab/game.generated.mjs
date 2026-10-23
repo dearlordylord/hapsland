@@ -7110,6 +7110,17 @@ function $______packages_agent_flow_bend_CollectionState_release(_state_0, _advi
   return $Bool_pick(($______packages_agent_flow_bend_CollectionState_lease_owned(_advice_0, _token_0, _leases_0)), {$: "CollectionState.Accepted", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": ($______packages_agent_flow_bend_CollectionState_remove_lease(_advice_0, _token_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "reuse": _reuse_0, "notices": _notices_0}}, {$: "CollectionState.Refused", "state": {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "reuse": _reuse_0, "notices": _notices_0}});
 }
 
+function $______packages_agent_flow_bend_CollectionState_released_payload(_state_0, _advice_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  const _reuse_0 = _state_0["reuse"];
+  const _notices_0 = _state_0["notices"];
+  return {$: "CollectionState.State", "ready": ($______packages_agent_flow_bend_CollectionState_remove_ready(_advice_0, _ready_0)), "leases": ($______packages_agent_flow_bend_CollectionState_remove_advice_lease(_advice_0, _leases_0)), "claims": _claims_0, "delivery": _delivery_0, "revision": _revision_0, "reuse": _reuse_0, "notices": _notices_0};
+}
+
 function $______packages_agent_flow_bend_CollectionState_retire(_state_0, _advice_0) {
   const _ready_0 = _state_0["ready"];
   const _leases_0 = _state_0["leases"];
@@ -7124,6 +7135,18 @@ function $______packages_agent_flow_bend_CollectionState_retire(_state_0, _advic
 function $______packages_agent_flow_bend_CollectionState_protected_advice(_state_0, _advice_0) {
   const _delivery_0 = _state_0["delivery"];
   return $______packages_agent_flow_bend_DeliveryState_protected_advice(_delivery_0, _advice_0);
+}
+
+function $______packages_agent_flow_bend_CollectionState_release_payload_when(_protected_0, _state_0, _advice_0) {
+  if (_protected_0) {
+    return _state_0;
+  } else {
+    return $______packages_agent_flow_bend_CollectionState_released_payload(_state_0, _advice_0);
+  }
+}
+
+function $______packages_agent_flow_bend_CollectionState_release_payload(_state_0, _advice_0) {
+  return $______packages_agent_flow_bend_CollectionState_release_payload_when(($______packages_agent_flow_bend_CollectionState_protected_advice(_state_0, _advice_0)), _state_0, _advice_0);
 }
 
 function $______packages_agent_flow_bend_CollectionState_claim(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -8958,6 +8981,35 @@ function $______packages_agent_flow_bend_Canonical_reviewed(_state_0, _partition
   return $______packages_agent_flow_bend_Canonical_reviewed_found({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _outcome_0, ($______packages_agent_flow_bend_Canonical_find_work(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
 }
 
+function $______packages_agent_flow_bend_Canonical_retired_payload(_result_0, _advice_0) {
+  if (_result_0.$ === "Canonical.Advanced") {
+    const _t_0 = _result_0["state"];
+    const _ledger_0 = _t_0["ledger"];
+    const _rounds_0 = _t_0["rounds"];
+    const _work_0 = _t_0["work"];
+    const _next_round_0 = _t_0["next_round"];
+    const _next_operation_0 = _t_0["next_operation"];
+    const _admissions_0 = _t_0["admissions"];
+    const _dispatch_0 = _t_0["dispatch"];
+    const _collection_0 = _t_0["collection"];
+    const _history_0 = _t_0["history"];
+    const _outputs_0 = _result_0["outputs"];
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": ($______packages_agent_flow_bend_CollectionState_release_payload(_collection_0, _advice_0)), "history": _history_0}, "outputs": _outputs_0};
+  } else {
+    const _state_0 = _result_0["state"];
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": _reason_0};
+  }
+}
+
+function $______packages_agent_flow_bend_Canonical_retire_review_when(_allowed_0, _state_0, _operation_0, _charge_0, _ledger_0) {
+  if (!_allowed_0) {
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.WrongStage"}};
+  } else {
+    return $______packages_agent_flow_bend_Canonical_retired_payload(($______packages_agent_flow_bend_Canonical_reviewed_released(_state_0, _operation_0, {$: "Canonical.Discarded"}, _charge_0, ($______packages_agent_flow_bend_Ledger_release(_ledger_0, _charge_0)))), _operation_0);
+  }
+}
+
 function $______packages_agent_flow_bend_Canonical_retire_review_found(_state_0, _operation_0, _found_0) {
   const _ledger_0 = _state_0["ledger"];
   const __0 = _state_0["rounds"];
@@ -8973,7 +9025,7 @@ function $______packages_agent_flow_bend_Canonical_retire_review_found(_state_0,
     const _charge_0 = _t_0["charge"];
     const _t_1 = _t_0["kind"];
     if (_t_1.$ === "Canonical.PendingFinding") {
-      return $______packages_agent_flow_bend_Canonical_reviewed_released({$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, {$: "Canonical.Discarded"}, _charge_0, ($______packages_agent_flow_bend_Ledger_release(_ledger_0, _charge_0)));
+      return $______packages_agent_flow_bend_Canonical_retire_review_when(($Bool_not(($______packages_agent_flow_bend_CollectionState_protected_advice(_collection_0, _operation_0)))), {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, _operation_0, _charge_0, _ledger_0);
     } else {
       return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": __0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleOperation"}};
     }
@@ -18193,6 +18245,42 @@ function $______packages_monkey_business_bend_CollectorScenario_candidate_contex
     return $______packages_monkey_business_bend_CollectorScenario_with_candidate(($______packages_monkey_business_bend_CollectorScenario_lookup(_candidates_0, _token_0)), _context_0);
   } else {
     return _context_0;
+  }
+}
+
+function $______packages_monkey_business_bend_CollectorScenario_completed_record(_accepted_0, _certain_0, _found_0) {
+  if (_accepted_0) {
+    if (_certain_0) {
+      if (_found_0.$ === "Some") {
+        const _t_0 = _found_0["value"];
+        const _p_0 = _t_0["partition"];
+        const _l_0 = _t_0["lifetime"];
+        const _r_0 = _t_0["round"];
+        const _o_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          return {$: "Con", "head": ($______packages_monkey_business_bend_Driver_immediate({$: "Canonical.RetireReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Nil"}};
+        } else {
+          return {$: "Nil"};
+        }
+      } else {
+        return {$: "Nil"};
+      }
+    } else {
+      return {$: "Nil"};
+    }
+  } else {
+    return {$: "Nil"};
+  }
+}
+
+function $______packages_monkey_business_bend_CollectorScenario_completed_payload(_accepted_0, _event_0, _canonical_0) {
+  if (_event_0.$ === "Canonical.SubmissionTerminal") {
+    const _advice_0 = _event_0["advice"];
+    const _certain_0 = _event_0["certain"];
+    return $______packages_monkey_business_bend_CollectorScenario_completed_record(_accepted_0, _certain_0, ($______packages_monkey_business_bend_Driver_find_operation(($______packages_monkey_business_bend_Driver_work_list(_canonical_0)), _advice_0)));
+  } else {
+    return {$: "Nil"};
   }
 }
 
@@ -33449,8 +33537,12 @@ function $______packages_monkey_business_bend_NativeRun_quiet_after_native(_stat
   return $______packages_monkey_business_bend_NativeRun_quiet_after_window(($______packages_monkey_business_bend_NativeRun_quiet_window(($______packages_monkey_business_bend_NativeRun_runtime(_state_0)))), _state_0, _event_0, ($______packages_monkey_business_bend_Engine_scope_event(($______packages_monkey_business_bend_NativeRun_core(_state_0)), ($______packages_monkey_business_bend_NativeRun_core(_state_0)), _event_0, ($______packages_monkey_business_bend_NativeRun_provided_job(_job_0)))));
 }
 
+function $______packages_monkey_business_bend_NativeRun_finalized_payload(_state_0, _event_0, _accepted_0, _job_0, _source_0, _source_jobs_0) {
+  return $______packages_monkey_business_bend_NativeRun_issue_source_context(_state_0, ($______packages_monkey_business_bend_CollectorScenario_completed_payload(_accepted_0, _event_0, ($______packages_monkey_business_bend_Engine_canonical(($______packages_monkey_business_bend_NativeRun_core(_state_0)))))), _job_0, _source_0, _source_jobs_0);
+}
+
 function $______packages_monkey_business_bend_NativeRun_product_feedback(_state_0, _event_0, _outputs_0, _job_0, _source_0, _source_jobs_0) {
-  return $______packages_monkey_business_bend_NativeRun_advice_feedback(($______packages_monkey_business_bend_NativeRun_advice_recorded(_event_0, _outputs_0)), ($______packages_monkey_business_bend_NativeRun_wake_event(($______packages_monkey_business_bend_NativeRun_collector_completed(_state_0, _job_0, ($______packages_monkey_business_bend_Engine_collector_after(($______packages_monkey_business_bend_NativeRun_core(_state_0)), _event_0)), _source_0, _source_jobs_0)), _event_0)), _event_0, _job_0);
+  return $______packages_monkey_business_bend_NativeRun_advice_feedback(($______packages_monkey_business_bend_NativeRun_advice_recorded(_event_0, _outputs_0)), ($______packages_monkey_business_bend_NativeRun_wake_event(($______packages_monkey_business_bend_NativeRun_finalized_payload(($______packages_monkey_business_bend_NativeRun_collector_completed(_state_0, _job_0, ($______packages_monkey_business_bend_Engine_collector_after(($______packages_monkey_business_bend_NativeRun_core(_state_0)), _event_0)), _source_0, _source_jobs_0)), _event_0, ($______packages_monkey_business_bend_NativeRun_advice_recorded(_event_0, _outputs_0)), _job_0, _source_0, _source_jobs_0)), _event_0)), _event_0, _job_0);
 }
 
 function $______packages_monkey_business_bend_NativeRun_delivery_value(_fallback_0, _steps_0) {
@@ -41024,7 +41116,7 @@ function $DefensePresentation_wait_kind(_parent_ready_0, _space_ready_0, _travel
 
 function $DefensePresentation_retirement_outcome(_cause_0) {
   if (_cause_0 == 10) {
-    return 0;
+    return 10;
   } else if ((_cause_0 & 1) == 0) {
     const _8_0 = u32_to_word(_cause_0)["tail"]["head"];
     const _9_0 = u32_to_word(_cause_0)["tail"]["tail"];
@@ -47790,8 +47882,11 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "../../packages/agent-flow-bend/CollectionState:mark_ready": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_CollectionState_mark_ready(a0,nat_in(a1),a2)), 3),
   "../../packages/agent-flow-bend/CollectionState:reserve": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_CollectionState_reserve(a0,nat_in(a1),nat_in(a2))), 3),
   "../../packages/agent-flow-bend/CollectionState:release": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_CollectionState_release(a0,nat_in(a1),nat_in(a2))), 3),
+  "../../packages/agent-flow-bend/CollectionState:released_payload": run_lib((a0,a1) => run_loop($______packages_agent_flow_bend_CollectionState_released_payload(a0,nat_in(a1))), 2),
   "../../packages/agent-flow-bend/CollectionState:retire": run_lib((a0,a1) => run_loop($______packages_agent_flow_bend_CollectionState_retire(a0,nat_in(a1))), 2),
   "../../packages/agent-flow-bend/CollectionState:protected_advice": run_lib((a0,a1) => run_loop($______packages_agent_flow_bend_CollectionState_protected_advice(a0,nat_in(a1))), 2),
+  "../../packages/agent-flow-bend/CollectionState:release_payload_when": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_CollectionState_release_payload_when(a0,a1,nat_in(a2))), 3),
+  "../../packages/agent-flow-bend/CollectionState:release_payload": run_lib((a0,a1) => run_loop($______packages_agent_flow_bend_CollectionState_release_payload(a0,nat_in(a1))), 2),
   "../../packages/agent-flow-bend/CollectionState:claim": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_CollectionState_claim(a0,nat_in(a1),nat_in(a2),a3,nat_in(a4))), 5),
   "../../packages/agent-flow-bend/CollectionState:release_claim": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_CollectionState_release_claim(a0,nat_in(a1),nat_in(a2))), 3),
   "../../packages/agent-flow-bend/CollectionState:expire_claim": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_CollectionState_expire_claim(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4))), 5),
@@ -47960,6 +48055,8 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "../../packages/agent-flow-bend/Canonical:reviewed_decide": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_Canonical_reviewed_decide(a0,nat_in(a1),nat_in(a2),nat_in(a3),a4)), 5),
   "../../packages/agent-flow-bend/Canonical:reviewed_found": run_lib((a0,a1,a2,a3) => run_loop($______packages_agent_flow_bend_Canonical_reviewed_found(a0,nat_in(a1),a2,a3)), 4),
   "../../packages/agent-flow-bend/Canonical:reviewed": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($______packages_agent_flow_bend_Canonical_reviewed(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4),a5)), 6),
+  "../../packages/agent-flow-bend/Canonical:retired_payload": run_lib((a0,a1) => run_loop($______packages_agent_flow_bend_Canonical_retired_payload(a0,nat_in(a1))), 2),
+  "../../packages/agent-flow-bend/Canonical:retire_review_when": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_Canonical_retire_review_when(a0,a1,nat_in(a2),nat_in(a3),a4)), 5),
   "../../packages/agent-flow-bend/Canonical:retire_review_found": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_Canonical_retire_review_found(a0,nat_in(a1),a2)), 3),
   "../../packages/agent-flow-bend/Canonical:retire_review": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_Canonical_retire_review(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4))), 5),
   "../../packages/agent-flow-bend/Canonical:finding_count_found": run_lib((a0,a1,a2,a3) => run_loop($______packages_agent_flow_bend_Canonical_finding_count_found(a0,nat_in(a1),nat_in(a2),a3)), 4),
@@ -48723,6 +48820,8 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "../../packages/monkey-business-bend/CollectorScenario:after": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_CollectorScenario_after(a0,a1,a2)), 3),
   "../../packages/monkey-business-bend/CollectorScenario:with_candidate": run_lib((a0,a1) => run_loop($______packages_monkey_business_bend_CollectorScenario_with_candidate(a0,a1)), 2),
   "../../packages/monkey-business-bend/CollectorScenario:candidate_context": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_CollectorScenario_candidate_context(a0,a1,a2)), 3),
+  "../../packages/monkey-business-bend/CollectorScenario:completed_record": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_CollectorScenario_completed_record(a0,a1,a2)), 3),
+  "../../packages/monkey-business-bend/CollectorScenario:completed_payload": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_CollectorScenario_completed_payload(a0,a1,a2)), 3),
   "../../packages/monkey-business-bend/StopScenario:cutoff_poll": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_monkey_business_bend_StopScenario_cutoff_poll(nat_in(a0),nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4))), 5),
   "../../packages/monkey-business-bend/StopScenario:poll": run_lib((a0,a1) => run_loop($______packages_monkey_business_bend_StopScenario_poll(a0,nat_in(a1))), 2),
   "../../packages/monkey-business-bend/StopScenario:initial_distinct": run_lib((a0,a1,a2,a3) => run_loop($______packages_monkey_business_bend_StopScenario_initial_distinct(a0,a1,nat_in(a2),nat_in(a3))), 4),
@@ -50118,6 +50217,7 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "../../packages/monkey-business-bend/NativeRun:collector_completed": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_monkey_business_bend_NativeRun_collector_completed(a0,a1,a2,a3,a4)), 5),
   "../../packages/monkey-business-bend/NativeRun:quiet_after_window": run_lib((a0,a1,a2,a3) => run_loop($______packages_monkey_business_bend_NativeRun_quiet_after_window(a0,a1,a2,a3)), 4),
   "../../packages/monkey-business-bend/NativeRun:quiet_after_native": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_NativeRun_quiet_after_native(a0,a1,a2)), 3),
+  "../../packages/monkey-business-bend/NativeRun:finalized_payload": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($______packages_monkey_business_bend_NativeRun_finalized_payload(a0,a1,a2,a3,a4,a5)), 6),
   "../../packages/monkey-business-bend/NativeRun:product_feedback": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($______packages_monkey_business_bend_NativeRun_product_feedback(a0,a1,a2,a3,a4,a5)), 6),
   "../../packages/monkey-business-bend/NativeRun:delivery_value": run_lib((a0,a1) => run_loop($______packages_monkey_business_bend_NativeRun_delivery_value(a0,a1)), 2),
   "../../packages/monkey-business-bend/NativeRun:product_ordinary": run_lib((a0,a1) => run_loop($______packages_monkey_business_bend_NativeRun_product_ordinary(a0,a1)), 2),

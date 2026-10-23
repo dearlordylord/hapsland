@@ -295,7 +295,8 @@ it("accelerates the selected physical operation and independently replays the co
     [4, 10240]
   ])
   expect(gameEvents(result.trace, "SubmissionTerminal").map((e) => e.time)).toEqual([12520, 14800])
-  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toHaveLength(2)
+  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toEqual([])
+  expect(result.business.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(result.game.spent).toBe(50)
   expect(replayGameExperiment(JSON.parse(JSON.stringify(result.recording)))).toEqual(result)
 })
@@ -346,7 +347,8 @@ it("courier accelerates one assembled packet without changing the independent fo
     [3, 13680, true],
     [4, 15140, true]
   ])
-  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toHaveLength(2)
+  expect(result.business.projection.work.filter((w) => w.kind === "pendingFinding")).toEqual([])
+  expect(result.business.projection.global).toEqual({ items: 0, bytes: 0 })
   expect(result.game.spent).toBe(40)
 })
 

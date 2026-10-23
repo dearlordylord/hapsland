@@ -74,7 +74,8 @@ it.each(["finding", "clear"] as const)(
     )
     expect(run.projection.dispatch.running).toEqual([])
     expect(run.projection.dispatch.reviewServiceRequests).toEqual([])
-    expect(run.projection.global).toEqual(outcome === "finding" ? { items: 1, bytes: 5 } : { items: 0, bytes: 0 })
+    expect(run.projection.global).toEqual({ items: 0, bytes: 0 })
+    expect(run.projection.pendingFindings).toEqual([])
     expect(run.projection.collection.leases).toEqual([])
     expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe())
   }

@@ -1773,13 +1773,51 @@ def reviewed(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
       reviewed_found(state, operation, outcome,
         find_work(partition, lifetime, round, operation, work))
 
+# Only a committed retirement removes collection payload membership. A rejected
+# ledger release must preserve the entire original state.
+def retired_payload(result: Step, advice: Nat) -> Step:
+  match result:
+    case Advanced{
+      State{
+        ledger,
+        rounds,
+        work,
+        next_round,
+        next_operation,
+        admissions,
+        dispatch,
+        collection,
+        history
+      },
+      outputs
+    }:
+      Advanced{State{ledger, rounds, work, next_round, next_operation, admissions, dispatch,
+        CollectionState.release_payload(collection, advice), history}, outputs}
+    case Rejected{state, reason}: Rejected{state, reason}
+
+# A live authorized Finish owns its selected payload until it releases the slot.
+def retire_review_when(
+  allowed: Bool,
+  +state: State,
+  +operation: Nat,
+  +charge: Nat,
+  ledger: Ledger.Ledger
+) -> Step:
+  match allowed:
+    case False{}: Rejected{state, WrongStage{}}
+    case True{}:
+      retired_payload(
+        reviewed_released(state, operation, Discarded{}, charge, Ledger.release(ledger, charge)),
+        operation
+      )
+
 def retire_review_found(+state: State, +operation: Nat,
     found: Maybe<&2, ReviewWorkRecord>) -> Step:
   match state found:
     case State{ledger, _, _, _, _, _, +dispatch, +collection, +history}
         Some{ReviewWorkRecord{_, _, _, _, +charge, PendingFinding{_}, _}}:
-      reviewed_released(state, operation, Discarded{}, charge,
-        Ledger.release(ledger, charge))
+      retire_review_when(Bool.not(CollectionState.protected_advice(collection, operation)),
+        state, operation, charge, ledger)
     case _ _:
       Rejected{state, StaleOperation{}}
 

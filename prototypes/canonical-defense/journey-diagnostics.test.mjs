@@ -88,3 +88,121 @@ test("every burst preparation refusal is justified by its exact frame-time reser
  assert.equal(G.refuse_label(),"PREP REFUSED EARLIER / SHARED CAPACITY")
  console.log(JSON.stringify({refused,accepted,firstRefusal,lastRefusal,drainedAtTick:G.time(w)}))
 })
+
+test("accepted certain delivery releases its payload before retention expiry",()=>{
+ let w=G.start(1),acknowledged=0
+ for(let tick=0;tick<1800;tick++){
+  const observed=G.observe(w);w=observed.world
+  for(const frame of list(observed.frames)){
+   if(!tag(frame.event,"SubmissionTerminal")||frame.event.certain!==true)continue
+   if(!list(frame.outputs).some(o=>tag(o,"EventEstablished")&&tag(o.event,"SubmissionRecorded")))continue
+   acknowledged++
+   const advice=frame.event.advice,old=list(list(frame.before)[0].work).find(item=>item.operation===advice)
+   assert.ok(old&&tag(old.kind,"PendingFinding"),"real ACK must have retained payload before completion")
+   const core=G.core(w)
+   const body=list(G.actors(w)).find(a=>a.key.operation===advice)
+   assert.ok(body&&body.outcome===10&&body.terminal>0,"the released body retains its confirmed SENT outcome")
+   const duplicateRetirement=G.retirement(core,old.partition,old.lifetime,old.round,advice)
+   assert.ok(tag(duplicateRetirement,"Rejected"));assert.deepEqual(duplicateRetirement.state,core,"late or duplicate cleanup cannot change the completed state")
+   assert.ok(!list(core.work).some(item=>item.operation===advice),`ACK ${advice} retained its PendingFinding payload`)
+   assert.ok(!list(core.ledger.charges).some(item=>item.id===old.charge),`ACK ${advice} retained its capacity reservation`)
+   assert.ok(!list(core.collection.ready).includes(advice),"acknowledged payload cannot remain advertised as ready")
+   const evidence=list(core.collection.delivery.submissions.batches).find(batch=>batch.advice===advice)
+   assert.ok(evidence&&tag(evidence.phase,"Submitted"),"payload release must retain submitted token/fingerprint evidence")
+   assert.equal(G.suppressed(core,advice,old.round),true,"Stop must suppress this submitted fingerprint")
+   assert.deepEqual(G.duplicate(core,advice,frame.event.token).state,core,"duplicate ACK cannot release any other work")
+   assert.equal(G.fits(cons([core]),1,100),true,"fresh preparation can reserve before old payload expiry")
+   const siblings=list(list(frame.before)[0].work).filter(item=>item.operation!==advice)
+   const acks=new Set(list(observed.frames).filter(f=>tag(f.event,"SubmissionTerminal")&&f.event.certain).map(f=>f.event.advice))
+   for(const sibling of siblings.filter(item=>!acks.has(item.operation))){
+    const still=list(core.work).find(item=>item.operation===sibling.operation)
+    if(tag(sibling.kind,"PendingFinding")){
+     assert.deepEqual(still,sibling,"another pending finding is not retired by this ACK")
+     assert.deepEqual(list(core.ledger.charges).find(c=>c.id===sibling.charge),list(list(frame.before)[0].ledger.charges).find(c=>c.id===sibling.charge),"another finding retains its exact reservation")
+    }
+   }
+   const broken={...list(frame.before)[0],ledger:{...list(frame.before)[0].ledger,charges:cons(list(list(frame.before)[0].ledger.charges).filter(item=>item.id!==old.charge))}}
+   const refused=G.retirement(broken,old.partition,old.lifetime,old.round,advice)
+   assert.ok(tag(refused,"Rejected"));assert.deepEqual(refused.state,broken,"failed ledger release cannot change readiness or authority")
+  }
+ }
+ assert.ok(acknowledged>0,"must observe actual accepted certain output, not just expiry cleanup")
+ assert.equal(list(G.core(w).collection.delivery.submissions.batches).length,0,"ordinary expiry eventually prunes compact submission evidence too")
+})
+
+
+test("uncertain accepted delivery retains its exact payload and reservation",()=>{
+ let w=G.uncertain(G.start(1)),uncertain=0
+ for(let tick=0;tick<1400&&!uncertain;tick++){
+  const observed=G.observe(w);w=observed.world
+  for(const frame of list(observed.frames)){
+   if(!tag(frame.event,"SubmissionTerminal")||frame.event.certain!==false)continue
+   if(!list(frame.outputs).some(o=>tag(o,"EventEstablished")&&tag(o.event,"SubmissionRecorded")))continue
+   uncertain++
+   const advice=frame.event.advice,old=list(list(frame.before)[0].work).find(item=>item.operation===advice),core=G.core(w)
+   assert.deepEqual(list(core.work).find(item=>item.operation===advice),old)
+   assert.ok(list(core.ledger.charges).some(item=>item.id===old.charge))
+   const evidence=list(core.collection.delivery.submissions.batches).find(item=>item.advice===advice)
+   assert.ok(evidence&&tag(evidence.phase,"Uncertain"))
+  }
+ }
+ assert.ok(uncertain>0,"must observe the actual uncertain completion")
+})
+
+test("Stop cannot offer already acknowledged payload while suppression evidence is retained",()=>{
+ let w=G.start(1),seen=new Set()
+ for(let tick=0;tick<1800&&seen.size<2;tick++){
+  const o=G.observe(w);w=o.world
+  for(const f of list(o.frames))if(tag(f.event,"SubmissionTerminal")&&f.event.certain&&list(f.outputs).some(x=>tag(x,"EventEstablished")&&tag(x.event,"SubmissionRecorded")))seen.add(f.event.advice)
+ }
+ assert.equal(seen.size,2)
+ for(const advice of seen)assert.equal(G.suppressed(G.core(w),advice,1),true)
+ w=G.stop(w)
+ for(let tick=0;tick<200;tick++){
+  const o=G.observe(w);w=o.world
+  for(const f of list(o.frames))if(tag(f.event,"FinishTerminal"))assert.ok(list(f.event.selected).every(id=>!seen.has(id)),"Stop cannot replay an acknowledged member")
+ }
+ assert.equal(list(G.works(w)).length,0)
+ assert.equal(G.bytes(w),0)
+})
+
+test("uncertain background output can still be captured once by Stop",()=>{
+ let w=G.uncertain(G.start(1)),advice
+ for(let tick=0;tick<1400&&advice===undefined;tick++){
+  const o=G.observe(w);w=o.world
+  for(const f of list(o.frames))if(tag(f.event,"SubmissionTerminal")&&!f.event.certain&&list(f.outputs).some(x=>tag(x,"EventEstablished")&&tag(x.event,"SubmissionRecorded")))advice=f.event.advice
+ }
+ assert.ok(advice!==undefined)
+ w=G.stop(w);let captured=0,protectedChecks=0
+ for(let tick=0;tick<1600;tick++){
+  const o=G.observe(w);w=o.world
+  for(const f of list(o.frames)){
+   if(tag(f.event,"FinishTerminal")&&list(f.event.selected).includes(advice))captured++
+   if(tag(f.event,"FinishAuthorize")&&list(f.event.selected).includes(advice)&&list(f.outputs).some(x=>tag(x,"EventEstablished")&&tag(x.event,"FinishAuthorized"))){
+    const state=list(f.after)[0],work=list(state.work).find(x=>x.operation===advice)
+    assert.ok(work,"the real authorized Finish still owns its selected pending payload")
+    const retired=G.retirement(state,work.partition,work.lifetime,work.round,advice)
+    assert.ok(tag(retired,"Rejected"));assert.ok(tag(retired.reason,"WrongStage"));assert.deepEqual(retired.state,state,"retirement cannot steal an authorized Finish member")
+    protectedChecks++
+   }
+  }
+ }
+ assert.equal(captured,1,"the original advice may be reoffered once, rather than prematurely deleted")
+ assert.ok(protectedChecks>0,"must inspect a real accepted Finish authorization")
+})
+
+test("fresh source work is admitted after ACK without waiting for retained-result expiry",()=>{
+ let w=G.start(1),acks=0
+ for(let tick=0;tick<1800&&acks<2;tick++){
+  const o=G.observe(w);w=o.world
+  acks+=list(o.frames).filter(f=>tag(f.event,"SubmissionTerminal")&&f.event.certain&&list(f.outputs).some(x=>tag(x,"EventEstablished")&&tag(x.event,"SubmissionRecorded"))).length
+ }
+ assert.equal(acks,2);assert.equal(G.bytes(w),0)
+ const afterAck=G.time(w);w=G.release(w);let accepted=false
+ for(let tick=0;tick<200&&!accepted;tick++){
+  const o=G.observe(w);w=o.world
+  accepted=list(o.frames).some(f=>tag(f.event,"BeginObservedPreparation")&&list(f.outputs).some(x=>tag(x,"ResidentActionRequested")&&Object.values(x).some(v=>tag(v,"Prepare"))))
+ }
+ assert.equal(accepted,true,"fresh work reaches real preparation before old pending TTL could expire")
+ assert.ok(G.time(w)-afterAck<=200)
+})

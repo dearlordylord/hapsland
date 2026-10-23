@@ -75,8 +75,8 @@ law retirement_preserves_ack:
   {P.retirement_outcome(3) == 3 : U32}
 law retirement_preserves_clear:
   {P.retirement_outcome(2) == 2 : U32}
-law certain_send_retirement_is_neutral:
-  {P.retirement_outcome(10) == 0 : U32}
+law certain_send_retirement_preserves_submission:
+  {P.retirement_outcome(10) == 10 : U32}
 law uncertain_send_retirement_is_neutral:
   {P.retirement_outcome(11) == 0 : U32}
 

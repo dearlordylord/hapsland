@@ -94,3 +94,29 @@ The global ledger may flash under shared pressure; an empty or occupied room mus
 A finite repeated-release run followed by Stop must not strand retired history at the retained-room assembly gate while the game is alive. Reproduction: release twelve edits forty ticks apart, press Stop at tick 640, then inspect tick 4000 on all three maps. Before the fix, the canonical work and ledger were empty but retired actors and their STORE labels remained indefinitely. Their stale room paths waited for a delivery authorization that could no longer arrive.
 
 Retired history may finish its remaining physical path without acquiring a new room seat or packet authorization. Live work still requires both. This cannot create a delivery acknowledgement or successful exit; actual outcomes stay owned by Canonical. On drain require zero canonical work, reservations, actors, rule groups and actionable targets. Also run recurring arrivals without manual Stop, suspend them, and require the same drain. Game-over pause is a separate supported behavior; these witnesses require positive health.
+
+## Confirmed output releases payload before expiry
+
+After an accepted certain individual output, drain its same-time post-actions
+and require that exact `PendingFinding`, its ready membership and its capacity
+reservation to be absent. A later expiry sweep is not evidence for this criterion.
+Keep the submitted token/fingerprint evidence so Stop cannot repeat it, and prune
+that compact evidence through ordinary lifecycle cleanup. A retired body keeps
+its truthful SENT outcome instead of being relabelled as an unsent result. Uncertain
+output keeps its payload for the permitted single Stop reoffer. Other pending
+findings and their reservations remain unchanged; failed retirement is atomic.
+
+`journey-diagnostics.test.mjs` witnesses the complete actual Host sequence,
+including a fresh preparation before the old expiry deadline, duplicate ACK,
+uncertain output and Stop. `packages/monkey-business-bend/ack-cleanup.test.mjs`
+checks the general helper laws with BendTT, independently compiling rejected
+mutants, and a real-Host mutant omitting the finalization call. The law statements
+cover cleanup selection, collection state preservation and rejection atomicity;
+they do not prove the entire scheduler or arbitrary partial resident batches.
+Shared NativeRun individual submissions currently capture one whole review work
+item. Raw Canonical submission recording remains separate from finalization.
+
+At zero health the existing game-over freeze is distinct from resource starvation:
+the always-visible activity line must say `DEFEATED / WORLD FROZEN / R RESET`.
+Do not increase health in player acceptance traces to conceal actual overload;
+a diagnostic that raises health only to isolate ownership is separate evidence.

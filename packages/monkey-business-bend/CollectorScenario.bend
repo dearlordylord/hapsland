@@ -402,3 +402,23 @@ def candidate_context(
       context
     )
     case _ _: context
+
+# Finalize only an actually accepted certain individual output. RetireReview
+# releases payload/work capacity without forgetting submitted suppression facts.
+def completed_record(accepted: Bool, certain: Bool,
+    found: Maybe<&2, C.ReviewWorkRecord>) -> List<&2, Driver.Action>:
+  match accepted certain found:
+    case True{} True{} Some{C.ReviewWorkRecord{p, l, r, o, _, C.PendingFinding{_}, _}}:
+      [Driver.immediate(C.RetireReview{p, l, r, o}, False{})]
+    case _ _ _: []
+
+def completed_payload(accepted: Bool, event: C.CanonicalEvent,
+    canonical: C.State) -> List<&2, Driver.Action>:
+  match event:
+    case C.SubmissionTerminal{advice, _, certain}:
+      completed_record(
+        accepted,
+        certain,
+        Driver.find_operation(Driver.work_list(canonical), advice)
+      )
+    case _: []

@@ -1772,13 +1772,17 @@ def stop_line(+world: M.World) -> String:
     )
   )
 
-def activity_line(+world: M.World) -> String:
+def living_activity_line(+world: M.World) -> String:
   Bool.pick(
     String,
     M.active(world),
     Bool.pick(String, M.auto(world), "CONTINUOUS ARRIVALS", "ARRIVALS SUSPENDED"),
     "BUILD FIRST - N/ENTER START"
   )
+
+def activity_line(+world: M.World) -> String:
+  Bool.pick(String, U32.is_eq(M.hp(world), 0),
+    "DEFEATED / WORLD FROZEN / R RESET", living_activity_line(world))
 
 def access_line(env: NativeTypes.Environment) -> String:
   match env:

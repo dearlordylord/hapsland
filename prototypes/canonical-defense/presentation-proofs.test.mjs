@@ -14,7 +14,7 @@ const mutants = [
   ["unfinished travel disappears", "case True{} _: True{}", "case True{} _: False{}"],
   ["silent parent wait", "case False{} _ _ _: 1", "case False{} _ _ _: 0"],
   ["playback called retained", "case True{} True{} True{} _: 0", "case True{} True{} True{} _: 3"],
-  ["certain send invents finish acknowledgement", "case 10: 0", "case 10: 3"],
+  ["certain send invents finish acknowledgement", "case 10: 10", "case 10: 3"],
   ["uncertain send invents finish acknowledgement", "case 11: 0", "case 11: 3"],
   ["erased causal parent", "t,owner,shown,cause,True{}", "t,[],shown,cause,True{}"],
   ["released child waits again", "released,[],owner", "released,owner,owner"],

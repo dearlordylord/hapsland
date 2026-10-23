@@ -1,4 +1,5 @@
 import Base
+import ../CollectorScenario.bend as Collector
 import ../Engine.bend as Engine
 import ../Types.bend as Types
 import ../Driver.bend as Driver
@@ -471,12 +472,25 @@ def boundary_control(event: Canonical.CanonicalEvent, queue: Queue, state: Types
     )
     case _: queue
 
+# The standalone driver fixture shares completion finalization with NativeRun.
+# Accepted output evidence is checked independently from its public caller.
+def submission_recorded(outputs: List<&2, Canonical.Output>) -> Bool:
+  match outputs:
+    case Canonical.EventEstablished{Canonical.SubmissionRecorded{}} <> _: True{}
+    case _ <> tail: submission_recorded(tail)
+    case Nil{}: False{}
+
 def canonical_driven(pair: Types.State & Queue, before: Types.State, +action: Driver.Action,
-    +now: Nat, +config: Config, list: List<&2, Canonical.Output>,
+    +now: Nat, +config: Config, +list: List<&2, Canonical.Output>,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match pair action:
     case (+state, q) Driver.Action{+event, +delay, +candidate, +job, +expiry}:
       +q = enqueue(Engine.after(before, state, event), q, now)
+      +q = enqueue(
+        Collector.completed_payload(submission_recorded(list), event, Engine.canonical(state)),
+        q,
+        now
+      )
       +q = boundary_control(
         event,
         q,

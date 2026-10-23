@@ -935,7 +935,9 @@ try {
   let controlled = await waveRun()
   assert.deepEqual(
     controlled.interventions.at(-1).control.target,
-    Object.fromEntries(["partition", "lifetime", "round", "operation", "request"].map((key) => [key, target[key]]))
+    Object.fromEntries(
+      ["partition", "lifetime", "round", "operation", "reviewServiceRequestId"].map((key) => [key, target[key]])
+    )
   )
   assert.equal(controlled.interventions.at(-1).result, "applied")
   assert.match(await faultPanel.getByLabel("Jev intervention results").innerText(), /neverSent.*Applied/)
@@ -950,7 +952,7 @@ try {
   )
   const activeField = faultPanel
     .locator("fieldset")
-    .filter({ hasText: `operation ${active.operation} · request ${active.request}` })
+    .filter({ hasText: `operation ${active.operation} · request ${active.reviewServiceRequestId}` })
   await activeField.getByRole("button", { name: "Never sent", exact: true }).click()
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
   controlled = await waveRun()

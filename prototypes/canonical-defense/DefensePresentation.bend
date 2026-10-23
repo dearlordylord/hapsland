@@ -41,10 +41,10 @@ def wait_kind(parent_ready: Bool, space_ready: Bool, travelling: Bool, retained:
     case True{} True{} False{} True{}: 3
     case _ _ _ _: 4
 
-# Record retirement removes submission status, never an acknowledged exit.
+# Payload retirement keeps a confirmed send; it never invents a Finish acknowledgement.
 def retirement_outcome(cause: U32) -> U32:
   match cause:
-    case 10: 0
+    case 10: 10
     case 11: 0
     case other: other
 

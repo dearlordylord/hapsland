@@ -23,6 +23,7 @@ def terminal_name(cause: U32) -> String:
     case 7: "TIMEOUT"
     case 8: "INTERRUPTED"
     case 9: "NOT SENT"
+    case 10: "SENT"
     case _: "RETIRED"
 def identity_text(identity: V.WorkIdentity) -> String:
   match identity:
@@ -39,6 +40,7 @@ def terminal_short(cause: U32) -> String:
     case 7: "TO"
     case 8: "IN"
     case 9: "NS"
+    case 10: "SENT"
     case _: "RT"
 def predecessor_text(items: List<&2, V.WorkIdentity>) -> String:
   match items:

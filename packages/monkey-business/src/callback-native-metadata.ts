@@ -5722,11 +5722,11 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
-    sha256: "0442cf430778dd4e5e2008aec36b023d1c149abc8449ab7f99e043c727f0c1cb"
+    sha256: "a97981445c38b7e88ea2dac1a5510a5674d92340fb1e4e1ecb9f553160d910f8"
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",
-    sha256: "9e61f14523b15d1f98b0f89ff0c324788b5304be2560f0b2eb02e45a365758dc"
+    sha256: "faa9690d6b0c3485909f924c8a484ecd698da95e226a750955e1f7fe46a704fc"
   },
   {
     path: "packages/agent-flow-bend/CollectorAuthority.bend",
@@ -5830,7 +5830,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/monkey-business-bend/CollectorScenario.bend",
-    sha256: "fca7e5356e6a77af8e83ecd642f07123c11ac3c252096641437d5301732f5786"
+    sha256: "102806f06d4a0a407982ae61863ab3251df87fcd83cfc080fafabb7b2fa8ee68"
   },
   {
     path: "packages/monkey-business-bend/CredentialFacts.bend",

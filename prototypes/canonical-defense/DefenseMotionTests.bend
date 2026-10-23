@@ -234,9 +234,9 @@ def main() -> IO(Unit):
             Motion.with_outcome(settlement(C.RequestFinding{}), 10)
           )
         ),
-        0
+        10
       ),
-      "retiring an individually submitted record cannot fabricate a finish acknowledgement"
+      "retiring an individually submitted record preserves SENT without fabricating a Finish acknowledgement"
     )
     require(
       neutral_retirement(),

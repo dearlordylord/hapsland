@@ -25,7 +25,7 @@ def Laws.movement_preserves_outcome(actor, x, y, phase, steps, shown):
 
 def Laws.retirement_preserves_ack(): {==}
 def Laws.retirement_preserves_clear(): {==}
-def Laws.certain_send_retirement_is_neutral(): {==}
+def Laws.certain_send_retirement_preserves_submission(): {==}
 def Laws.uncertain_send_retirement_is_neutral(): {==}
 
 def Laws.retired_history_releases_physical_gate(seat, packet): {==}

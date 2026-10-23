@@ -126,6 +126,7 @@ test("defeat refuses placement and upgrades without changing any World field; li
  assert.equal(receipt.result.$,'Dead');assert.equal(receipt.charged,0);
  assert.equal(P.upgrade_note(selected),'DEFEATED / NO UPGRADE');
  const hover=P.defeated(P.world(2,3,false));
+ assert.equal(P.activity_note(hover),'DEFEATED / WORLD FROZEN / R RESET');
  assert.equal(P.placement_legal(hover),false);
  assert.equal(P.placement_reason(hover),'DEFEATED / R STARTS A NEW GAME');
  assert.deepEqual(P.click_here(hover),hover);

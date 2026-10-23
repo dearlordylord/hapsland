@@ -169,6 +169,14 @@ def release(+state: State, +advice: Nat, +token: Nat) -> Decision:
         Refused{state}
       )
 
+# Payload retirement is separate from submission evidence. A confirmed output
+# no longer occupies ready/lease capacity; its token/fingerprints still fence Stop.
+def released_payload(state: State, +advice: Nat) -> State:
+  match state:
+    case State{ready, leases, claims, delivery, revision, reuse, notices}:
+      State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims,
+        delivery, revision, reuse, notices}
+
 def retire(+state: State, +advice: Nat) -> State:
   match state:
     case State{ready, leases, claims, delivery, revision, reuse, notices}:
@@ -179,6 +187,13 @@ def protected_advice(state: State, advice: Nat) -> Bool:
   match state:
     case State{_, _, _, delivery, _, _, _}:
       DeliveryState.protected_advice(delivery, advice)
+
+def release_payload_when(protected: Bool, +state: State, advice: Nat) -> State:
+  match protected:
+    case True{}: state
+    case False{}: released_payload(state, advice)
+def release_payload(+state: State, +advice: Nat) -> State:
+  release_payload_when(protected_advice(state, advice), state, advice)
 
 def claim(+state: State, +group: Nat, +token: Nat, active: Bool, capacity: Nat) -> Decision:
   match state:

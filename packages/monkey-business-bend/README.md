@@ -81,6 +81,16 @@ and separate fresh JavaScript emission30/execution5 seconds, with a 215-second
 watchdog. Other fixtures retain their default bounds.
 An earlier checker pass does not establish any of those execution results.
 
+After a recorded certain individual output, NativeRun schedules payload retirement
+following the collector's lease/background release actions. It removes the exact
+pending work and reservation, but preserves submitted token/fingerprint evidence
+until ordinary lifecycle cleanup. Uncertain or refused output schedules no such
+retirement. This finalizes the runner's whole-review-item individual submissions;
+raw Canonical submission recording and arbitrary partial resident batches remain
+separate boundaries. Run `node --test packages/monkey-business-bend/ack-cleanup.test.mjs`
+for the [cleanup laws](AckCleanupLAWS.bend), BendTT proofs, compiling mutants and
+actual-Host missing-call control. Every checker subprocess has a five-second bound.
+
 ## Stop observation scope
 
 The agreed Stop fixture projection is a bounded `BusinessState` containing

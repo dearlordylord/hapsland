@@ -4018,21 +4018,35 @@ def quiet_after_native(
     Engine.scope_event(core(state), core(state), event, provided_job(job))
   )
 
+def finalized_payload(+state: T.State, event: Canonical.CanonicalEvent,
+    accepted: Bool, job: Maybe<&2, T.Job>, source: Maybe<&2, T.EmissionContext>,
+    source_jobs: List<&2, Maybe<&2, Driver.SourceJob>>) -> T.State:
+  issue_source_context(state,
+    CollectorScenario.completed_payload(accepted, event, Engine.canonical(core(state))),
+    job, source, source_jobs)
+
 def product_feedback(
   +state: T.State,
   +event: Canonical.CanonicalEvent,
-  outputs: List<&2, Canonical.Output>,
+  +outputs: List<&2, Canonical.Output>,
   +job: Maybe<&2, T.Job>,
-  source: Maybe<&2, T.EmissionContext>,
-  source_jobs: List<&2, Maybe<&2, Driver.SourceJob>>
+  +source: Maybe<&2, T.EmissionContext>,
+  +source_jobs: List<&2, Maybe<&2, Driver.SourceJob>>
 ) -> T.State:
   advice_feedback(
     advice_recorded(event, outputs),
     wake_event(
-      collector_completed(
-        state,
+      finalized_payload(
+        collector_completed(
+          state,
+          job,
+          Engine.collector_after(core(state), event),
+          source,
+          source_jobs
+        ),
+        event,
+        advice_recorded(event, outputs),
         job,
-        Engine.collector_after(core(state), event),
         source,
         source_jobs
       ),
