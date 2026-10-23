@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import { checkBendCompiler } from "../packages/monkey-business-bend/compiler.mjs"
 import { createHash } from "node:crypto"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -34,6 +35,7 @@ function collect(path) {
 collect(source)
 for (const path of [
   "scripts/build-game-lab.mjs",
+  "packages/bend-javascript-abi/bend-js-runtime.mjs",
   "packages/monkey-business-bend/compiler.mjs",
   "packages/agent-flow-bend/package.json",
   "prototypes/canonical-defense/lab/game.generated.d.mts"
@@ -46,7 +48,8 @@ const temporary = mkdtempSync(join(tmpdir(), "hapsland-game-lab-"))
 try {
   const emittedPath = join(temporary, "game.mjs")
   checked([source, "-o", emittedPath])
-  const emitted = readFileSync(emittedPath)
+  const runtime = bendJavaScriptRuntime(readFileSync(emittedPath, "utf8"), resolve(root, source))
+  const emitted = Buffer.from(runtime.source + runtime.exportSource + "\n")
   const metadata =
     JSON.stringify(
       {

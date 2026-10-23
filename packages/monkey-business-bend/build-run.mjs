@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import { createHash } from "node:crypto"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
@@ -21,7 +22,12 @@ const sourceHash = digest(
     .map(([path, source]) => `${relative(root, path)}\0${source}\0`)
     .join("")
 )
-const buildHash = digest(readFileSync(fileURLToPath(import.meta.url)))
+const buildHash = digest(
+  Buffer.concat([
+    readFileSync(fileURLToPath(import.meta.url)),
+    readFileSync(new URL("../../packages/bend-javascript-abi/bend-js-runtime.mjs", import.meta.url))
+  ])
+)
 const declarationHash = digest(readFileSync(join(root, "run.d.mts")))
 const hostSources = new Map()
 function collectHost(path) {
@@ -94,15 +100,14 @@ if (process.argv.includes("--check")) {
     })
     if (result.error || result.status !== 0) throw result.error ?? new Error(result.stdout + result.stderr)
     const compiled = readFileSync(emittedPath, "utf8")
-    const offset = compiled.indexOf("function $0m0(")
-    if (offset < 0 || Object.keys(entries).some((name) => !compiled.includes(`function $${name}$(`)))
+    const { source: policy } = bendJavaScriptRuntime(compiled, join(root, "RunExports.bend"))
+    if (Object.keys(entries).some((name) => !policy.includes(`function $${name}(`)))
       throw new Error("Bend runner emitted layout changed")
-    const policy = compiled.slice(0, offset).replaceAll("../agent-flow-bend/", "").replaceAll("./", "")
     const wrappers = Object.entries(entries)
       .map(([name, arity]) => {
         const args = Array.from({ length: arity }, (_, index) => `a${index}`)
         const input = args.map((arg, index) => (name !== "create" && index === 0 ? arg : `facts(${arg})`))
-        return `${JSON.stringify(name)}: (${args.join(",")}) => run_loop($${name}$(${input.join(",")}))`
+        return `${JSON.stringify(name)}: (${args.join(",")}) => run_loop($${name}(${input.join(",")}))`
       })
       .join(",\n")
     const module = `${policy}\nexport const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:${identityHash}";\nconst facts = value => {\n  if (typeof value === "bigint") { if (value < 0n || value >= 281474976710656n) throw new RangeError("invalid immediate Nat"); return Number(value); }\n  if (typeof value === "number") { if (!Number.isSafeInteger(value) || value < 0 || value >= 281474976710656) throw new RangeError("invalid immediate Nat"); return value; }\n  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key,item]) => [key, key === "$" && typeof item === "string" ? item.replaceAll("../agent-flow-bend/", "").replaceAll("./", "") : facts(item)]));\n  return value;\n};\nexport default {\n${wrappers}\n};\n`

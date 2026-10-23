@@ -35,7 +35,8 @@
     "vitest": "catalog:",
     "zod": "catalog:",
     "@hapsland/agent-flow-projection": "workspace:*",
-    "@hapsland/monkey-business": "workspace:*"
+    "@hapsland/monkey-business": "workspace:*",
+    "@hapsland/bend-javascript-abi": "workspace:*"
   },
   "hapsland": {
     "workspaceRole": "tooling"

@@ -185,7 +185,8 @@
     "packages/monkey-business",
     "packages/monkey-business-bend",
     "prototypes/canonical-defense",
-    "packages/agent-flow-projection"
+    "packages/agent-flow-projection",
+    "packages/bend-javascript-abi"
   ],
   "hapsland": {
     "buildBoundaries": {

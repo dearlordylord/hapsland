@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../../../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -16,25 +17,17 @@ const root = resolve(import.meta.dirname, "..")
 const output = resolve(process.argv[2] ?? join(root, "dist"))
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-import-graph-bend-"))
 try {
-  const compiled = join(temporary, "import-graph.js")
+  const compiled = join(temporary, "import-graph.mjs")
   execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
-  let source = readFileSync(compiled, "utf8")
-  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
+  let source = bendJavaScriptRuntime(readFileSync(compiled, "utf8"), join(root, "ImportGraphRuntime.bend")).source
   if (
-    !footer.test(source) ||
-    !source.includes("function $ImportGraph$058bounded_step$(") ||
-    !source.includes("function $ImportGraph$058bounded_initial$(")
+    !source.includes("function $ImportGraph_bounded_step(") ||
+    !source.includes("function $ImportGraph_bounded_initial(")
   ) {
     throw new Error("Bend import graph JavaScript layout changed; inspect generated runtime")
   }
-  const namespacedTags = source.includes('"ImportGraph.Root"')
-  const bigintNat = source.includes("262144n")
-  source = source.replace(
-    footer,
-    `
+  source += `
 const MAX_NAT = (1n << 48n) - 1n;
-const NAMESPACED_TAGS = ${namespacedTags};
-const BIGINT_NAT = ${bigintNat};
 const nat = (value) => {
   const integer = typeof value === "number"
     ? Number.isSafeInteger(value) ? BigInt(value) : null
@@ -42,25 +35,22 @@ const nat = (value) => {
   if (integer === null || integer < 0n || integer > MAX_NAT) {
     throw new TypeError("expected Bend Nat within the immediate range");
   }
-  return BIGINT_NAT ? integer : Number(integer);
+  return Number(integer);
 };
 const normalize = (value) => {
   if (typeof value === "number" || typeof value === "bigint") return nat(value);
   if (Array.isArray(value)) return value.map(normalize);
   if (value !== null && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) =>
-      [key, key === "$" && !NAMESPACED_TAGS && typeof item === "string"
-        ? item.replace(/^ImportGraph\\./, "") : normalize(item)]));
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalize(item)]));
   }
   return value;
 };
-export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$058bounded_initial$(normalize(limits)));
+export const bendImportGraphInitial = (limits) => run_loop($ImportGraph_bounded_initial(normalize(limits)));
 export const bendImportGraphStep = (state, event) =>
-  run_loop($ImportGraph$058bounded_step$(state, normalize(event)));
+  run_loop($ImportGraph_bounded_step(state, normalize(event)));
 export const bendImportGraphLocalBudget = (limits, localWork, localDepth, distinctTargets, graphWork) =>
-  run_loop($ImportGraph$058local_budget$(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
+  run_loop($ImportGraph_local_budget(normalize(limits), nat(localWork), nat(localDepth), nat(distinctTargets), nat(graphWork)));
 `
-  )
   mkdirSync(output, { recursive: true })
   writeFileSync(join(output, "import-graph.generated.js"), source)
   copyFileSync(join(root, "abi/import-graph.generated.d.ts"), join(output, "import-graph.generated.d.ts"))

@@ -192,13 +192,13 @@ export function runGameExperiment(input: GameExperiment) {
   input = structuredClone({ ...input, catalogue })
   const settings = input.settings ?? {}
   let world = Game.create_scenario({ $: "Scenario",
-    jev: BigInt(settings.jevDelayMs ?? 3200), delivery: BigInt(settings.outputDelayMs ?? 800),
-    source: BigInt(settings.sourceDelayMs ?? 800), ready: settings.credentialReady ?? true,
+    jev: settings.jevDelayMs ?? 3200, delivery: settings.outputDelayMs ?? 800,
+    source: settings.sourceDelayMs ?? 800, ready: settings.credentialReady ?? true,
     readable: settings.sourceReadable ?? true,
     result: settings.outcome === "clear" ? 1 : settings.outcome === "finding" ? 2 : 0,
     burst: settings.burst ?? 1, interval: settings.arrivalIntervalMs ?? 30000
-  }, BigInt(input.seed), input.budget, input.layout)
-  if (settings.finishAtMs !== undefined) world=Game.schedule_finish(world,BigInt(settings.finishAtMs))
+  }, input.seed, input.budget, input.layout)
+  if (settings.finishAtMs !== undefined) world=Game.schedule_finish(world,settings.finishAtMs)
   const mirror = createGameBusinessReplay(settings, input.seed)
   const nativeObservation = () => boundary(Game.engine_observation(world))
   mirror.compare(nativeObservation(), "game creation")
@@ -214,7 +214,7 @@ export function runGameExperiment(input: GameExperiment) {
       const action = schedule[position++]!
       const before = nativeObservation()
       const label = `game action ${position}`
-      const rawTarget = action.kind === "fire" ? readRecord(Game.shot_target(world,action.index,BigInt(action.operation))) : undefined
+      const rawTarget = action.kind === "fire" ? readRecord(Game.shot_target(world,action.index,action.operation)) : undefined
       const shotTarget = rawTarget?.$ === "Some" ? decodeCallbackTarget(boundary(rawTarget.value)) : undefined
       if (action.kind === "build" && !input.enabled.includes(action.tower)) {
         actions.push({ action, result: "disabled", charged: 0 })
@@ -227,7 +227,7 @@ export function runGameExperiment(input: GameExperiment) {
           input.catalogue![action.tower]!.strength ?? 1,
           input.catalogue![action.tower]!.radius ?? 60)
         : Game.apply(world, action.kind === "fire"
-          ? { $: "Fire", index: action.index, operation: BigInt(action.operation) }
+          ? { $: "Fire", index: action.index, operation: action.operation }
           : { $: "Upgrade", index: action.index }))
       world = receipt.world
       const result = readRecord(receipt.result).$ as string
@@ -256,7 +256,7 @@ export function runGameExperiment(input: GameExperiment) {
     const before = nativeObservation()
     const untilTime = (state.game.tick + 1) * 20
     const maxEvents = Math.min(256, input.maxEvents - state.business.events)
-    const tick = readRecord(Game.tick_bounded(world, BigInt(maxEvents)))
+    const tick = readRecord(Game.tick_bounded(world, maxEvents))
     const frames = boundary(tick.frames), physical = boundary(tick.physical), transport = boundary(tick.transport)
     trace.push({ frames, physical })
     world = tick.world

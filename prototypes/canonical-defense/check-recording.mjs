@@ -54,7 +54,7 @@ const results = []
 for (const lane of ["native", "javascript"]) {
   const path = join(directory, `${lane}.bin`)
   const environment = { ...process.env, HAPSLAND_GAME_RECORDING: path, HAPSLAND_GAME_RECORDING_HEADER: header }
-  results.push(lane === "native" ? run(lane, join(directory, "native"), ["--threads", "4"], 15000, environment)
+  results.push(lane === "native" ? run(lane, join(directory, "native"), ["+RTS", "--threads", "4", "-RTS"], 15000, environment)
     : run(lane, "bun", [join(directory, "fixture.js")], 15000, environment))
   const saved = readFileSync(path)
   assert.equal(saved.length, 92, "new game retains only its header and map")

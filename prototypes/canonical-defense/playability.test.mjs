@@ -46,7 +46,7 @@ test('a hit preserves position, changes only the exact recipient and speeds subs
  assert.ok(list(G.scene(shot)).some(p=>p.color===16768133&&p.w===3&&p.h===3),'actual scene paints a shot beam');
 });
 test('shortening never delays a near-complete monster',()=>{
- for(let n=0n;n<1000n;n++){assert.ok(G.shortened(n)<=n);if(n<=100n)assert.equal(G.shortened(n),n);else assert.ok(G.shortened(n)<n);}
+ for(let n=0;n<1000;n++){assert.ok(G.shortened(n)<=n);if(n<=100)assert.equal(G.shortened(n),n);else assert.ok(G.shortened(n)<n);}
 });
 test('pause retains exact moving-target preview before and after construction',()=>{
  for(const [effect,kind] of [['ReviewServiceRequestSettled',3],['OutputTerminal',4]]){
@@ -79,19 +79,19 @@ test('stacked shots retain every frozen hit beam and the updated numeric quote',
 test('ordinary automatic tower fires without a manual command and cannot shoot outside range',()=>{
  const w=wait(w=>list(G.mobs(w)).some(m=>phase(m,'ReviewServiceRequestSettled'))),m=list(G.mobs(w)).find(m=>phase(m,'ReviewServiceRequestSettled')),s=site(w,m,3);
  const built=G.build(w,s.x,s.y,3),next=G.tick(built);assert.ok(list(G.mobs(next)).some(v=>list(v.beams).length>0));
- const far=G.tower(24,640,3);assert.equal(list(G.targets(w,far)).length,0);assert.deepEqual(G.shot(w,far,0n),w);
+ const far=G.tower(24,640,3);assert.equal(list(G.targets(w,far)).length,0);assert.deepEqual(G.shot(w,far,0),w);
 });
 test('uncertain acknowledgement cannot be shown as delivered',()=>{
  assert.equal(G.certain_marker(),12);assert.equal(G.uncertain_marker(),15);
 });
 
 test('zero-duration callbacks preserve physical ingress and pause preserves the whole world',()=>{
- const w=G.tick(G.short_world(0n));assert.equal(G.time(w),1);
+ const w=G.tick(G.short_world(0));assert.equal(G.time(w),1);
  assert.ok(list(G.cues(w)).every(c=>c.kind!==10),'no review outcome before entrance travel');
  const paused=G.pause(w);assert.deepEqual(G.tick(paused),paused);
 });
 test('partial event budgets cannot advance game motion before completing the horizon',()=>{
- let w=G.short_world(25n),found=false;
+ let w=G.short_world(25),found=false;
  for(let i=0;i<1800;i++){
   const before=G.time(w),next=G.bounded(w);
   if(G.time(next)===before){

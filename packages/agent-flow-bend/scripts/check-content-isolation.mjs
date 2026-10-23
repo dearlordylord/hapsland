@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync, execFileSync } from "node:child_process"
-import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, rmSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -159,12 +159,21 @@ try {
     })
     assert.ifError(kernelControl.error)
     assert.equal(kernelControl.status, 1, "disabling the proof kernel must fail the gate")
-    assert.match(kernelControl.stdout + kernelControl.stderr, /SOME PROOFS FAIL/)
+    assert.match(
+      kernelControl.stdout + kernelControl.stderr,
+      /BendTT infrastructure: kernel exited 1 without a verdict/
+    )
     console.log("Production request content: ALL PROOFS CHECK (BendTT kernel)")
   }
   // Exercise the artifact gate against an isolated package tree, never edit the candidate.
   const fixture = join(temporary, "artifact-fixture")
   const fixturePackage = join(fixture, "packages/agent-flow-bend")
+  mkdirSync(join(fixture, "packages/bend-javascript-abi"), { recursive: true })
+  cpSync(
+    resolve(import.meta.dirname, "../../../packages/bend-javascript-abi/bend-js-runtime.mjs"),
+    join(fixture, "packages/bend-javascript-abi/bend-js-runtime.mjs")
+  )
+  symlinkSync(resolve(import.meta.dirname, "../../../node_modules"), join(fixture, "node_modules"), "dir")
   mkdirSync(join(fixturePackage, "scripts"), { recursive: true })
   mkdirSync(join(fixturePackage, "abi"), { recursive: true })
   mkdirSync(join(fixturePackage, "dist"), { recursive: true })

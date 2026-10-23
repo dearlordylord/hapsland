@@ -26,7 +26,7 @@ for (const trace of fixture.traces) {
         ("reason" in command ? `:${command.reason}` : "")
     )
   }
-  assert.deepEqual(outputs, trace.outputs, `${trace.name}: command sequence`)
+  assert.deepEqual(outputs, trace.commands, `${trace.name}: command sequence`)
   assert.deepEqual(phases, trace.phases, `${trace.name}: phase sequence`)
   const projected = projectImportGraph(state)
   assert.deepEqual(

@@ -1,10 +1,10 @@
 {
-  "compiler": "bend 2.0.36",
-  "sourceHash": "997f3bf3b2ceb620b1bdfc466333a345b24ce7186f735e4dbe3f72bb17698e7b",
+  "compiler": "bend 2.0.38",
+  "sourceHash": "4a773fb1e8bf45badce0ccc36ee6e158d20e874bb8304ac94dae2c989d21607a",
   "hostHash": "65a82e6a4fa4d182a97417e155cd33fe97c64a70f9165f892971f22b6764e5f9",
-  "identityHash": "6c6ddf9ebb1945a95132c3bfd0a730106a73aa69965500b0dc5233364c9ff1dc",
-  "preparationHash": "4bf47dcf9e6197c160cbd1ba42515da47172af78f80d50cddb56bc90cece88f5",
-  "buildHash": "24914104c5812ba73a98615f24711c44aa8ad386edd020e26ddf873d0b9e8201",
+  "identityHash": "4058c291e0a1913e3b53b43d19f5b9f2a48ed2a6da023e8f429acee17a1f0f84",
+  "preparationHash": "82d517ada54edc4f9d73e08250583064e188c06c31810ab96e8da60d3806a93b",
+  "buildHash": "550479736f2f9de6b8bc8c8cfc46a19a2dff36d4a5508b616249c7f2a60cc867",
   "declarationHash": "44c9db631cf0abaf18efd1217c8823caf66cba66a0510e8fa543964218746f1a",
-  "moduleHash": "061ed6e34ee7fb3e71f9d29940a1f9de840d1a47bd5428904ca0c77528353a89"
+  "moduleHash": "c8c4d6ea826418ccb5caa0ae7fd211f5bcc2d0a7a48bb8ed48fe4efb1fa722e1"
 }

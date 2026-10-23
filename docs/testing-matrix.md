@@ -571,7 +571,7 @@ the selected identity through [the compiler context](../scripts/compiler-context
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.36
+`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.38
 and Lean 4.34.0 proof toolchain through its dedicated installer,
 then runs typecheck,
 `npm run quality:check -- --ack-checks-policy`, and build. Documentation generation
@@ -581,8 +581,8 @@ milestones; those remain separate declared checks above.
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
 progress proof with Bend’s bundled kernel before the harness starts.
-Bend 2.0.36 is pinned to the upstream release source revision
-`ae1101c`; its kernel requires Lean 4.34.0.
+Bend 2.0.38 is pinned to the upstream release source revision
+`0a57ca0d21de94a3724d8be21afb0eb89f88b4d8`; its kernel requires Lean 4.34.0.
 Run the installer once and add its printed bin directories to `PATH` for local
 `npm test`. The explicit `--github-actions` mode in `docs:install` installs this
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation

@@ -237,12 +237,12 @@ function nativeBuild(world: unknown, x = 652, y = 215, kind = 3) {
   return receipt.world
 }
 function nativeFire(world: unknown, index = 1, operation = 3) {
-  return nativeApply(world, { $: "Fire", index, operation: BigInt(operation) })
+  return nativeApply(world, { $: "Fire", index, operation })
 }
 function nativeTicks(world: unknown, count: number) {
   const trace: unknown[] = []
   for (let i = 0; i < count; i++) {
-    const tick = Game.tick_bounded(world, 256n) as { world: unknown; frames: unknown }
+    const tick = Game.tick_bounded(world, 256) as { world: unknown; frames: unknown }
     world = tick.world
     // Retain actual semantic event frames, not every large intermediate state.
     const frames = tick.frames as { $: string }
@@ -259,16 +259,16 @@ function warmWorld(tick = 290, result = 2) {
     const initial = Game.create_scenario(
       {
         $: "Scenario",
-        jev: 800n,
-        delivery: 400n,
-        source: 0n,
+        jev: 800,
+        delivery: 400,
+        source: 0,
         ready: true,
         readable: true,
         result,
         burst: 1,
         interval: 60000
       },
-      152n,
+      152,
       160,
       0
     )
@@ -277,7 +277,7 @@ function warmWorld(tick = 290, result = 2) {
   return warmWorlds.get(key)
 }
 function target(world: unknown, index = 1, operation = 3) {
-  return normalized(Game.shot_target(world, index, BigInt(operation)))
+  return normalized(Game.shot_target(world, index, operation))
 }
 
 it("accelerates the selected physical operation and independently replays the complete journey", () => {
@@ -371,7 +371,7 @@ it("courier preview appears only after all fragments assemble into an individual
   expect(visiblePackets(early)).toEqual([])
   expect(nativeFire(early).result.$).toBe("NoTarget")
   const merged = nativeTicks(early, 43).world
-  expect(packetGroups(merged).find((group) => (group.owner as { operation: bigint }).operation === 3n)).toMatchObject({
+  expect(packetGroups(merged).find((group) => (group.owner as { operation: number }).operation === 3)).toMatchObject({
     merged: true,
     carrier: false
   })
@@ -391,7 +391,7 @@ it("an unhit sibling changes lane availability but never exceeds fragment base s
     let world = nativeTicks(initial, 222).world
     let previous = new Map<number, Record<string, unknown>>()
     for (let tick = 512; tick <= 658; tick++) {
-      const group = packetGroups(world).find((item) => (item.owner as { operation: bigint }).operation === 4n)!
+      const group = packetGroups(world).find((item) => (item.owner as { operation: number }).operation === 4)!
       const fragments = bendItems(group.fragments)
       if (tick === 512) firstLanes.push(fragments[0]!.y as number)
       if (group.merged) {
@@ -417,7 +417,7 @@ it("an unhit sibling changes lane availability but never exceeds fragment base s
 })
 
 it("Finish waits for both selected members and exposes exactly one courier packet", () => {
-  const scheduled = Game.schedule_finish(warmWorld(0), 10060n)
+  const scheduled = Game.schedule_finish(warmWorld(0), 10060)
   const early = nativeBuild(nativeTicks(scheduled, 634).world, 152, 456, 4)
   expect(packetGroups(early).map((group) => [group.merged, group.carrier])).toEqual([
     [false, false],
@@ -476,7 +476,7 @@ it("independent public replay rejects an intentionally wrong tower target mappin
   const mutant = vi
     .spyOn(Game, "apply")
     .mockImplementation((world, action) =>
-      original(world, action.$ === "Fire" ? { ...action, operation: action.operation === 3n ? 4n : 3n } : action)
+      original(world, action.$ === "Fire" ? { ...action, operation: action.operation === 3 ? 4 : 3 } : action)
     )
   try {
     expect(() =>

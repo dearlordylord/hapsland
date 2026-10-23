@@ -14,8 +14,8 @@ const {default:G}=await import(pathToFileURL(emitted))
 const list=x=>{const a=[];while(x.$==="Con"){a.push(x.head);x=x.tail}assert.equal(x.$,"Nil");return a}
 const cons=a=>a.reduceRight((tail,head)=>({$:"Con",head,tail}),{$:"Nil"})
 const tag=(x,name)=>x?.$===name||x?.$?.endsWith("."+name)
-const key=n=>({$:"DefenseMotionTypes.WorkIdentity",partition:1n,lifetime:1n,round:1n,operation:BigInt(n)})
-const actor=(n,point,path,extra={})=>({$:"DefenseMotionTypes.Actor",key:key(n),family:BigInt(n),lane:0,x:point.x,y:point.y,phase:1,observed:1,path:cons(path.map(p=>({$:"DefenseMotionTypes.Waypoint",x:p.x,y:p.y,phase:1,time:0n}))),terminal:0,predecessor:{$:"Nil"},shown:0n,outcome:0,released:true,...extra})
+const key=n=>({$:"WorkIdentity",partition:1,lifetime:1,round:1,operation:n})
+const actor=(n,point,path,extra={})=>({$:"Actor",key:key(n),family:n,lane:0,x:point.x,y:point.y,phase:1,observed:1,path:cons(path.map(p=>({$:"Waypoint",x:p.x,y:p.y,phase:1,time:0}))),terminal:0,predecessor:{$:"Nil"},shown:0,outcome:0,released:true,...extra})
 
 test("adjacent maze rows are independent until their directed route gap closes",()=>{
  for(const layout of [0,1,2]){
@@ -27,7 +27,7 @@ test("adjacent maze rows are independent until their directed route gap closes",
   const follower=actor(2,{x:start.x+4,y:start.y},route.slice(i+1))
   const leader=actor(1,{x:start.x+4,y:next.y},route.slice(i+3))
   assert.equal(Math.abs(follower.y-leader.y),8)
-  assert.ok(G.track(follower).remaining-G.track(leader).remaining>28n)
+  assert.ok(G.track(follower).remaining-G.track(leader).remaining>28)
   assert.equal(G.blocked(follower,cons([leader,follower])),false,"a body across the wall is not directly ahead")
   const close=actor(1,{x:start.x+16,y:start.y},route.slice(i+1))
   assert.equal(G.blocked(follower,cons([close,follower])),true,"actual nearby leader on same directed segment blocks")
@@ -68,9 +68,9 @@ test("every burst preparation refusal is justified by its exact frame-time reser
    const rejection=outputs.some(o=>tag(o,"PolicyDecided")&&Object.values(o).some(v=>tag(v,"PreparationRefused")))
    const admitted=outputs.some(o=>tag(o,"ResidentActionRequested")&&Object.values(o).some(v=>tag(v,"Prepare")))
    const ledger=list(f.before)[0].ledger,charges=list(ledger.charges),limits=ledger.limits
-   const used=charges.reduce((sum,c)=>sum+c.bytes,0n),local=charges.filter(c=>c.partition===f.event.partition)
-   const localBytes=local.reduce((sum,c)=>sum+c.bytes,0n)
-   const fit=BigInt(charges.length)+1n<=limits.global_items&&used+f.event.bytes<=limits.global_bytes&&BigInt(local.length)+1n<=limits.partition_items&&localBytes+f.event.bytes<=limits.partition_bytes
+   const used=charges.reduce((sum,c)=>sum+c.bytes,0),local=charges.filter(c=>c.partition===f.event.partition)
+   const localBytes=local.reduce((sum,c)=>sum+c.bytes,0)
+   const fit=charges.length+1<=limits.global_items&&used+f.event.bytes<=limits.global_bytes&&local.length+1<=limits.partition_items&&localBytes+f.event.bytes<=limits.partition_bytes
    assert.equal(G.fits(f.before,f.event.partition,f.event.bytes),fit)
    if(rejection){
     refused++;assert.equal(fit,false,"a refusal cannot occur when that exact prior ledger can reserve the request")

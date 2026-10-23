@@ -43,25 +43,25 @@ const sameWorld = (frame, ticks, message) => assert.deepEqual(values(G.encode(fr
 
 test("half-speed clock preserves complete worlds at 40 ms boundaries", () => {
   let frame = G.initial()
-  for (const now of [0n, 19n, 20n, 39n, 40n, 41n, 79n, 80n, 119n, 120n, 160n, 200n]) {
+  for (const now of [0, 19, 20, 39, 40, 41, 79, 80, 119, 120, 160, 200]) {
     frame = G.step(now, frame)
-    sameWorld(frame, now / 40n, `wall time ${now}`)
+    sameWorld(frame, Math.floor(now / 40), `wall time ${now}`)
   }
 })
 test("clock retains bounded catch-up and fractional time without skipping simulation", () => {
-  let frame = G.step(400n, G.initial())
-  sameWorld(frame, 8n)
-  frame = G.step(400n, frame)
-  sameWorld(frame, 10n)
+  let frame = G.step(400, G.initial())
+  sameWorld(frame, 8)
+  frame = G.step(400, frame)
+  sameWorld(frame, 10)
   assert.equal(G.steps(39), 0)
   assert.equal(G.steps(40), 1)
   assert.equal(G.steps(400), 8)
 })
 test("pause discards elapsed wall time instead of catching it up on resume", () => {
-  let frame = G.step(40n, G.initial())
+  let frame = G.step(40, G.initial())
   frame = G.pause(frame)
-  frame = G.step(4000n, frame)
+  frame = G.step(4000, frame)
   frame = G.pause(frame)
-  frame = G.step(4040n, frame)
-  sameWorld(frame, 2n)
+  frame = G.step(4040, frame)
+  sameWorld(frame, 2)
 })

@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../../../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
@@ -17,17 +18,14 @@ assert.equal(
 )
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-request-content-"))
 try {
-  const output = join(temporary, "runtime.js")
+  const output = join(temporary, "runtime.mjs")
   execFileSync(bend, [join(sourceRoot, "Runtime.bend"), "-o", output], { timeout: 5000 })
-  const raw = readFileSync(output, "utf8")
-  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
-  assert.match(raw, footer)
-  assert.ok(raw.includes("function $core$058project$("), "compiler export ABI changed")
-  assert.ok(raw.includes("function $core$058project_openai$("), "OpenAI compiler export ABI changed")
-  const generated = raw.replace(
-    footer,
-    "\nexport const projectRequestContent = (fields) => run_loop($core$058project$(fields));\nexport const projectOpenAIRequestContent = (fields) => run_loop($core$058project_openai$(fields));\n"
-  )
+  const raw = bendJavaScriptRuntime(readFileSync(output, "utf8"), join(sourceRoot, "Runtime.bend")).source
+  assert.ok(raw.includes("function $core_project("), "compiler export ABI changed")
+  assert.ok(raw.includes("function $core_project_openai("), "OpenAI compiler export ABI changed")
+  const generated =
+    raw +
+    "\nexport const projectRequestContent = (fields) => run_loop($core_project(fields));\nexport const projectOpenAIRequestContent = (fields) => run_loop($core_project_openai(fields));\n"
   const target = join(outputDirectory, "request-content.generated.js")
   const declaration = join(outputDirectory, "request-content.generated.d.ts")
   const abi = join(root, "abi/request-content.generated.d.ts")

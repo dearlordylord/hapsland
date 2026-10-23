@@ -28,7 +28,7 @@ try {
     edit = Shared.next(config, Shared.transition_state(task))
   const after = Shared.transition_state(edit)
   const expected = [after.task, after.revision, after.random, Shared.sample_delay(config, after.random)].join(":")
-  const actual = run(binary, ["--threads", "4"], 5000)
+  const actual = run(binary, ["+RTS", "--threads", "4", "-RTS"], 5000)
   if (actual !== expected) throw new Error(`Native/JS mismatch: ${actual} != ${expected}`)
   console.log(`Native/JS shared-source parity: ${actual}`)
 } finally {

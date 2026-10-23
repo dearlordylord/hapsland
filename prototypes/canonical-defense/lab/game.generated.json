@@ -1,8 +1,8 @@
 {
   "format": 1,
-  "compiler": "Bend 2.0.36: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:ea0eb7189240025e9c51356fe4c73ca6761ac3a5fb2f115cfd4ef87814d04ebb",
-  "moduleIdentity": "sha256:62e7c91c145e18f3c8c9875ad6457fa59dfafaa5876368c047642eee9e9e8986",
+  "compiler": "Bend 2.0.38: check, run, build and publish Bend programs.",
+  "sourceIdentity": "sha256:4e0544bfe298ee02d5ba65a54a6da32d93577ab0922be1998048f441810c17db",
+  "moduleIdentity": "sha256:8d1eabeb24ba4b834b6afa20fc385a64853ec3f27bbaddc24815c54875f9a9eb",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",
@@ -30,6 +30,7 @@
     "packages/agent-flow-bend/SubmissionState.bend",
     "packages/agent-flow-bend/Work.bend",
     "packages/agent-flow-bend/package.json",
+    "packages/bend-javascript-abi/bend-js-runtime.mjs",
     "packages/monkey-business-bend/AdmissionAttempts.bend",
     "packages/monkey-business-bend/AdviceeActivity.bend",
     "packages/monkey-business-bend/AdviceeLifecycle.bend",

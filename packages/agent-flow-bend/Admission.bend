@@ -106,7 +106,12 @@ def find_permit(+token: Nat, permits: List<&2, Permit>) -> Maybe<&2, Permit>:
     case +permit <> rest:
       match permit:
         case Permit{current, _, _, _, _}:
-          List.find.put(Permit, permit, find_permit(token, rest), Nat.is_eq(current, token))
+          Bool.pick(
+            Maybe<&2, Permit>,
+            Nat.is_eq(current, token),
+            Some{permit},
+            find_permit(token, rest)
+          )
 
 def remove_permit(+token: Nat, permits: List<&2, Permit>) -> List<&2, Permit>:
   match permits:

@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../../../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, copyFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -40,7 +41,8 @@ for (const path of [
   "Delivery.bend",
   "Canonical.bend",
   "CanonicalRuntime.bend",
-  "scripts/build-canonical.mjs"
+  "scripts/build-canonical.mjs",
+  "../bend-javascript-abi/bend-js-runtime.mjs"
 ]) {
   digest
     .update(path)
@@ -51,23 +53,19 @@ for (const path of [
 const sourceHash = digest.digest("hex")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-canonical-bend-"))
 try {
-  const compiled = join(temporary, "canonical.js")
+  const compiled = join(temporary, "canonical.mjs")
   execFileSync("bend", [join(root, "CanonicalRuntime.bend"), "-o", compiled], { stdio: "pipe", timeout: 120_000 })
-  let source = readFileSync(compiled, "utf8")
-  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
+  let source = bendJavaScriptRuntime(readFileSync(compiled, "utf8"), join(root, "CanonicalRuntime.bend")).source
   if (
-    !footer.test(source) ||
-    !source.includes("function $Canonical$058step$(") ||
-    !source.includes("function $Canonical$058initial$(") ||
-    !source.includes("function $Ledger$058total$(") ||
-    !source.includes("function $Ledger$058partition_usage$(") ||
-    !source.includes("function $Ledger$058inventory$(")
+    !source.includes("function $Canonical_step(") ||
+    !source.includes("function $Canonical_initial(") ||
+    !source.includes("function $Ledger_total(") ||
+    !source.includes("function $Ledger_partition_usage(") ||
+    !source.includes("function $Ledger_inventory(")
   ) {
     throw new Error("Bend canonical JavaScript layout changed")
   }
-  source = source.replace(
-    footer,
-    `
+  source += `
 const nat = (value) => {
   if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 48) {
     throw new TypeError("expected immediate Bend Nat");
@@ -84,21 +82,20 @@ const normalize = (value) => {
   return value;
 };
 export const bendCanonicalInitial = (limits) =>
-  run_loop($Canonical$058initial$(normalize(limits)));
+  run_loop($Canonical_initial(normalize(limits)));
 export const bendCanonicalStep = (state, event) =>
-  run_loop($Canonical$058step$(state, normalize(event)));
+  run_loop($Canonical_step(state, normalize(event)));
 export const bendCanonicalTotal = (state) =>
-  run_loop($Ledger$058total$(state.ledger.charges));
+  run_loop($Ledger_total(state.ledger.charges));
 export const bendCanonicalPartitionUsage = (state, partition) =>
-  run_loop($Ledger$058partition_usage$(state.ledger.charges, nat(partition)));
+  run_loop($Ledger_partition_usage(state.ledger.charges, nat(partition)));
 export const bendCanonicalInventory = (state) =>
-  run_loop($Ledger$058inventory$(state.ledger.limits));
+  run_loop($Ledger_inventory(state.ledger.limits));
 export const bendPreparationLimit = () =>
-  run_loop($Dispatch$058max_running$());
+  run_loop($Dispatch_max_running());
 export const bendReviewServiceRequestLimit = () =>
-  run_loop($Dispatch$058max_requests$());
+  run_loop($Dispatch_max_requests());
 `
-  )
   mkdirSync(output, { recursive: true })
   writeFileSync(join(output, "canonical.generated.js"), `// hapsland-bend-source-sha256:${sourceHash}\n${source}`)
   copyFileSync(join(root, "abi/canonical.generated.d.ts"), join(output, "canonical.generated.d.ts"))

@@ -51,9 +51,9 @@ const edge=(level)=>{
  }throw Error('No upgrade range edge witness');
 };
 test("empty and unauthorized courier scenes fabricate no target crosses",()=>{
- assert.equal(crosses(P.world(0n,3,true)).length,0);
- assert.equal(crosses(P.world(2n,4,true)).length,0);
- assert.equal(P.next_target(P.world(2n,4,true),4).$,"None");
+ assert.equal(crosses(P.world(0,3,true)).length,0);
+ assert.equal(crosses(P.world(2,4,true)).length,0);
+ assert.equal(P.next_target(P.world(2,4,true),4).$,"None");
 });
 test("removing preview from the actual scene fails the same visible-target witness",async()=>{
  const root=new URL("./",import.meta.url).pathname;
@@ -76,16 +76,16 @@ test("cancelled work is not previewed even while its physical callback remains q
  const world=P.cancelled_world();
  const stale=list(P.original_callbacks(world)).filter(item=>/Queued$/.test(item.status.$)&&/ReviewServiceRequestSettled$/.test(item.fact.target.effect.$));
  assert.equal(stale.length,2,"Stop cancels ownership, not the already scheduled physical deliveries");
- assert.equal(P.targets(world,3),0n);assert.equal(crosses(world).length,0);
+ assert.equal(P.targets(world,3),0);assert.equal(crosses(world).length,0);
 });
 
 
 test("actual Host keeps construction budget and separates ordinary delivery from Finish packets",()=>{
- const ordinary=P.ticks(1200n,P.initial());
+ const ordinary=P.ticks(1200,P.initial());
  assert.equal(P.individual_count(ordinary),2);
  assert.equal(P.finish_count(ordinary),0);
  assert.equal(P.budget(ordinary),160);
- const finish=P.ticks(650n,P.finish_world());
+ const finish=P.ticks(650,P.finish_world());
  assert.ok(P.finish_count(finish)>0);
  assert.equal(P.budget(finish),120,"Finish delivery cannot mint construction budget");
  assert.equal(P.control_counters_preserved(ordinary),true);
@@ -102,7 +102,7 @@ test("manual S and scheduled caller Stop have identical business states and deli
   assert.deepEqual(P.business_core(actual),P.business_core(repeated));
   assert.equal(P.finish_count(actual),P.finish_count(repeated));
   const closed=P.stop_closed(actual);
-  assert.ok(list(P.business_core(closed).rounds).length<=list(P.business_core(P.ticks(5n,actual)).rounds).length,"Stop cannot open an extra round");
+  assert.ok(list(P.business_core(closed).rounds).length<=list(P.business_core(P.ticks(5,actual)).rounds).length,"Stop cannot open an extra round");
   assert.equal(P.finish_count(closed),P.finish_count(actual));
   assert.equal(P.individual_count(closed),P.individual_count(actual));
  }
@@ -114,25 +114,25 @@ test("manual Stop is inert before start and while paused, and exposes waiting cu
  const initial=P.stop_at_input(1),paused=P.pause(initial);
  assert.deepEqual(P.stop_key(paused),paused);
  assert.equal(P.stop_text(paused),"S STOP UNAVAILABLE WHILE PAUSED");
- const waiting=P.ticks(1n,P.stop_key(initial));
+ const waiting=P.ticks(1,P.stop_key(initial));
  assert.match(P.stop_text(waiting),/^STOP WAIT 180 MS$/);
 });
 
 test("defeat refuses placement and upgrades without changing any World field; living pause permits planning",()=>{
- const selected=P.defeated(P.world(2n,3,true));
+ const selected=P.defeated(P.world(2,3,true));
  assert.deepEqual(P.upgraded(selected),selected);
  const receipt=P.lab_upgrade(selected);
  assert.deepEqual(receipt.world,selected);
- assert.equal(receipt.result.$,'DefenseLab.Dead');assert.equal(receipt.charged,0);
+ assert.equal(receipt.result.$,'Dead');assert.equal(receipt.charged,0);
  assert.equal(P.upgrade_note(selected),'DEFEATED / NO UPGRADE');
- const hover=P.defeated(P.world(2n,3,false));
+ const hover=P.defeated(P.world(2,3,false));
  assert.equal(P.placement_legal(hover),false);
  assert.equal(P.placement_reason(hover),'DEFEATED / R STARTS A NEW GAME');
  assert.deepEqual(P.click_here(hover),hover);
- const paused=P.pause(P.world(2n,3,false));
+ const paused=P.pause(P.world(2,3,false));
  assert.equal(P.placement_legal(paused),true);
  assert.equal(P.budget(P.click_here(paused)),110);
- assert.equal(P.budget(P.upgraded(P.pause(P.world(2n,3,true)))),70);
+ assert.equal(P.budget(P.upgraded(P.pause(P.world(2,3,true)))),70);
 });
 
 test("every selectable tower has a visible reachable effect on every ordinary map, with prebuild/built and pause parity",()=>{
@@ -169,7 +169,7 @@ test("every selectable tower has a visible reachable effect on every ordinary ma
 });
 
 test("physics coverage is independent of pause for arbitrary tower parameters; pause cannot advance the world",()=>{
- const states=[P.ordinary_start(),P.world(2n,3,false),P.world(540n,4,false),P.finish_world(),P.cancelled_world()];
+ const states=[P.ordinary_start(),P.world(2,3,false),P.world(540,4,false),P.finish_world(),P.cancelled_world()];
  for(const world of states){
   const paused=P.pause(world),before=snapshot(paused);
   assert.equal(snapshot(P.ordinary_tick(paused)),before,"pause freezes the complete game, not only its picture");
@@ -209,7 +209,7 @@ test("L2 and L3 extend actual moving-target coverage without resetting cooldown"
  const courier=seek(4,true);assert.equal(P.upgrade_note(courier),"U COST 32");const two=P.upgraded(courier);assert.equal(P.budget(two),88);assert.equal(P.upgrade_note(two),"U COST 48");const three=P.upgraded(two);assert.equal(P.budget(three),40);assert.equal(P.upgrade_note(three),"MAX LEVEL / NO UPGRADE");
 });
 test("selected focus identifies the exact moving recipient",()=>{
- const w=seek(3,true);assert.equal(P.focused(w),operation(P.selected_next(w)));assert.ok(P.focused(w)>0n);
+ const w=seek(3,true);assert.equal(P.focused(w),operation(P.selected_next(w)));assert.ok(P.focused(w)>0);
 });
 test("coverage over forbidden ground remains visible while construction is refused",()=>{
  const w=seek(3),target=list(P.live_targets(w))[0],p=P.physics_body(target,w),hover=P.hover_at(w,p.x,p.y,3);
@@ -227,7 +227,7 @@ test("always-visible monsters replace historical duplicates and completed target
   for(const target of list(P.live_targets(w))){const p=P.physics_body(target,w);assert.ok(scene.some(r=>r.x===p.x-2&&r.y===p.y-1&&r.w===1&&r.h===1&&r.color===16777215),"actual small monster eye at the callback owner position");}
   assert.ok(!scene.some(r=>r.color===6909552),"old history bodies are not another set of monsters");
  }
- const done=P.pause(P.ticks(1200n,P.ordinary_start()));assert.equal(list(P.live_targets(done)).length,0);assert.equal(crosses(done).length,0);
+ const done=P.pause(P.ticks(1200,P.ordinary_start()));assert.equal(list(P.live_targets(done)).length,0);assert.equal(crosses(done).length,0);
 });
 test("coincident monsters show their count without different labels overpainting each other",()=>{
  const w=P.crowded(),targets=list(P.live_targets(w));assert.equal(targets.length,8);

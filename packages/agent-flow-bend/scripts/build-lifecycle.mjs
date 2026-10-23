@@ -1,3 +1,4 @@
+import { bendJavaScriptRuntime } from "../../../packages/bend-javascript-abi/bend-js-runtime.mjs"
 import { execFileSync } from "node:child_process"
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -15,20 +16,13 @@ if (compilerVersion !== bendCompilerVersion) {
 const root = resolve(import.meta.dirname, "..")
 const temporary = mkdtempSync(join(tmpdir(), "hapsland-lifecycle-bend-"))
 try {
-  const compiled = join(temporary, "lifecycle.js")
+  const compiled = join(temporary, "lifecycle.mjs")
   execFileSync("bend", [join(root, "LifecycleRuntime.bend"), "-o", compiled], { stdio: "pipe" })
-  let source = readFileSync(compiled, "utf8")
-  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/
-  if (
-    !footer.test(source) ||
-    !source.includes("function $Lifecycle$058apply$(") ||
-    !source.includes("function $Lifecycle$058initial$(")
-  ) {
+  let source = bendJavaScriptRuntime(readFileSync(compiled, "utf8"), join(root, "LifecycleRuntime.bend")).source
+  if (!source.includes("function $Lifecycle_apply(") || !source.includes("function $Lifecycle_initial(")) {
     throw new Error("Bend lifecycle JavaScript layout changed; inspect generated runtime")
   }
-  source = source.replace(
-    footer,
-    `
+  source += `
 const MAX_NAT = (1n << 48n) - 1n;
 const nat = (value) => {
   const integer = typeof value === "number"
@@ -48,7 +42,7 @@ const normalize = (value) => {
   return value;
 };
 export const bendLifecycleInitial = (partition, lifetime) =>
-  run_loop($Lifecycle$058initial$(nat(partition), nat(lifetime)));
+  run_loop($Lifecycle_initial(nat(partition), nat(lifetime)));
 const shortTag = (value) => value.split(".").at(-1);
 const publicCommand = (value) => {
   if (typeof value === "number") return BigInt(value);
@@ -63,9 +57,8 @@ const resultForCaller = (value) => ({ ...value, $: shortTag(value.$),
 const lifecycleEvent = (event) => normalize({ ...event, $: "Lifecycle." + event.$,
   ...(event.outcome === undefined ? {} : { outcome: { ...event.outcome, $: "Work." + event.outcome.$ } }) });
 export const bendLifecycleApply = (state, partition, lifetime, round, event) =>
-  resultForCaller(run_loop($Lifecycle$058apply$(state, nat(partition), nat(lifetime), nat(round), lifecycleEvent(event))));
+  resultForCaller(run_loop($Lifecycle_apply(state, nat(partition), nat(lifetime), nat(round), lifecycleEvent(event))));
 `
-  )
   writeFileSync(join(root, "lifecycle.generated.js"), source)
 } finally {
   rmSync(temporary, { recursive: true, force: true })

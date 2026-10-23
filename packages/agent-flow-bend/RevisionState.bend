@@ -23,7 +23,7 @@ def find(+subject: Nat, entries: List<&2, Entry>) -> Maybe<&2, Entry>:
   match entries:
     case Nil{}: None{}
     case +entry <> rest:
-      List.find.put(Entry, entry, find(subject, rest), same_subject(subject, entry))
+      Bool.pick(Maybe<&2, Entry>, same_subject(subject, entry), Some{entry}, find(subject, rest))
 
 def without(+subject: Nat, entries: List<&2, Entry>) -> List<&2, Entry>:
   match entries:

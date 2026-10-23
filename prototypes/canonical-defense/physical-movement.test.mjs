@@ -17,7 +17,7 @@ const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const entrances=[{x:36,y:174},{x:24,y:166},{x:24,y:172}];
 // Independent silhouette witness: the small monster has two white eye pixels.
 const painted=(pixels,p)=>pixels.some(r=>r.x===p.x-2&&r.y===p.y-1&&r.w===1&&r.h===1&&r.color===16777215)&&pixels.some(r=>r.x===p.x+2&&r.y===p.y-1&&r.w===1&&r.h===1&&r.color===16777215);
-for(const layout of [0,1,2])for(const delay of [0n,25n])test(`no-tower physical journey: layout ${layout}, callback delay ${delay}`,()=>{
+for(const layout of [0,1,2])for(const delay of [0,25])test(`no-tower physical journey: layout ${layout}, callback delay ${delay}`,()=>{
  let w=G.start(layout,delay),previous=new Map(),rootSeen=false,checksSeen=false,fragmentsSeen=false,movingSteps=0;
  const previousFragments=new Map();
  for(let tick=0;tick<900;tick++){

@@ -51,7 +51,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.a
     const [binary, ...args] = process.argv.slice(2)
     const prepared = prepareRecording(binary, args)
     console.error(`Canonical defense: ${prepared.mode}; recording ${prepared.path}`)
-    const child = spawnSync(binary, ["--threads", "4"], { env: prepared.environment, stdio: "inherit" })
+    const child = spawnSync(binary, ["+RTS", "--threads", "4", "-RTS"], { env: prepared.environment, stdio: "inherit" })
     if (child.error) throw child.error
     process.exitCode = child.status ?? 1
   } catch (error) { console.error(error.message); process.exitCode = 1 }

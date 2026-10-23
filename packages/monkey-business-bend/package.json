@@ -41,7 +41,9 @@
       "default": "./compiler.mjs"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "@hapsland/bend-javascript-abi": "workspace:*"
+  },
   "hapsland": {
     "workspaceRole": "verification"
   }

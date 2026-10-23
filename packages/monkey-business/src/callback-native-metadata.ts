@@ -5718,7 +5718,7 @@ export const callbackNativeDescriptors = {
 export const callbackNativeOwnerSources = [
   {
     path: "packages/agent-flow-bend/Admission.bend",
-    sha256: "ea0b408bc8f96d5df0e73cbfea666d2af0ec96e34bb6e7e730bf5b7a62cf1697"
+    sha256: "3ebfc1d119c030ea2e64eaa4c76d999e1b021bc3079df5bc2db4cadc9294f1b6"
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
@@ -5786,7 +5786,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/RevisionState.bend",
-    sha256: "fb53b4ccc36c3153b39691560b0f905d1f72a13204c3889136207bf2e3b89d7b"
+    sha256: "dce408a7ee0845ac1b1a8832083bb103b6951ed6f2a44281f394bf21fa78dc2f"
   },
   {
     path: "packages/agent-flow-bend/RulePolicy.bend",

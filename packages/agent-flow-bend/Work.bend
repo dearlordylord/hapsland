@@ -255,11 +255,11 @@ def find_observation(+id: Nat, observations: List<&2, Observation>) -> Maybe<&2,
     case +observation <> rest:
       match observation:
         case Observation{current, _}:
-          List.find.put(
-            Observation,
-            observation,
-            find_observation(id, rest),
-            Nat.is_eq(current, id)
+          Bool.pick(
+            Maybe<&2, Observation>,
+            Nat.is_eq(current, id),
+            Some{observation},
+            find_observation(id, rest)
           )
 
 def start_observation.read(
@@ -450,7 +450,7 @@ def find_unit(+id: Nat, units: List<&2, ReviewUnit>) -> Maybe<&2, ReviewUnit>:
     case +unit <> rest:
       match unit:
         case ReviewUnit{current, _, _, _, _}:
-          List.find.put(ReviewUnit, unit, find_unit(id, rest), Nat.is_eq(current, id))
+          Bool.pick(Maybe<&2, ReviewUnit>, Nat.is_eq(current, id), Some{unit}, find_unit(id, rest))
 
 def pending_for.found(found: Maybe<&2, ReviewUnit>) -> Nat:
   match found:

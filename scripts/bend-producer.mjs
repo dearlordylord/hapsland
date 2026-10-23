@@ -308,6 +308,7 @@ function toolchainCore(root, env) {
       "scripts/package-graph.mjs",
       "packages/agent-flow-bend/package.json",
       "scripts/bend-toolchain.mjs",
+      "packages/bend-javascript-abi/bend-js-runtime.mjs",
       "scripts/source-loader-policy.mjs",
       "scripts/compiler-evidence.mjs",
       "scripts/native-toolchain-inputs.mjs",

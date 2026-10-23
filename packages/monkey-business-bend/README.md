@@ -9,7 +9,7 @@
 **Lifecycle:** Update with state, driver, ABI or check changes; review when runner ownership changes or a candidate law receives an owner decision.
 -->
 
-Generation and optional native/proof checks require the same exact **Bend 2.0.36**
+Generation and optional native/proof checks require the same exact **Bend 2.0.38**
 compiler declared by `packages/agent-flow-bend/package.json`. Install it with
 `node scripts/install-bend-toolchain.mjs` and add the printed Bend/Lean directories
 to `PATH`. The Engine receipt records the compiler version; older artifacts cannot
@@ -43,6 +43,13 @@ transitively imported production policy, declaration, build wrapper or module
 content. Run `node packages/monkey-business-bend/build-run.mjs` to regenerate
 the common runner boundary, and use its `--check` mode to verify the runner's
 transitive Bend sources, declaration, host adapters and emitted module.
+The shared [`bend-js-runtime.mjs`](../../packages/bend-javascript-abi/bend-js-runtime.mjs) generator restores
+Hapsland-owned qualified constructor tags from the pinned compiler output and source
+declarations, rejecting ambiguous ownership. This leaf verification workspace serves
+Canonical, Engine, runner and Lab builds; its parser dependency stays outside product
+runtime exports. Its bytes participate in producer identity;
+`node --test packages/bend-javascript-abi/bend-js-runtime.test.mjs` checks actual compiler output with colliding
+constructor names. Native runtime options use `+RTS --threads 4 -RTS`.
 The wrapper follows the production immediate-Nat ABI: exact u48 Nats,
 u47 bytes and explicit U32 probability words. It threads original trusted states
 without copying the entire graph at each queue operation. No handwritten policy
