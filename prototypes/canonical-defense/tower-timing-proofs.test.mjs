@@ -17,7 +17,12 @@ function collect(file){
 collect(proof)
 const budgetLaws=owner+"LAWS.bend",budgetProof=owner+"PROOF.bend"
 collect(budgetProof)
+const mathematical=new Set(["finisher_prefers_short","accelerator_prefers_long","pulse_cadence","pulse_budget"]);
 const mutants=[
+ ["finisher_prefers_short",owner+"DefenseTowerFire.bend","case 5: (at < other : Nat)","case 5: (at > other : Nat)"],
+ ["pulse_cadence",owner+"DefenseTowerFire.bend","case 6: 40","case 6: 20"],
+ ["pulse_budget",owner+"DefenseTowerFire.bend","case 6: 3n","case 6: 4n"],
+ ["empty_volley_is_inert",owner+"DefenseTowerFire.bend","case Nil{}: Shot{world, 2}","case Nil{}: Shot{world, 0}"],
  ["intervention_time",owner+"DefenseTowerFire.bend","  Nat.max(Run.clock(M.engine(world)),(U32.to_nat(M.time(world)) * 20n : Nat))","  Run.clock(M.engine(world))"],
  ["timed_transport","packages/monkey-business-bend/Callbacks.bend","[Scheduled{delivery_at,fresh_order,action}]","[Scheduled{0n,fresh_order,action}]"],
  ["invalid_time_no_change","packages/monkey-business-bend/Callbacks.bend","case False{} original: Changed{State{[original]},InvalidTime{},Nil{},Nil{}}","case False{} original: Changed{State{[original]},Applied{},Nil{},Nil{}}"],
@@ -115,7 +120,7 @@ function mutationRoot(mutant){
  assert.ok(at>=0);const definitions=[...original.matchAll(/^def ([A-Za-z_][\w.]*)/gm)];
  const found=definitions.findLast(m=>m.index<=at);assert.ok(found,`No owner for mutation ${mutant[0]}`);return found[1];
 }
-function check(mutant,changed=false,core=false,budget=mutant?.[4]==="budget",selectedLaw=mutant?.[0]){
+function check(mutant,changed=false,core=false,budget=mutant?.[4]==="budget",selectedLaw=mutant?.[0],environment=process.env){
  const selectedLaws=budget?budgetLaws:laws,selectedProof=budget?budgetProof:proof
  const dir=mkdtempSync(join(tmpdir(),"hapsland-tower-time-"))
  try{
@@ -129,7 +134,7 @@ function check(mutant,changed=false,core=false,budget=mutant?.[4]==="budget",sel
    const path=join(dir,file);mkdirSync(dirname(path),{recursive:true});writeFileSync(path,source)
   }
   writeSlice(dir,core?mutant[1]:selectedProof,texts,core?mutationRoot(mutant):undefined,selectedLaw?[]:[selectedLaws]);
-  return spawnSync("bend",[join(dir,core?mutant[1]:selectedProof),"--check-only"],{encoding:"utf8",timeout:5000})
+  return spawnSync("bend",[join(dir,core?mutant[1]:selectedProof),!core&&mathematical.has(selectedLaw)?"--verdict":"--check-only"],{encoding:"utf8",timeout:5000,env:environment})
  }finally{rmSync(dir,{recursive:true,force:true})}
 }
 function checkInventory(budget){
@@ -153,3 +158,9 @@ for(const mutant of mutants)test(`timing law rejects ${mutant[0]} mutation`,()=>
  const bad=check(mutant,true);assert.ifError(bad.error);assert.equal(bad.status,1,bad.stdout+bad.stderr)
  assert.match(bad.stdout+bad.stderr,new RegExp(`Location: Laws\\.${mutant[0]}`))
 })
+
+test("new roster kernel proofs cannot pass with the mathematical checker disabled",()=>{
+ const result=check(undefined,false,false,false,"finisher_prefers_short",{...process.env,BENDTT:"/usr/bin/false"});
+ assert.ifError(result.error);assert.equal(result.status,1,result.stdout+result.stderr);
+ assert.match(result.stdout+result.stderr,/BendTT infrastructure/);
+});

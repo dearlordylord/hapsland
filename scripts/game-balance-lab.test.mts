@@ -824,3 +824,54 @@ it("advisory study's unchanged Stop candidates all end before physical review or
   }
   expect(() => checkGameExampleStudy(measured)).toThrow("missing study row")
 })
+
+it("manual pulse records all three exact shots and independently replays their order", () => {
+  const settings = {
+    jevDelayMs: 3200,
+    outputDelayMs: 800,
+    sourceDelayMs: 800,
+    burst: 2,
+    outcome: "finding" as const,
+    arrivalIntervalMs: 60000
+  }
+  let world = Game.create_scenario(
+    {
+      $: "Scenario",
+      jev: 3200,
+      delivery: 800,
+      source: 800,
+      ready: true,
+      readable: true,
+      result: 2,
+      burst: 2,
+      interval: 60000
+    },
+    152,
+    160,
+    0
+  )
+  world = nativeApply(world, { $: "Build", x: 648, y: 200, kind: 6 }).world
+  let tick = 0
+  for (; tick < 1000; tick++) {
+    if (bendItems(Game.shot_targets(world, 1, 0)).length === 3) break
+    world = (Game.tick_bounded(world, 256) as { world: unknown }).world
+  }
+  expect(tick).toBeLessThan(1000)
+  const result = runGameExperiment({
+    ...gameInput,
+    settings,
+    enabled: ["workPulse"],
+    automaticTowers: false,
+    actions: [
+      { atTick: 0, kind: "build", tower: "workPulse", x: 648, y: 200 },
+      { atTick: tick, kind: "fire", index: 1, operation: 0 }
+    ],
+    untilTicks: tick + 2,
+    maxEvents: 2000
+  })
+  const shot = result.actions.find((item) => item.action.kind === "fire")!
+  expect(shot.result).toBe("Applied")
+  expect(shot.targets).toHaveLength(3)
+  expect(new Set(shot.targets!.map((target) => JSON.stringify(target))).size).toBe(3)
+  expect(result.game.remainingBudget).toBe(110)
+})

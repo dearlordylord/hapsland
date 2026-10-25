@@ -61,7 +61,7 @@ export type BusinessActionBoundary = {
   readonly after: unknown
   readonly applied: boolean
   readonly label: string
-  readonly shotTarget?: CallbackTarget
+  readonly shotTargets?: readonly CallbackTarget[]
   readonly deliveryAt?: number
 }
 export type BusinessTickBoundary = {
@@ -105,12 +105,14 @@ export function createGameBusinessReplay(settings: BusinessReplaySettings = {}, 
     return now + Math.max(100, Math.floor(remaining / 2))
   }
 
-  function recordAction({ before, after, applied, label, shotTarget, deliveryAt }: BusinessActionBoundary): void {
+  function recordAction({ before, after, applied, label, shotTargets, deliveryAt }: BusinessActionBoundary): void {
     compare(before, `${label} before`)
-    if (applied && shotTarget) {
+    if (applied && shotTargets?.length) {
       assert.notEqual(deliveryAt, undefined, "game shot must declare its time")
-      run.applyControl({ kind: "callback", action: "transport", target: shotTarget, deliveryAt: acceleratedDeadline(shotTarget, deliveryAt!) })
-      assert.equal(run.observe().callbackReports.at(-1)?.result, "applied", `${label} targeted shot`)
+      for (const shotTarget of shotTargets) {
+        run.applyControl({ kind: "callback", action: "transport", target: shotTarget, deliveryAt: acceleratedDeadline(shotTarget, deliveryAt!) })
+        assert.equal(run.observe().callbackReports.at(-1)?.result, "applied", `${label} targeted shot`)
+      }
     }
     compare(after, `${label} after`)
   }

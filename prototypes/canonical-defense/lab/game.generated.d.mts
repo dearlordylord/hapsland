@@ -8,6 +8,7 @@ declare const Game: {
   observe(world: unknown): unknown
   apply(world: unknown, action: { $: "Build"; x: number; y: number; kind: number } | { $: "Upgrade"; index: number }
     | { $: "Fire"; index: number; operation: number }): unknown
+  shot_targets(world: unknown, index: number, operation: number): unknown
   shot_target(world: unknown, index: number, operation: number): unknown
   tick_bounded(world: unknown, remainingEvents: number): unknown
   automatic(world: unknown): unknown

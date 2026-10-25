@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { compareNativeQueuedPayload, compareCanonicalOwner, compareNativeInputContext, compareNativeRuntime, resolvedGameOutputScopes, resolvedGameProvidedOwner, compareGameOutputScopes } from "./compare-native-runtime.mjs";
+import { compareGameProvidedOwner, compareNativeQueuedPayload, compareCanonicalOwner, compareNativeInputContext, compareNativeRuntime, resolvedGameOutputScopes, resolvedGameProvidedOwner, compareGameOutputScopes } from "./compare-native-runtime.mjs";
 
 const owner = canonical => ({ $: "Types.State", canonical });
 test("public contract permits different private scheduler and scenario representation", () => {
@@ -114,4 +114,37 @@ test("output scope absence normalizes without accepting a changed explicit owner
   assert.throws(()=>compareGameOutputScopes(linked([{$:"Some",value:1}]),event,outputs,[undefined],"lost"));
   assert.throws(()=>compareGameOutputScopes(linked([{$:"None"}]),event,outputs,[1],"invented"));
   assert.throws(()=>compareGameOutputScopes(linked([{$:"Some",value:1}]),event,outputs,[2],"changed"));
+});
+
+test('expiry cleanup after certain delivery can have no surviving payload owner, with exact identity',()=>{
+ for(const [kind,tag] of [['collectionRetireAdvice','CollectionRetireAdvice'],['submissionForget','SubmissionForget']]) {
+  const event={kind,advice:3};
+  const input={$:'NativeRunTypes.Event',action:{event:{$:`Canonical.${tag}`,advice:3},delay:0,candidate:{$:'None'},job:false,expiry_advice:{$:'None'}},job:{$:'None'},context:linked([{$:'None'}]),source_job:{$:'None'}};
+  const original={at:28670,order:55,generated:true,driverAction:{event,delay:0,job:false},input:{kind:'canonical',at:28670,event}};
+  compareNativeQueuedPayload(input,original,'expired',55,{});
+  assert.throws(()=>compareNativeQueuedPayload(input,{...original,partition:9},'expired',55,{}),/original payload owner/);
+  assert.throws(()=>compareNativeQueuedPayload({...input,action:{...input.action,event:{...input.action.event,advice:4}}},original,'expired',55,{}),/complete action/);
+ }
+});
+
+test('cleanup separates absent queued emitter from the resolved current advice owner',()=>{
+ const event={$:"Canonical.CollectionRetireAdvice",advice:3};
+ const input={$:"NativeRunTypes.Event",action:{event,candidate:{$:"None"}},job:{$:"None"},source_job:{$:"None"},context:linked([{$:"None"}])};
+ const details={provided:{$:"Some",value:1},consumed:{$:"Some",value:{$:"NativeRunTypes.ConsumedInput",input}}};
+ const scheduled={input:{kind:"canonical",event:{kind:"collectionRetireAdvice",advice:3}}};
+ compareGameProvidedOwner(details,event,{partition:1},scheduled,"cleanup");
+ assert.throws(()=>compareGameProvidedOwner(details,event,{partition:2},scheduled,"cleanup"),/resolved business owner/);
+ assert.throws(()=>compareGameProvidedOwner(details,{...event,advice:4},{partition:1},scheduled,"cleanup"),/exact event/);
+ assert.throws(()=>compareGameProvidedOwner(details,{$:"Canonical.StartReview"},{partition:1},scheduled,"cleanup"),/original provided owner/);
+ for(const key of ["job","source_job"]){
+  const bad={...details,consumed:{$:"Some",value:{...details.consumed.value,input:{...input,[key]:{$:"Some",value:{}}}}}};
+  assert.throws(()=>compareGameProvidedOwner(bad,event,{partition:1},scheduled,"cleanup"),/cleanup no/);
+ }
+ const emitter={...details,consumed:{$:"Some",value:{...details.consumed.value,input:{...input,context:linked([{$:"Some",value:{}}])}}}};
+ assert.throws(()=>compareGameProvidedOwner(emitter,event,{partition:1},scheduled,"cleanup"),/captured emitter/);
+});
+
+test('non-product frames retain ordinary provided-owner checking',()=>{
+ compareGameProvidedOwner({provided:{$:"Some",value:2}},undefined,{partition:2},{partition:2},"graph");
+ assert.throws(()=>compareGameProvidedOwner({provided:{$:"Some",value:3}},undefined,{partition:2},{partition:2},"graph"),/original provided owner/);
 });

@@ -180,6 +180,7 @@ def kind_color(kind: U32) -> U32:
     case 3: 65483
     case 4: 16768133
     case 5: 7449343
+    case 6: 14252543
     case _: 15124059
 
 def palette_row(+kind: U32, +world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
@@ -217,14 +218,14 @@ def palette(fuel: Nat, +kind: U32, +world: M.World, rest: List<&2, F.Rect>) -> L
 def sidebar(+world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   box(
     "BUILD ON MAP",
-    "1-2 CHOOSE / CLICK / U UPGRADE / AUTO",
+    "1-4 CHOOSE / CLICK / U UPGRADE / AUTO",
     800,
     80,
     216,
     240,
     65483,
     palette(
-      2n,
+      4n,
       3,
       world,
       box(
@@ -849,7 +850,7 @@ def generic_panel(
       1,
       16768133,
       F.text(
-        "REMAINING TRAVEL MS",
+        "FIRST TARGET: REMAINING MS",
         812,
         604,
         1,
@@ -934,6 +935,12 @@ def inspection_state(+world: M.World, tower: M.Tower) -> String:
     "DEFEATED / INSPECTION ONLY",
     living_inspection_state(world, tower)
   )
+def targeting_note(kind: U32) -> String:
+  match kind:
+    case 5: "NOW / SHORTEST FIRST"
+    case _: "NOW / LONGEST FIRST"
+def volley_caption(world: M.World, tower: M.Tower) -> String:
+  "TARGETS " ++ Nat.show(List.length(&2, CB.Target, Fire.plan(world, tower, 0n)))
 def inspection_if(
   on: Bool,
   +world: M.World,
@@ -975,7 +982,7 @@ def inspection_if(
                 Bool.pick(
                   String,
                   TowerPreview.ready(choice, tower),
-                  "NOW / LONGEST WAIT FIRST",
+                  targeting_note(M.tkind(tower)),
                   "IF READY NOW / TARGET MAY CHANGE"
                 ),
                 812,
@@ -983,13 +990,13 @@ def inspection_if(
                 1,
                 15124059,
                 F.text(
-                  "ONE TARGET",
+                  volley_caption(choice, tower),
                   812,
                   644,
                   2,
                   15124059,
                   F.text(
-                    "NOT WHOLE FAMILY / FINISH IS A PACKET",
+                    "NUMBERS ABOVE: FIRST TARGET",
                     812,
                     658,
                     1,
@@ -1888,7 +1895,7 @@ def base_scene(+world: M.World) -> List<&2, F.Rect>:
   +header = frame(
     M.layout(world),
     F.text(
-      "1-2 BUILD / AUTO FIRE / U UPGRADE / SPACE P PAUSE / S STOP / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",
+      "1-4 BUILD / AUTO FIRE / U UPGRADE / SPACE P PAUSE / S STOP / N BURST / B +/- SIZE / F OUTAGE BEFORE N / A ARRIVALS / [ SLOW / ] FAST / R RESET / TAB MAP",
       24,
       742,
       1,

@@ -606,7 +606,7 @@ def key_map(+world: M.World, code: U32) -> U32:
 def key_fields(world: M.World, +code: U32, layout: U32, schedule: A.State) -> M.World:
   match world:
     case M.World{core, t, +p, _, +c, g, h, ts, a, o, r, cl, d, auto, x, y, +selected, work, flash}:
-      +choose = (code >= 49 : U32) && (code <= 50 : U32)
+      +choose = (code >= 49 : U32) && (code <= 52 : U32)
       M.World{
         core,
         t,
@@ -731,5 +731,6 @@ def preview_point(+world: M.World, x: U32, y: U32, kind: U32) -> Map.Point:
   Fire.found_point(Fire.target(world, preview_tower(x, y, kind), 0n), world)
 def preview_before(world: M.World, x: U32, y: U32, kind: U32) -> U32:
   Fire.remaining(world, preview_tower(x, y, kind))
-def preview_gain(world: M.World, x: U32, y: U32, kind: U32) -> U32:
-  M.number(Fire.saving(U32.to_nat(preview_before(world, x, y, kind))))
+def preview_gain(world: M.World, x: U32, y: U32, +kind: U32) -> U32:
+  +before = U32.to_nat(preview_before(world, x, y, kind))
+  M.number(Nat.sub(before, Fire.shortened(before)))

@@ -103,3 +103,82 @@ test('partial event budgets cannot advance game motion before completing the hor
  }
  assert.ok(found,'the fixture actually stops within an unfinished horizon');
 });
+
+test('new roster time effects and short/long priority agree with independent arithmetic',()=>{
+ for(let n=0;n<=5000;n++) {
+  assert.equal(G.after_time(6,n),Math.min(n,Math.max(100,Math.floor(n/2))));
+  for(const kind of [3,4,5])assert.equal(G.after_time(kind,n),Math.min(n,Math.max(100,Math.floor(n/2))));
+ }
+ for(let a=100;a<600;a+=17)for(let b=100;b<600;b+=23){assert.equal(G.prefer(5,a,b),a<b);assert.equal(G.prefer(3,a,b),a>b);}
+});
+const cohortSite=(kind,layout=0,min=1,reviewOnly=false)=>{
+ let w=G.cohort(layout,7);
+ for(let tick=0;tick<1400;tick++){
+  w=G.tick(w);
+  if(tick%4)continue;
+  for(const m of list(G.mobs(w))){
+   if(!phase(m,'ReviewServiceRequestSettled'))continue;
+   let placement;try{placement=site(w,m,kind)}catch{continue}
+   const eligible=list(G.targets(w,placement.t));
+   if(eligible.length>=min&&(!reviewOnly||[5,3].every(k=>G.select_target(w,G.tower(placement.x,placement.y,k)).value?.effect.$.endsWith('ReviewServiceRequestSettled'))))return {w,...placement,eligible};
+  }
+ }
+ throw Error(`No reachable cohort witness: kind ${kind}, map ${layout}, count ${min}`);
+};
+test('finisher and accelerator choose different actual monsters when durations differ',()=>{
+ const {w,t,eligible}=cohortSite(5,0,2);
+ const times=eligible.map(target=>G.due(w,target));assert.ok(new Set(times).size>1);
+ const short=G.select_target(w,t).value,long=G.select_target(w,G.tower(t.x,t.y,3)).value;
+ assert.equal(G.due(w,short),Math.min(...times));assert.equal(G.due(w,long),Math.max(...times));assert.notEqual(key(short),key(long));
+});
+for(const kind of [5,6])for(const layout of [0,1,2])test(`new tower ${kind} real preview, pause and exact volley on map ${layout}`,()=>{
+ const {w,t,x,y,eligible}=cohortSite(kind,layout,kind===6?3:1);
+ const plan=list(G.plan(w,t));assert.equal(plan.length,kind===6?3:1);
+ assert.equal(new Set(plan.map(key)).size,plan.length);
+ assert.equal(G.caption(w,t),`TARGETS ${plan.length}`);assert.doesNotMatch(G.scope(kind),/UNKNOWN/);
+ const paused=G.pause(w),hover=G.aim(paused,x,y,kind);assert.equal(G.preview(hover).status,1);
+ const built=G.build(paused,x,y,kind);assert.deepEqual(G.plan(built,t),G.plan(paused,t));assert.deepEqual(G.tick(built),built);
+ const active=G.pause(built),shot=G.shot(active,t,0);
+ const chosen=new Set(plan.map(key));
+ for(const m of list(G.mobs(active))){
+  const old=G.due(active,m.target),fresh=G.due(shot,m.target);
+  const after=list(G.mobs(shot)).find(a=>key(a.target)===key(m.target));assert.deepEqual([after.x,after.y],[m.x,m.y]);
+  if(chosen.has(key(m.target))){
+   const left=old-G.time(active)*20;
+   assert.equal(fresh,G.time(active)*20+Math.max(100,Math.floor(left/2)));
+   assert.ok(list(after.beams).length>list(m.beams).length,'each exact recipient retains its own beam');
+  }else assert.equal(fresh,old,'unselected and out-of-range monsters unchanged');
+ }
+ assert.equal(list(G.marks(active,t)).filter(mark=>mark.chosen).length,plan.length);
+ const pass=G.automatic(active);assert.deepEqual(list(pass.shots).map(s=>key(s.target)),plan.map(key),"recorded volley order equals execution plan for replay");
+ const automatic=G.tick(active);assert.ok(plan.every(target=>G.due(automatic,target)<G.due(active,target)),'normal tick fires automatically');
+ const first=plan[0],left=G.due(active,first)-G.time(active)*20;
+ assert.equal(G.quote(active,t),`${left} TO ${Math.max(100,Math.floor(left/2))} MS`);
+ assert.equal(G.preview(hover).delta,left-Math.max(100,Math.floor(left/2)));
+ assert.equal(G.stats(t),kind===6?'40 TO 20':'20 TO 10');
+ assert.ok(eligible.length>=plan.length);
+});
+
+test('every new tower can reach its advertised final level within the ordinary budget',()=>{
+ for(const [kind,left] of [[5,25],[6,10]]){
+  const built=G.selected(G.build(G.pause(G.start(0)),424,392,kind));
+  const upgraded=G.upgrade(G.upgrade(built));
+  assert.equal(list(upgraded.towers)[0].level,3);
+  assert.equal(upgraded.gold,left);
+  assert.deepEqual(G.upgrade(upgraded),upgraded,'maximum level is an inert refusal');
+ }
+});
+
+test('finishing a short job beats a long-first shot for that job, without promising the whole cohort',()=>{
+ const {w,t}=cohortSite(5,0,2,true),short=G.select_target(w,t).value;
+ const completion=(kind)=>{
+  let current=G.shot(w,G.tower(t.x,t.y,kind),0);
+  for(let i=0;i<1100;i++){
+   current=G.tick(current);
+   const work=list(G.observation(current).canonical.work).find(item=>item.operation===short.owner.operation);
+   if(work?.kind?.$==='PendingFinding')return G.time(current);
+  }
+  throw Error('selected job never produced its retained result: '+JSON.stringify({hp:current.hp,short,work:list(G.observation(current).canonical.work)}));
+ };
+ assert.ok(completion(5)<completion(3),'one short-first shot produces the short result earlier than one long-first shot');
+});

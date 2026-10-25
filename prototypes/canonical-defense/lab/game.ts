@@ -8,7 +8,7 @@ import { createGameBusinessReplay } from "./business-replay.ts"
 import { restoreReplay } from "../../../packages/monkey-business/src/index.ts"
 import { decodeCallbackTarget,type CallbackTarget } from "../../../packages/monkey-business/src/callback-controls.ts"
 
-const towerKinds = { workAccelerator: 3, resultCourier: 4 } as const
+const towerKinds = { workAccelerator: 3, resultCourier: 4, workFinisher: 5, workPulse: 6 } as const
 export type TowerAbility = keyof typeof towerKinds
 export type TowerIdentity = string
 export const gameAbilityTeaching: Readonly<Record<TowerAbility, {
@@ -20,6 +20,16 @@ export const gameAbilityTeaching: Readonly<Record<TowerAbility, {
     target: "one queued preparation or started Jev settlement in range",
     applicability: "automatic shot advances its exact captured callback to elapsed game intervention time; per-tower cooldown limits shots",
     businessObservation: "selected operation completion timing, unchanged outcome and other queued deadlines"
+  },
+  workFinisher: {
+    target: "one visible preparation or started review with the shortest remaining time",
+    applicability: "automatic exact-target shot halves remaining time with a 100ms floor",
+    businessObservation: "earlier completed work versus unchanged long siblings; compare queue clearance"
+  },
+  workPulse: {
+    target: "up to three distinct visible preparation or started review bodies in range",
+    applicability: "one automatic volley halves each remaining time; 100ms floor and a slower 40-tick base cadence",
+    businessObservation: "parallel progress versus less frequent isolated-target benefit; no off-screen siblings"
   },
   resultCourier: {
     target: "one queued authorized output terminal in range",
@@ -37,6 +47,8 @@ export type GameMechanismDescriptor = {
 }
 export const gameMechanisms: Readonly<Record<string, GameMechanismDescriptor>> = {
   workAccelerator: { cost: 50, radius:60, ability: "workAccelerator", displayName: "Ускоритель работы", lesson: "Targeted completion within unchanged ownership and permits" },
+  workFinisher: { cost: 45, radius:60, ability: "workFinisher", displayName: "Доводчик", lesson: "Completing short work can release capacity sooner without finishing long siblings" },
+  workPulse: { cost: 50, radius:60, ability: "workPulse", displayName: "Импульс", lesson: "Coverage and density trade less frequent individual progress for parallel progress" },
   resultCourier: { cost: 40, radius:60, ability: "resultCourier", displayName: "Курьер результата", lesson: "Authorized delivery and result retirement remain different facts" }
 }
 export type GameAction = { readonly atTick: number } & (
@@ -203,7 +215,7 @@ export function runGameExperiment(input: GameExperiment) {
   const nativeObservation = () => boundary(Game.engine_observation(world))
   mirror.compare(nativeObservation(), "game creation")
   const observations = [observe(world,input.captureSpatial === true)]
-  const actions: { action: GameAction; result: string; charged: number;target?:CallbackTarget;automatic?:boolean }[] = []
+  const actions: { action: GameAction; result: string; charged: number;target?:CallbackTarget;targets?:readonly CallbackTarget[];automatic?:boolean }[] = []
   const trace: unknown[] = []
   const schedule = [...input.actions].sort((a, b) => a.atTick - b.atTick)
   let position = 0
@@ -214,8 +226,10 @@ export function runGameExperiment(input: GameExperiment) {
       const action = schedule[position++]!
       const before = nativeObservation()
       const label = `game action ${position}`
-      const rawTarget = action.kind === "fire" ? readRecord(Game.shot_target(world,action.index,action.operation)) : undefined
-      const shotTarget = rawTarget?.$ === "Some" ? decodeCallbackTarget(boundary(rawTarget.value)) : undefined
+      const shotTargets = action.kind === "fire"
+        ? readBendList(boundary(Game.shot_targets(world,action.index,action.operation)), decodeCallbackTarget, 3)
+        : []
+      const shotTarget = shotTargets[0]
       if (action.kind === "build" && !input.enabled.includes(action.tower)) {
         actions.push({ action, result: "disabled", charged: 0 })
         mirror.recordAction({ before, after: nativeObservation(), applied: false, label })
@@ -232,9 +246,9 @@ export function runGameExperiment(input: GameExperiment) {
       world = receipt.world
       const result = readRecord(receipt.result).$ as string
       actions.push({ action, result, charged: readNat(boundary(receipt.charged)),
-        ...(result === "Applied" && shotTarget ? { target:shotTarget } : {}) })
+        ...(result === "Applied" && shotTarget ? { target:shotTarget, targets:shotTargets } : {}) })
       mirror.recordAction({ before, after: nativeObservation(), applied: result === "Applied", label,
-        ...(shotTarget ? { shotTarget, deliveryAt: Math.max(state.business.now,state.game.tick*20) } : {}) })
+        ...(shotTarget ? { shotTargets, deliveryAt: Math.max(state.business.now,state.game.tick*20) } : {}) })
       state = observe(world,input.captureSpatial === true)
       observations[observations.length - 1] = state
     }

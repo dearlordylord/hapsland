@@ -141,3 +141,44 @@ export function runRecurringCourierCase(planName: "none" | "courier") {
   }
   return runTeachingCase(context, teachingPlans(0).find(plan => plan.name === planName)!)
 }
+
+/** Bounded roster comparison: complete journeys, equal initial budget, no fitted thresholds. */
+export function runRosterStudy(onCase?: (context: string, plan: string) => void, selectedContexts?: readonly string[]) {
+  const contexts = [
+    {name:"sparse",layout:0,burst:1,jev:8000,output:800,outcome:"finding",role:"tuning"},
+    {name:"dense",layout:0,burst:4,jev:8000,output:800,outcome:"finding",role:"tuning"},
+    {name:"clear",layout:0,burst:4,jev:8000,output:800,outcome:"clear",role:"tuning"},
+    {name:"slow-output",layout:0,burst:4,jev:800,output:8000,outcome:"finding",role:"tuning"},
+    {name:"campus",layout:1,burst:3,jev:8000,output:800,outcome:"finding",role:"heldOut"},
+    {name:"junction",layout:2,burst:3,jev:8000,output:800,outcome:"finding",role:"heldOut"}
+  ] as const
+  if (selectedContexts?.some(name => !contexts.some(context => context.name === name))) throw new Error("Unknown roster context")
+  const rows = []
+  for (const context of contexts) {
+    if (selectedContexts && !selectedContexts.includes(context.name)) continue
+    const [x,y] = [[652,215],[360,456],[216,520]][context.layout]!
+    const [cx,cy] = [[56,424],[88,552],[72,344]][context.layout]!
+    const courier:GameExperiment["actions"][number]={atTick:0,kind:"build",tower:"resultCourier",x:cx!,y:cy!}
+    const build=(tower:string):GameExperiment["actions"][number]=>({atTick:0,kind:"build",tower,x:x!,y:y!})
+    const plans = [
+      {name:"none",actions:[]},
+      ...["workAccelerator","workFinisher","workPulse"].map(name=>({name,actions:[build(name)]})),
+      {name:"resultCourier",actions:[courier]},
+      {name:"accelerator-courier",actions:[build("workAccelerator"),courier]},
+      {name:"pulse-upgrade",actions:[build("workPulse"),{atTick:0,kind:"upgrade",index:1}]}
+    ] satisfies readonly GamePlan[]
+    for (const plan of plans) {
+      onCase?.(context.name, plan.name)
+      const result=(()=> { try { return runGameExperiment({context:context.name,scenario:"continuousGame",seed:152,layout:context.layout,
+        budget:160,enabled:["workAccelerator","resultCourier","workFinisher","workPulse"],automaticTowers:true,
+        settings:{jevDelayMs:context.jev,outputDelayMs:context.output,sourceDelayMs:100,burst:context.burst,
+          outcome:context.outcome,arrivalIntervalMs:60000},actions:plan.actions,untilTicks:1600,maxEvents:3000}) } catch (cause) { throw new Error(`Roster case ${context.name}/${plan.name}`, {cause}) } })()
+      const m=summarizeGameResult(result)
+      rows.push({context:context.name,role:context.role,plan:plan.name,game:m.game,termination:m.termination,
+        shots:m.shots.length,lastSettlement:m.lastSettlement,lastSubmission:m.lastSubmission,
+        settled:m.settlements.length,submitted:m.submissions.length,ledgerByteTicks:m.ledgerByteTicks,
+        retained:m.retainedEntries,refusals:m.refusals,recordingIdentity:m.recordingIdentity})
+    }
+  }
+  return rows
+}

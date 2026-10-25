@@ -68,6 +68,8 @@ def reason(preview: Preview) -> String:
     case Preview{0, _, _, _, _, _, _, _, _, _}: "TOWER SELECTED / INSPECT OR UPGRADE"
     case Preview{1, 3, _, _, _, _, _, _, _, _}: "ONE CURRENT WORK / AUTO AFTER BUILD"
     case Preview{1, 4, _, _, _, _, _, _, _, _}: "ONE AUTHORIZED OUTPUT / AUTO"
+    case Preview{1, 5, _, _, _, _, _, _, _, _}: "SHORTEST WORK / AUTO AFTER BUILD"
+    case Preview{1, 6, _, _, _, _, _, _, _, _}: "UP TO THREE WORK / SLOW VOLLEY"
     case Preview{1, _, _, _, _, _, _, _, _, _}: "UNKNOWN TOWER"
     case Preview{2, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / ROAD BUILDING OR OCCUPIED GROUND"
     case Preview{3, _, _, _, _, _, _, _, _, _}: "CANNOT BUILD / NOT ENOUGH GOLD"

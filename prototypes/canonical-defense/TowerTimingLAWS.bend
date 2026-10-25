@@ -105,3 +105,39 @@ law quoted_upgrade_cadence:
     ) ++ " TO " ++ U32.show(Fire.cooldown(Mechanics.upgraded(tower)))
     : String
   }
+
+# Guarantees: the finisher ranks strictly smaller remaining deadlines first.
+# Why it matters: with a short and a long monster in range it helps the short one.
+law finisher_prefers_short:
+  for +at: Nat
+  for +other: Nat
+  {Fire.prefer(5, at, other) == (at < other : Nat) : Bool}
+# Guarantees: the accelerator ranks strictly larger remaining deadlines first.
+# Why it matters: the two purchases retain distinct targeting roles.
+law accelerator_prefers_long:
+  for +at: Nat
+  for +other: Nat
+  {Fire.prefer(3, at, other) == (at > other : Nat) : Bool}
+# Guarantees: pulse planning stops when its shot budget is exhausted.
+# Why it matters: crowded waves cannot turn a bounded volley into an unlimited area effect.
+law exhausted_volley_stops:
+  for items: List<&2, CB.Original>
+  for world: M.World
+  for tower: M.Tower
+  for wanted: Nat
+  {Fire.plan_loop(0n, items, world, tower, wanted) == [] : List<&2, CB.Target>}
+# Guarantees: an empty volley neither mutates the world nor consumes cooldown.
+# Why it matters: a built tower without a live target must wait harmlessly.
+law empty_volley_is_inert:
+  for +world: M.World
+  for index: U32
+  for tower: M.Tower
+  {Fire.fire_planned([], world, index, tower) == Fire.Shot{world, 2} : Fire.Shot}
+# Guarantees: pulse's basic cadence is twice the single-target basic cadence.
+# Why it matters: group coverage has a visible single-target trade-off.
+law pulse_cadence:
+  {Fire.cadence(6) == 40 : U32}
+# Guarantees: the pulse starts with exactly three possible shots.
+# Why it matters: a fourth monster cannot be silently included in the advertised volley.
+law pulse_budget:
+  {Fire.volley_size(6) == 3n : Nat}

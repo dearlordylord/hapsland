@@ -79,6 +79,16 @@ def next_when(on: Bool, world: M.World, tower: M.Tower) -> Maybe<&2, CB.Target>:
     case False{}: None{}
 def next(+world: M.World, +tower: M.Tower) -> Maybe<&2, CB.Target>:
   next_when(ready(world, tower), world, tower)
+def next_plan_when(on: Bool, world: M.World, tower: M.Tower) -> List<&2, CB.Target>:
+  match on:
+    case True{}: Fire.plan(world, tower, 0n)
+    case False{}: []
+def next_plan(+world: M.World, +tower: M.Tower) -> List<&2, CB.Target>:
+  next_plan_when(ready(world, tower), world, tower)
+def chosen_plan(+target: CB.Target, items: List<&2, CB.Target>) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case head <> tail: CB.target_equal(target, head) || chosen_plan(target, tail)
 def key(value: CB.Owner) -> V.WorkIdentity:
   match value:
     case CB.Owner{p, l, r, o}: V.WorkIdentity{p, l, r, o}
@@ -116,19 +126,19 @@ def candidates(
 def exact_marks(
   items: List<&2, CB.Target>,
   +world: M.World,
-  +selected: Maybe<&2, CB.Target>,
+  +selected: List<&2, CB.Target>,
   +ready: Bool
 ) -> List<&2, Marks.Mark>:
   match items:
     case Nil{}: []
     case +target <> tail: Marks.Mark{
-      candidate(target, chosen(target, selected)),
+      candidate(target, chosen_plan(target, selected)),
       live_body(target, world),
-      chosen(target, selected),
+      chosen_plan(target, selected),
       ready
     } <> exact_marks(tail, world, selected, ready)
 def annotations(+source: M.World, +choice: M.World, +tower: M.Tower) -> List<&2, Marks.Mark>:
-  exact_marks(available(source, tower), source, next(choice, tower), ready(choice, tower))
+  exact_marks(available(source, tower), source, next_plan(choice, tower), ready(choice, tower))
 def label(target: CB.Target) -> String:
   match target:
     case CB.Target{_, CB.FinishTerminal{_, _, _, _, ids}, _}: "FINISH " ++ Nat.show(
@@ -208,15 +218,15 @@ def anchor(point: Map.Point, caption: String, selected: Bool, ready: Bool) -> Ma
 def anchors(
   items: List<&2, CB.Target>,
   +world: M.World,
-  +selected: Maybe<&2, CB.Target>,
+  +selected: List<&2, CB.Target>,
   +ready: Bool
 ) -> List<&2, Marks.Anchor>:
   match items:
     case Nil{}: []
     case +target <> tail: anchor(
       Fire.target_point(target, world),
-      anchor_caption(target, world, chosen(target, selected), ready),
-      chosen(target, selected),
+      anchor_caption(target, world, chosen_plan(target, selected), ready),
+      chosen_plan(target, selected),
       ready
     ) <> anchors(tail, world, selected, ready)
 def target_note(found: Maybe<&2, CB.Target>) -> String:
@@ -245,7 +255,7 @@ def render(
   Marks.draw(
     annotations(source, choice, tower),
     Marks.draw_anchors(
-      anchors(available(source, tower), source, next(choice, tower), ready(choice, tower)),
+      anchors(available(source, tower), source, next_plan(choice, tower), ready(choice, tower)),
       rest
     )
   )

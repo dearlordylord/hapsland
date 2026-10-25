@@ -186,7 +186,7 @@ test("physics coverage is independent of pause for arbitrary tower parameters; p
 
 
 test("moving targets have identical prebuild and built annotations",()=>{
- for(const kind of [3,4])for(const selected of [false,true]){
+ for(const kind of [3,4,5,6])for(const selected of [false,true]){
   const w=seek(kind,selected),marks=list(P.annotate(w,kind)),rects=crosses(w);assert.ok(marks.length>0);assert.equal(rects.length,marks.length);
   for(const mark of marks)assert.ok(rects.some(r=>r.x===mark.body.x-10&&r.y===mark.body.y+2));
  }
@@ -248,7 +248,7 @@ test("all retained beams follow the same moving monster instead of the old impac
  assert.deepEqual(list(P.hit_animation(352,196,false)),[],"expired effects leave no detached beam");
 });
 test("actual accelerator and courier beams stay attached to their moving recipient",()=>{
- for(const kind of [3,4]){
+ for(const kind of [3,4,5,6]){
   let world=P.cool(seek(kind,true));
   const hit=list(P.mobs(world)).find(m=>list(m.beams).length);
   assert.ok(hit,"actual selected tower must fire");

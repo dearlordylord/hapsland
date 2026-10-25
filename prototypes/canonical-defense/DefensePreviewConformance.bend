@@ -24,7 +24,7 @@ def initial() -> M.World:
 def tower(kind: U32) -> M.Tower:
   match kind:
     case 4: M.Tower{56, 424, 4, 1, 1, 60, 0}
-    case _: M.Tower{328, 424, 3, 1, 1, 60, 0}
+    case other: M.Tower{328, 424, other, 1, 1, 60, 0}
 def prepare(+world: M.World, +kind: U32) -> M.World:
   H.move(H.key(world, (46 + kind : U32)), M.tx(tower(kind)), M.ty(tower(kind)))
 def build(+world: M.World, +kind: U32) -> M.World:
@@ -112,7 +112,7 @@ def logical(+world: M.World, +kind: U32) -> List<&2, Marks.Anchor>:
   P.anchors(
     P.available(world, current_tower(world, kind)),
     world,
-    P.next(world, current_tower(world, kind)),
+    P.next_plan(world, current_tower(world, kind)),
     P.ready(world, current_tower(world, kind))
   )
 def observe(world: M.World) -> T.Observation: Lab.engine_observation(world)
@@ -236,7 +236,7 @@ def selected_anchors(+world: M.World) -> List<&2, Marks.Anchor>:
   P.anchors(
     P.available(world, chosen_tower(world)),
     world,
-    P.next(world, chosen_tower(world)),
+    P.next_plan(world, chosen_tower(world)),
     P.ready(world, chosen_tower(world))
   )
 

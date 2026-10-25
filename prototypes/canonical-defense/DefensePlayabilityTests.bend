@@ -1,3 +1,5 @@
+import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
+import ./DefensePreviewMarks.bend as Marks
 import ./DefenseLab.bend as Lab
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ./DefenseLiveMotionTypes.bend as LiveTypes
@@ -74,3 +76,27 @@ def bounded(world: M.World) -> M.World: tick_result(Lab.tick_bounded(world, 1n))
 def outcome_pixels(+world: M.World) -> List<&2, F.Rect>: R.cue_trails(M.cues(world), world, 0, [])
 
 def outcome_hud(world: M.World) -> List<&2, F.Rect>: R.published_hud(world, [])
+
+def plan(world: M.World, tower: M.Tower) -> List<&2, CB.Target>: Fire.plan(world, tower, 0n)
+def marks(
+  +world: M.World,
+  tower: M.Tower
+) -> List<&2, Marks.Mark>: P.annotations(world, world, tower)
+def after_time(kind: U32, remaining: Nat) -> Nat: Fire.shortened(remaining)
+def prefer(kind: U32, at: Nat, other: Nat) -> Bool: Fire.prefer(kind, at, other)
+def cohort(layout: U32, burst: U32) -> M.World:
+  Lab.create_scenario(
+    Lab.Scenario{8000n, 800n, 100n, True{}, True{}, 2, burst, 60000},
+    152n,
+    160,
+    layout
+  )
+def observation(world: M.World) -> T.Observation: Lab.engine_observation(world)
+def quote(+world: M.World, tower: M.Tower) -> String: P.next_effect(world, tower)
+def stats(tower: M.Tower) -> String: P.upgrade_cadence(tower)
+
+def automatic(world: M.World) -> Fire.Automatic: Fire.automatic_when(True{}, world)
+def key(world: M.World, code: U32) -> M.World: H.key(world, code)
+
+def caption(world: M.World, tower: M.Tower) -> String: R.volley_caption(world, tower)
+def scope(kind: U32) -> String: Marks.scope(kind)

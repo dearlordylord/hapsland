@@ -226,7 +226,12 @@ export function compareNativeQueuedPayload(value, publicItem, field, order, core
       const owner = candidate?.partition ?? (context === undefined
         ? actualAction.event.partition
         : readRecord(readRecord(context).context).partition);
-      assert.ok(owner !== undefined,`${field} missing factual payload owner ${order}`);
+      // An expiry timer can outlive an acknowledged payload. These exact
+      // collection cleanup actions then have no remaining partition in either
+      // runner; their full action/advice identity was compared above.
+      if (owner === undefined) assert.ok(
+        ["collectionRetireAdvice", "submissionForget"].includes(actualAction.event.kind),
+        `${field} missing factual payload owner ${order}`);
       assert.equal(publicItem.partition,owner,`${field} original payload owner`);
       const active = input.$ === "NativeRunTypes.FinishInput" ? input.job : option(input.job);
       if (active === undefined) assert.equal(publicItem.job,undefined,`${field} no active binding ${order}`);
@@ -421,6 +426,28 @@ export function resolvedGameProvidedOwner(details,event,observation,field,schedu
   return readNat(readRecord(capsule.context).partition);
 }
 
+// Cleanup may acquire a current scope from retained submission evidence after
+// being queued without an emitter. Preserve both facts instead of conflating them.
+export function compareGameProvidedOwner(details, event, observation, scheduled, field) {
+  if (["Canonical.CollectionRetireAdvice", "Canonical.SubmissionForget"].includes(event?.$) && scheduled.partition === undefined) {
+    const consumed = readRecord(option(details.consumed));
+    assert.equal(consumed.$, "NativeRunTypes.ConsumedInput", `${field} cleanup consumed input`);
+    const input = readRecord(consumed.input);
+    assert.equal(input.$, "NativeRunTypes.Event", `${field} cleanup input family`);
+    assert.deepEqual(input.action.event, event, `${field} cleanup exact event`);
+    assert.equal(scheduled.input.kind, "canonical", `${field} cleanup canonical input`);
+    assert.deepEqual(event, encodeCanonicalEvent(scheduled.input.event), `${field} cleanup scheduled event`);
+    assert.equal(option(one(input.context)), undefined, `${field} cleanup has no captured emitter`);
+    for (const key of ["job", "source_job"]) assert.equal(option(input[key]), undefined, `${field} cleanup no ${key}`);
+    assert.equal(option(input.action.candidate), undefined, `${field} cleanup no candidate`);
+    for (const key of ["job", "driverContext", "driverSourceJob", "candidate"])
+      assert.equal(scheduled[key], undefined, `${field} cleanup public no ${key}`);
+    assert.equal(option(details.provided), observation.partition, `${field} cleanup resolved business owner`);
+    return;
+  }
+  assert.equal(resolvedGameProvidedOwner(details,event,observation,field,scheduled),scheduled.partition,`${field} original provided owner`);
+}
+
 export function compareNativeFrames(values, publicFrames, field) {
   const frames = list(values).map(readRecord);
   const observed = publicFrames.filter(frame => frame.kind !== "callbackDelivery");
@@ -434,7 +461,7 @@ export function compareNativeFrames(values, publicFrames, field) {
     assert.equal(frame.time,actual.time,`${field} frame ${index} exact clock`);
     assert.equal(frame.sequence,actual.observation.sequence,`${field} frame ${index} sequence`);
     compareCanonicalOwner(one(details.transition_after),transition.state,`${field} frame ${index} raw transition public-contract`);
-    assert.equal(resolvedGameProvidedOwner(details,frame.event,actual.observation,field,actual.scheduled),actual.scheduled.partition,`${field} frame ${index} original provided owner`);
+    compareGameProvidedOwner(details,frame.event,actual.observation,actual.scheduled,`${field} frame ${index}`);
     compareContext(details.source,actual.scheduled,`${field} frame ${index} original emitted context`);
     for (const prepared of list(details.prepared)) {
       const capsule = readRecord(prepared);

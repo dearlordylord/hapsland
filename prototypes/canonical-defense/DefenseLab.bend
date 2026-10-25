@@ -386,3 +386,14 @@ def schedule_finish(world: M.World, at: Nat) -> M.World:
 # its exact original callback controls before the ordinary bounded advance.
 def automatic(+world: M.World) -> Fire.Automatic:
   Fire.automatic_when(H.clock_active(world), world)
+
+def shot_targets_found(
+  found: Maybe<&2, M.Tower>,
+  world: M.World,
+  operation: Nat
+) -> List<&2, CB.Target>:
+  match found:
+    case None{}: []
+    case Some{tower}: Fire.plan(world, tower, operation)
+def shot_targets(+world: M.World, index: U32, operation: Nat) -> List<&2, CB.Target>:
+  shot_targets_found(H.selected_tower(M.towers(world), index), world, operation)

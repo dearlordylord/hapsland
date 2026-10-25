@@ -3,18 +3,29 @@ import Base
 import ./DefenseModel.bend as M
 import ../../packages/monkey-business-bend/NativeRunTypes.bend as T
 
-def valid(+kind: U32) -> Bool: U32.is_eq(kind, 3) || U32.is_eq(kind, 4)
-def shortcut(kind: U32) -> U32: Bool.pick(U32, U32.is_eq(kind, 3), 1, 2)
-def cost(kind: U32) -> U32: Bool.pick(U32, U32.is_eq(kind, 3), 50, 40)
+def valid(+kind: U32) -> Bool: (kind >= 3 : U32) && (kind <= 6 : U32)
+def shortcut(kind: U32) -> U32: (kind - 2 : U32)
+def cost(kind: U32) -> U32:
+  match kind:
+    case 3: 50
+    case 4: 40
+    case 5: 45
+    case 6: 50
+    case _: 0
 def name(kind: U32) -> String:
-  Bool.pick(String, U32.is_eq(kind, 3), "WORK ACCELERATOR", "RESULT COURIER")
+  match kind:
+    case 3: "WORK ACCELERATOR"
+    case 4: "RESULT COURIER"
+    case 5: "WORK FINISHER"
+    case 6: "WORK PULSE"
+    case _: "UNKNOWN TOWER"
 def detail(kind: U32) -> String:
-  Bool.pick(
-    String,
-    U32.is_eq(kind, 3),
-    "AUTO / PREPARE OR CHECK ONE WORK",
-    "AUTO / DELIVER AUTHORIZED RESULT"
-  )
+  match kind:
+    case 3: "ONE LONGEST / -50% TIME"
+    case 4: "AUTHORIZED OUTPUT / -50%"
+    case 5: "ONE SHORTEST / -50% TIME"
+    case 6: "THREE -50% / SLOW VOLLEY"
+    case _: "NO EFFECT"
 def base_radius(kind: U32) -> U32: 60
 def range(kind: U32, +level: U32) -> U32: (base_radius(kind) + level * 12 : U32)
 def tower_range(+tower: M.Tower) -> U32: (M.radius(tower) + M.level(tower) * 12 : U32)

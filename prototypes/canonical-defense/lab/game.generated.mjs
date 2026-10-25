@@ -43409,25 +43409,55 @@ function $DefenseLiveMotion_instant_frames($0, $1, $2) {
 }
 
 function $DefenseMechanics_valid(_kind_0) {
-  const _x_0 = (_kind_0 === 3);
-  const _x_1 = (_kind_0 === 4);
-  return (_x_0 || _x_1);
+  return $Bool_and((_kind_0 >= 3), (_kind_0 <= 6));
 }
 
 function $DefenseMechanics_shortcut(_kind_0) {
-  return $Bool_pick((_kind_0 === 3), 1, 2);
+  return ((_kind_0 - 2) >>> 0);
 }
 
 function $DefenseMechanics_cost(_kind_0) {
-  return $Bool_pick((_kind_0 === 3), 50, 40);
+  return TAB_0[Math.min(_kind_0, 7)];
 }
 
 function $DefenseMechanics_name(_kind_0) {
-  return $Bool_pick((_kind_0 === 3), "WORK ACCELERATOR", "RESULT COURIER");
+  if (_kind_0 == 3) {
+    return "WORK ACCELERATOR";
+  } else if ((_kind_0 & 3) == 3) {
+    return "UNKNOWN TOWER";
+  } else if (_kind_0 == 5) {
+    return "WORK FINISHER";
+  } else if ((_kind_0 & 3) == 1) {
+    return "UNKNOWN TOWER";
+  } else if (_kind_0 == 4) {
+    return "RESULT COURIER";
+  } else if ((_kind_0 & 3) == 0) {
+    return "UNKNOWN TOWER";
+  } else if (_kind_0 == 6) {
+    return "WORK PULSE";
+  } else {
+    return "UNKNOWN TOWER";
+  }
 }
 
 function $DefenseMechanics_detail(_kind_0) {
-  return $Bool_pick((_kind_0 === 3), "AUTO / PREPARE OR CHECK ONE WORK", "AUTO / DELIVER AUTHORIZED RESULT");
+  if (_kind_0 == 3) {
+    return "ONE LONGEST / -50% TIME";
+  } else if ((_kind_0 & 3) == 3) {
+    return "NO EFFECT";
+  } else if (_kind_0 == 5) {
+    return "ONE SHORTEST / -50% TIME";
+  } else if ((_kind_0 & 3) == 1) {
+    return "NO EFFECT";
+  } else if (_kind_0 == 4) {
+    return "AUTHORIZED OUTPUT / -50%";
+  } else if ((_kind_0 & 3) == 0) {
+    return "NO EFFECT";
+  } else if (_kind_0 == 6) {
+    return "THREE -50% / SLOW VOLLEY";
+  } else {
+    return "NO EFFECT";
+  }
 }
 
 function $DefenseMechanics_base_radius(_kind_0) {
@@ -44490,11 +44520,20 @@ function $DefenseTowerFire_delivery_at(_world_0) {
   return (_x_1 > _x_2 ? _x_1 : _x_2);
 }
 
+function $DefenseTowerFire_cadence(_kind_0) {
+  if (_kind_0 == 6) {
+    return 40;
+  } else {
+    return 20;
+  }
+}
+
 function $DefenseTowerFire_cooldown(_tower_0) {
   const _x_0 = ($DefenseModel_level(_tower_0));
   const _x_1 = ($DefenseModel_power(_tower_0));
-  const _x_2 = ($U32_max(1, (Math.imul(_x_0, _x_1) >>> 0)));
-  return $U32_max(2, (_x_2 === 0 ? 0 : (20 / _x_2) >>> 0));
+  const _x_2 = ($DefenseTowerFire_cadence(($DefenseModel_tkind(_tower_0))));
+  const _x_3 = ($U32_max(1, (Math.imul(_x_0, _x_1) >>> 0)));
+  return $U32_max(2, (_x_3 === 0 ? 0 : (_x_2 / _x_3) >>> 0));
 }
 
 function $DefenseTowerFire_originals(_state_0) {
@@ -44669,9 +44708,13 @@ function $DefenseTowerFire_current(_target_0, _world_0) {
 }
 
 function $DefenseTowerFire_accepts(_kind_0, _phase_0) {
-  const _x_0 = (_phase_0 === 2);
-  const _x_1 = (_phase_0 === 4);
-  return $Bool_pick((_kind_0 === 3), (_x_0 || _x_1), ($Bool_and((_kind_0 === 4), (_phase_0 === 5))));
+  const _x_0 = (_kind_0 === 3);
+  const _x_1 = (_kind_0 === 5);
+  const _x_2 = (_x_0 || _x_1);
+  const _x_3 = (_kind_0 === 6);
+  const _x_4 = (_phase_0 === 2);
+  const _x_5 = (_phase_0 === 4);
+  return $Bool_pick((_x_2 || _x_3), (_x_4 || _x_5), ($Bool_and((_kind_0 === 4), (_phase_0 === 5))));
 }
 
 function $DefenseTowerFire_suitable(_world_0, _tower_0, _target_0) {
@@ -44693,7 +44736,15 @@ function $DefenseTowerFire_eligible(_target_0, _at_0, _world_0, _tower_0, _wante
   return $Bool_and(($Bool_and(($Bool_and(($Bool_and((_x_0 || _x_1), ($DefenseTowerFire_live(_target_0, _at_0, _world_0)))), ($DefenseLiveMotion_visible_found(($DefenseLiveMotion_find(_target_0, ($DefenseModel_mobs(_world_0)))), nat_chk(_x_2 * 20))))), ($Nat_is_gt(_at_0, nat_chk(_x_3 + 100))))), ($DefenseTowerFire_suitable(_world_0, _tower_0, _target_0)));
 }
 
-function $DefenseTowerFire_choose(_valid_0, _target_0, _at_0, _rest_0) {
+function $DefenseTowerFire_prefer(_kind_0, _at_0, _other_0) {
+  if (_kind_0 == 5) {
+    return (_at_0 < _other_0);
+  } else {
+    return $Nat_is_gt(_at_0, _other_0);
+  }
+}
+
+function $DefenseTowerFire_choose(_kind_0, _valid_0, _target_0, _at_0, _rest_0) {
   if (!_valid_0) {
     return _rest_0;
   } else {
@@ -44703,7 +44754,7 @@ function $DefenseTowerFire_choose(_valid_0, _target_0, _at_0, _rest_0) {
       const _t_0 = _rest_0["value"];
       const _other_0 = _t_0["target"];
       const _later_0 = _t_0["due"];
-      return $Bool_pick(($Nat_is_gt(_at_0, _later_0)), {$: "Some", "value": {$: "DefenseTowerFire.Candidate", "target": _target_0, "due": _at_0}}, {$: "Some", "value": {$: "DefenseTowerFire.Candidate", "target": _other_0, "due": _later_0}});
+      return $Bool_pick(($DefenseTowerFire_prefer(_kind_0, _at_0, _later_0)), {$: "Some", "value": {$: "DefenseTowerFire.Candidate", "target": _target_0, "due": _at_0}}, {$: "Some", "value": {$: "DefenseTowerFire.Candidate", "target": _other_0, "due": _later_0}});
     }
   }
 }
@@ -44726,7 +44777,7 @@ function $DefenseTowerFire_select($0, $1, $2, $3) {
           const _order_0 = _t_0["scheduled_order"];
           const _rest_0 = _items_0["tail"];
           const _at_0 = ($DefenseTowerFire_due(_order_0, _world_0));
-          return $DefenseTowerFire_choose(($DefenseTowerFire_eligible(_target_0, _at_0, _world_0, _tower_0, _wanted_0)), _target_0, _at_0, ($DefenseTowerFire_select(_rest_0, _world_0, _tower_0, _wanted_0)));
+          return $DefenseTowerFire_choose(($DefenseModel_tkind(_tower_0)), ($DefenseTowerFire_eligible(_target_0, _at_0, _world_0, _tower_0, _wanted_0)), _target_0, _at_0, ($DefenseTowerFire_select(_rest_0, _world_0, _tower_0, _wanted_0)));
         } else {
           const _rest_1 = _items_0["tail"];
           $0 = _rest_1;
@@ -44740,16 +44791,6 @@ function $DefenseTowerFire_select($0, $1, $2, $3) {
   }
 }
 
-function $DefenseTowerFire_found_target(_found_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _target_0 = _t_0["target"];
-    return {$: "Some", "value": _target_0};
-  } else {
-    return {$: "None"};
-  }
-}
-
 function $DefenseTowerFire_targeting_world(_world_0) {
   const _core_0 = _world_0["engine"];
   const _t_0 = _world_0["clock"];
@@ -44758,8 +44799,78 @@ function $DefenseTowerFire_targeting_world(_world_0) {
   return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": false, "layout": _l_0, "choice": 0, "gold": 0, "hp": 0, "towers": {$: "Nil"}, "active": false, "offered": 0, "rejected": 0, "clear": 0, "delivered": 0, "auto": {$: "Con", "head": ($DefenseModel_control_with_mobs(($DefenseModel_initial_control()), ($DefenseModel_control_mobs(($DefenseModel_control_value(_control_0)))))), "tail": {$: "Nil"}}, "mouseX": 0, "mouseY": 0, "selected": 0, "damageWork": 0, "damageFlash": 0};
 }
 
+function $DefenseTowerFire_original_target(_item_0) {
+  const _t_0 = _item_0["fact"];
+  const _target_0 = _t_0["target"];
+  return _target_0;
+}
+
+function $DefenseTowerFire_without(_items_0, _target_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    const _rest_0 = ($DefenseTowerFire_without(_tail_0, _target_0));
+    return $Bool_pick(($______packages_monkey_business_bend_Callbacks_target_equal(($DefenseTowerFire_original_target(_head_0)), _target_0)), _rest_0, {$: "Con", "head": _head_0, "tail": _rest_0});
+  }
+}
+
+function $DefenseTowerFire_volley_size(_kind_0) {
+  if (_kind_0 == 6) {
+    return 3;
+  } else {
+    return 1;
+  }
+}
+
+function $DefenseTowerFire_planned_found(_found_0, _rest_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _target_0 = _t_0["target"];
+    return {$: "Con", "head": _target_0, "tail": _rest_0(_target_0)};
+  }
+}
+
+function $DefenseTowerFire_one_target(_found_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _target_0 = _t_0["target"];
+    return {$: "Con", "head": _target_0, "tail": {$: "Nil"}};
+  }
+}
+
+function $DefenseTowerFire_plan_loop(_fuel_0, _items_0, _world_0, _tower_0, _wanted_0) {
+  if (_fuel_0 === 0) {
+    return {$: "Nil"};
+  } else if (_fuel_0 === 1) {
+    return $DefenseTowerFire_one_target(($DefenseTowerFire_select(_items_0, _world_0, _tower_0, _wanted_0)));
+  } else {
+    const _23_0 = (_fuel_0 - 1);
+    const _rest_0 = run_clo($DefenseTowerFire_plan_loop_c31(_23_0,_items_0,_world_0,_tower_0,_wanted_0));
+    return $DefenseTowerFire_planned_found(($DefenseTowerFire_select(_items_0, _world_0, _tower_0, _wanted_0)), _rest_0);
+  }
+}
+
+function $DefenseTowerFire_plan(_world_0, _tower_0, _wanted_0) {
+  return $DefenseTowerFire_plan_loop(($DefenseTowerFire_volley_size(($DefenseModel_tkind(_tower_0)))), ($DefenseTowerFire_originals(($______packages_monkey_business_bend_Engine_callback_state(($______packages_monkey_business_bend_NativeRun_core(($DefenseModel_engine(_world_0)))))))), ($DefenseTowerFire_targeting_world(_world_0)), _tower_0, _wanted_0);
+}
+
+function $DefenseTowerFire_first(_items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _items_0["head"];
+    return {$: "Some", "value": _head_0};
+  }
+}
+
 function $DefenseTowerFire_target(_world_0, _tower_0, _wanted_0) {
-  return $DefenseTowerFire_found_target(($DefenseTowerFire_select(($DefenseTowerFire_originals(($______packages_monkey_business_bend_Engine_callback_state(($______packages_monkey_business_bend_NativeRun_core(($DefenseModel_engine(_world_0)))))))), ($DefenseTowerFire_targeting_world(_world_0)), _tower_0, _wanted_0)));
+  return $DefenseTowerFire_first(($DefenseTowerFire_plan(_world_0, _tower_0, _wanted_0)));
 }
 
 function $DefenseTowerFire_remaining_found(_found_0, _world_0) {
@@ -44849,9 +44960,43 @@ function $DefenseTowerFire_fire_target(_found_0, _world_0, _index_0, _tower_0) {
     const _x_1 = ($DefenseTowerFire_delivery_at(_world_0));
     const _x_2 = ($DefenseTowerFire_delivery_at(_world_0));
     const _x_3 = ($DefenseTowerFire_shortened((_x_0 < _x_1 ? 0 : _x_0 - _x_1)));
-    return $DefenseTowerFire_applied(_world_0, _index_0, _tower_0, _target_0, {$: "Con", "head": ($______packages_monkey_business_bend_NativeRunCallbackControls_apply(_state_0, _target_0, {$: "Callbacks.Transport", "delivery_at": nat_chk(_x_2 + _x_3)}, ($______packages_monkey_business_bend_NativeRunCallbackControls_callback_source(($______packages_monkey_business_bend_NativeRunCallbackControls_callback_sources(_state_0)), _target_0)))), "tail": {$: "Nil"}});
+    const _change_0 = ($______packages_monkey_business_bend_NativeRunCallbackControls_apply(_state_0, _target_0, {$: "Callbacks.Transport", "delivery_at": nat_chk(_x_2 + _x_3)}, ($______packages_monkey_business_bend_NativeRunCallbackControls_callback_source(($______packages_monkey_business_bend_NativeRunCallbackControls_callback_sources(_state_0)), _target_0))));
+    return $DefenseTowerFire_applied(_world_0, _index_0, _tower_0, _target_0, {$: "Con", "head": _change_0, "tail": {$: "Nil"}});
   } else {
     return {$: "DefenseTowerFire.Shot", "world": _world_0, "result": 2};
+  }
+}
+
+function $DefenseTowerFire_volley_next(_shot_0, _rest_0) {
+  const _world_0 = _shot_0["world"];
+  const _t_0 = _shot_0["result"];
+  if (_t_0 == 0) {
+    return run_tail(_rest_0, _world_0);
+  } else {
+    const _12_0 = u32_to_word(_t_0)["head"];
+    const _13_0 = u32_to_word(_t_0)["tail"];
+    return {$: "DefenseTowerFire.Shot", "world": _world_0, "result": word_to_u32({$: "WCon", "head": _12_0, "tail": _13_0})};
+  }
+}
+
+function $DefenseTowerFire_fire_plan(_items_0, _world_0, _index_0, _tower_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "DefenseTowerFire.Shot", "world": _world_0, "result": 0};
+  } else {
+    const _target_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    const _rest_0 = run_clo($DefenseTowerFire_fire_plan_c32(_tail_0,_index_0,_tower_0));
+    return $DefenseTowerFire_volley_next(($DefenseTowerFire_fire_target({$: "Some", "value": _target_0}, _world_0, _index_0, _tower_0)), _rest_0);
+  }
+}
+
+function $DefenseTowerFire_fire_planned(_items_0, _world_0, _index_0, _tower_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "DefenseTowerFire.Shot", "world": _world_0, "result": 2};
+  } else {
+    const _head_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return $DefenseTowerFire_fire_plan({$: "Con", "head": _head_0, "tail": _tail_0}, _world_0, _index_0, _tower_0);
   }
 }
 
@@ -44865,7 +45010,7 @@ function $DefenseTowerFire_fire_ready(_alive_0, _valid_0, _ready_0, _world_0, _i
       if (!_ready_0) {
         return {$: "DefenseTowerFire.Shot", "world": _world_0, "result": 1};
       } else {
-        return $DefenseTowerFire_fire_target(($DefenseTowerFire_target(_world_0, _tower_0, _wanted_0)), _world_0, _index_0, _tower_0);
+        return $DefenseTowerFire_fire_planned(($DefenseTowerFire_plan(_world_0, _tower_0, _wanted_0)), _world_0, _index_0, _tower_0);
       }
     }
   }
@@ -44878,30 +45023,34 @@ function $DefenseTowerFire_fire(_world_0, _index_0, _tower_0, _wanted_0) {
   return $DefenseTowerFire_fire_ready((_x_0 > 0), ($DefenseMechanics_valid(($DefenseModel_tkind(_tower_0)))), (_x_1 >= _x_2), _world_0, _index_0, _tower_0, _wanted_0);
 }
 
-function $DefenseTowerFire_automatic_record(_found_0, _shot_0, _index_0) {
-  if (_found_0.$ === "Some") {
-    const _target_0 = _found_0["value"];
-    const _world_0 = _shot_0["world"];
-    const _t_0 = _shot_0["result"];
-    if (_t_0 == 0) {
-      return {$: "DefenseTowerFire.Automatic", "world": _world_0, "shots": {$: "Con", "head": {$: "DefenseTowerFire.AutomaticShot", "index": _index_0, "target": _target_0}, "tail": {$: "Nil"}}};
-    } else {
-      return {$: "DefenseTowerFire.Automatic", "world": _world_0, "shots": {$: "Nil"}};
-    }
+function $DefenseTowerFire_recorded_targets(_items_0, _index_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
   } else {
-    const _world_1 = _shot_0["world"];
-    return {$: "DefenseTowerFire.Automatic", "world": _world_1, "shots": {$: "Nil"}};
+    const _target_0 = _items_0["head"];
+    const _tail_0 = _items_0["tail"];
+    return {$: "Con", "head": {$: "DefenseTowerFire.AutomaticShot", "index": _index_0, "target": _target_0}, "tail": ($DefenseTowerFire_recorded_targets(_tail_0, _index_0))};
+  }
+}
+
+function $DefenseTowerFire_automatic_record(_found_0, _shot_0, _index_0) {
+  const _world_0 = _shot_0["world"];
+  const _t_0 = _shot_0["result"];
+  if (_t_0 == 0) {
+    return {$: "DefenseTowerFire.Automatic", "world": _world_0, "shots": ($DefenseTowerFire_recorded_targets(_found_0, _index_0))};
+  } else {
+    return {$: "DefenseTowerFire.Automatic", "world": _world_0, "shots": {$: "Nil"}};
   }
 }
 
 function $DefenseTowerFire_automatic_one(_world_0, _tower_0, _index_0) {
-  return $DefenseTowerFire_automatic_record(($DefenseTowerFire_target(_world_0, _tower_0, 0)), ($DefenseTowerFire_fire(_world_0, _index_0, _tower_0, 0)), _index_0);
+  return $DefenseTowerFire_automatic_record(($DefenseTowerFire_plan(_world_0, _tower_0, 0)), run_loop($DefenseTowerFire_fire(_world_0, _index_0, _tower_0, 0)), _index_0);
 }
 
 function $DefenseTowerFire_automatic_next(_result_0, _history_0, _rest_0) {
   const _world_0 = _result_0["world"];
   const _shots_0 = _result_0["shots"];
-  return run_tail(_rest_0(_world_0), ($List_append(_shots_0, _history_0)));
+  return run_tail(_rest_0(_world_0), ($List_append(($List_reverse(_shots_0)), _history_0)));
 }
 
 function $DefenseTowerFire_automatic_loop(_items_0, _world_0, _index_0, _history_0) {
@@ -44910,7 +45059,7 @@ function $DefenseTowerFire_automatic_loop(_items_0, _world_0, _index_0, _history
   } else {
     const _tower_0 = _items_0["head"];
     const _tail_0 = _items_0["tail"];
-    const _continue_0 = run_clo($DefenseTowerFire_automatic_loop_c31(_tail_0,_index_0));
+    const _continue_0 = run_clo($DefenseTowerFire_automatic_loop_c33(_tail_0,_index_0));
     return $DefenseTowerFire_automatic_next(($DefenseTowerFire_automatic_one(_world_0, _tower_0, _index_0)), _history_0, _continue_0);
   }
 }
@@ -45285,7 +45434,7 @@ function $DefenseTransport_sync(_items_0, _world_0, _changes_0) {
     const _tail_0 = _items_0["tail"];
     const _remaining_0 = ($DefenseTransport_remaining_ticks(_target_0, _world_0));
     const _at_0 = ($DefenseTransport_required(_remaining_0, _world_0));
-    const _continue_0 = run_clo($DefenseTransport_sync_c33(_tail_0));
+    const _continue_0 = run_clo($DefenseTransport_sync_c35(_tail_0));
     const _x_2 = ($DefenseLiveMotion_due(_world_0, _target_0));
     return $DefenseTransport_next(($DefenseTransport_delay(($Bool_and(($Nat_is_gt(_remaining_0, 0)), (_x_2 < _at_0))), _world_0, _target_0, _at_0)), _changes_0, _continue_0);
   }
@@ -45907,7 +46056,7 @@ function $DefenseHost_event_loop(_fuel_0, _value_0, _until_0) {
     const _frames_0 = _value_0["frames"];
     const _physical_0 = _value_0["physical"];
     const _changes_0 = _value_0["transport"];
-    const _continue_0 = run_clo($DefenseHost_event_loop_c35(_n_0,_until_0));
+    const _continue_0 = run_clo($DefenseHost_event_loop_c37(_n_0,_until_0));
     return $DefenseHost_advance_event(($Bool_not(($DefenseHost_step_complete(($DefenseModel_engine(_world_0)), _until_0)))), _world_0, _frames_0, _physical_0, _changes_0, _until_0, _continue_0);
   }
 }
@@ -46071,7 +46220,7 @@ function $DefenseHost_fired_world(_shot_0) {
 }
 
 function $DefenseHost_fire_world(_world_0, _index_0, _wanted_0) {
-  return $DefenseHost_fired_world(($DefenseHost_fire(_world_0, _index_0, _wanted_0)));
+  return $DefenseHost_fired_world(run_loop($DefenseHost_fire(_world_0, _index_0, _wanted_0)));
 }
 
 function $DefenseHost_upgrade_items(_items_0, _index_0) {
@@ -46295,7 +46444,7 @@ function $DefenseHost_key_fields(_world_0, _code_0, _layout_0, _schedule_0) {
   const _selected_0 = _world_0["selected"];
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
-  const _choose_0 = ($Bool_and((_code_0 >= 49), (_code_0 <= 50)));
+  const _choose_0 = ($Bool_and((_code_0 >= 49), (_code_0 <= 52)));
   const _x_1 = (_code_0 === 32);
   const _x_2 = (_code_0 === 112);
   return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": ($Bool_pick((_x_1 || _x_2), ($Bool_not(_p_0)), _p_0)), "layout": _layout_0, "choice": ($Bool_pick(_choose_0, ((_code_0 - 46) >>> 0), _c_0)), "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": {$: "Con", "head": ($DefenseModel_control_with_schedule(($DefenseModel_control_value(_auto_0)), _schedule_0)), "tail": {$: "Nil"}}, "mouseX": _x_0, "mouseY": _y_0, "selected": ($Bool_pick(_choose_0, 0, _selected_0)), "damageWork": _work_0, "damageFlash": _flash_0};
@@ -46424,7 +46573,9 @@ function $DefenseHost_preview_before(_world_0, _x_0, _y_0, _kind_0) {
 
 function $DefenseHost_preview_gain(_world_0, _x_0, _y_0, _kind_0) {
   const _x_1 = ($DefenseHost_preview_before(_world_0, _x_0, _y_0, _kind_0));
-  return $DefenseModel_number(($DefenseTowerFire_saving(_x_1)));
+  const _before_0 = _x_1;
+  const _x_2 = ($DefenseTowerFire_shortened(_before_0));
+  return $DefenseModel_number((_before_0 < _x_2 ? 0 : _before_0 - _x_2));
 }
 
 function $tower_views(_items_0, _index_0) {
@@ -46702,7 +46853,7 @@ function $apply(_world_0, _action_0) {
   } else {
     const _index_1 = _action_0["index"];
     const _operation_0 = _action_0["operation"];
-    return $shot_receipt(($DefenseHost_fire(_world_0, _index_1, _operation_0)));
+    return $shot_receipt(run_loop($DefenseHost_fire(_world_0, _index_1, _operation_0)));
   }
 }
 
@@ -46830,6 +46981,19 @@ function $automatic(_world_0) {
   return $DefenseTowerFire_automatic_when(($DefenseHost_clock_active(_world_0)), _world_0);
 }
 
+function $shot_targets_found(_found_0, _world_0, _operation_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Nil"};
+  } else {
+    const _tower_0 = _found_0["value"];
+    return $DefenseTowerFire_plan(_world_0, _tower_0, _operation_0);
+  }
+}
+
+function $shot_targets(_world_0, _index_0, _operation_0) {
+  return $shot_targets_found(($DefenseHost_selected_tower(($DefenseModel_towers(_world_0)), _index_0)), _world_0, _operation_0);
+}
+
 function $Bool_and(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -46919,7 +47083,7 @@ function $List_contains_0(_xs_0, _x_0) {
   } else {
     const _h_0 = _xs_0["head"];
     const _t_0 = _xs_0["tail"];
-    return $List_any_if(run_clo($List_contains_0_c36(_t_0,_x_0)), ($Nat_is_eq(_h_0, _x_0)));
+    return $List_any_if(run_clo($List_contains_0_c38(_t_0,_x_0)), ($Nat_is_eq(_h_0, _x_0)));
   }
 }
 
@@ -47173,36 +47337,47 @@ function $DefenseRules_boosted_actor_c30(_n_0,_world_0,_all_0,_tracks_0) {
     return $DefenseRules_boosted_actor(_n_0, ($DefenseMotion_move_when(($Bool_and(($DefenseRules_can_play(_x_0, _world_0, _all_0, _tracks_0)), ($DefenseRules_can_move_actor(_x_0, _world_0)))), _x_0)), _world_0, _all_0, _tracks_0);
   }
 }
-function $DefenseTowerFire_automatic_loop_c31(_tail_0,_index_0) {
+function $DefenseTowerFire_plan_loop_c31(_23_0,_items_0,_world_0,_tower_0,_wanted_0) {
   return (_x_0) => {
-    return run_clo($DefenseTowerFire_automatic_loop_c32(_tail_0,_x_0,_index_0));
+    return $DefenseTowerFire_plan_loop(_23_0, ($DefenseTowerFire_without(_items_0, _x_0)), _world_0, _tower_0, _wanted_0);
   }
 }
-function $DefenseTowerFire_automatic_loop_c32(_tail_0,_x_0,_index_0) {
+function $DefenseTowerFire_fire_plan_c32(_tail_0,_index_0,_tower_0) {
+  return (_x_0) => {
+    return $DefenseTowerFire_fire_plan(_tail_0, _x_0, _index_0, _tower_0);
+  }
+}
+function $DefenseTowerFire_automatic_loop_c33(_tail_0,_index_0) {
+  return (_x_0) => {
+    return run_clo($DefenseTowerFire_automatic_loop_c34(_tail_0,_x_0,_index_0));
+  }
+}
+function $DefenseTowerFire_automatic_loop_c34(_tail_0,_x_0,_index_0) {
   return (_x_1) => {
     return $DefenseTowerFire_automatic_loop(_tail_0, _x_0, ((_index_0 + 1) >>> 0), _x_1);
   }
 }
-function $DefenseTransport_sync_c33(_tail_0) {
+function $DefenseTransport_sync_c35(_tail_0) {
   return (_x_0) => {
-    return run_clo($DefenseTransport_sync_c34(_tail_0,_x_0));
+    return run_clo($DefenseTransport_sync_c36(_tail_0,_x_0));
   }
 }
-function $DefenseTransport_sync_c34(_tail_0,_x_0) {
+function $DefenseTransport_sync_c36(_tail_0,_x_0) {
   return (_x_1) => {
     return $DefenseTransport_sync(_tail_0, _x_0, _x_1);
   }
 }
-function $DefenseHost_event_loop_c35(_n_0,_until_0) {
+function $DefenseHost_event_loop_c37(_n_0,_until_0) {
   return (_x_0) => {
     return $DefenseHost_event_loop(_n_0, _x_0, _until_0);
   }
 }
-function $List_contains_0_c36(_t_0,_x_0) {
+function $List_contains_0_c38(_t_0,_x_0) {
   return (_x_1) => {
     return $List_contains_0(_t_0, _x_0);
   }
-}export default {
+}
+const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "../../packages/monkey-business-bend/Numeric:high": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_high(a0)), 1),
   "../../packages/monkey-business-bend/Numeric:low": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_low(a0)), 1),
   "../../packages/monkey-business-bend/Numeric:zero": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_zero(a0)), 1),
@@ -51001,6 +51176,7 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "../../packages/monkey-business-bend/NativeRunCallbackControls:transported": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_NativeRunCallbackControls_transported(a0,a1,a2)), 3),
   "../../packages/monkey-business-bend/NativeRunCallbackControls:apply": run_lib((a0,a1,a2,a3) => run_loop($______packages_monkey_business_bend_NativeRunCallbackControls_apply(a0,a1,a2,a3)), 4),
   "DefenseTowerFire:delivery_at": run_lib((a0) => run_loop($DefenseTowerFire_delivery_at(a0)), 1),
+  "DefenseTowerFire:cadence": run_lib((a0) => run_loop($DefenseTowerFire_cadence(a0)), 1),
   "DefenseTowerFire:cooldown": run_lib((a0) => run_loop($DefenseTowerFire_cooldown(a0)), 1),
   "DefenseTowerFire:originals": run_lib((a0) => run_loop($DefenseTowerFire_originals(a0)), 1),
   "DefenseTowerFire:queued_due": run_lib((a0,a1) => run_loop($DefenseTowerFire_queued_due(a0,nat_in(a1))), 2),
@@ -51024,10 +51200,18 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "DefenseTowerFire:suitable": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_suitable(a0,a1,a2)), 3),
   "DefenseTowerFire:live": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_live(a0,nat_in(a1),a2)), 3),
   "DefenseTowerFire:eligible": run_lib((a0,a1,a2,a3,a4) => run_loop($DefenseTowerFire_eligible(a0,nat_in(a1),a2,a3,nat_in(a4))), 5),
-  "DefenseTowerFire:choose": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_choose(a0,a1,nat_in(a2),a3)), 4),
+  "DefenseTowerFire:prefer": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_prefer(a0,nat_in(a1),nat_in(a2))), 3),
+  "DefenseTowerFire:choose": run_lib((a0,a1,a2,a3,a4) => run_loop($DefenseTowerFire_choose(a0,a1,a2,nat_in(a3),a4)), 5),
   "DefenseTowerFire:select": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_select(a0,a1,a2,nat_in(a3))), 4),
-  "DefenseTowerFire:found_target": run_lib((a0) => run_loop($DefenseTowerFire_found_target(a0)), 1),
   "DefenseTowerFire:targeting_world": run_lib((a0) => run_loop($DefenseTowerFire_targeting_world(a0)), 1),
+  "DefenseTowerFire:original_target": run_lib((a0) => run_loop($DefenseTowerFire_original_target(a0)), 1),
+  "DefenseTowerFire:without": run_lib((a0,a1) => run_loop($DefenseTowerFire_without(a0,a1)), 2),
+  "DefenseTowerFire:volley_size": run_lib((a0) => run_loop($DefenseTowerFire_volley_size(a0)), 1),
+  "DefenseTowerFire:planned_found": run_lib((a0,a1) => run_loop($DefenseTowerFire_planned_found(a0,a1)), 2),
+  "DefenseTowerFire:one_target": run_lib((a0) => run_loop($DefenseTowerFire_one_target(a0)), 1),
+  "DefenseTowerFire:plan_loop": run_lib((a0,a1,a2,a3,a4) => run_loop($DefenseTowerFire_plan_loop(nat_in(a0),a1,a2,a3,nat_in(a4))), 5),
+  "DefenseTowerFire:plan": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_plan(a0,a1,nat_in(a2))), 3),
+  "DefenseTowerFire:first": run_lib((a0) => run_loop($DefenseTowerFire_first(a0)), 1),
   "DefenseTowerFire:target": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_target(a0,a1,nat_in(a2))), 3),
   "DefenseTowerFire:remaining_found": run_lib((a0,a1) => run_loop($DefenseTowerFire_remaining_found(a0,a1)), 2),
   "DefenseTowerFire:remaining": run_lib((a0,a1) => run_loop($DefenseTowerFire_remaining(a0,a1)), 2),
@@ -51036,8 +51220,12 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "DefenseTowerFire:arm": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_arm(a0,a1,a2)), 3),
   "DefenseTowerFire:applied": run_lib((a0,a1,a2,a3,a4) => run_loop($DefenseTowerFire_applied(a0,a1,a2,a3,a4)), 5),
   "DefenseTowerFire:fire_target": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_fire_target(a0,a1,a2,a3)), 4),
+  "DefenseTowerFire:volley_next": run_lib((a0,a1) => run_loop($DefenseTowerFire_volley_next(a0,a1)), 2),
+  "DefenseTowerFire:fire_plan": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_fire_plan(a0,a1,a2,a3)), 4),
+  "DefenseTowerFire:fire_planned": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_fire_planned(a0,a1,a2,a3)), 4),
   "DefenseTowerFire:fire_ready": run_lib((a0,a1,a2,a3,a4,a5,a6) => run_loop($DefenseTowerFire_fire_ready(a0,a1,a2,a3,a4,a5,nat_in(a6))), 7),
   "DefenseTowerFire:fire": run_lib((a0,a1,a2,a3) => run_loop($DefenseTowerFire_fire(a0,a1,a2,nat_in(a3))), 4),
+  "DefenseTowerFire:recorded_targets": run_lib((a0,a1) => run_loop($DefenseTowerFire_recorded_targets(a0,a1)), 2),
   "DefenseTowerFire:automatic_record": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_automatic_record(a0,a1,a2)), 3),
   "DefenseTowerFire:automatic_one": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_automatic_one(a0,a1,a2)), 3),
   "DefenseTowerFire:automatic_next": run_lib((a0,a1,a2) => run_loop($DefenseTowerFire_automatic_next(a0,a1,a2)), 3),
@@ -51232,4 +51420,6 @@ function $List_contains_0_c36(_t_0,_x_0) {
   "create_scenario": run_lib((a0,a1,a2,a3) => run_loop($create_scenario(a0,nat_in(a1),a2,a3)), 4),
   "schedule_finish": run_lib((a0,a1) => run_loop($schedule_finish(a0,nat_in(a1))), 2),
   "automatic": run_lib((a0) => run_loop($automatic(a0)), 1),
+  "shot_targets_found": run_lib((a0,a1,a2) => run_loop($shot_targets_found(a0,a1,nat_in(a2))), 3),
+  "shot_targets": run_lib((a0,a1,a2) => run_loop($shot_targets(a0,a1,nat_in(a2))), 3),
 };

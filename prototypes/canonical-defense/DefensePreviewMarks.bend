@@ -106,6 +106,8 @@ def scope(kind: U32) -> String:
   match kind:
     case 3: "AUTO: PREPARATION / JEV WORK"
     case 4: "AUTO: AUTHORIZED OUTPUT / FINISH"
+    case 5: "AUTO: SHORTEST PREPARATION / CHECK"
+    case 6: "AUTO: UP TO THREE PREPARATION / CHECK"
     case _: "UNKNOWN TOWER"
 
 # Logical target anchors remain visible while their body's causal playback waits.

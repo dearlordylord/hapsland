@@ -26,7 +26,12 @@ law render_annotations:
     == Marks.draw(
       P.annotations(world, choice, tower),
       Marks.draw_anchors(
-        P.anchors(P.available(world, tower), world, P.next(choice, tower), P.ready(choice, tower)),
+        P.anchors(
+          P.available(world, tower),
+          world,
+          P.next_plan(choice, tower),
+          P.ready(choice, tower)
+        ),
         rest
       )
     )
@@ -57,7 +62,7 @@ law coverage_uses_source_world:
     == P.exact_marks(
       P.available(world, tower),
       world,
-      P.next(choice, tower),
+      P.next_plan(choice, tower),
       P.ready(choice, tower)
     )
     : List<&2, Marks.Mark>

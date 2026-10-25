@@ -17,7 +17,7 @@ const mutants=[
  ["PreviewEntry","prebuild_matches_constructed","ghost_range_color","  coverage_color((Preview.before(preview) > 0 : U32))","  coverage_color(False{})","DefenseRender.bend"],
  ["PreviewEntry","selected_range_is_drawn","selected_ring","H.built_range(tower),tower_range_color(world,tower),rest)","H.built_range(tower),kind_color(M.tkind(tower)),rest)","DefenseRender.bend"],
  ["PreviewEntry","pause_preserves_coverage","available","  targets(Fire.originals(Engine.callback_state(Run.core(M.engine(world)))),Fire.targeting_world(world),tower)","  Bool.pick(List<&2,CB.Target>,M.paused(world),[],targets(Fire.originals(Engine.callback_state(Run.core(M.engine(world)))),Fire.targeting_world(world),tower))"],
- ["PreviewWiring","coverage_uses_source_world","annotations","exact_marks(available(source,tower),source,next(choice,tower),ready(choice,tower))","exact_marks(available(choice,tower),source,next(choice,tower),ready(choice,tower))"],
+ ["PreviewWiring","coverage_uses_source_world","annotations","exact_marks(available(source,tower),source,next_plan(choice,tower),ready(choice,tower))","exact_marks(available(choice,tower),source,next_plan(choice,tower),ready(choice,tower))"],
  ["PreviewWiring","live_entity_position","history_actor","actor_at(Motion.point(actor),actor,world,rest)","actor_at(D.Point{0,0},actor,world,rest)","DefenseRender.bend"],
  ["PreviewWiring","every_live_entity_drawn","history_actors","case +actor <> tail: history_visible(rule_parent_visible(actor,world),actor,world,history_actors(tail,world,rest))","case +actor <> tail: history_actors(tail,world,rest)","DefenseRender.bend"],
 
@@ -36,7 +36,7 @@ const mutants=[
  ["PreviewChoice","key_scope","key","    case CB.Owner{p,l,r,o}: V.WorkIdentity{p,l,r,o}","    case CB.Owner{p,l,r,o}: V.WorkIdentity{p,0n,r,o}"],
  ["PreviewChoice","finish_capture","candidate","    case CB.Target{owner,CB.FinishTerminal{_,_,_,_,ids},order}: Marks.Target{key(owner),Some{ids},order,selected}","    case CB.Target{owner,CB.FinishTerminal{_,_,_,_,ids},order}: Marks.Target{key(owner),Some{[]},order,selected}"],
  ...["jev_capture","preparation_capture","output_capture"].map(law=>["PreviewChoice",law,"candidate",ordinary,"    case CB.Target{owner,_,order}: Marks.Target{key(owner),None{},0n,selected}"]),
- ["PreviewWiring","render_annotations","render","  Marks.draw(annotations(source,choice,tower),Marks.draw_anchors(anchors(available(source,tower),source,next(choice,tower),ready(choice,tower)),rest))","  rest"],
+ ["PreviewWiring","render_annotations","render","  Marks.draw(annotations(source,choice,tower),Marks.draw_anchors(anchors(available(source,tower),source,next_plan(choice,tower),ready(choice,tower)),rest))","  rest"],
  ["PreviewWiring","scene_consumes_preview","preview_layer","  TowerPreview.overlay(world,preview,TowerPreview.live_layer(world,rest))","  rest","DefenseRender.bend"],
  ["PreviewWiring","body_position","body","    case Map.Point{x,y}: Marks.Body{key,x,y}","    case Map.Point{x,y}: Marks.Body{key,y,x}"]
  ,["PreviewEntry","actual_scene_has_preview","scene","  preview_layer(world,Preview.calculate(world),base(world))","  base(world)","DefenseRender.bend"]

@@ -26,8 +26,12 @@ type Candidate is Data:
 # Game elapsed time is the intervention time, not the last business transition.
 def delivery_at(+world: M.World) -> Nat:
   Nat.max(Run.clock(M.engine(world)), (U32.to_nat(M.time(world)) * 20n : Nat))
+def cadence(kind: U32) -> U32:
+  match kind:
+    case 6: 40
+    case _: 20
 def cooldown(+tower: M.Tower) -> U32:
-  U32.max(2, (20 / U32.max(1, (M.level(tower) * M.power(tower) : U32)) : U32))
+  U32.max(2, (cadence(M.tkind(tower)) / U32.max(1, (M.level(tower) * M.power(tower) : U32)) : U32))
 def originals(state: CB.State) -> List<&2, CB.Original>:
   match state:
     case CB.State{items}: items
@@ -135,7 +139,7 @@ def current(+target: CB.Target, +world: M.World) -> Bool:
 def accepts(+kind: U32, +phase: U32) -> Bool:
   Bool.pick(
     Bool,
-    U32.is_eq(kind, 3),
+    (U32.is_eq(kind, 3) || U32.is_eq(kind, 5) || U32.is_eq(kind, 6)),
     U32.is_eq(phase, 2) || U32.is_eq(phase, 4),
     U32.is_eq(kind, 4) && U32.is_eq(phase, 5)
   )
@@ -157,7 +161,12 @@ def eligible(+target: CB.Target, +at: Nat, +world: M.World, tower: M.Tower, +wan
       Live.find(target, M.mobs(world)),
       (U32.to_nat(M.time(world)) * 20n : Nat)
     ) && (at > delivery_at(world) + 100n : Nat) && suitable(world, tower, target)
+def prefer(kind: U32, +at: Nat, +other: Nat) -> Bool:
+  match kind:
+    case 5: (at < other : Nat)
+    case _: (at > other : Nat)
 def choose(
+  kind: U32,
   valid: Bool,
   +target: CB.Target,
   +at: Nat,
@@ -169,7 +178,7 @@ def choose(
     case True{} Some{Candidate{other, +later}}:
       Bool.pick(
         Maybe<&2, Candidate>,
-        (at > later : Nat),
+        prefer(kind, at, later),
         Some{Candidate{target, at}},
         Some{Candidate{other, later}}
       )
@@ -184,16 +193,13 @@ def select(
     case CB.Original{CB.Fact{+target, _, _, _}, CB.Queued{}, order} <> rest:
       +at = due(order, world)
       choose(
+        M.tkind(tower),
         eligible(target, at, world, tower, wanted),
         target,
         at,
         select(rest, world, tower, wanted)
       )
     case _ <> rest: select(rest, world, tower, wanted)
-def found_target(found: Maybe<&2, Candidate>) -> Maybe<&2, CB.Target>:
-  match found:
-    case Some{Candidate{target, _}}: Some{target}
-    case None{}: None{}
 # Pause gates execution in Host; it must never hide a possible physical action.
 # Only engine, elapsed time and layout are physical query inputs.
 # This is a read-only projection, never committed to the game world.
@@ -221,15 +227,69 @@ def targeting_world(world: M.World) -> M.World:
         0,
         0
       }
-def target(+world: M.World, tower: M.Tower, wanted: Nat) -> Maybe<&2, CB.Target>:
-  found_target(
-    select(
-      originals(Engine.callback_state(Run.core(M.engine(world)))),
-      targeting_world(world),
-      tower,
-      wanted
-    )
+# Freeze one volley before applying its shots: no recipient is hit twice.
+def original_target(item: CB.Original) -> CB.Target:
+  match item:
+    case CB.Original{CB.Fact{target, _, _, _}, _, _}: target
+def without(items: List<&2, CB.Original>, +target: CB.Target) -> List<&2, CB.Original>:
+  match items:
+    case Nil{}: []
+    case +head <> tail:
+      +rest = without(tail, target)
+      Bool.pick(
+        List<&2, CB.Original>,
+        CB.target_equal(original_target(head), target),
+        rest,
+        head <> rest
+      )
+def volley_size(kind: U32) -> Nat:
+  match kind:
+    case 6: 3n
+    case _: 1n
+def planned_found(
+  found: Maybe<&2, Candidate>,
+  rest: CB.Target -> List<&2, CB.Target>
+) -> List<&2, CB.Target>:
+  match found:
+    case None{}: []
+    case Some{Candidate{+target, _}}: target <> rest(target)
+def one_target(found: Maybe<&2, Candidate>) -> List<&2, CB.Target>:
+  match found:
+    case None{}: []
+    case Some{Candidate{target, _}}: [target]
+def plan_loop(
+  fuel: Nat,
+  +items: List<&2, CB.Original>,
+  +world: M.World,
+  +tower: M.Tower,
+  +wanted: Nat
+) -> List<&2, CB.Target>:
+  match fuel:
+    case 0n: []
+    case 1n: one_target(select(items, world, tower, wanted))
+    case 1n+n:
+      rest: CB.Target -> List<&2, CB.Target> = target => plan_loop(
+        n,
+        without(items, target),
+        world,
+        tower,
+        wanted
+      )
+      planned_found(select(items, world, tower, wanted), rest)
+def plan(+world: M.World, +tower: M.Tower, wanted: Nat) -> List<&2, CB.Target>:
+  plan_loop(
+    volley_size(M.tkind(tower)),
+    originals(Engine.callback_state(Run.core(M.engine(world)))),
+    targeting_world(world),
+    tower,
+    wanted
   )
+def first(items: List<&2, CB.Target>) -> Maybe<&2, CB.Target>:
+  match items:
+    case Nil{}: None{}
+    case head <> _: Some{head}
+def target(world: M.World, tower: M.Tower, wanted: Nat) -> Maybe<&2, CB.Target>:
+  first(plan(world, tower, wanted))
 def remaining_found(found: Maybe<&2, Candidate>, world: M.World) -> U32:
   match found:
     case Some{Candidate{_, at}}: M.number(Nat.sub(at, delivery_at(world)))
@@ -291,31 +351,38 @@ def applied(
         0
       }
     case _: Shot{world, 2}
-def fire_target(found: Maybe<&2, CB.Target>, +world: M.World, index: U32, tower: M.Tower) -> Shot:
+def fire_target(found: Maybe<&2, CB.Target>, +world: M.World, index: U32, +tower: M.Tower) -> Shot:
   match found:
     case Some{+target}:
       +state = M.engine(world)
       # The exact handler used by public CallbackControl, with its LIVE captured
       # source. Avoid the unrelated control variants in this optional native ABI.
-      applied(
-        world,
-        index,
-        tower,
+      change = Controls.apply(
+        state,
         target,
-        [
-          Controls.apply(
-            state,
-            target,
-            CB.Transport{
-              (delivery_at(
-                world
-              ) + shortened(Nat.sub(Live.due(world, target), delivery_at(world))) : Nat)
-            },
-            Controls.callback_source(Controls.callback_sources(state), target)
-          )
-        ]
+        CB.Transport{
+          (delivery_at(
+            world
+          ) + shortened(Nat.sub(Live.due(world, target), delivery_at(world))) : Nat)
+        },
+        Controls.callback_source(Controls.callback_sources(state), target)
       )
+      applied(world, index, tower, target, [change])
     case None{}: Shot{world, 2}
+def volley_next(shot: Shot, rest: M.World -> Shot) -> Shot:
+  match shot:
+    case Shot{world, 0}: rest(world)
+    case other: other
+def fire_plan(items: List<&2, CB.Target>, world: M.World, +index: U32, +tower: M.Tower) -> Shot:
+  match items:
+    case Nil{}: Shot{world, 0}
+    case target <> tail:
+      rest: M.World -> Shot = next => fire_plan(tail, next, index, tower)
+      volley_next(fire_target(Some{target}, world, index, tower), rest)
+def fire_planned(items: List<&2, CB.Target>, world: M.World, index: U32, +tower: M.Tower) -> Shot:
+  match items:
+    case Nil{}: Shot{world, 2}
+    case head <> tail: fire_plan(head <> tail, world, index, tower)
 def fire_ready(
   alive: Bool,
   valid: Bool,
@@ -329,7 +396,7 @@ def fire_ready(
     case False{} _ _: Shot{world, 5}
     case True{} False{} _: Shot{world, 3}
     case True{} True{} False{}: Shot{world, 1}
-    case True{} True{} True{}: fire_target(target(world, tower, wanted), world, index, tower)
+    case True{} True{} True{}: fire_planned(plan(world, tower, wanted), world, index, tower)
 def fire(+world: M.World, index: U32, +tower: M.Tower, wanted: Nat) -> Shot:
   fire_ready(
     (M.hp(world) > 0 : U32),
@@ -347,19 +414,26 @@ type AutomaticShot is Data:
   AutomaticShot{index: U32, target: CB.Target}
 type Automatic is Data:
   Automatic{world: M.World, shots: List<&2, AutomaticShot>}
-def automatic_record(found: Maybe<&2, CB.Target>, shot: Shot, index: U32) -> Automatic:
+def recorded_targets(items: List<&2, CB.Target>, +index: U32) -> List<&2, AutomaticShot>:
+  match items:
+    case Nil{}: []
+    case target <> tail: AutomaticShot{index, target} <> recorded_targets(tail, index)
+def automatic_record(found: List<&2, CB.Target>, shot: Shot, index: U32) -> Automatic:
   match found shot:
-    case Some{target} Shot{world, 0}: Automatic{world, [AutomaticShot{index, target}]}
+    case targets Shot{world, 0}: Automatic{world, recorded_targets(targets, index)}
     case _ Shot{world, _}: Automatic{world, []}
 def automatic_one(+world: M.World, +tower: M.Tower, +index: U32) -> Automatic:
-  automatic_record(target(world, tower, 0n), fire(world, index, tower, 0n), index)
+  automatic_record(plan(world, tower, 0n), fire(world, index, tower, 0n), index)
 def automatic_next(
   result: Automatic,
   history: List<&2, AutomaticShot>,
   rest: M.World -> List<&2, AutomaticShot> -> Automatic
 ) -> Automatic:
   match result:
-    case Automatic{world, shots}: rest(world, List.append(&2, AutomaticShot, shots, history))
+    case Automatic{world, shots}: rest(
+      world,
+      List.append(&2, AutomaticShot, List.reverse(&2, AutomaticShot, shots), history)
+    )
 def automatic_loop(
   items: List<&2, M.Tower>,
   world: M.World,
