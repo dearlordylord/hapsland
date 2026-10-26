@@ -13,10 +13,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  proofs:
+    name: Bend proofs
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      BEND_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.20.0
+      - name: Install checksum-pinned proof toolchain
+        run: node scripts/install-bend-toolchain.mjs --github-actions
+      - name: Check progress proofs and semantic mutants
+        timeout-minutes: 5
+        run: node packages/agent-flow-bend/scripts/check-progress.mjs
+      - name: Check content-isolation proofs and semantic mutants
+        timeout-minutes: 5
+        run: node packages/agent-flow-bend/scripts/check-content-isolation.mjs
   native-inputs:
     uses: ./.github/workflows/native-inputs.yml
   check:
-    needs: native-inputs
+    needs: [native-inputs, proofs]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 35
     steps:
@@ -53,13 +75,15 @@ jobs:
           name: ${{ steps.native-linux.outputs.name }}
           path: .test-runs/downloaded-native-linux
       - run: npm run native:inputs -- import linux-arm64 .test-runs/downloaded-native-linux
-      - name: Install checksum-pinned proof toolchain
-        run: node scripts/install-bend-toolchain.mjs --github-actions
+      - name: Install checksum-pinned Bend compiler
+        run: node scripts/install-bend-toolchain.mjs --github-actions --compiler-only
       - name: Check tracked asset policy
         run: node scripts/check-repository-assets.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Run deterministic tests, boundary checks, and CRAP analysis
+        env:
+          HAPSLAND_BEND_PROOFS: separate-job
         run: npm run quality:check -- --ack-checks-policy
       - name: Retain stage timings and complete failure logs
         if: always()

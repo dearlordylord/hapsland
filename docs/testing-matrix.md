@@ -571,12 +571,20 @@ the selected identity through [the compiler context](../scripts/compiler-context
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.38
-and Lean 4.34.0 proof toolchain through its dedicated installer,
-then runs typecheck,
+`master`. Its independent `Bend proofs` job installs checksum-pinned Bend 2.0.38
+and Lean 4.34.0 and runs the progress, journey and content-isolation proofs and
+semantic mutants. It does not wait for native inputs or install workspace dependencies.
+The runtime job requires both this job and native inputs to pass, installs only
+the Bend compiler through `--compiler-only`, then runs typecheck,
 `npm run quality:check -- --ack-checks-policy`, and build. Documentation generation
 and drift checks are explicit manual operations. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
+
+Only that CI quality step sets `HAPSLAND_BEND_PROOFS=separate-job`. Its Bend
+prechecks retain the concrete law-instance checks through `--falsify-only`;
+the independent proof job owns kernel checks and semantic mutants. Local full
+gates retain both groups. Unknown delegation modes and delegation outside CI
+are rejected. The stage records contain the actual selected arguments.
 
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the

@@ -84,6 +84,10 @@ Before a full run, explicitly confirm this policy was read and applied: required
 behavior sourced, checks justified by goals, and relevant cheap prerequisites
 passed. Confirmation applies to one run, not a permanent tracked checkbox.
 CI configuration must apply the same prerequisite order and confirm explicitly.
+CI checks Bend proofs and semantic mutants in an independent required job.
+After that job passes, the runtime quality step uses
+`HAPSLAND_BEND_PROOFS=separate-job` for its concrete Bend law-instance checks.
+Local full gates retain kernel proofs and mutants; this delegation is CI-only.
 Acknowledgment is responsibility, not evidence; passing prerequisites is evidence.
 
 Run `npm run quality:check -- --ack-checks-policy` (or

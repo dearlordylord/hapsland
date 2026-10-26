@@ -16,6 +16,7 @@ if (process.argv.includes("--github-actions") && process.env.GITHUB_ACTIONS !== 
 
 const root = resolve(import.meta.dirname, "..")
 const cohort = readBendToolchain(root)
+const compilerOnly = process.argv.includes("--compiler-only")
 const bendVersion = cohort.bend.version
 const leanVersion = cohort.lean.version
 const bendToolchainPlatforms = cohort.platforms
@@ -75,22 +76,25 @@ try {
     bendRoot,
     "bend.tar.gz"
   )
-  await install(
-    `https://github.com/leanprover/lean4/releases/download/v${leanVersion}/lean-${leanVersion}-${selected.leanName}.tar.zst`,
-    selected.lean,
-    leanRoot,
-    "lean.tar.zst"
-  )
-  const bins = [join(bendRoot, "bin"), join(leanRoot, "bin")]
+  if (!compilerOnly)
+    await install(
+      `https://github.com/leanprover/lean4/releases/download/v${leanVersion}/lean-${leanVersion}-${selected.leanName}.tar.zst`,
+      selected.lean,
+      leanRoot,
+      "lean.tar.zst"
+    )
+  const bins = [join(bendRoot, "bin"), ...(compilerOnly ? [] : [join(leanRoot, "bin")])]
   const env = { ...process.env, PATH: [...bins, process.env.PATH].join(":") }
   // Do not permit an external kernel override to replace the bundled kernel.
   delete env.BENDTT
   run(join(bins[0], "bend"), ["version"], env)
-  run(join(bins[1], "lean"), ["--version"], env)
-  // Build and check the actual kernel before the bounded progress harness starts.
-  run(join(bins[0], "bend"), [join(root, "packages/agent-flow-bend/progress-proof/PROOF.bend"), "--verdict"], env)
+  if (!compilerOnly) {
+    run(join(bins[1], "lean"), ["--version"], env)
+    // Build and check the actual kernel before the bounded progress harness starts.
+    run(join(bins[0], "bend"), [join(root, "packages/agent-flow-bend/progress-proof/PROOF.bend"), "--verdict"], env)
+  }
   if (process.env.GITHUB_PATH) await appendFile(process.env.GITHUB_PATH, `${bins.join("\n")}\n`)
-  console.log(`Bend proof toolchain ready. Add to PATH: ${bins.join(":")}`)
+  console.log(`Bend ${compilerOnly ? "compiler" : "proof toolchain"} ready. Add to PATH: ${bins.join(":")}`)
 } finally {
   await rm(temporary, { recursive: true, force: true })
 }

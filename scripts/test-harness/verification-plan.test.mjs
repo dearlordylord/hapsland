@@ -1,7 +1,42 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { precheckStages } from "./check-stages.mjs"
 import { resolveVerificationPlan } from "./verification-plan.mjs"
+
+test("only explicit CI delegation moves kernel checks out of runtime prechecks", () => {
+  const module = new URL("./check-stages.mjs", import.meta.url).href
+  const environment = { ...process.env }
+  delete environment.HAPSLAND_BEND_PROOFS
+  delete environment.GITHUB_ACTIONS
+  const inspect = (extra) =>
+    spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import {precheckStages} from ${JSON.stringify(module)}; console.log(JSON.stringify(precheckStages))`
+      ],
+      { env: { ...environment, ...extra }, encoding: "utf8", timeout: 5000 }
+    )
+  const local = inspect({})
+  assert.equal(local.status, 0, local.stderr)
+  const ordinary = JSON.parse(local.stdout)
+  const ci = inspect({ GITHUB_ACTIONS: "true", HAPSLAND_BEND_PROOFS: "separate-job" })
+  assert.equal(ci.status, 0, ci.stderr)
+  const delegated = JSON.parse(ci.stdout)
+  const proofStages = new Set(["bend-progress", "content-isolation"])
+  assert.deepEqual(
+    delegated,
+    ordinary.map((stage) => (proofStages.has(stage[0]) ? [...stage, "--falsify-only"] : stage))
+  )
+  const outsideCi = inspect({ HAPSLAND_BEND_PROOFS: "separate-job" })
+  assert.notEqual(outsideCi.status, 0)
+  assert.match(outsideCi.stderr, /restricted to CI/)
+  const unknown = inspect({ GITHUB_ACTIONS: "true", HAPSLAND_BEND_PROOFS: "skip" })
+  assert.notEqual(unknown.status, 0)
+  assert.match(unknown.stderr, /accepts only separate-job/)
+})
 
 test("fast deduplicates explicit selections and does not prepare installed artifacts", () => {
   const plan = resolveVerificationPlan({

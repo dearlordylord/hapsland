@@ -1,4 +1,10 @@
 // Preserve the deterministic boundary/proof inventory independently of CLI routing.
+const proofMode = process.env.HAPSLAND_BEND_PROOFS
+if (proofMode !== undefined && proofMode !== "separate-job")
+  throw new Error("HAPSLAND_BEND_PROOFS accepts only separate-job")
+if (proofMode === "separate-job" && process.env.GITHUB_ACTIONS !== "true")
+  throw new Error("Separate-job proof delegation is restricted to CI; local gates include proofs")
+const bendRuntimeArguments = proofMode === "separate-job" ? ["--falsify-only"] : []
 export const qualityPreflight = [
   "quality-preflight",
   "--test",
@@ -64,8 +70,8 @@ export const precheckStages = [
     "file-eligibility-boundary",
     "rule-boundary"
   ].map((name) => [name, `scripts/check-${name}.mjs`]),
-  ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs"],
-  ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs"],
+  ["bend-progress", "packages/agent-flow-bend/scripts/check-progress.mjs", ...bendRuntimeArguments],
+  ["content-isolation", "packages/agent-flow-bend/scripts/check-content-isolation.mjs", ...bendRuntimeArguments],
   nativeParserPreparation,
   ["content-wire-mutants", "scripts/check-content-wire-mutants.mjs"],
   [
