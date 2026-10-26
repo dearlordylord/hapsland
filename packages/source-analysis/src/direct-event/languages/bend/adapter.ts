@@ -38,7 +38,7 @@ export const parseBendDeclarations = (path: string, source: string, limit: numbe
 
 /** Candidate spelling is language-owned; shared traversal validates and captures it. */
 export const bendImportCandidates = (from: string, imported: string): ReadonlyArray<string> =>
-  /^(?:\.\/|\.\.\/)/u.test(imported) && extname(imported).toLowerCase() === ".bend"
+  !/^(?:\/|[A-Za-z]:|.*@)/u.test(imported) && extname(imported).toLowerCase() === ".bend"
     ? [normalize(join(dirname(from), imported))]
     : []
 

@@ -35,7 +35,7 @@ describe("bounded Rust type extraction", () => {
     ])
     expect(facts?.declarations.get("Root")?.exported).toBe(true)
     expect(units(source)[0]?.status).toBe("unsupported")
-    expect(combinedAnalyzerMaterializationPreflight("src/lib.rs", source)?.hasImports).toBe(true)
+    expect(combinedAnalyzerMaterializationPreflight("src/lib.rs", source)).toMatchObject({ hasImports: true })
   })
 
   it("resolves crate-qualified declared modules only with explicit crate-root authority", () => {
@@ -187,7 +187,7 @@ struct Session { receipt: Option<Receipt>, result: Result<Receipt, Failure>, his
       "Failure"
     ])
     expect(results[2]?.unit.root.artifact.kind).toBe("enum")
-    expect(combinedAnalyzerMaterializationPreflight("src/model.rs", source)?.declarations).toBe(4)
+    expect(combinedAnalyzerMaterializationPreflight("src/model.rs", source)).toMatchObject({ declarations: 4 })
   })
 
   it("binds local names before prelude wrapper names", () => {

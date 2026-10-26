@@ -2,6 +2,44 @@ import { createHash } from "node:crypto"
 import { expect, it } from "vitest"
 import { decodeInspectionRecord, inspectionSourceId } from "@hapsland/inspection-records/inspection/contract"
 
+it("retains analysis failures separately from actual capacity refusals", () => {
+  const record = {
+    version: 2,
+    source: { id: inspectionSourceId("/private/socket", "life"), endpoint: "/private/socket", lifetime: "life" },
+    sequence: 1,
+    consentEpoch: 1,
+    capturedAt: 1,
+    correlation: {},
+    scope: { root: "/project", runtime: null, runtimeVersion: null, sessionId: null, subagentId: null }
+  }
+  for (const diagnostic of [
+    { stage: "preparation", code: "preparation-analysis-unavailable", args: { reason: "parse" } },
+    { stage: "preparation", code: "preparation-analysis-unavailable", args: { reason: "declaration-limit" } },
+    {
+      stage: "preparation",
+      code: "preparation-resource-refused",
+      args: { phase: "materialization", requestedBytes: 900_000_000, constraint: "globalBytes" }
+    }
+  ]) {
+    const fact = { kind: "diagnostic", path: "model.bend", diagnostic }
+    expect(decodeInspectionRecord({ ...record, fact }).fact).toEqual(fact)
+  }
+  expect(() =>
+    decodeInspectionRecord({
+      ...record,
+      fact: {
+        kind: "diagnostic",
+        path: "model.bend",
+        diagnostic: {
+          stage: "preparation",
+          code: "preparation-analysis-unavailable",
+          args: { requestedBytes: 2 ** 31 }
+        }
+      }
+    })
+  ).toThrow()
+})
+
 it("bounds general agent messages by UTF-8 bytes and rejects native output envelopes", () => {
   const record = {
     version: 2,

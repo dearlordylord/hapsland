@@ -20,6 +20,21 @@ export type SourceSnapshot = {
 export type PreparationDiagnostic =
   | {
       readonly stage: "preparation"
+      readonly code: "preparation-analysis-unavailable"
+      readonly args: {
+        readonly reason:
+          | "extension"
+          | "parse"
+          | "import"
+          | "declaration-limit"
+          | "declaration-merge"
+          | "no-declarations"
+          | "constant-only-demand-gap"
+          | "preflight-unavailable"
+      }
+    }
+  | {
+      readonly stage: "preparation"
       readonly code: "preparation-resource-refused"
       readonly args: {
         readonly phase: "capture-workspace" | "materialization"

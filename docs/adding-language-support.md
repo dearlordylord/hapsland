@@ -83,6 +83,14 @@ neither the editor's malformed-input recovery nor its JVM/IntelliJ dependency.
 Compare new lexical examples with the development compiler when changing the
 profile; compiler acceptance and available evidence are separate assertions.
 
+The constructor layout scanner also borrows the declaration-boundary and
+delimited-body approach inspected in bend-idea's `BendSurfaceParser.scala` and
+its `design/parser-experiment/README.md`. This is a BORROW decision, not a
+dependency on the IntelliJ parser. The generated-PSI alternative remains
+unnecessary for this bounded datatype profile. Preserve exact captured source
+and refuse unsupported field expressions rather than treating editor recovery
+as complete review evidence.
+
 Test plausible-looking bindings as well as happy paths:
 
 - Builtin names can be shadowed by declarations, aliases, traits, constructors,

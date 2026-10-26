@@ -377,7 +377,7 @@ function diagnosticLabel(diagnostic) {
     'capture-size-limit': 'Source exceeds capture limit', 'capture-budget-limit': 'Capture budget exhausted',
     'capture-unavailable': 'Capture unavailable', 'capture-unstable': 'Source changed during capture',
     'capture-validation-failed': 'Capture validation refused', 'preparation-resource-refused': 'Preparation capacity refused',
-    'preparation-unavailable': 'Preparation unavailable', 'attribution-unavailable': 'Native edit attribution unavailable',
+    'preparation-unavailable': 'Preparation unavailable', 'preparation-analysis-unavailable': 'Source analysis unavailable', 'attribution-unavailable': 'Native edit attribution unavailable',
     'review-input-invalid': 'Review input could not be built', 'review-input-limit': 'Review input exceeds its size limit',
     'dispatch-unavailable': 'Review dispatch unavailable', 'unsupported-operation': 'Operation outside the supported review profile'
   };

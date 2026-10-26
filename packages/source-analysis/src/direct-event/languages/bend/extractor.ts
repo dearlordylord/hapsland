@@ -124,8 +124,7 @@ type BendScope = {
 const bindingPattern = new RegExp(
   `^(?:@unsafe\\s+)?(type|def|law)\\s+(${namePattern}(?:\\.${namePattern})*)(?=[<(:?\\s]|$)`
 )
-const headerPattern = new RegExp(`^type\\s+(${namePattern})(?:<([^\\n]*)>)?\\s+is\\s+([^:]+):\\s*$`)
-const constructorPattern = new RegExp(`^  (${namePattern})\\{([^{}]*)\\}\\s*$`)
+const headerPattern = new RegExp(`^type\\s+(${namePattern})(?:<([^\\n]*)>)?\\s+is\\s+([^:]+):([\\s\\S]*)$`)
 const parameterPattern = new RegExp(`^\\s*-?(${namePattern})\\s*:\\s*(Data|Type|Quant)\\s*$`)
 const fieldPattern = new RegExp(`^\\s*(${namePattern})\\s*:\\s*(.+?)\\s*$`)
 const collectImport = (scope: BendScope, line: string): ExtractionReason | undefined => {
@@ -135,7 +134,7 @@ const collectImport = (scope: BendScope, line: string): ExtractionReason | undef
     return undefined
   }
   const imported =
-    /^import\s+((?:\.\/|(?:\.\.\/)+)(?:[A-Za-z_][A-Za-z0-9_-]*\/)*[A-Za-z_][A-Za-z0-9_-]*\.bend)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(
+    /^import\s+((?:(?:\.\/|(?:\.\.\/)+))?(?:[A-Za-z_][A-Za-z0-9_-]*\/)*[A-Za-z_][A-Za-z0-9_-]*\.bend)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(
       line
     )
   if (imported === null) {
@@ -262,12 +261,7 @@ const collectConstructorField = (type: BendType, field: string, fieldNames: Set<
 }
 const constructorCollision = (type: BendType, name: string): boolean =>
   type.scope.aliases.has(name) || type.localConstructors.has(name) || type.scope.constructors.has(name)
-const collectConstructor = (type: BendType, line: string): ExtractionReason | undefined => {
-  const constructor = constructorPattern.exec(line)
-  if (constructor === null) {
-    omitTypeReference(type)
-    return undefined
-  }
+const collectConstructor = (type: BendType, constructor: RegExpExecArray): ExtractionReason | undefined => {
   const name = constructor[1]!
   if (constructorCollision(type, name)) return "declaration-merge"
   type.localConstructors.add(name)
@@ -287,11 +281,23 @@ const typeEndRow = (scope: BendScope, row: number): number => {
   while (end > row && (scope.clean[end] ?? "").trim() === "") end--
   return end
 }
-const collectConstructors = (type: BendType, row: number, end: number): ExtractionReason | undefined => {
-  for (let current = row + 1; current <= end; current++) {
-    const line = type.scope.clean[current] ?? ""
-    if (line.trim() === "") continue
-    const reason = collectConstructor(type, line)
+const collectConstructors = (
+  type: BendType,
+  row: number,
+  end: number,
+  inline: string
+): ExtractionReason | undefined => {
+  const constructorPattern = new RegExp(`\\s*(${namePattern})\\s*\\{([^{}]*)\\}`, "y")
+  const body = [inline, ...type.scope.clean.slice(row + 1, end + 1)].join("\n")
+  constructorPattern.lastIndex = 0
+  while (constructorPattern.lastIndex < body.length) {
+    const offset = constructorPattern.lastIndex
+    const constructor = constructorPattern.exec(body)
+    if (constructor === null) {
+      if (body.slice(offset).trim() !== "") omitTypeReference(type)
+      break
+    }
+    const reason = collectConstructor(type, constructor)
     if (reason !== undefined) return reason
   }
   return undefined
@@ -314,7 +320,7 @@ const collectTypeDeclaration = (
   if (scope.uncertainScope) omitTypeReference(type)
   collectParameters(type, header[2])
   if (!/^(Data|Type)$/.test(header[3]!.trim()) && !boundKind(type, header[3]!)) omitTypeReference(type)
-  const reason = collectConstructors(type, row, end)
+  const reason = collectConstructors(type, row, end, header[4] ?? "")
   if (reason !== undefined) return { reason }
   return {
     name: type.name,

@@ -56,6 +56,66 @@ const enabledReview = (
   }).pipe(Effect.provide(controlledDecisionModelLayer(modelOptions)))
 
 describe("direct-event vertical slice", () => {
+  it.effect("prepares compact Bend roots and follows sibling aliases with measured reservations", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "receipt.bend", "import Base\ntype Receipt is Data: Receipt{id: U32}\n"))
+      const source = "import receipt.bend as R\ntype Delivery is Data: Waiting{} Delivered{receipt: R.Receipt}\n"
+      yield* Effect.promise(() => put(root, "delivery.bend", source))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["delivery.bend"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules,
+        inputContract: TYPE_INPUT_CONTRACT,
+        beforeAnalyze: (path, sourceBytes, bounds) =>
+          Effect.sync(() => {
+            expect(path).toBe("delivery.bend")
+            expect(sourceBytes).toBe(Buffer.byteLength(source))
+            expect(bounds.declarations).toBe(1)
+            expect(bounds.expandedUnitBytes).toBeLessThan(10_000)
+            return { status: "admitted" as const }
+          })
+      })
+      const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready")
+      expect(ready).toHaveLength(1)
+      expect(prepared.observation.status).toBe("complete")
+      expect(JSON.stringify(ready)).toContain("Receipt{id: U32}")
+    })
+  )
+
+  it.effect("reports unsupported Bend syntax before requesting a materialization reservation", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() => put(root, "model.bend", "type Broken is Data ???\n"))
+      const observation = yield* adaptCodexDirectEvent(addEvent(root, ["model.bend"]))
+      if (observation === undefined) throw new Error("fixture adaptation failed")
+      let admissions = 0
+      const prepared = yield* prepareObservation(observation, {
+        controlledWriter: true,
+        advicee: observation.advicee,
+        settings,
+        rules: configuredRules,
+        beforeAnalyze: () =>
+          Effect.sync(() => {
+            admissions += 1
+            return { status: "admitted" as const }
+          })
+      })
+      expect(admissions).toBe(0)
+      expect(prepared.observation.outcomes).toEqual([
+        {
+          status: "incomplete",
+          path: "model.bend",
+          diagnostic: { stage: "preparation", code: "preparation-analysis-unavailable", args: { reason: "parse" } }
+        }
+      ])
+      expect(prepared.outcomes.every((outcome) => outcome.status === "skipped")).toBe(true)
+    })
+  )
+
   it.effect("does not call a function-only edit ambiguous in the type branch", () =>
     Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture)
@@ -1050,7 +1110,13 @@ describe("direct-event vertical slice", () => {
         expect(prepared.observation.status).toBe("incomplete")
         expect("changeSet" in prepared.observation).toBe(false)
         const observed = prepared.observation.outcomes.find((outcome) => outcome.status === "observed")
-        expect(observed?.status).toBe("observed")
+        if (observed === undefined) {
+          expect(prepared.observation.outcomes).toContainEqual({
+            status: "incomplete",
+            path: "types.ts",
+            diagnostic: { stage: "preparation", code: "preparation-analysis-unavailable", args: { reason } }
+          })
+        }
         if (observed?.status === "observed") {
           expect(observed.analysis.status).toBe("incomplete")
           if (observed.analysis.status === "incomplete") {

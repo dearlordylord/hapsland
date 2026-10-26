@@ -114,6 +114,22 @@ export const InspectionCaptureDiagnostic = Schema.Union([
 export const InspectionPreparationDiagnostic = Schema.Union([
   Schema.Struct({
     stage: Schema.Literal("preparation"),
+    code: Schema.Literal("preparation-analysis-unavailable"),
+    args: Schema.Struct({
+      reason: Schema.Literals([
+        "extension",
+        "parse",
+        "import",
+        "declaration-limit",
+        "declaration-merge",
+        "no-declarations",
+        "constant-only-demand-gap",
+        "preflight-unavailable"
+      ])
+    })
+  }),
+  Schema.Struct({
+    stage: Schema.Literal("preparation"),
     code: Schema.Literal("preparation-resource-refused"),
     args: Schema.Struct({
       phase: Schema.Literals(["capture-workspace", "materialization"]),

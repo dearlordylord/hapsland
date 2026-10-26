@@ -17,6 +17,50 @@ import type { ResidentReviewExecutionContext } from "@hapsland/resident-transpor
 import type { InspectionRecord } from "@hapsland/inspection-records/inspection/contract"
 
 describe("resident inspection capture", () => {
+  it("records Bend parse refusal without a memory rejection or provider request", async () => {
+    const root = await makeGitFixture()
+    await put(root, "model.bend", "type Broken is Data ???\n")
+    await writeFile(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, rules: connectDefaultRuleFixture(root), sessionInspection: true })
+    )
+    const stored = nativeDeferred<void>()
+    const records: InspectionRecord[] = []
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      inspectionPersistence: {
+        write: (record) =>
+          Effect.sync(() => {
+            records.push(record)
+            if (record.fact.kind === "diagnostic") stored.resolve()
+          })
+      }
+    })
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["model.bend"])))
+    if (observation === undefined) throw new Error("missing edit observation")
+    const response = await Effect.runPromise(
+      server.admit(observation, {
+        statePath: join(root, "consent"),
+        userConfigPath: join(root, "absent-user"),
+        credential: null,
+        controlled: { answers: {} }
+      })
+    )
+    expect(response.status).toBe("accepted")
+    await Effect.runPromise(server.whenIdle())
+    await stored.promise
+    expect(records.filter((record) => record.fact.kind === "diagnostic").map((record) => record.fact)).toEqual([
+      {
+        kind: "diagnostic",
+        path: "model.bend",
+        candidatePosition: 0,
+        diagnostic: { stage: "preparation", code: "preparation-analysis-unavailable", args: { reason: "parse" } }
+      }
+    ])
+    expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(0)
+    expect(records.filter((record) => record.fact.kind === "transport-invoked")).toHaveLength(0)
+    expect(records.filter((record) => record.fact.kind === "model-input")).toHaveLength(0)
+  })
+
   it("reuses the production journal writer across edits instead of rereading every payload", async () => {
     const root = await makeGitFixture()
     await put(root, "first.ts", "type FirstCount = number;\n")

@@ -116,7 +116,7 @@ amend the contracts below.
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and outbound named-type reference graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
-| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and outbound named-type references within the same file or through explicit relative `.bend` alias imports, subject to graph limits | Dependent/computed types, unsupported surface syntax, hub/bare/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and outbound named-type references within the same file or through explicit relative `.bend` alias imports, subject to graph limits | Dependent/computed types, unsupported surface syntax, hub/extensionless/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
 | `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and outbound named-type references within graph limits across verified local Cargo modules | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration or supported immutable const callable in those extensions | Exact signature and body and directly referenced type and named-function graph within graph limits with marked omissions, following local imports the analyzer resolves across selected files | Unbound anonymous functions, methods, overload groups, mutable/dynamic callable bindings, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
@@ -231,8 +231,9 @@ with ordinary or erased `Data`/`Type` parameters, such as
 Explicit `Quant` parameters and bare quantity binders bind quantity arguments
 separately from datatype names. `Kind(q)` parameters and result kinds are admitted
 only when `q` is a bound quantity; computed kinds remain unsupported.
-Constructors use two spaces and one line `Name{field: Type, ...}`; empty
-datatypes and recursive references are permitted. Field types are simple names
+Constructors use `Name{field: Type, ...}` after the header colon or on indented
+lines. Multiple constructors may share a line, and constructor fields may span
+lines. Empty datatypes and recursive references are permitted. Field types are simple names
 or nested named datatype applications with `<...>`, including alias-qualified
 references such as `R.Receipt`. Application arguments may also be the quantity
 literals `&0`, `&1`, `&2`, or an explicitly bound quantity parameter. These
@@ -257,7 +258,7 @@ root. Its own parameters and recursive references resolve in library scope,
 without borrowing project bindings. Other composite Base types, including
 `Maybe`, `Result`, and `Array`, remain unresolved unless declared locally.
 Local bindings take precedence over bundled evidence.
-Leading imports of the form `import ./receipt.bend as R` or
+Leading imports of the form `import receipt.bend as R`, `import ./receipt.bend as R` or
 `import ../shared/receipt.bend as R` bind the first dotted segment of a type
 reference to that file; `R.Receipt` resolves `Receipt` there. Paths use plain
 ASCII name segments (letters, digits, underscores, and hyphens) and a `.bend`
@@ -270,7 +271,7 @@ qualified references cannot resolve as imported evidence. This conservative
 name-only refusal set is generated from the pinned `bend2/base.bend` into
 the same catalog. Review the curated leaf assumptions when the profile changes;
 the catalog identity does not establish arbitrary installed compiler versions. Generic-parameter or earlier-field shadowing makes the affected
-reference unsupported. Unsupported hub, bare, absolute, malformed, or late
+reference unsupported. Unsupported hub, extensionless, absolute, malformed, or late
 imports cannot establish a binding; unsupported leading imports mark every
 root incomplete, while late imports reject the file. Unknown qualified names
 remain unresolved. No cross-language imports provide evidence, and extraction
@@ -288,14 +289,20 @@ can load an import cycle.
 Computed kinds and quantity arguments, other term applications,
 dependent fields, proof/equality terms, function/product/sum types, reusable
 `+` types, and unsupported parameter forms remain explicit omissions.
-Multiline constructors and other indentation styles remain incomplete evidence;
-unsupported headers and unrecognized top-level syntax are outside the
+Unsupported headers and unrecognized top-level syntax are outside the
 profile. Bend defs/laws are not review roots; their bodies are not checked.
 Comments and single/double quoted literals in unrelated bodies cannot introduce
 type declarations or import bindings, and do not prevent eligible datatype
 extraction. Literal-dependent syntax inside a datatype remains incomplete;
 masking literal contents must not manufacture complete type evidence. Exact
 datatype source and coordinates still come from the original captured text.
+
+Failed materialization preflight reports `preparation-analysis-unavailable`
+with its observed extraction reason, or `preflight-unavailable` when a precise
+reason is unavailable. It never substitutes a maximum-size estimate for failed
+analysis. Successful preflight retains measured workspace admission; actual
+capacity refusals report `preparation-resource-refused` with their requested bytes
+and limiting constraint. Source capture limits remain separate diagnostics.
 This lexical isolation does not add malformed-source recovery or syntax checking.
 Extraction does not establish compiler validity,
 termination, law coverage, or proof correctness. Rule evidence gates and all

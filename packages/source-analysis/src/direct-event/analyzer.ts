@@ -185,8 +185,20 @@ export const analyzerMaterializationPreflight = (
 export const combinedAnalyzerMaterializationPreflight = (
   path: string,
   source: string
-): AnalyzerMaterializationPreflight | undefined =>
-  languageForPath(path)?.combinedPreflight(path, source, analyzerMaterializationPreflight(path, source, true))
+):
+  | AnalyzerMaterializationPreflight
+  | TypeExtractionFailure
+  | { readonly status: "unsupported"; readonly reason: "preflight-unavailable" } => {
+  const measured = languageForPath(path)?.combinedPreflight(
+    path,
+    source,
+    analyzerMaterializationPreflight(path, source, true)
+  )
+  if (measured !== undefined) return measured
+  const parsed = parsedDeclarations(path, source, true)
+  if ("status" in parsed && (parsed.reason !== "no-declarations" || languageForPath(path)?.id === "bend")) return parsed
+  return { status: "unsupported", reason: "preflight-unavailable" }
+}
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>
   analyzerMaterializationPreflight(path, source)?.declarations
 

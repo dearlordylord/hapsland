@@ -109,7 +109,7 @@ export type DirectReviewContext = {
   readonly beforeAnalyze?: (
     path: string,
     sourceBytes: number,
-    preflight: AnalyzerMaterializationPreflight | undefined
+    preflight: AnalyzerMaterializationPreflight
   ) => Effect.Effect<MaterializationAdmission>
   readonly beforeDispatch?: Effect.Effect<void>
   readonly beforeHandoff?: Effect.Effect<void>
@@ -479,12 +479,25 @@ const admitCandidateMaterialization = Effect.fn("DirectEvent.admitCandidateMater
 ): Effect.fn.Return<MaterializationAdmission> {
   const prior = rejectedPaths.get(path)
   if (prior !== undefined) return prior
-  if (!materializedPaths.has(path) && context.beforeAnalyze !== undefined) {
-    const admission = yield* context.beforeAnalyze(
-      path,
-      captured.byteLength,
-      combinedAnalyzerMaterializationPreflight(path, captured.text)
-    )
+  if (!materializedPaths.has(path)) {
+    const preflight = combinedAnalyzerMaterializationPreflight(path, captured.text)
+    if ("status" in preflight) {
+      const refusal: Extract<MaterializationAdmission, { status: "refused" }> = {
+        status: "refused",
+        diagnostic: {
+          stage: "preparation",
+          code: "preparation-analysis-unavailable",
+          args: { reason: preflight.reason }
+        }
+      }
+      rejectedPaths.set(path, refusal)
+      return refusal
+    }
+    if (context.beforeAnalyze === undefined) {
+      materializedPaths.add(path)
+      return { status: "admitted" }
+    }
+    const admission = yield* context.beforeAnalyze(path, captured.byteLength, preflight)
     if (admission.status === "refused") {
       rejectedPaths.set(path, admission)
       return admission

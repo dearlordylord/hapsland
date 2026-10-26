@@ -22,14 +22,14 @@ export const captureWorkspaceBytes = (path: string, sourceBytes = MAX_SOURCE_BYT
 export const analysisWorkspaceBytes = (
   path: string,
   sourceBytes: number,
-  preflight: AnalyzerMaterializationPreflight | undefined,
+  preflight: AnalyzerMaterializationPreflight,
   rules: unknown
 ): number => {
-  const declarations = preflight?.declarations ?? MAX_TYPE_DECLARATIONS
+  const declarations = preflight.declarations
   return (
     captureWorkspaceBytes(path, sourceBytes) +
-    (preflight?.hasImports ? IMPORT_GRAPH_WORKSPACE_BYTES : 0) +
-    (preflight?.expandedUnitBytes ?? MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES) +
+    (preflight.hasImports ? IMPORT_GRAPH_WORKSPACE_BYTES : 0) +
+    preflight.expandedUnitBytes +
     declarations * (logicalBytes(rules) + sourceBytes + 4 * logicalBytes(path) + 4096)
   )
 }

@@ -16,14 +16,11 @@ const bytes = (value: unknown): number => Buffer.byteLength(canonicalValue(value
 const path = fc
   .array(fc.constantFrom("a", "/", ".", "é", "🌲", "\\", '"', "\n"), { maxLength: 64 })
   .map((parts) => parts.join(""))
-const preflight = fc.option(
-  fc.record({
-    declarations: fc.integer({ min: 0, max: 2 * MAX_TYPE_DECLARATIONS }),
-    expandedUnitBytes: fc.integer({ min: 0, max: 2 * MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES }),
-    hasImports: fc.boolean()
-  }),
-  { nil: undefined }
-)
+const preflight = fc.record({
+  declarations: fc.integer({ min: 0, max: 2 * MAX_TYPE_DECLARATIONS }),
+  expandedUnitBytes: fc.integer({ min: 0, max: 2 * MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES }),
+  hasImports: fc.boolean()
+})
 const rules = fc.array(fc.record({ question: fc.string({ maxLength: 64 }), enabled: fc.boolean() }), { maxLength: 16 })
 
 it("charges measured empty TypeScript roots without the unknown-declaration fallback", () => {
@@ -31,10 +28,10 @@ it("charges measured empty TypeScript roots without the unknown-declaration fall
   const sourceBytes = Buffer.byteLength(source)
   const facts = combinedAnalyzerMaterializationPreflight("fixture.ts", source)
   expect(facts).toEqual({ declarations: 0, expandedUnitBytes: 0, hasImports: true })
+  if ("status" in facts) throw new Error(facts.reason)
   expect(analysisWorkspaceBytes("fixture.ts", sourceBytes, facts, [])).toBe(
     captureWorkspaceBytes("fixture.ts", sourceBytes) + 8 * 1024 * 1024
   )
-  expect(analysisWorkspaceBytes("fixture.ts", sourceBytes, undefined, [])).toBeGreaterThan(32 * 1024 * 1024)
 })
 
 // Accepted pre-migration conservative bound, used only as an optimization oracle.
@@ -100,7 +97,7 @@ it("keeps source-size charges monotonic and retains the import-graph margin", ()
 
 it("fails closed on invalid measured source sizes", () => {
   for (const source of [-1, 0.5, NaN, Infinity, MAX_SOURCE_BYTES + 1]) {
-    expect(() => analysisWorkspaceBytes("fixture.ts", source, undefined, [])).toThrow(
+    expect(() => analysisWorkspaceBytes("fixture.ts", source, { declarations: 0, expandedUnitBytes: 0 }, [])).toThrow(
       "invalid captured source workspace measurement"
     )
   }

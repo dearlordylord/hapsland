@@ -16,6 +16,24 @@ const analyze = (source: string) => {
 
 describe("bounded Bend datatype extraction", () => {
   it.each([
+    "type Mode is Data: Realtime{} Unlimited{}",
+    "type Mode is Data:\n    Realtime{} Unlimited{}",
+    "type Mode is Data:\n  Realtime{\n    value: U32\n  }\n  Unlimited{}"
+  ])("extracts compiler-supported constructor layout without changing source: %s", (datatype) => {
+    const source = `import Base\n${datatype}\ndef next() -> U32:\n  0\n`
+    const units = analyze(source)
+    expect(units).toHaveLength(1)
+    expect(units[0]).toMatchObject({ status: "ready", unit: { root: { artifact: { source: datatype } } } })
+    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)).toMatchObject({ declarations: 1 })
+  })
+
+  it("resolves sibling imports written without a leading dot", () => {
+    const extracted = extractBendDeclarations("import receipt.bend as R\ntype Root is Data: Root{value: R.Receipt}", 64)
+    if ("reason" in extracted) throw new Error(extracted.reason)
+    expect([...extracted.imports]).toEqual([["R.Receipt", { path: "receipt.bend", name: "Receipt" }]])
+  })
+
+  it.each([
     'def greeting() -> String:\n  "hello # not a comment"',
     'def greeting() -> String:\n  "say \\"hello\\" and type Fake is Data:"',
     "def hash() -> Char:\n  '#'",
@@ -114,7 +132,7 @@ describe("bounded Bend datatype extraction", () => {
       },
       location: { start: { line: 7, column: 1 }, end: { line: 9, column: 30 } }
     })
-    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2)
+    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)).toMatchObject({ declarations: 2 })
   })
 
   it("keeps ordinary Data and Type parameters bound without inventing graph dependencies", () => {
@@ -183,7 +201,7 @@ describe("bounded Bend datatype extraction", () => {
         references: [{ kind: "included", site: { symbol: "List" } }]
       }
     })
-    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)?.declarations).toBe(2)
+    expect(combinedAnalyzerMaterializationPreflight("model.bend", source)).toMatchObject({ declarations: 2 })
   })
 
   it("supports erased type parameters and nested local datatype arguments", () => {
@@ -198,7 +216,7 @@ describe("bounded Bend datatype extraction", () => {
     "type Root is Data:\n  Root{value: Missing}",
     "type Root is Data:\n  Root{value: U32}",
     "import Base\ntype Root is Data:\n  Root{value: Maybe<String>}",
-    "import hub/other.bend as M\ntype Root is Data:\n  Root{}",
+    "import hub@1.0.0/other.bend as M\ntype Root is Data:\n  Root{}",
     "import Base as B\ntype Root is Data:\n  Root{}",
     "type Root is Kind(a):\n  Root{}",
     "type Root<a, -A: Kind(q)> is Data:\n  Root{value: A}",
@@ -211,7 +229,6 @@ describe("bounded Bend datatype extraction", () => {
     "type Root is Data:\n  Root{n: Nat, value: Box<n>}",
     "type Root is Data:\n  Root{value: +List<U32>}",
     "type Root is Data:\n  Root{value: U32, value: U32}",
-    "type Root is Data:\n  Root{\n    value: U32\n  }",
     "import Base\ndef String() -> Data:\n  U32\ntype Root is Data:\n  Root{value: String}",
     "type Root<-A: Data> is Data:\n  Root{A: Data, value: A}"
   ])("preserves omissions for %s", (source) => {
@@ -259,7 +276,7 @@ describe("bounded Bend datatype extraction", () => {
     "import ./one.bend as R\ntype Root<-R: Data> is Data:\n  C{value: R.Receipt}",
     "import ./one.bend as R\ntype Root is Data:\n  C{R: Data, value: R.Receipt}",
     "import /absolute/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}",
-    "import hub/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}"
+    "import hub@1.0.0/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}"
   ])("marks shadowed or unsupported import evidence omitted %s", (source) => {
     const result = extractBendDeclarations(source, 64)
     if (!("declarations" in result)) throw new Error(result.reason)

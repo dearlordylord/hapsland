@@ -24,7 +24,7 @@ describe("initial direct-event TypeScript analyzer", () => {
       status: "unsupported",
       reason: "no-declarations"
     })
-    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = ( {")).toBeUndefined()
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "const run = ( {")).toMatchObject({ status: "unsupported" })
   })
 
   it("reserves const-arrow and Effect callable units without coupling capture caps to unknown fallback", () => {
@@ -33,11 +33,12 @@ describe("initial direct-event TypeScript analyzer", () => {
       'import { Effect } from "effect"; export const run = Effect.fn("run")(function* (value: number) { return value });'
     ]) {
       const measured = combinedAnalyzerMaterializationPreflight("a.ts", source)
-      expect(measured?.declarations).toBe(1)
-      expect(measured?.expandedUnitBytes).toBeGreaterThan(0)
+      if ("status" in measured) throw new Error(measured.reason)
+      expect(measured.declarations).toBe(1)
+      expect(measured.expandedUnitBytes).toBeGreaterThan(0)
     }
     const many = Array.from({ length: MAX_TYPE_DECLARATIONS + 1 }, (_, i) => `const f${i} = () => ${i};`).join("\n")
-    expect(combinedAnalyzerMaterializationPreflight("a.ts", many)).toBeUndefined()
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", many)).toMatchObject({ status: "unsupported" })
   })
 
   it("reserves all type and function roots in a mixed file", () => {
@@ -48,18 +49,19 @@ describe("initial direct-event TypeScript analyzer", () => {
     )
     const mixed = combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions].join("\n"))
     const typeOnly = combinedAnalyzerMaterializationPreflight("a.ts", oneType)
-    expect(mixed?.declarations).toBe(MAX_TYPE_DECLARATIONS)
-    expect(mixed?.expandedUnitBytes).toBeGreaterThan(typeOnly?.expandedUnitBytes ?? 0)
+    if ("status" in mixed || "status" in typeOnly) throw new Error("preflight failed")
+    expect(mixed.declarations).toBe(MAX_TYPE_DECLARATIONS)
+    expect(mixed.expandedUnitBytes).toBeGreaterThan(typeOnly.expandedUnitBytes)
     expect(
       combinedAnalyzerMaterializationPreflight("a.ts", [oneType, ...functions, "function extra() {}"].join("\n"))
-    ).toBeUndefined()
+    ).toMatchObject({ status: "unsupported" })
   })
 
   it("reserves function-only input and rejects malformed source", () => {
     expect(combinedAnalyzerMaterializationPreflight("a.ts", "function run() { return 1 }")).toMatchObject({
       declarations: 1
     })
-    expect(combinedAnalyzerMaterializationPreflight("a.ts", "function run( {")).toBeUndefined()
+    expect(combinedAnalyzerMaterializationPreflight("a.ts", "function run( {")).toMatchObject({ status: "unsupported" })
   })
 
   it.each(["ts", "tsx", "mts", "cts"])("accepts one named reference-free .%s declaration", (extension) => {
