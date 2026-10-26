@@ -600,6 +600,42 @@ for (const trace of deliveryFixture.traces) {
   assert.deepEqual({ slots, counters }, trace.delivery, trace.name)
   if (trace.submissions) assert.deepEqual(submissions, trace.submissions, trace.name)
 }
+// Exercise each write result through the emitted Bend ABI, including shared constructor names.
+const terminalTrace = deliveryFixture.traces[0].events
+const terminalIndex = terminalTrace.findIndex((event) => event.kind === "finishTerminal")
+const terminalEvent = terminalTrace.find((event) => event.expect === "finishRecorded:unknown")
+assert.ok(terminalIndex >= 0 && terminalEvent)
+for (const [outcome, phase] of [
+  ["acknowledged", "submitted"],
+  ["failed", "failed"],
+  ["unknown", "uncertain"]
+]) {
+  let current = initialCanonical(fixture.limits)
+  for (const { expect: _, ...event } of terminalTrace.slice(0, terminalIndex))
+    current = stepCanonical(current, event).state
+  const { expect: _, ...terminal } = terminalEvent
+  const result = stepCanonical(current, { ...terminal, outcome })
+  assert.equal(result.rejection, undefined, `${outcome}: terminal accepted`)
+  assert.deepEqual(
+    result.outputs,
+    [{ category: "event", kind: "finishRecorded", outcome }],
+    `${outcome}: result preserved`
+  )
+  assert.equal(projectCanonical(result.state).delivery.slots[0]?.phase, phase, `${outcome}: delivery phase`)
+  if (outcome === "failed") {
+    const released = stepCanonical(result.state, { kind: "submissionRelease", advice: 10, token: terminal.token })
+    assert.equal(released.outputs[0]?.kind, "submissionReleased", "failed write releases its submission")
+    const ended = stepCanonical(released.state, {
+      kind: "finishEnd",
+      group: terminal.group,
+      round: terminal.round,
+      attempt: terminal.attempt,
+      token: terminal.token
+    })
+    assert.equal(ended.outputs[0]?.kind, "finishEnded", "failed write can finish after releasing its submission")
+    assert.deepEqual(projectCanonical(ended.state).delivery.slots, [])
+  }
+}
 const submissionFixture = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-submission-v1.json"), "utf8")
 )

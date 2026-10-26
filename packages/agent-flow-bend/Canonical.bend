@@ -3544,24 +3544,20 @@ def finish_terminal_result(state: State, outcome: WriteOutcome,
     case CollectionState.Refused{_}:
       Advanced{state, PolicyDecided{FinishRefused{}} <> Nil{}}
 
+def finish_phase(outcome: WriteOutcome) -> DeliveryState.Phase:
+  match outcome:
+    case Acknowledged{}: DeliveryState.Submitted{}
+    case Failed{}: DeliveryState.Failed{}
+    case Unknown{}: DeliveryState.Uncertain{}
+
 def finish_terminal(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat, selected: List<&2, Nat>,
-    outcome: WriteOutcome) -> Step:
+    +outcome: WriteOutcome) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      match outcome:
-        case Acknowledged{}:
-          finish_terminal_result(state, outcome,
-            CollectionState.finish_terminal(collection, group, round,
-              attempt, token, selected, DeliveryState.Submitted{}))
-        case Failed{}:
-          finish_terminal_result(state, outcome,
-            CollectionState.finish_terminal(collection, group, round,
-              attempt, token, selected, DeliveryState.Failed{}))
-        case Unknown{}:
-          finish_terminal_result(state, outcome,
-            CollectionState.finish_terminal(collection, group, round,
-              attempt, token, selected, DeliveryState.Uncertain{}))
+      finish_terminal_result(state, outcome,
+        CollectionState.finish_terminal(collection, group, round,
+          attempt, token, selected, finish_phase(outcome)))
 
 def finish_end(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat) -> Step:
