@@ -9,7 +9,7 @@
 **Lifecycle:** Update with state, driver, ABI or check changes; review when runner ownership changes or a candidate law receives an owner decision.
 -->
 
-Generation and optional native/proof checks require the same exact **Bend 2.0.38**
+Generation and optional native/proof checks require the same exact **Bend 2.0.39**
 compiler declared by `packages/agent-flow-bend/package.json`. Install it with
 `node scripts/install-bend-toolchain.mjs` and add the printed Bend/Lean directories
 to `PATH`. The Engine receipt records the compiler version; older artifacts cannot

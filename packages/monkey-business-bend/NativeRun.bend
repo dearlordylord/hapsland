@@ -3429,12 +3429,24 @@ def emitter_actions(
 def freshness_result(
   state: T.State,
   +job: Maybe<&2, T.Job>,
-  admitted: Engine.FreshnessAdmission
+  admitted: List<&2, Engine.FreshnessAdmission>
 ) -> T.State:
   match admitted:
-    case Engine.FreshnessAdmission{updated, _, actions}: emitter_actions(
+    case Engine.FreshnessAdmission{updated, _, actions} <> _: emitter_actions(
       actions, replace_core(state, updated), job_partition(job), [original_source(job)]
     )
+    case Nil{}: invalid(state)
+
+def freshness_admission_box(
+  reuse: Bool,
+  state: EngineTypes.State,
+  scope: FreshnessScenario.Scope,
+  source: FreshnessScenario.Source,
+  command: Canonical.Output
+) -> List<&2, Engine.FreshnessAdmission>:
+  match reuse:
+    case True{}: [Engine.sharing_admitted(state, scope, source, command)]
+    case False{}: [Engine.freshness_admitted(state, scope, source, command)]
 
 def freshness_source(
   source: Maybe<&2, FreshnessScenario.Source>,
@@ -3449,11 +3461,8 @@ def freshness_source(
       freshness_result(
         state,
         job,
-        Bool.pick(
-          Engine.FreshnessAdmission,
-          runtime_reuse(runtime(state)),
-          Engine.sharing_admitted(core(state), scope, source, command),
-          Engine.freshness_admitted(core(state), scope, source, command)
+        freshness_admission_box(
+          runtime_reuse(runtime(state)), core(state), scope, source, command
         )
       )
 

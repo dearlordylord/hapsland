@@ -43,7 +43,7 @@ for (const [name, artifact] of [
       )
       assert.equal(result.error, undefined)
       assert.equal(result.status, 1)
-      assert.match(result.stderr, /requires exact Bend 2\.0\.38; observed bend 2\.0\.35/)
+      assert.match(result.stderr, /requires exact Bend 2\.0\.39; observed bend 2\.0\.35/)
       assert.doesNotMatch(result.stderr, /unexpected compilation/)
       assert.deepEqual(readFileSync(artifactPath), before)
     } finally {
@@ -82,7 +82,7 @@ for (const [name, generator, artifacts] of [
       })
       assert.ifError(result.error)
       assert.equal(result.status, 1)
-      assert.match(result.stderr, /requires exact bend 2\.0\.38; observed bend 2\.0\.35/)
+      assert.match(result.stderr, /requires exact bend 2\.0\.39; observed bend 2\.0\.35/)
       assert.doesNotMatch(result.stderr, /unexpected compilation/)
       artifacts.forEach((file, index) => assert.deepEqual(readFileSync(join(root, file)), before[index]))
     }

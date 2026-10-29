@@ -571,7 +571,7 @@ the selected identity through [the compiler context](../scripts/compiler-context
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. Its independent `Bend proofs` job installs checksum-pinned Bend 2.0.38
+`master`. Its independent `Bend proofs` job installs checksum-pinned Bend 2.0.39
 and Lean 4.34.0 and runs the progress, journey and content-isolation proofs and
 semantic mutants. It does not wait for native inputs or install workspace dependencies.
 The runtime job requires both this job and native inputs to pass, installs only
@@ -589,8 +589,8 @@ are rejected. The stage records contain the actual selected arguments.
 The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
 first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
 progress proof with Bend’s bundled kernel before the harness starts.
-Bend 2.0.38 is pinned to the upstream release source revision
-`0a57ca0d21de94a3724d8be21afb0eb89f88b4d8`; its kernel requires Lean 4.34.0.
+Bend 2.0.39 is pinned to the upstream release source revision
+`a3efe8a3801f423827424227172eed9802c5e6cb`; its kernel requires Lean 4.34.0.
 Run the installer once and add its printed bin directories to `PATH` for local
 `npm test`. The explicit `--github-actions` mode in `docs:install` installs this
 proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation

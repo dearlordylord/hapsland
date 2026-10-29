@@ -10847,6 +10847,16 @@ function $___agent_flow_bend_Canonical_finish_terminal_result(_state_0, _outcome
   }
 }
 
+function $___agent_flow_bend_Canonical_finish_phase(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.Acknowledged") {
+    return {$: "DeliveryState.Submitted"};
+  } else if (_outcome_0.$ === "Canonical.Failed") {
+    return {$: "DeliveryState.Failed"};
+  } else {
+    return {$: "DeliveryState.Uncertain"};
+  }
+}
+
 function $___agent_flow_bend_Canonical_finish_terminal(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
@@ -10857,13 +10867,7 @@ function $___agent_flow_bend_Canonical_finish_terminal(_state_0, _group_0, _roun
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_outcome_0.$ === "Canonical.Acknowledged") {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Acknowledged"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"})));
-  } else if (_outcome_0.$ === "Canonical.Failed") {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "DeliveryState.Failed"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Failed"})));
-  } else {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Unknown"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"})));
-  }
+  return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, _outcome_0, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, ($___agent_flow_bend_Canonical_finish_phase(_outcome_0)))));
 }
 
 function $___agent_flow_bend_Canonical_finish_end(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -29817,7 +29821,7 @@ function $List_contains_0_c24(_t_0,_x_0) {
     return $List_contains_0(_t_0, _x_0);
   }
 }
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:af1a857e0fcdd6c42db101bd291b812b9a5370ebfbb9650d80c9bb628183407b";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:5c1d4cdd0c6f936cf425a7ca4a1c7ef619da636fc734dadf30c0a797f5fc3819";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:82d517ada54edc4f9d73e08250583064e188c06c31810ab96e8da60d3806a93b";
 
 const facts = value => {

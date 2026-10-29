@@ -1,8 +1,8 @@
 {
   "library": "bend/Base",
-  "compilerVersion": "2.0.38",
-  "compilerSource": "0a57ca0d21de94a3724d8be21afb0eb89f88b4d8",
-  "moduleHash": "2da042974826279cf216cbe009a201bf14a6875747d7f5caf43ccf200b066f26",
+  "compilerVersion": "2.0.39",
+  "compilerSource": "a3efe8a3801f423827424227172eed9802c5e6cb",
+  "moduleHash": "3cd0b0944b11e15c4da5c9af2560e3c04f27d3d37027f1617899aeec17b499ce",
   "namespacePrefixes": [
     "ALeaf",
     "ANode",

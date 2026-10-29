@@ -70,7 +70,7 @@ export function bendJavaScriptRuntime(raw, entry) {
   const tree = parse(raw, { sourceType: "module" }),
     { modules, constructors } = sourceBook(entry)
   const exported = tree.program.body.find((n) => n.type === "ExportDefaultDeclaration")
-  if (exported?.declaration.type !== "ObjectExpression") throw Error("Bend 2.0.38 default export layout changed")
+  if (exported?.declaration.type !== "ObjectExpression") throw Error("Bend 2.0.39 default export layout changed")
   const symbols = new Map(),
     contexts = new Map()
   for (const property of exported.declaration.properties) {

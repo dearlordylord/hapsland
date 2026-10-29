@@ -24,7 +24,7 @@ function fixture(t) {
   writeFileSync(join(prototypeDir, "header.h"), "// native header\n")
   writeFileSync(join(bendDirectory, "base.bend"), "// base runtime\n")
   writeFileSync(join(bin, "bend"), `#!/bin/sh
-if [ "$1" = version ]; then printf '%s\\n' "bend \${CACHE_TEST_VERSION:-2.0.38}"; exit; fi
+if [ "$1" = version ]; then printf '%s\\n' "bend \${CACHE_TEST_VERSION:-2.0.39}"; exit; fi
 printf 'build\\n' >> "$CACHE_TEST_COUNT"
 if [ -n "$CACHE_TEST_MUTATE" ]; then printf '// changed\\n' >> "$CACHE_TEST_MUTATE"; fi
 cat > "$3" <<'GAME'
@@ -62,7 +62,7 @@ test("tool versions, compiler contents, flags and wrapper code invalidate reuse"
   const f = fixture(t)
   const first = f.run()
   f.environment.CACHE_TEST_VERSION = "2.0.35"
-  assert.throws(f.run, /requires exact bend 2\.0\.38; observed bend 2\.0\.35/)
+  assert.throws(f.run, /requires exact bend 2\.0\.39; observed bend 2\.0\.35/)
   assert.equal(f.count(), 1)
   delete f.environment.CACHE_TEST_VERSION
   writeFileSync(join(f.bin, "clang"), '#!/bin/sh\nprintf "Apple clang version 21.0.1\\n"\n')
@@ -114,7 +114,7 @@ function bankFixture(t) {
   const f = fixture(t)
   f.environment.HAPSLAND_GAME_CPU_BANK = "1"
   writeFileSync(join(f.bin, "bend"), `#!/bin/sh
-if [ "$1" = version ]; then echo 'bend 2.0.38'; exit; fi
+if [ "$1" = version ]; then echo 'bend 2.0.39'; exit; fi
 printf 'build\\n' >> "$CACHE_TEST_COUNT"
 cat > "$3" <<'C'
 #define WL_BANK Term r0, r1;
@@ -173,7 +173,7 @@ test("failed compiler stops its linker descendants before removing staging", asy
   const linker = join(f.root, "delayed-linker.cjs")
   writeFileSync(linker, `setTimeout(() => require("node:fs").writeFileSync(process.argv[2], "linked"), 600)`)
   writeFileSync(join(f.bin, "bend"), `#!/bin/sh
-if [ "$1" = version ]; then echo 'bend 2.0.38'; exit; fi
+if [ "$1" = version ]; then echo 'bend 2.0.39'; exit; fi
 "$CACHE_TEST_NODE" "$CACHE_TEST_LINKER" "$CACHE_TEST_MARKER" </dev/null >/dev/null 2>&1 &
 exit 1
 `, { mode: 0o755 })

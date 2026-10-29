@@ -12523,6 +12523,16 @@ function $___agent_flow_bend_Canonical_finish_terminal_result(_state_0, _outcome
   }
 }
 
+function $___agent_flow_bend_Canonical_finish_phase(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.Acknowledged") {
+    return {$: "DeliveryState.Submitted"};
+  } else if (_outcome_0.$ === "Canonical.Failed") {
+    return {$: "DeliveryState.Failed"};
+  } else {
+    return {$: "DeliveryState.Uncertain"};
+  }
+}
+
 function $___agent_flow_bend_Canonical_finish_terminal(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
@@ -12533,13 +12543,7 @@ function $___agent_flow_bend_Canonical_finish_terminal(_state_0, _group_0, _roun
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_outcome_0.$ === "Canonical.Acknowledged") {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Acknowledged"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"})));
-  } else if (_outcome_0.$ === "Canonical.Failed") {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "DeliveryState.Failed"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Failed"})));
-  } else {
-    return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Unknown"}, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"})));
-  }
+  return $___agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, _outcome_0, ($___agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, ($___agent_flow_bend_Canonical_finish_phase(_outcome_0)))));
 }
 
 function $___agent_flow_bend_Canonical_finish_end(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -32684,9 +32688,22 @@ function $NativeRun_emitter_actions($0, $1, $2, $3) {
 }
 
 function $NativeRun_freshness_result(_state_0, _job_0, _admitted_0) {
-  const _updated_0 = _admitted_0["state"];
-  const _actions_0 = _admitted_0["actions"];
-  return $NativeRun_emitter_actions(_actions_0, ($NativeRun_replace_core(_state_0, _updated_0)), ($NativeRun_job_partition(_job_0)), {$: "Con", "head": ($NativeRun_original_source(_job_0)), "tail": {$: "Nil"}});
+  if (_admitted_0.$ === "Con") {
+    const _t_0 = _admitted_0["head"];
+    const _updated_0 = _t_0["state"];
+    const _actions_0 = _t_0["actions"];
+    return $NativeRun_emitter_actions(_actions_0, ($NativeRun_replace_core(_state_0, _updated_0)), ($NativeRun_job_partition(_job_0)), {$: "Con", "head": ($NativeRun_original_source(_job_0)), "tail": {$: "Nil"}});
+  } else {
+    return $NativeRun_invalid(_state_0);
+  }
+}
+
+function $NativeRun_freshness_admission_box(_reuse_0, _state_0, _scope_0, _source_0, _command_0) {
+  if (_reuse_0) {
+    return {$: "Con", "head": ($Engine_sharing_admitted(_state_0, _scope_0, _source_0, _command_0)), "tail": {$: "Nil"}};
+  } else {
+    return {$: "Con", "head": ($Engine_freshness_admitted(_state_0, _scope_0, _source_0, _command_0)), "tail": {$: "Nil"}};
+  }
 }
 
 function $NativeRun_freshness_source(_source_0, _state_0, _job_0, _scope_0, _command_0) {
@@ -32694,7 +32711,7 @@ function $NativeRun_freshness_source(_source_0, _state_0, _job_0, _scope_0, _com
     return _state_0;
   } else {
     const _source_1 = _source_0["value"];
-    return $NativeRun_freshness_result(_state_0, _job_0, ($Bool_pick(($NativeRun_runtime_reuse(($NativeRun_runtime(_state_0)))), ($Engine_sharing_admitted(($NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)), ($Engine_freshness_admitted(($NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)))));
+    return $NativeRun_freshness_result(_state_0, _job_0, ($NativeRun_freshness_admission_box(($NativeRun_runtime_reuse(($NativeRun_runtime(_state_0)))), ($NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)));
   }
 }
 
@@ -38600,7 +38617,7 @@ function $List_contains_0_c30(_t_0,_x_0) {
     return $List_contains_0(_t_0, _x_0);
   }
 }
-export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:654a3ef33587b76e63a316bb0a3bb6893114040533f49149982df4e97b457539";
+export const SOURCE_IDENTITY = "shared-monkey-business-runner-sha256:d484e1b249b26b17eaa29a3b25276607a5e759a1c0b594700b3f16ed84000692";
 const facts = value => {
   if (typeof value === "bigint") { if (value < 0n || value >= 281474976710656n) throw new RangeError("invalid immediate Nat"); return Number(value); }
   if (typeof value === "number") { if (!Number.isSafeInteger(value) || value < 0 || value >= 281474976710656) throw new RangeError("invalid immediate Nat"); return value; }

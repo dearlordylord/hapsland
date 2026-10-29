@@ -7,7 +7,7 @@ import { join } from "node:path"
 import { deriveBendBaseEvidence, generateBendBaseEvidence } from "./generate-bend-base-evidence.mjs"
 
 const declaration = "type List<a, -A: Kind(a)> is Kind(a):\n  Nil{}\n  Con{head: A, tail: List<a, A>}"
-const compiler = { version: "2.0.38", source: "0a57ca0d21de94a3724d8be21afb0eb89f88b4d8" }
+const compiler = { version: "2.0.39", source: "a3efe8a3801f423827424227172eed9802c5e6cb" }
 
 test("bundled evidence retains the exact compiler declaration and excludes unrelated definitions", () => {
   const model = deriveBendBaseEvidence(

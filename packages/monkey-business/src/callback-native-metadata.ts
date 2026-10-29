@@ -5722,7 +5722,7 @@ export const callbackNativeOwnerSources = [
   },
   {
     path: "packages/agent-flow-bend/Canonical.bend",
-    sha256: "a97981445c38b7e88ea2dac1a5510a5674d92340fb1e4e1ecb9f553160d910f8"
+    sha256: "dcd29ef70b18196a0481a5b78295884ff0b48288f929ebb7e027600ddeef9f76"
   },
   {
     path: "packages/agent-flow-bend/CollectionState.bend",

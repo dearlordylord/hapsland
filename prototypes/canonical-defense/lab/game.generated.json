@@ -1,8 +1,8 @@
 {
   "format": 1,
-  "compiler": "Bend 2.0.38: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:bc787d4b38339677a25846f3c8ee89d8600f619d556b15c566adad0e5707abf7",
-  "moduleIdentity": "sha256:87ebe494284938e56cf8a783e4a662e7f270f760be4f07ec94026e81ace33e4a",
+  "compiler": "Bend 2.0.39: check, run, build and publish Bend programs.",
+  "sourceIdentity": "sha256:485cac4ba3d9067b527cb9a53d1de6f428e594c36c49f2b8e9580599abc49567",
+  "moduleIdentity": "sha256:0ae1ceaa4f77b77fd58d5fc7579a06721bb0855fd89fb040fe70622737d22e71",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",

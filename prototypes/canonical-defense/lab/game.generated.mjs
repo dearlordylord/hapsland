@@ -10847,6 +10847,16 @@ function $______packages_agent_flow_bend_Canonical_finish_terminal_result(_state
   }
 }
 
+function $______packages_agent_flow_bend_Canonical_finish_phase(_outcome_0) {
+  if (_outcome_0.$ === "Canonical.Acknowledged") {
+    return {$: "DeliveryState.Submitted"};
+  } else if (_outcome_0.$ === "Canonical.Failed") {
+    return {$: "DeliveryState.Failed"};
+  } else {
+    return {$: "DeliveryState.Uncertain"};
+  }
+}
+
 function $______packages_agent_flow_bend_Canonical_finish_terminal(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _outcome_0) {
   const __0 = _state_0["ledger"];
   const __1 = _state_0["rounds"];
@@ -10857,13 +10867,7 @@ function $______packages_agent_flow_bend_Canonical_finish_terminal(_state_0, _gr
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  if (_outcome_0.$ === "Canonical.Acknowledged") {
-    return $______packages_agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Acknowledged"}, ($______packages_agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"})));
-  } else if (_outcome_0.$ === "Canonical.Failed") {
-    return $______packages_agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "DeliveryState.Failed"}, ($______packages_agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Failed"})));
-  } else {
-    return $______packages_agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, {$: "Canonical.Unknown"}, ($______packages_agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"})));
-  }
+  return $______packages_agent_flow_bend_Canonical_finish_terminal_result({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, _outcome_0, ($______packages_agent_flow_bend_CollectionState_finish_terminal(_collection_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, ($______packages_agent_flow_bend_Canonical_finish_phase(_outcome_0)))));
 }
 
 function $______packages_agent_flow_bend_Canonical_finish_end(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
@@ -32915,9 +32919,22 @@ function $______packages_monkey_business_bend_NativeRun_emitter_actions($0, $1, 
 }
 
 function $______packages_monkey_business_bend_NativeRun_freshness_result(_state_0, _job_0, _admitted_0) {
-  const _updated_0 = _admitted_0["state"];
-  const _actions_0 = _admitted_0["actions"];
-  return $______packages_monkey_business_bend_NativeRun_emitter_actions(_actions_0, ($______packages_monkey_business_bend_NativeRun_replace_core(_state_0, _updated_0)), ($______packages_monkey_business_bend_NativeRun_job_partition(_job_0)), {$: "Con", "head": ($______packages_monkey_business_bend_NativeRun_original_source(_job_0)), "tail": {$: "Nil"}});
+  if (_admitted_0.$ === "Con") {
+    const _t_0 = _admitted_0["head"];
+    const _updated_0 = _t_0["state"];
+    const _actions_0 = _t_0["actions"];
+    return $______packages_monkey_business_bend_NativeRun_emitter_actions(_actions_0, ($______packages_monkey_business_bend_NativeRun_replace_core(_state_0, _updated_0)), ($______packages_monkey_business_bend_NativeRun_job_partition(_job_0)), {$: "Con", "head": ($______packages_monkey_business_bend_NativeRun_original_source(_job_0)), "tail": {$: "Nil"}});
+  } else {
+    return $______packages_monkey_business_bend_NativeRun_invalid(_state_0);
+  }
+}
+
+function $______packages_monkey_business_bend_NativeRun_freshness_admission_box(_reuse_0, _state_0, _scope_0, _source_0, _command_0) {
+  if (_reuse_0) {
+    return {$: "Con", "head": ($______packages_monkey_business_bend_Engine_sharing_admitted(_state_0, _scope_0, _source_0, _command_0)), "tail": {$: "Nil"}};
+  } else {
+    return {$: "Con", "head": ($______packages_monkey_business_bend_Engine_freshness_admitted(_state_0, _scope_0, _source_0, _command_0)), "tail": {$: "Nil"}};
+  }
 }
 
 function $______packages_monkey_business_bend_NativeRun_freshness_source(_source_0, _state_0, _job_0, _scope_0, _command_0) {
@@ -32925,7 +32942,7 @@ function $______packages_monkey_business_bend_NativeRun_freshness_source(_source
     return _state_0;
   } else {
     const _source_1 = _source_0["value"];
-    return $______packages_monkey_business_bend_NativeRun_freshness_result(_state_0, _job_0, ($Bool_pick(($______packages_monkey_business_bend_NativeRun_runtime_reuse(($______packages_monkey_business_bend_NativeRun_runtime(_state_0)))), ($______packages_monkey_business_bend_Engine_sharing_admitted(($______packages_monkey_business_bend_NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)), ($______packages_monkey_business_bend_Engine_freshness_admitted(($______packages_monkey_business_bend_NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)))));
+    return $______packages_monkey_business_bend_NativeRun_freshness_result(_state_0, _job_0, ($______packages_monkey_business_bend_NativeRun_freshness_admission_box(($______packages_monkey_business_bend_NativeRun_runtime_reuse(($______packages_monkey_business_bend_NativeRun_runtime(_state_0)))), ($______packages_monkey_business_bend_NativeRun_core(_state_0)), _scope_0, _source_1, _command_0)));
   }
 }
 
@@ -48367,6 +48384,7 @@ const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "../../packages/agent-flow-bend/Canonical:finish_release": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_Canonical_finish_release(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4))), 5),
   "../../packages/agent-flow-bend/Canonical:finish_authorize": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($______packages_agent_flow_bend_Canonical_finish_authorize(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4),a5)), 6),
   "../../packages/agent-flow-bend/Canonical:finish_terminal_result": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_Canonical_finish_terminal_result(a0,a1,a2)), 3),
+  "../../packages/agent-flow-bend/Canonical:finish_phase": run_lib((a0) => run_loop($______packages_agent_flow_bend_Canonical_finish_phase(a0)), 1),
   "../../packages/agent-flow-bend/Canonical:finish_terminal": run_lib((a0,a1,a2,a3,a4,a5,a6) => run_loop($______packages_agent_flow_bend_Canonical_finish_terminal(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4),a5,a6)), 7),
   "../../packages/agent-flow-bend/Canonical:finish_end": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_agent_flow_bend_Canonical_finish_end(a0,nat_in(a1),nat_in(a2),nat_in(a3),nat_in(a4))), 5),
   "../../packages/agent-flow-bend/Canonical:continuation_consume": run_lib((a0,a1,a2) => run_loop($______packages_agent_flow_bend_Canonical_continuation_consume(a0,nat_in(a1),nat_in(a2))), 3),
@@ -50343,6 +50361,7 @@ const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "../../packages/monkey-business-bend/NativeRun:emitter_source": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_NativeRun_emitter_source(a0,a1,nat_in(a2))), 3),
   "../../packages/monkey-business-bend/NativeRun:emitter_actions": run_lib((a0,a1,a2,a3) => run_loop($______packages_monkey_business_bend_NativeRun_emitter_actions(a0,a1,nat_in(a2),a3)), 4),
   "../../packages/monkey-business-bend/NativeRun:freshness_result": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_NativeRun_freshness_result(a0,a1,a2)), 3),
+  "../../packages/monkey-business-bend/NativeRun:freshness_admission_box": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_monkey_business_bend_NativeRun_freshness_admission_box(a0,a1,a2,a3,a4)), 5),
   "../../packages/monkey-business-bend/NativeRun:freshness_source": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_monkey_business_bend_NativeRun_freshness_source(a0,a1,a2,a3,a4)), 5),
   "../../packages/monkey-business-bend/NativeRun:freshness_job": run_lib((a0,a1,a2,a3,a4) => run_loop($______packages_monkey_business_bend_NativeRun_freshness_job(a0,a1,a2,a3,a4)), 5),
   "../../packages/monkey-business-bend/NativeRun:admitted_freshness": run_lib((a0,a1,a2) => run_loop($______packages_monkey_business_bend_NativeRun_admitted_freshness(a0,a1,a2)), 3),

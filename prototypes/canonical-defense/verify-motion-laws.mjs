@@ -23,7 +23,7 @@ for (const file of files) receipt.sources[file] = createHash("sha256").update(re
 const baseDirectory = process.env.BEND_DIR ?? join(dirname(dirname(bend)), "bend2")
 const kernelSource = join(baseDirectory, "bendtt.lean")
 const kernelHash = createHash("sha256").update(readFileSync(kernelSource)).digest("hex")
-// Bend 2.0.38 includes its Lean toolchain in the cache key. Locate the
+// Bend 2.0.39 includes its Lean toolchain in the cache key. Locate the
 // prepared kernel by its exact bundled source rather than guessing that key.
 const kernelCache = join(homedir(), ".bend/bendtt")
 const matchingKernels = readdirSync(kernelCache).map((entry) => join(kernelCache, entry)).filter((entry) => {

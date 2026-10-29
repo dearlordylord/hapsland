@@ -62,7 +62,7 @@ function fixture(failCompile = false) {
   writeFileSync(files.effect, "/* original Base effect */\n")
   writeFileSync(
     files.bend,
-    `#!${process.execPath}\nimport { writeFileSync } from 'node:fs';\nconst args=process.argv.slice(2);\nif(process.env.BEND_NO_TELEMETRY !== '1') throw new Error('Compiler update check must be disabled');\nif(args[0]==='version') console.log('bend 2.0.38');\nelse { writeFileSync(args[2], 'fresh C'); writeFileSync(${JSON.stringify(files.emitted)},args[2]); }\n`
+    `#!${process.execPath}\nimport { writeFileSync } from 'node:fs';\nconst args=process.argv.slice(2);\nif(process.env.BEND_NO_TELEMETRY !== '1') throw new Error('Compiler update check must be disabled');\nif(args[0]==='version') console.log('bend 2.0.39');\nelse { writeFileSync(args[2], 'fresh C'); writeFileSync(${JSON.stringify(files.emitted)},args[2]); }\n`
   )
   const compileBody = failCompile
     ? "process.exit(23);"
@@ -224,7 +224,7 @@ it("refuses a previous session after its creating process has exited", () => {
 
 it("rejects an older Bend compiler before native preparation", () => {
   const test = fixture()
-  writeFileSync(test.files.bend, readFileSync(test.files.bend, "utf8").replace("bend 2.0.38", "bend 2.0.35"))
-  expect(() => test.create()).toThrow("requires exact bend 2.0.38; observed bend 2.0.35")
+  writeFileSync(test.files.bend, readFileSync(test.files.bend, "utf8").replace("bend 2.0.39", "bend 2.0.35"))
+  expect(() => test.create()).toThrow("requires exact bend 2.0.39; observed bend 2.0.35")
   expect(existsSync(test.files.emitted)).toBe(false)
 })
