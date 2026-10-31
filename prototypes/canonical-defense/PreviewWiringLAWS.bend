@@ -43,7 +43,7 @@ law scene_consumes_preview:
   for +rest: List<&2, F.Rect>
   {
     Render.preview_layer(world, preview, rest)
-    == P.overlay(world, preview, P.live_layer(world, rest))
+    == Render.defeat_layer(M.defeated(world), world, P.overlay(world, preview, P.live_layer(world, rest)))
     : List<&2, F.Rect>
   }
 law body_position:
