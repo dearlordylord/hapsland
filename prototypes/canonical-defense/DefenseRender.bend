@@ -1789,9 +1789,17 @@ def living_activity_line(+world: M.World) -> String:
   )
 
 def activity_line(+world: M.World) -> String:
-  Bool.pick(String, M.defeated(world),
+  Bool.pick(
+    String,
+    M.defeated(world),
     "DEFEATED / CHOOSE RESTART OR SANDBOX",
-    Bool.pick(String, M.sandbox(world), "SANDBOX / HEALTH DISABLED / " ++ living_activity_line(world), living_activity_line(world)))
+    Bool.pick(
+      String,
+      M.sandbox(world),
+      "SANDBOX / HEALTH DISABLED / " ++ living_activity_line(world),
+      living_activity_line(world)
+    )
+  )
 
 def access_line(env: NativeTypes.Environment) -> String:
   match env:
@@ -1967,17 +1975,77 @@ def base_scene(+world: M.World) -> List<&2, F.Rect>:
   )
 
 def defeat_panel(rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
-  F.text("DEFEATED", 240, 252, 4, 16768133,
-    F.text("SHARED RESOURCE OVERLOADED", 240, 306, 2, 15124059,
-      F.text("HEALTH 0 / SIMULATION STOPPED", 240, 338, 1, 15124059,
-        F.text("YOUR MONSTERS AND TOWERS ARE STILL HERE", 240, 356, 1, 15124059,
-          F.text("R  RESTART", 264, 430, 2, 16777215,
-            F.text("C  CONTINUE IN SANDBOX", 504, 430, 1, 16777215,
-              F.text("START A NEW WORLD", 264, 485, 1, 12439239,
-                F.text("SAME WORLD / NO HEALTH DAMAGE", 504, 485, 1, 12439239,
-                  F.put(Session.restart_left(), Session.button_top(), Session.restart_width(), Session.button_height(), 7941680,
-                    F.put(Session.continue_left(), Session.button_top(), Session.continue_width(), Session.button_height(), 2582371,
-                      F.put(208, 220, 608, 300, 1713445, rest)))))))))))
+  F.text(
+    "DEFEATED",
+    240,
+    252,
+    4,
+    16768133,
+    F.text(
+      "SHARED RESOURCE OVERLOADED",
+      240,
+      306,
+      2,
+      15124059,
+      F.text(
+        "HEALTH 0 / SIMULATION STOPPED",
+        240,
+        338,
+        1,
+        15124059,
+        F.text(
+          "YOUR MONSTERS AND TOWERS ARE STILL HERE",
+          240,
+          356,
+          1,
+          15124059,
+          F.text(
+            "R  RESTART",
+            264,
+            430,
+            2,
+            16777215,
+            F.text(
+              "C  CONTINUE IN SANDBOX",
+              504,
+              430,
+              2,
+              16777215,
+              F.text(
+                "START A NEW WORLD",
+                264,
+                485,
+                1,
+                12439239,
+                F.text(
+                  "SAME WORLD / NO HEALTH DAMAGE",
+                  504,
+                  485,
+                  1,
+                  12439239,
+                  F.put(
+                    Session.restart_left(),
+                    Session.button_top(),
+                    Session.restart_width(),
+                    Session.button_height(),
+                    7941680,
+                    F.put(
+                      Session.continue_left(),
+                      Session.button_top(),
+                      Session.continue_width(),
+                      Session.button_height(),
+                      2582371,
+                      F.put(208, 220, 608, 300, 1713445, rest)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
 def defeat_layer(defeated: Bool, world: M.World, rest: List<&2, F.Rect>) -> List<&2, F.Rect>:
   match defeated:
     case True{}: defeat_panel(rest)
@@ -1988,7 +2056,11 @@ def preview_layer(
   preview: Preview.Preview,
   rest: List<&2, F.Rect>
 ) -> List<&2, F.Rect>:
-  defeat_layer(M.defeated(world), world, TowerPreview.overlay(world, preview, TowerPreview.live_layer(world, rest)))
+  defeat_layer(
+    M.defeated(world),
+    world,
+    TowerPreview.overlay(world, preview, TowerPreview.live_layer(world, rest))
+  )
 def scene(~base: @+state:M.World -> List<&2, F.Rect>, +world: M.World) -> List<&2, F.Rect>:
   preview_layer(world, Preview.calculate(world), base(world))
 

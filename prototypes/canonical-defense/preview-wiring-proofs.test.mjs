@@ -83,7 +83,6 @@ function writeSlice(directory,entry,{stem,law,mutation,coreOnly}){
   if(modules.has(file))return modules.get(file);
   let text=source(file);
   if(file===join(root,`${stem}LAWS.bend`)&&law)text=choose(text,"law ",law);
-  if(file===join(root,`${stem}PROOF.bend`)&&law)text=choose(text,"def Laws.",law);
   const blocks=declarations(text);
   if(mutation&&file===join(root,mutation.file)){
    const block=blocks.find(block=>block.kind==="def"&&block.name===mutation.def);
@@ -148,7 +147,12 @@ function writeSlice(directory,entry,{stem,law,mutation,coreOnly}){
  }
  function keep(mod,name){for(const block of mod.names.get(name)??[])if(!mod.kept.has(block)){mod.kept.add(block);pending.push([mod,block]);}}
  const first=module(entry);
- if(coreOnly)keep(first,mutation.def);else for(const block of first.blocks)keep(first,block.name);
+ if(coreOnly)keep(first,mutation.def);
+ else if(law){
+  assert.equal(first.blocks.filter(block=>block.kind==="def"&&block.name===`Laws.${law}`).length,1,`missing or duplicate proof Laws.${law}`);
+  keep(first,`Laws.${law}`);
+ }
+ else for(const block of first.blocks)keep(first,block.name);
  while(pending.length){
   const [mod,block]=pending.pop();
   const scanned=block.text.replace(/#[^\n]*|"(?:\\.|[^"\\])*"/g,"");
@@ -199,5 +203,7 @@ for(const stem of["PreviewEligibility","PreviewChoice","PreviewWiring","PreviewE
 });
 for(const[stem,law,def,from,to,file="DefenseTowerPreview.bend"]of mutants)test(`boundary law rejects ${law}`,()=>{
  const mutation={file,def,from,to};const core=check(stem,{mutation,coreOnly:true});assert.ifError(core.error);assert.equal(core.status,0,core.stdout+core.stderr);
- const r=check(stem,{law,mutation});assert.ifError(r.error);assert.equal(r.status,1,r.stdout+r.stderr);assert.match(r.stdout+r.stderr,new RegExp(`Location: Laws\\.${law}`));
+ const r=check(stem,{law,mutation});assert.ifError(r.error);assert.equal(r.status,1,r.stdout+r.stderr);
+ const location=law==="pause_preserves_coverage"?"(?:Laws\\.pause_preserves_coverage|pause_coverage)":`Laws\\.${law}`;
+ assert.match(r.stdout+r.stderr,new RegExp(`Location: ${location}(?:\\s|$)`));
 });

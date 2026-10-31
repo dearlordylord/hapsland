@@ -50,13 +50,16 @@ test("continue keeps the exact world and resumes it with zero health and no dama
  assert.equal(towerCount(world),1)
  assert.match(G.diagnostics(world),/^SANDBOX=YES /)
  assert.notEqual(G.placement(world),6,"sandbox permits prebuild at HP0")
+ const built=G.click(G.key(world,50),147,386)
+ assert.equal(towerCount(built),2,"sandbox permits construction at HP0")
+ assert.equal(built.gold,world.gold-40)
  const after=G.ticks(1200,G.key(world,97))
  assert.ok(G.time(after)>G.time(world))
  assert.equal(G.health(after),0)
  assert.equal(G.sandbox(after),true,"all ordinary Control rebuilders preserve sandbox")
  assert.equal(G.health(G.ticks(200,G.set_health(world,100))),100,"sandbox disables damage even when health is positive")
  assert.equal(G.health(G.damage(G.set_health(world,100))),100)
- assert.notEqual(G.lab_upgrade(world).result.$,"Dead")
+ assert.equal(G.lab_upgrade(world).result.$,"Applied")
 })
 
 test("modal buttons and keys agree, and restart restores health and ordinary mode",()=>{
