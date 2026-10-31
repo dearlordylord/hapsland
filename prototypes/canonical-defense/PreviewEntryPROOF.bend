@@ -23,11 +23,38 @@ def Laws.coverage_ignores_buildability(preview): {==}
 def Laws.constructed_range_uses_physics(world, tower): {==}
 def Laws.prebuild_matches_constructed(world): {==}
 def Laws.selected_range_is_drawn(world, tower, rest): {==}
-def pause_coverage(defeated: Bool, world: M.World, tower: M.Tower) ->
-  {P.available(H.key_when(defeated, world, 112), tower) == P.available(world, tower) : List<&2, CB.Target>}:
+def pause_coverage(
+  defeated: Bool,
+  world: M.World,
+  tower: M.Tower
+) -> {
+  P.available(H.key_when(defeated, world, 112), tower)
+  == P.available(world, tower)
+  : List<&2, CB.Target>
+}:
   match defeated world:
     case True{} _: {==}
-    case False{} M.World{core, t, p, l, c, g, h, ts, a, o, r, cl, d, Nil{}, x, y, selected, work, flash}: {==}
+    case False{} M.World{
+      core,
+      t,
+      p,
+      l,
+      c,
+      g,
+      h,
+      ts,
+      a,
+      o,
+      r,
+      cl,
+      d,
+      Nil{},
+      x,
+      y,
+      selected,
+      work,
+      flash
+    }: {==}
     case False{} M.World{
       core,
       t,

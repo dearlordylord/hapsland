@@ -702,7 +702,10 @@ def build_tuned(
           (power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32),
           Bool.and(
             placement_valid(world, x, y),
-            Bool.and((g >= tower_cost(kind) : U32), Bool.and(Mechanics.valid(kind), M.playable(world)))
+            Bool.and(
+              (g >= tower_cost(kind) : U32),
+              Bool.and(Mechanics.valid(kind), M.playable(world))
+            )
           )
         ),
         (

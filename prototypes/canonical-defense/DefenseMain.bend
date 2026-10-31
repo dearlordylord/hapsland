@@ -89,7 +89,15 @@ def event_step(frame: FrameState, event: Event) -> FrameState:
     case Frame{world, last, _, quit, 2, held} Key{112, True{}}: Frame{world, last, 0, quit, 1, held}
     case frame _: frame
 
-def mouse_record(restart: Bool, file: File, world: M.World, x: U32, y: U32, path: String, header: String) -> IO(File):
+def mouse_record(
+  restart: Bool,
+  file: File,
+  world: M.World,
+  x: U32,
+  y: U32,
+  path: String,
+  header: String
+) -> IO(File):
   match restart:
     case True{}: Recording.reset(file, path, header, M.layout(world))
     case False{}: Recording.append(file, Recording.Entry{2, x, y})
