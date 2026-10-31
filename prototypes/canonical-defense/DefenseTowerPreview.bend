@@ -199,7 +199,7 @@ def upgrade_living_note(+world: M.World, +tower: M.Tower) -> String:
 def upgrade_note(+world: M.World, tower: M.Tower) -> String:
   Bool.pick(
     String,
-    U32.is_eq(M.hp(world), 0),
+    M.defeated(world),
     "DEFEATED / NO UPGRADE",
     upgrade_living_note(world, tower)
   )

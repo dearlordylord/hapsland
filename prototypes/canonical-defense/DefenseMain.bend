@@ -1,5 +1,6 @@
 # Native host clock/input and recording only. Actual Host remains state authority.
 import Base
+import ./DefenseSession.bend as Session
 import ./DefenseModel.bend as M
 import ./DefenseHost.bend as H
 import ./DefenseRecording.bend as Recording
@@ -88,6 +89,11 @@ def event_step(frame: FrameState, event: Event) -> FrameState:
     case Frame{world, last, _, quit, 2, held} Key{112, True{}}: Frame{world, last, 0, quit, 1, held}
     case frame _: frame
 
+def mouse_record(restart: Bool, file: File, world: M.World, x: U32, y: U32, path: String, header: String) -> IO(File):
+  match restart:
+    case True{}: Recording.reset(file, path, header, M.layout(world))
+    case False{}: Recording.append(file, Recording.Entry{2, x, y})
+
 def event_record(
   file: File,
   +frame: FrameState,
@@ -108,10 +114,9 @@ def event_record(
       file,
       Recording.Entry{1, code, 0}
     )
-    case Frame{_, _, _, _, 0, held} Mouse{x, y, 0, True{}}: Recording.append(
-      file,
-      Recording.Entry{2, x, y}
-    )
+    case Frame{+world, _, _, _, 0, held} Mouse{+x, +y, 0, True{}}: mouse_record(
+      M.defeated(world_value(world)) && U32.is_eq(Session.click_code(x, y), 114),
+      file, world_value(world), x, y, path, header)
     case Frame{_, _, _, _, 0, held} Move{x, y}: Recording.append(file, Recording.Entry{3, x, y})
     case _ _: IO.pure(File, file)
 
@@ -167,7 +172,7 @@ def clock_step(+now: Nat, frame: FrameState) -> FrameState:
         world_value(world),
         carry,
         U32.from_nat(Nat.sub(now, last)),
-        M.active(world_value(world)) && Bool.not(M.paused(world_value(world))),
+        H.clock_active(world_value(world)),
         held
       )
 
@@ -226,7 +231,7 @@ def finish_at(+now: Nat, file: File, +frame: FrameState) -> IO(File & FrameState
   match frame:
     case Frame{world, _, _, False{}, 0, held}:
       clock_record(
-        M.active(world_value(world)) && Bool.not(M.paused(world_value(world))),
+        H.clock_active(world_value(world)),
         now,
         file,
         frame

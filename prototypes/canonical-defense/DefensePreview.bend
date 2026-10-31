@@ -115,7 +115,7 @@ def calculate(+world: M.World) -> Preview:
   Preview{
     guarded_status(
       M.selected(world),
-      (M.hp(world) > 0 : U32),
+      M.playable(world),
       Mechanics.valid(kind),
       H.placement_valid(world, x, y),
       (M.gold(world) >= cost : U32),

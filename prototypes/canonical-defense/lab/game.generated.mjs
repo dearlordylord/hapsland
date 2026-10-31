@@ -177,6 +177,77 @@ function io_eff(k, run) {
 // Program
 // =======
 
+function $DefenseSession_sandbox(_mode_0) {
+  if (_mode_0.$ === "DefenseSession.Normal") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function $DefenseSession_playable(_mode_0, _hp_0) {
+  const _x_0 = ($DefenseSession_sandbox(_mode_0));
+  const _x_1 = (_hp_0 > 0);
+  return (_x_0 || _x_1);
+}
+
+function $DefenseSession_defeated(_mode_0, _hp_0) {
+  return $Bool_not(($DefenseSession_playable(_mode_0, _hp_0)));
+}
+
+function $DefenseSession_continue_mode(_mode_0, _hp_0) {
+  if (_mode_0.$ === "DefenseSession.Normal") {
+    if (_hp_0 == 0) {
+      return {$: "DefenseSession.Sandbox"};
+    } else {
+      return {$: "DefenseSession.Normal"};
+    }
+  } else {
+    return _mode_0;
+  }
+}
+
+function $DefenseSession_damage_total(_mode_0, _total_0) {
+  return $Bool_pick(($DefenseSession_sandbox(_mode_0)), 0, _total_0);
+}
+
+function $DefenseSession_button_top() {
+  return 410;
+}
+
+function $DefenseSession_button_height() {
+  return 56;
+}
+
+function $DefenseSession_restart_left() {
+  return 240;
+}
+
+function $DefenseSession_restart_width() {
+  return 220;
+}
+
+function $DefenseSession_continue_left() {
+  return 484;
+}
+
+function $DefenseSession_continue_width() {
+  return 300;
+}
+
+function $DefenseSession_inside(_x_0, _y_0, _left_0, _width_0) {
+  const _x_1 = ((_left_0 + _width_0) >>> 0);
+  const _x_2 = ($DefenseSession_button_top());
+  const _x_3 = ($DefenseSession_button_top());
+  const _x_4 = ($DefenseSession_button_height());
+  const _x_5 = ((_x_3 + _x_4) >>> 0);
+  return $Bool_and(($Bool_and(($Bool_and((_x_0 >= _left_0), (_x_0 < _x_1))), (_y_0 >= _x_2))), (_y_0 < _x_5));
+}
+
+function $DefenseSession_click_code(_x_0, _y_0) {
+  return $Bool_pick(($DefenseSession_inside(_x_0, _y_0, ($DefenseSession_restart_left()), ($DefenseSession_restart_width()))), 114, ($Bool_pick(($DefenseSession_inside(_x_0, _y_0, ($DefenseSession_continue_left()), ($DefenseSession_continue_width()))), 99, 0)));
+}
+
 function $______packages_monkey_business_bend_Numeric_high(_value_0) {
   const _high_0 = _value_0["high"];
   return _high_0;
@@ -37333,7 +37404,7 @@ function $DefenseModel_config_settings(_config_0) {
 }
 
 function $DefenseModel_initial_control() {
-  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": ($DefenseAuto_initial()), "tail": {$: "Nil"}}, "pace": 30000, "cues": {$: "Nil"}, "actors": {$: "Nil"}, "settings": {$: "Con", "head": ($DefenseModel_config_settings(($DefenseConsumer_config()))), "tail": {$: "Nil"}}, "rules": {$: "Con", "head": ($DefenseRulePolicy_initial()), "tail": {$: "Nil"}}, "submissions": 0, "mobs": {$: "Nil"}};
+  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": ($DefenseAuto_initial()), "tail": {$: "Nil"}}, "pace": 30000, "cues": {$: "Nil"}, "actors": {$: "Nil"}, "settings": {$: "Con", "head": ($DefenseModel_config_settings(($DefenseConsumer_config()))), "tail": {$: "Nil"}}, "rules": {$: "Con", "head": ($DefenseRulePolicy_initial()), "tail": {$: "Nil"}}, "submissions": 0, "mobs": {$: "Nil"}, "mode": {$: "DefenseSession.Normal"}};
 }
 
 function $DefenseModel_control_value(_items_0) {
@@ -37367,7 +37438,8 @@ function $DefenseModel_control_with_schedule(_control_0, _schedule_0) {
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": _schedule_0, "tail": {$: "Nil"}}, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": {$: "Con", "head": _schedule_0, "tail": {$: "Nil"}}, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_control_pace(_control_0) {
@@ -37383,7 +37455,8 @@ function $DefenseModel_control_with_pace(_control_0, _pace_0) {
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_number(_n_0) {
@@ -37719,7 +37792,8 @@ function $DefenseModel_control_with_cues(_control_0, _cues_0) {
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_cues(_world_0) {
@@ -37743,7 +37817,8 @@ function $DefenseModel_control_with_actors(_control_0, _actors_0) {
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_actors(_world_0) {
@@ -37780,7 +37855,8 @@ function $DefenseModel_with_settings(_control_0, _settings_0) {
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": {$: "Con", "head": _settings_0, "tail": {$: "Nil"}}, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": {$: "Con", "head": _settings_0, "tail": {$: "Nil"}}, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_base_jev(_settings_0) {
@@ -37840,7 +37916,8 @@ function $DefenseModel_control_with_rules(_control_0, _rules_0) {
   const _settings_0 = _control_0["settings"];
   const _submissions_0 = _control_0["submissions"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": {$: "Con", "head": _rules_0, "tail": {$: "Nil"}}, "submissions": _submissions_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": {$: "Con", "head": _rules_0, "tail": {$: "Nil"}}, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_with_rules(_world_0, _rules_0) {
@@ -37869,7 +37946,8 @@ function $DefenseModel_control_with_submissions(_control_0, _value_0) {
   const _settings_0 = _control_0["settings"];
   const _rules_0 = _control_0["rules"];
   const _mobs_0 = _control_0["mobs"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _value_0, "mobs": _mobs_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _value_0, "mobs": _mobs_0, "mode": _mode_0};
 }
 
 function $DefenseModel_with_submissions(_world_0, _value_0) {
@@ -37889,7 +37967,8 @@ function $DefenseModel_control_with_mobs(_control_0, _value_0) {
   const _settings_0 = _control_0["settings"];
   const _rules_0 = _control_0["rules"];
   const _submissions_0 = _control_0["submissions"];
-  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _value_0};
+  const _mode_0 = _control_0["mode"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _value_0, "mode": _mode_0};
 }
 
 function $DefenseModel_mobs(_world_0) {
@@ -37898,6 +37977,43 @@ function $DefenseModel_mobs(_world_0) {
 
 function $DefenseModel_with_mobs(_world_0, _value_0) {
   return $DefenseModel_with_control(_world_0, ($DefenseModel_control_with_mobs(($DefenseModel_control(_world_0)), _value_0)));
+}
+
+function $DefenseModel_control_mode(_control_0) {
+  const _mode_0 = _control_0["mode"];
+  return _mode_0;
+}
+
+function $DefenseModel_mode(_world_0) {
+  return $DefenseModel_control_mode(($DefenseModel_control(_world_0)));
+}
+
+function $DefenseModel_sandbox(_world_0) {
+  return $DefenseSession_sandbox(($DefenseModel_mode(_world_0)));
+}
+
+function $DefenseModel_playable(_world_0) {
+  return $DefenseSession_playable(($DefenseModel_mode(_world_0)), ($DefenseModel_hp(_world_0)));
+}
+
+function $DefenseModel_defeated(_world_0) {
+  return $DefenseSession_defeated(($DefenseModel_mode(_world_0)), ($DefenseModel_hp(_world_0)));
+}
+
+function $DefenseModel_control_with_mode(_control_0, _mode_0) {
+  const _schedule_0 = _control_0["schedule"];
+  const _pace_0 = _control_0["pace"];
+  const _cues_0 = _control_0["cues"];
+  const _actors_0 = _control_0["actors"];
+  const _settings_0 = _control_0["settings"];
+  const _rules_0 = _control_0["rules"];
+  const _submissions_0 = _control_0["submissions"];
+  const _mobs_0 = _control_0["mobs"];
+  return {$: "DefenseModel.Control", "schedule": _schedule_0, "pace": _pace_0, "cues": _cues_0, "actors": _actors_0, "settings": _settings_0, "rules": _rules_0, "submissions": _submissions_0, "mobs": _mobs_0, "mode": _mode_0};
+}
+
+function $DefenseModel_with_mode(_world_0, _mode_0) {
+  return $DefenseModel_with_control(_world_0, ($DefenseModel_control_with_mode(($DefenseModel_control(_world_0)), _mode_0)));
 }
 
 function $DefenseMap_px(_point_0) {
@@ -45034,10 +45150,9 @@ function $DefenseTowerFire_fire_ready(_alive_0, _valid_0, _ready_0, _world_0, _i
 }
 
 function $DefenseTowerFire_fire(_world_0, _index_0, _tower_0, _wanted_0) {
-  const _x_0 = ($DefenseModel_hp(_world_0));
-  const _x_1 = ($DefenseModel_time(_world_0));
-  const _x_2 = ($DefenseModel_ready_at(_tower_0));
-  return $DefenseTowerFire_fire_ready((_x_0 > 0), ($DefenseMechanics_valid(($DefenseModel_tkind(_tower_0)))), (_x_1 >= _x_2), _world_0, _index_0, _tower_0, _wanted_0);
+  const _x_0 = ($DefenseModel_time(_world_0));
+  const _x_1 = ($DefenseModel_ready_at(_tower_0));
+  return $DefenseTowerFire_fire_ready(($DefenseModel_playable(_world_0)), ($DefenseMechanics_valid(($DefenseModel_tkind(_tower_0)))), (_x_0 >= _x_1), _world_0, _index_0, _tower_0, _wanted_0);
 }
 
 function $DefenseTowerFire_recorded_targets(_items_0, _index_0) {
@@ -45665,7 +45780,7 @@ function $DefenseHost_damage(_world_0) {
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
   const _x_1 = ($DefenseHost_residual_damage({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0}));
-  const _total_0 = ((_work_0 + _x_1) >>> 0);
+  const _total_0 = ($DefenseSession_damage_total(($DefenseModel_mode({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _work_0, "damageFlash": _flash_0})), ((_work_0 + _x_1) >>> 0)));
   const _hit_0 = ($Bool_and((_total_0 >= 10000), (_h_0 > 0)));
   const _remainder_0 = (10000 === 0 ? _total_0 : _total_0 % 10000);
   return {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": ($DefenseModel_sub(_h_0, ($Bool_to_u32(_hit_0)))), "towers": _towers_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _x_0, "mouseY": _y_0, "selected": _selected_0, "damageWork": _remainder_0, "damageFlash": ($Bool_pick(_hit_0, 10, ($DefenseModel_sub(_flash_0, 1))))};
@@ -45679,13 +45794,11 @@ function $DefenseHost_drained(_world_0) {
 }
 
 function $DefenseHost_run_status(_world_0) {
-  const _x_0 = ($DefenseModel_hp(_world_0));
-  return $Bool_pick((_x_0 === 0), 3, ($Bool_pick(($DefenseModel_auto(_world_0)), 1, 0)));
+  return $Bool_pick(($DefenseModel_defeated(_world_0)), 3, ($Bool_pick(($DefenseModel_auto(_world_0)), 1, 0)));
 }
 
 function $DefenseHost_clock_active(_world_0) {
-  const _x_0 = ($DefenseModel_hp(_world_0));
-  return $Bool_and(($Bool_and(($DefenseModel_active(_world_0)), ($Bool_not(($DefenseModel_paused(_world_0)))))), (_x_0 > 0));
+  return $Bool_and(($Bool_and(($DefenseModel_active(_world_0)), ($Bool_not(($DefenseModel_paused(_world_0)))))), ($DefenseModel_playable(_world_0)));
 }
 
 function $DefenseHost_controlled(_world_0, _result_0) {
@@ -46129,7 +46242,7 @@ function $DefenseHost_tick_when_manual(_active_0, _world_0) {
   if (_active_0) {
     return $DefenseHost_ticking_observed(_world_0);
   } else {
-    return {$: "DefenseHost.TickObserved", "world": ($DefenseHost_playback_when(($Bool_and(($DefenseModel_active(_world_0)), ($Bool_not(($DefenseModel_paused(_world_0)))))), _world_0)), "frames": {$: "Nil"}, "physical": {$: "Nil"}, "transport": {$: "Nil"}};
+    return {$: "DefenseHost.TickObserved", "world": ($DefenseHost_playback_when(($DefenseHost_clock_active(_world_0)), _world_0)), "frames": {$: "Nil"}, "physical": {$: "Nil"}, "transport": {$: "Nil"}};
   }
 }
 
@@ -46296,8 +46409,7 @@ function $DefenseHost_upgrade_when(_alive_0, _world_0) {
 }
 
 function $DefenseHost_upgrade(_world_0) {
-  const _x_0 = ($DefenseModel_hp(_world_0));
-  return $DefenseHost_upgrade_when((_x_0 > 0), _world_0);
+  return $DefenseHost_upgrade_when(($DefenseModel_playable(_world_0)), _world_0);
 }
 
 function $DefenseHost_reset_found(_world_0, _layout_0) {
@@ -46475,8 +46587,36 @@ function $DefenseHost_key_workload(_world_0, _code_0) {
   }
 }
 
-function $DefenseHost_key(_world_0, _code_0) {
+function $DefenseHost_ordinary_key(_world_0, _code_0) {
   return $DefenseHost_key_result(($DefenseHost_key_workload(($DefenseHost_key_fields(_world_0, _code_0, ($DefenseHost_key_map(_world_0, _code_0)), ($DefenseHost_key_schedule(_world_0, _code_0)))), _code_0)), _code_0);
+}
+
+function $DefenseHost_continue_sandbox(_world_0) {
+  return $DefenseHost_key_fields(($DefenseModel_with_mode(_world_0, ($DefenseSession_continue_mode(($DefenseModel_mode(_world_0)), ($DefenseModel_hp(_world_0)))))), ($Bool_pick(($DefenseModel_paused(_world_0)), 112, 0)), ($DefenseModel_layout(_world_0)), ($DefenseModel_schedule(_world_0)));
+}
+
+function $DefenseHost_defeated_key(_world_0, _code_0) {
+  if (_code_0 == 114) {
+    return $DefenseHost_reset_layout(($DefenseModel_layout(_world_0)));
+  } else if ((_code_0 & 1) == 0) {
+    return _world_0;
+  } else if (_code_0 == 99) {
+    return $DefenseHost_continue_sandbox(_world_0);
+  } else {
+    return _world_0;
+  }
+}
+
+function $DefenseHost_key_when(_defeated_0, _world_0, _code_0) {
+  if (_defeated_0) {
+    return $DefenseHost_defeated_key(_world_0, _code_0);
+  } else {
+    return $DefenseHost_ordinary_key(_world_0, _code_0);
+  }
+}
+
+function $DefenseHost_key(_world_0, _code_0) {
+  return $DefenseHost_key_when(($DefenseModel_defeated(_world_0)), _world_0, _code_0);
 }
 
 function $DefenseHost_snap(_value_0) {
@@ -46556,16 +46696,28 @@ function $DefenseHost_build_tuned(_world_0, _x_0, _y_0, _kind_0, _power_0, _radi
   const _work_0 = _world_0["damageWork"];
   const _flash_0 = _world_0["damageFlash"];
   const _x_1 = ($DefenseHost_tower_cost(_kind_0));
-  return $DefenseHost_pick_world(($Bool_and(($Bool_and(($Bool_and(($Bool_and((_power_0 >= 1), (_power_0 <= 16))), (_radius_0 >= 20))), (_radius_0 <= 240))), ($Bool_and(($DefenseHost_placement_valid({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0}, _x_0, _y_0)), ($Bool_and((_g_0 >= _x_1), ($Bool_and(($DefenseMechanics_valid(_kind_0)), (_h_0 > 0))))))))), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel_sub(_g_0, ($DefenseHost_tower_cost(_kind_0)))), "hp": _h_0, "towers": {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost_snap(_x_0)), "y": ($DefenseHost_snap(_y_0)), "kind": _kind_0, "level": 1, "power": _power_0, "radius": _radius_0, "readyAt": 0}, "tail": _ts_0}, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": 0, "damageWork": _work_0, "damageFlash": _flash_0}, {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0});
+  return $DefenseHost_pick_world(($Bool_and(($Bool_and(($Bool_and(($Bool_and((_power_0 >= 1), (_power_0 <= 16))), (_radius_0 >= 20))), (_radius_0 <= 240))), ($Bool_and(($DefenseHost_placement_valid({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0}, _x_0, _y_0)), ($Bool_and((_g_0 >= _x_1), ($Bool_and(($DefenseMechanics_valid(_kind_0)), ($DefenseModel_playable({$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0})))))))))), {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": ($DefenseModel_sub(_g_0, ($DefenseHost_tower_cost(_kind_0)))), "hp": _h_0, "towers": {$: "Con", "head": {$: "DefenseModel.Tower", "x": ($DefenseHost_snap(_x_0)), "y": ($DefenseHost_snap(_y_0)), "kind": _kind_0, "level": 1, "power": _power_0, "radius": _radius_0, "readyAt": 0}, "tail": _ts_0}, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": 0, "damageWork": _work_0, "damageFlash": _flash_0}, {$: "DefenseModel.World", "engine": _core_0, "clock": _t_0, "paused": _p_0, "layout": _l_0, "choice": _c_0, "gold": _g_0, "hp": _h_0, "towers": _ts_0, "active": _a_0, "offered": _o_0, "rejected": _r_0, "clear": _cl_0, "delivered": _d_0, "auto": _auto_0, "mouseX": _mx_0, "mouseY": _my_0, "selected": __0, "damageWork": _work_0, "damageFlash": _flash_0});
 }
 
 function $DefenseHost_build(_world_0, _x_0, _y_0, _kind_0) {
   return $DefenseHost_build_tuned(_world_0, _x_0, _y_0, _kind_0, 1, ($DefenseMechanics_base_radius(_kind_0)));
 }
 
-function $DefenseHost_click(_world_0, _x_0, _y_0) {
+function $DefenseHost_ordinary_click(_world_0, _x_0, _y_0) {
   const _index_0 = ($DefenseHost_tower_hit(($DefenseModel_towers(_world_0)), _x_0, _y_0, 1));
   return $DefenseHost_pick_world((_index_0 > 0), ($DefenseHost_select(($DefenseHost_move(_world_0, _x_0, _y_0)), _index_0)), ($DefenseHost_build(($DefenseHost_move(_world_0, _x_0, _y_0)), _x_0, _y_0, ($DefenseModel_choice(_world_0)))));
+}
+
+function $DefenseHost_click_when(_defeated_0, _world_0, _x_0, _y_0) {
+  if (_defeated_0) {
+    return $DefenseHost_defeated_key(_world_0, ($DefenseSession_click_code(_x_0, _y_0)));
+  } else {
+    return $DefenseHost_ordinary_click(_world_0, _x_0, _y_0);
+  }
+}
+
+function $DefenseHost_click(_world_0, _x_0, _y_0) {
+  return $DefenseHost_click_when(($DefenseModel_defeated(_world_0)), _world_0, _x_0, _y_0);
 }
 
 function $DefenseHost_preview_tower(_x_0, _y_0, _kind_0) {
@@ -46772,9 +46924,8 @@ function $build_parameters(_valid_0, _world_0, _x_0, _y_0, _kind_0, _price_0, _p
   if (!_valid_0) {
     return {$: "Receipt", "world": _world_0, "result": {$: "InvalidParameters"}, "charged": 0};
   } else {
-    const _x_1 = ($DefenseModel_hp(_world_0));
-    const _x_2 = ($DefenseModel_gold(_world_0));
-    return $build_checked((_x_1 === 0), ($Bool_not(($DefenseMechanics_valid(_kind_0)))), ($Bool_not(($DefenseHost_placement_valid(_world_0, _x_0, _y_0)))), (_x_2 < _price_0), _world_0, _x_0, _y_0, _kind_0, _price_0, _power_0, _radius_0);
+    const _x_1 = ($DefenseModel_gold(_world_0));
+    return $build_checked(($DefenseModel_defeated(_world_0)), ($Bool_not(($DefenseMechanics_valid(_kind_0)))), ($Bool_not(($DefenseHost_placement_valid(_world_0, _x_0, _y_0)))), (_x_1 < _price_0), _world_0, _x_0, _y_0, _kind_0, _price_0, _power_0, _radius_0);
   }
 }
 
@@ -46865,8 +47016,7 @@ function $apply(_world_0, _action_0) {
     return $build(_world_0, _x_0, _y_0, _kind_0);
   } else if (_action_0.$ === "Upgrade") {
     const _index_0 = _action_0["index"];
-    const _x_1 = ($DefenseModel_hp(_world_0));
-    return $upgrade_alive((_x_1 > 0), _world_0, _index_0);
+    return $upgrade_alive(($DefenseModel_playable(_world_0)), _world_0, _index_0);
   } else {
     const _index_1 = _action_0["index"];
     const _operation_0 = _action_0["operation"];
@@ -47011,6 +47161,22 @@ function $shot_targets(_world_0, _index_0, _operation_0) {
   return $shot_targets_found(($DefenseHost_selected_tower(($DefenseModel_towers(_world_0)), _index_0)), _world_0, _operation_0);
 }
 
+function $Bool_not(_b_0) {
+  if (!_b_0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Bool_pick(_c_0, _a_0, _b_0) {
+  if (!_c_0) {
+    return _b_0;
+  } else {
+    return _a_0;
+  }
+}
+
 function $Bool_and(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -47027,28 +47193,12 @@ function $Nat_is_gt(_a_0, _b_0) {
   return $Cmp_is_gt(cmp_new(_a_0, _b_0));
 }
 
-function $Bool_not(_b_0) {
-  if (!_b_0) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function $Nat_div(_a_0, _b_0) {
   return $Pair_fst(nat_divmod(_a_0, _b_0));
 }
 
 function $Nat_mod(_a_0, _b_0) {
   return $Pair_snd(nat_divmod(_a_0, _b_0));
-}
-
-function $Bool_pick(_c_0, _a_0, _b_0) {
-  if (!_c_0) {
-    return _b_0;
-  } else {
-    return _a_0;
-  }
 }
 
 function $Nat_is_ge(_a_0, _b_0) {
@@ -47395,6 +47545,19 @@ function $List_contains_0_c38(_t_0,_x_0) {
   }
 }
 const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
+  "DefenseSession:sandbox": run_lib((a0) => run_loop($DefenseSession_sandbox(a0)), 1),
+  "DefenseSession:playable": run_lib((a0,a1) => run_loop($DefenseSession_playable(a0,a1)), 2),
+  "DefenseSession:defeated": run_lib((a0,a1) => run_loop($DefenseSession_defeated(a0,a1)), 2),
+  "DefenseSession:continue_mode": run_lib((a0,a1) => run_loop($DefenseSession_continue_mode(a0,a1)), 2),
+  "DefenseSession:damage_total": run_lib((a0,a1) => run_loop($DefenseSession_damage_total(a0,a1)), 2),
+  "DefenseSession:button_top": run_lib(() => run_loop($DefenseSession_button_top()), 0),
+  "DefenseSession:button_height": run_lib(() => run_loop($DefenseSession_button_height()), 0),
+  "DefenseSession:restart_left": run_lib(() => run_loop($DefenseSession_restart_left()), 0),
+  "DefenseSession:restart_width": run_lib(() => run_loop($DefenseSession_restart_width()), 0),
+  "DefenseSession:continue_left": run_lib(() => run_loop($DefenseSession_continue_left()), 0),
+  "DefenseSession:continue_width": run_lib(() => run_loop($DefenseSession_continue_width()), 0),
+  "DefenseSession:inside": run_lib((a0,a1,a2,a3) => run_loop($DefenseSession_inside(a0,a1,a2,a3)), 4),
+  "DefenseSession:click_code": run_lib((a0,a1) => run_loop($DefenseSession_click_code(a0,a1)), 2),
   "../../packages/monkey-business-bend/Numeric:high": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_high(a0)), 1),
   "../../packages/monkey-business-bend/Numeric:low": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_low(a0)), 1),
   "../../packages/monkey-business-bend/Numeric:zero": run_lib((a0) => run_loop($______packages_monkey_business_bend_Numeric_zero(a0)), 1),
@@ -50789,6 +50952,13 @@ const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "DefenseModel:control_with_mobs": run_lib((a0,a1) => run_loop($DefenseModel_control_with_mobs(a0,a1)), 2),
   "DefenseModel:mobs": run_lib((a0) => run_loop($DefenseModel_mobs(a0)), 1),
   "DefenseModel:with_mobs": run_lib((a0,a1) => run_loop($DefenseModel_with_mobs(a0,a1)), 2),
+  "DefenseModel:control_mode": run_lib((a0) => run_loop($DefenseModel_control_mode(a0)), 1),
+  "DefenseModel:mode": run_lib((a0) => run_loop($DefenseModel_mode(a0)), 1),
+  "DefenseModel:sandbox": run_lib((a0) => run_loop($DefenseModel_sandbox(a0)), 1),
+  "DefenseModel:playable": run_lib((a0) => run_loop($DefenseModel_playable(a0)), 1),
+  "DefenseModel:defeated": run_lib((a0) => run_loop($DefenseModel_defeated(a0)), 1),
+  "DefenseModel:control_with_mode": run_lib((a0,a1) => run_loop($DefenseModel_control_with_mode(a0,a1)), 2),
+  "DefenseModel:with_mode": run_lib((a0,a1) => run_loop($DefenseModel_with_mode(a0,a1)), 2),
   "DefenseMap:px": run_lib((a0) => run_loop($DefenseMap_px(a0)), 1),
   "DefenseMap:py": run_lib((a0) => run_loop($DefenseMap_py(a0)), 1),
   "DefenseMap:pick_point": run_lib((a0,a1,a2) => run_loop($DefenseMap_pick_point(a0,a1,a2)), 3),
@@ -51386,6 +51556,10 @@ const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "DefenseHost:key_map": run_lib((a0,a1) => run_loop($DefenseHost_key_map(a0,a1)), 2),
   "DefenseHost:key_fields": run_lib((a0,a1,a2,a3) => run_loop($DefenseHost_key_fields(a0,a1,a2,a3)), 4),
   "DefenseHost:key_workload": run_lib((a0,a1) => run_loop($DefenseHost_key_workload(a0,a1)), 2),
+  "DefenseHost:ordinary_key": run_lib((a0,a1) => run_loop($DefenseHost_ordinary_key(a0,a1)), 2),
+  "DefenseHost:continue_sandbox": run_lib((a0) => run_loop($DefenseHost_continue_sandbox(a0)), 1),
+  "DefenseHost:defeated_key": run_lib((a0,a1) => run_loop($DefenseHost_defeated_key(a0,a1)), 2),
+  "DefenseHost:key_when": run_lib((a0,a1,a2) => run_loop($DefenseHost_key_when(a0,a1,a2)), 3),
   "DefenseHost:key": run_lib((a0,a1) => run_loop($DefenseHost_key(a0,a1)), 2),
   "DefenseHost:snap": run_lib((a0) => run_loop($DefenseHost_snap(a0)), 1),
   "DefenseHost:tower_hit": run_lib((a0,a1,a2,a3) => run_loop($DefenseHost_tower_hit(a0,a1,a2,a3)), 4),
@@ -51394,6 +51568,8 @@ const TAB_0 = [0, 0, 0, 50, 40, 45, 50, 0];export default {
   "DefenseHost:select": run_lib((a0,a1) => run_loop($DefenseHost_select(a0,a1)), 2),
   "DefenseHost:build_tuned": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($DefenseHost_build_tuned(a0,a1,a2,a3,a4,a5)), 6),
   "DefenseHost:build": run_lib((a0,a1,a2,a3) => run_loop($DefenseHost_build(a0,a1,a2,a3)), 4),
+  "DefenseHost:ordinary_click": run_lib((a0,a1,a2) => run_loop($DefenseHost_ordinary_click(a0,a1,a2)), 3),
+  "DefenseHost:click_when": run_lib((a0,a1,a2,a3) => run_loop($DefenseHost_click_when(a0,a1,a2,a3)), 4),
   "DefenseHost:click": run_lib((a0,a1,a2) => run_loop($DefenseHost_click(a0,a1,a2)), 3),
   "DefenseHost:preview_tower": run_lib((a0,a1,a2) => run_loop($DefenseHost_preview_tower(a0,a1,a2)), 3),
   "DefenseHost:preview_site": run_lib((a0,a1,a2,a3) => run_loop($DefenseHost_preview_site(a0,a1,a2,a3)), 4),

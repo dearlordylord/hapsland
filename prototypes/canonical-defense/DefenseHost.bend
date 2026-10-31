@@ -1,5 +1,6 @@
 # Native continuous consumer. All business transitions are owned by shared NativeRun.
 import Base
+import ./DefenseSession.bend as Session
 import ./DefenseTransport.bend as Transport
 import ./DefenseLiveMotion.bend as Live
 import ./DefenseMotionTypes.bend as V
@@ -74,7 +75,7 @@ def damage(+world: M.World) -> M.World:
       +work,
       +flash
     }:
-      +total = (work + residual_damage(world) : U32)
+      +total = Session.damage_total(M.mode(world), (work + residual_damage(world) : U32))
       +hit = (total >= 10000 : U32) && (h > 0 : U32)
       remainder: U32 = (total % 10000 : U32)
       M.World{
@@ -106,10 +107,10 @@ def drained(+world: M.World) -> Bool:
       0
     )
 def run_status(+world: M.World) -> U32:
-  Bool.pick(U32, U32.is_eq(M.hp(world), 0), 3, Bool.pick(U32, M.auto(world), 1, 0))
+  Bool.pick(U32, M.defeated(world), 3, Bool.pick(U32, M.auto(world), 1, 0))
 def clock_active(
   +world: M.World
-) -> Bool: M.active(world) && Bool.not(M.paused(world)) && (M.hp(world) > 0 : U32)
+) -> Bool: M.active(world) && Bool.not(M.paused(world)) && M.playable(world)
 def controlled(world: M.World, result: T.Controlled) -> M.World:
   match result:
     case T.Controlled{state, _}: M.with_engine(world, state)
@@ -393,7 +394,7 @@ def tick_when_manual(active: Bool, +world: M.World) -> TickObserved:
   match active:
     case True{}: ticking_observed(world)
     case False{}: TickObserved{
-      playback_when(M.active(world) && Bool.not(M.paused(world)), world),
+      playback_when(clock_active(world), world),
       Nil{},
       Nil{}, []
     }
@@ -503,7 +504,7 @@ def upgrade_when(alive: Bool, +world: M.World) -> M.World:
     case True{}: upgrade_found(world, selected_tower(M.towers(world), M.selected(world)))
     case False{}: world
 def upgrade(+world: M.World) -> M.World:
-  upgrade_when((M.hp(world) > 0 : U32), world)
+  upgrade_when(M.playable(world), world)
 def reset_found(world: M.World, layout: U32) -> M.World:
   match world:
     case M.World{core, t, p, _, c, g, h, ts, a, o, r, cl, d, auto, x, y, selected, work, flash}:
@@ -632,11 +633,28 @@ def key_workload(+world: M.World, code: U32) -> M.World:
   match code:
     case 97: action(world, T.WorkloadControl{Some{1n}, Workload.Suspend{Bool.not(M.auto(world))}})
     case _: world
-def key(+world: M.World, +code: U32) -> M.World:
+def ordinary_key(+world: M.World, +code: U32) -> M.World:
   key_result(
     key_workload(key_fields(world, code, key_map(world, code), key_schedule(world, code)), code),
     code
   )
+
+def continue_sandbox(+world: M.World) -> M.World:
+  key_fields(
+    M.with_mode(world, Session.continue_mode(M.mode(world), M.hp(world))),
+    Bool.pick(U32, M.paused(world), 112, 0),
+    M.layout(world), M.schedule(world))
+def defeated_key(world: M.World, code: U32) -> M.World:
+  match code:
+    case 114: reset_layout(M.layout(world))
+    case 99: continue_sandbox(world)
+    case _: world
+def key_when(defeated: Bool, world: M.World, code: U32) -> M.World:
+  match defeated:
+    case True{}: defeated_key(world, code)
+    case False{}: ordinary_key(world, code)
+def key(+world: M.World, code: U32) -> M.World:
+  key_when(M.defeated(world), world, code)
 
 def snap(value: U32) -> U32:
   ((value / 16) * 16 + 8 : U32)
@@ -684,7 +702,7 @@ def build_tuned(
           (power >= 1 : U32) && (power <= 16 : U32) && (radius >= 20 : U32) && (radius <= 240 : U32),
           Bool.and(
             placement_valid(world, x, y),
-            Bool.and((g >= tower_cost(kind) : U32), Bool.and(Mechanics.valid(kind), (h > 0 : U32)))
+            Bool.and((g >= tower_cost(kind) : U32), Bool.and(Mechanics.valid(kind), M.playable(world)))
           )
         ),
         (
@@ -714,13 +732,20 @@ def build_tuned(
       )
 def build(world: M.World, x: U32, y: U32, +kind: U32) -> M.World:
   build_tuned(world, x, y, kind, 1, Mechanics.base_radius(kind))
-def click(+world: M.World, +x: U32, +y: U32) -> M.World:
+def ordinary_click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
   pick_world(
     (index > 0 : U32),
     select(move(world, x, y), index),
     build(move(world, x, y), x, y, M.choice(world))
   )
+def click_when(defeated: Bool, world: M.World, x: U32, y: U32) -> M.World:
+  match defeated:
+    case True{}: defeated_key(world, Session.click_code(x, y))
+    case False{}: ordinary_click(world, x, y)
+def click(+world: M.World, x: U32, y: U32) -> M.World:
+  click_when(M.defeated(world), world, x, y)
+
 def preview_tower(x: U32, y: U32, +kind: U32) -> M.Tower:
   M.Tower{snap(x), snap(y), kind, 1, 1, Mechanics.base_radius(kind), 0}
 def preview_site(world: M.World, x: U32, y: U32, kind: U32) -> U32:

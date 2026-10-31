@@ -152,7 +152,7 @@ law defeated_upgrade_preserves_world:
   {H.upgrade_when(False{}, world) == world : M.World}
 law upgrade_checks_life:
   for +world: M.World
-  {H.upgrade(world) == H.upgrade_when((M.hp(world) > 0 : U32), world) : M.World}
+  {H.upgrade(world) == H.upgrade_when(M.playable(world), world) : M.World}
 law defeated_lab_upgrade_preserves_world:
   for +world: M.World
   for index: U32

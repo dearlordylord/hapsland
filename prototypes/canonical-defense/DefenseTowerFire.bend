@@ -399,7 +399,7 @@ def fire_ready(
     case True{} True{} True{}: fire_planned(plan(world, tower, wanted), world, index, tower)
 def fire(+world: M.World, index: U32, +tower: M.Tower, wanted: Nat) -> Shot:
   fire_ready(
-    (M.hp(world) > 0 : U32),
+    M.playable(world),
     Mechanics.valid(M.tkind(tower)),
     (M.time(world) >= M.ready_at(tower) : U32),
     world,

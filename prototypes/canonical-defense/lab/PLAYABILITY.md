@@ -116,8 +116,17 @@ they do not prove the entire scheduler or arbitrary partial resident batches.
 Shared NativeRun individual submissions currently capture one whole review work
 item. Raw Canonical submission recording remains separate from finalization.
 
-At zero health the existing game-over freeze is distinct from resource starvation:
-the always-visible activity line must say `DEFEATED / WORLD FROZEN / R RESET`.
+At zero health, game-over is distinct from resource starvation. A prominent
+`DEFEATED` panel must explain shared-resource overload and offer clickable
+`R RESTART` and `C CONTINUE IN SANDBOX` actions. The defeated world must remain
+unchanged by ticks, construction, upgrades and ordinary gameplay keys. Restart
+resets the recording and returns to normal health. Continue preserves the exact
+engine, queues, towers and zero health, clears pause, resumes progression and
+disables further health damage. The HUD must keep `SANDBOX / HEALTH DISABLED`
+visible. Run `node --test prototypes/canonical-defense/session.test.mjs` for
+emitted Host behavior, exact replay and the small session-policy laws with
+independently compiling rejected mutants. Inspect the same transition in a native
+window; rectangle and source checks alone do not qualify native IO.
 Do not increase health in player acceptance traces to conceal actual overload;
 a diagnostic that raises health only to isolate ownership is separate evidence.
 

@@ -21,6 +21,7 @@ import ./DefenseLiveMotionTypes.bend as DefenseLiveMotionTypes
 import ./DefenseModel.bend as DefenseModel
 import ./DefenseMotionTypes.bend as DefenseMotionTypes
 import ./DefenseRuleTypes.bend as DefenseRuleTypes
+import ./DefenseSession.bend as DefenseSession
 import ./DefenseTransport.bend as DefenseTransport
 import ../../packages/agent-flow-bend/Delivery.bend as Delivery
 import ../../packages/agent-flow-bend/DeliveryState.bend as DeliveryState
@@ -5444,12 +5445,21 @@ def list_defenselivemotiontypes_mob(
     )
     case _: 999999n <> suffix
 
+def defensesession_mode(
+  values: List<&2, DefenseSession.Mode>,
+  suffix: List<&2, Nat>
+) -> List<&2, Nat>:
+  match values:
+    case DefenseSession.Normal{} <> Nil{}: 0n <> suffix
+    case DefenseSession.Sandbox{} <> Nil{}: 1n <> suffix
+    case _: 999999n <> suffix
+
 def defensemodel_control(
   values: List<&2, DefenseModel.Control>,
   suffix: List<&2, Nat>
 ) -> List<&2, Nat>:
   match values:
-    case DefenseModel.Control{v0, v1, v2, v3, v4, v5, v6, v7} <> Nil{}: 0n <> list_defenseauto_state(
+    case DefenseModel.Control{v0, v1, v2, v3, v4, v5, v6, v7, v8} <> Nil{}: 0n <> list_defenseauto_state(
       [v0],
       U32.to_nat(
         v1
@@ -5461,7 +5471,9 @@ def defensemodel_control(
             [v4],
             list_defenseruletypes_state(
               [v5],
-              U32.to_nat(v6) <> list_defenselivemotiontypes_mob([v7], suffix)
+              U32.to_nat(
+                v6
+              ) <> list_defenselivemotiontypes_mob([v7], defensesession_mode([v8], suffix))
             )
           )
         )

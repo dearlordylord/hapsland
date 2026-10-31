@@ -37,7 +37,7 @@ def Laws.pause_preserves_coverage(world, tower):
       r,
       cl,
       d,
-      M.Control{schedule, pace, cues, actors, settings, rules, submissions, mobs} <> tail,
+      M.Control{schedule, pace, cues, actors, settings, rules, submissions, mobs, mode} <> tail,
       x,
       y,
       selected,

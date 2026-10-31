@@ -1,5 +1,6 @@
 import ./DefenseLiveMotionTypes.bend as LiveTypes
 import Base
+import ./DefenseSession.bend as Session
 import ./DefenseMotionTypes.bend as V
 import ./DefenseAuto.bend as A
 import ./DefenseRuleTypes.bend as Rules
@@ -51,7 +52,8 @@ type Control is Data:
     settings: List<&2, Settings>,
     rules: List<&2, Rules.State>,
     submissions: U32,
-    mobs: List<&2, LiveTypes.Mob>
+    mobs: List<&2, LiveTypes.Mob>,
+    mode: Session.Mode
   }
 def initial_control() -> Control: Control{
   [A.initial()],
@@ -61,7 +63,8 @@ def initial_control() -> Control: Control{
   [config_settings(Consumer.config())],
   [RulePolicy.initial()],
   0,
-  []
+  [],
+  Session.Normal{}
 }
 def control_value(items: List<&2, Control>) -> Control:
   match items:
@@ -73,10 +76,10 @@ def auto_value(items: List<&2, A.State>) -> A.State:
     case Nil{}: A.initial()
 def control_schedule(control: Control) -> A.State:
   match control:
-    case Control{items, _, _, _, _, _, _, _}: auto_value(items)
+    case Control{items, _, _, _, _, _, _, _, _}: auto_value(items)
 def control_with_schedule(control: Control, schedule: A.State) -> Control:
   match control:
-    case Control{_, pace, cues, actors, settings, rules, submissions, mobs}: Control{
+    case Control{_, pace, cues, actors, settings, rules, submissions, mobs, mode}: Control{
       [schedule],
       pace,
       cues,
@@ -84,14 +87,15 @@ def control_with_schedule(control: Control, schedule: A.State) -> Control:
       settings,
       rules,
       submissions,
-      mobs
+      mobs,
+      mode
     }
 def control_pace(control: Control) -> U32:
   match control:
-    case Control{_, pace, _, _, _, _, _, _}: pace
+    case Control{_, pace, _, _, _, _, _, _, _}: pace
 def control_with_pace(control: Control, pace: U32) -> Control:
   match control:
-    case Control{schedule, _, cues, actors, settings, rules, submissions, mobs}: Control{
+    case Control{schedule, _, cues, actors, settings, rules, submissions, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -99,7 +103,8 @@ def control_with_pace(control: Control, pace: U32) -> Control:
       settings,
       rules,
       submissions,
-      mobs
+      mobs,
+      mode
     }
 
 # Box the independent NativeRun state; geometry/combat never rewrite it.
@@ -306,10 +311,10 @@ def arrival_interval(world: World) -> U32:
 
 def control_cues(control: Control) -> List<&2, Cue>:
   match control:
-    case Control{_, _, cues, _, _, _, _, _}: cues
+    case Control{_, _, cues, _, _, _, _, _, _}: cues
 def control_with_cues(control: Control, cues: List<&2, Cue>) -> Control:
   match control:
-    case Control{schedule, pace, _, actors, settings, rules, submissions, mobs}: Control{
+    case Control{schedule, pace, _, actors, settings, rules, submissions, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -317,7 +322,8 @@ def control_with_cues(control: Control, cues: List<&2, Cue>) -> Control:
       settings,
       rules,
       submissions,
-      mobs
+      mobs,
+      mode
     }
 def cues(world: World) -> List<&2, Cue>: control_cues(control(world))
 def with_cues(+world: World, cues: List<&2, Cue>) -> World:
@@ -325,10 +331,10 @@ def with_cues(+world: World, cues: List<&2, Cue>) -> World:
 
 def control_actors(control: Control) -> List<&2, V.Actor>:
   match control:
-    case Control{_, _, _, actors, _, _, _, _}: actors
+    case Control{_, _, _, actors, _, _, _, _, _}: actors
 def control_with_actors(control: Control, actors: List<&2, V.Actor>) -> Control:
   match control:
-    case Control{schedule, pace, cues, _, settings, rules, submissions, mobs}: Control{
+    case Control{schedule, pace, cues, _, settings, rules, submissions, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -336,7 +342,8 @@ def control_with_actors(control: Control, actors: List<&2, V.Actor>) -> Control:
       settings,
       rules,
       submissions,
-      mobs
+      mobs,
+      mode
     }
 def actors(world: World) -> List<&2, V.Actor>: control_actors(control(world))
 def with_actors(+world: World, actors: List<&2, V.Actor>) -> World:
@@ -348,11 +355,11 @@ def settings_value(items: List<&2, Settings>) -> Settings:
     case _: config_settings(Consumer.config())
 def settings_control(control: Control) -> Settings:
   match control:
-    case Control{_, _, _, _, settings, _, _, _}: settings_value(settings)
+    case Control{_, _, _, _, settings, _, _, _, _}: settings_value(settings)
 def settings(world: World) -> Settings: settings_control(control(world))
 def with_settings(control: Control, settings: Settings) -> Control:
   match control:
-    case Control{schedule, pace, cues, actors, _, rules, submissions, mobs}: Control{
+    case Control{schedule, pace, cues, actors, _, rules, submissions, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -360,7 +367,8 @@ def with_settings(control: Control, settings: Settings) -> Control:
       [settings],
       rules,
       submissions,
-      mobs
+      mobs,
+      mode
     }
 def base_jev(settings: Settings) -> Nat:
   match settings:
@@ -388,11 +396,11 @@ def rules_value(items: List<&2, Rules.State>) -> Rules.State:
     case _: RulePolicy.initial()
 def rules_control(control: Control) -> Rules.State:
   match control:
-    case Control{_, _, _, _, _, rules, _, _}: rules_value(rules)
+    case Control{_, _, _, _, _, rules, _, _, _}: rules_value(rules)
 def rules(world: World) -> Rules.State: rules_control(control(world))
 def control_with_rules(control: Control, rules: Rules.State) -> Control:
   match control:
-    case Control{schedule, pace, cues, actors, settings, _, submissions, mobs}: Control{
+    case Control{schedule, pace, cues, actors, settings, _, submissions, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -400,7 +408,8 @@ def control_with_rules(control: Control, rules: Rules.State) -> Control:
       settings,
       [rules],
       submissions,
-      mobs
+      mobs,
+      mode
     }
 def with_rules(+world: World, rules: Rules.State) -> World:
   with_control(world, control_with_rules(control(world), rules))
@@ -412,11 +421,11 @@ def ready_at(tower: Tower) -> U32:
 # Cumulative accepted certain individual deliveries; distinct from Finish packets.
 def control_submissions(control: Control) -> U32:
   match control:
-    case Control{_, _, _, _, _, _, value, _}: value
+    case Control{_, _, _, _, _, _, value, _, _}: value
 def submissions(world: World) -> U32: control_submissions(control(world))
 def control_with_submissions(control: Control, value: U32) -> Control:
   match control:
-    case Control{schedule, pace, cues, actors, settings, rules, _, mobs}: Control{
+    case Control{schedule, pace, cues, actors, settings, rules, _, mobs, mode}: Control{
       schedule,
       pace,
       cues,
@@ -424,7 +433,8 @@ def control_with_submissions(control: Control, value: U32) -> Control:
       settings,
       rules,
       value,
-      mobs
+      mobs,
+      mode
     }
 def with_submissions(+world: World, value: U32) -> World:
   with_control(world, control_with_submissions(control(world), value))
@@ -432,11 +442,25 @@ def with_submissions(+world: World, value: U32) -> World:
 
 def control_mobs(control: Control) -> List<&2, LiveTypes.Mob>:
   match control:
-    case Control{_, _, _, _, _, _, _, value}: value
+    case Control{_, _, _, _, _, _, _, value, _}: value
 def control_with_mobs(control: Control, value: List<&2, LiveTypes.Mob>) -> Control:
   match control:
-    case Control{schedule, pace, cues, actors, settings, rules, submissions, _}:
-      Control{schedule, pace, cues, actors, settings, rules, submissions, value}
+    case Control{schedule, pace, cues, actors, settings, rules, submissions, _, mode}:
+      Control{schedule, pace, cues, actors, settings, rules, submissions, value, mode}
 def mobs(world: World) -> List<&2, LiveTypes.Mob>: control_mobs(control(world))
 def with_mobs(+world: World, value: List<&2, LiveTypes.Mob>) -> World:
   with_control(world, control_with_mobs(control(world), value))
+
+def control_mode(control: Control) -> Session.Mode:
+  match control:
+    case Control{_, _, _, _, _, _, _, _, mode}: mode
+def mode(world: World) -> Session.Mode: control_mode(control(world))
+def sandbox(world: World) -> Bool: Session.sandbox(mode(world))
+def playable(+world: World) -> Bool: Session.playable(mode(world), hp(world))
+def defeated(+world: World) -> Bool: Session.defeated(mode(world), hp(world))
+def control_with_mode(control: Control, mode: Session.Mode) -> Control:
+  match control:
+    case Control{schedule, pace, cues, actors, settings, rules, submissions, mobs, _}:
+      Control{schedule, pace, cues, actors, settings, rules, submissions, mobs, mode}
+def with_mode(+world: World, mode: Session.Mode) -> World:
+  with_control(world, control_with_mode(control(world), mode))

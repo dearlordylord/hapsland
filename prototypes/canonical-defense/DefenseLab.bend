@@ -172,7 +172,7 @@ def build_parameters(
     case False{}: Receipt{world, InvalidParameters{}, 0}
     case True{}:
       build_checked(
-        U32.is_eq(M.hp(world), 0),
+        M.defeated(world),
         Bool.not(Mechanics.valid(kind)),
         Bool.not(H.placement_valid(world, x, y)),
         (M.gold(world) < price : U32),
@@ -238,7 +238,7 @@ def shot_target(world: M.World, index: U32, operation: Nat) -> Maybe<&2, CB.Targ
 def apply(+world: M.World, action: Action) -> Receipt:
   match action:
     case Build{x, y, kind}: build(world, x, y, kind)
-    case Upgrade{index}: upgrade_alive((M.hp(world) > 0 : U32), world, index)
+    case Upgrade{index}: upgrade_alive(M.playable(world), world, index)
     case Fire{index, operation}: shot_receipt(H.fire(world, index, operation))
 # Main and laboratory share the same fixed construction budget.
 def tick(+world: M.World) -> H.TickObserved:

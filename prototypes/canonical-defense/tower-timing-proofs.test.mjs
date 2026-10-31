@@ -45,7 +45,7 @@ mutants.push(
 )
 mutants.push(
  ["defeated_upgrade_preserves_world",owner+"DefenseHost.bend","    case False{}: world\ndef upgrade(","    case False{}: M.with_submissions(world,0)\ndef upgrade(","budget"],
- ["upgrade_checks_life",owner+"DefenseHost.bend","upgrade_when((M.hp(world) > 0 : U32),world)","upgrade_when(True{},world)","budget"],
+ ["upgrade_checks_life",owner+"DefenseHost.bend","upgrade_when(M.playable(world),world)","upgrade_when(True{},world)","budget"],
  ["defeated_lab_upgrade_preserves_world",owner+"DefenseLab.bend","case False{}: Receipt{world,Dead{},0}","case False{}: Receipt{world,Applied{},0}","budget"],
  ["defeated_placement_refused",owner+"DefensePreview.bend","case 0 False{} _: 6","case 0 False{} _: 4","budget"],
  ["unknown_placement_refused",owner+"DefensePreview.bend","case 0 True{} False{}: 7","case 0 True{} False{}: 4","budget"]

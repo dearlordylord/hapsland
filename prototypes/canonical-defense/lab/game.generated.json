@@ -1,8 +1,8 @@
 {
   "format": 1,
   "compiler": "Bend 2.0.39: check, run, build and publish Bend programs.",
-  "sourceIdentity": "sha256:485cac4ba3d9067b527cb9a53d1de6f428e594c36c49f2b8e9580599abc49567",
-  "moduleIdentity": "sha256:0ae1ceaa4f77b77fd58d5fc7579a06721bb0855fd89fb040fe70622737d22e71",
+  "sourceIdentity": "sha256:b8b195c1e0b948366bd67e263b0b7d8b916be5f7a5435bf408f0d82aeb34f62f",
+  "moduleIdentity": "sha256:8d91c947a1d9060e1796e14d86e4767a20946401d5dd50101c5115b7625121e0",
   "sources": [
     "packages/agent-flow-bend/Admission.bend",
     "packages/agent-flow-bend/Canonical.bend",
@@ -99,6 +99,7 @@
     "prototypes/canonical-defense/DefenseRulePolicy.bend",
     "prototypes/canonical-defense/DefenseRuleTypes.bend",
     "prototypes/canonical-defense/DefenseRules.bend",
+    "prototypes/canonical-defense/DefenseSession.bend",
     "prototypes/canonical-defense/DefenseTowerFire.bend",
     "prototypes/canonical-defense/DefenseTransport.bend",
     "prototypes/canonical-defense/lab/game.generated.d.mts",
