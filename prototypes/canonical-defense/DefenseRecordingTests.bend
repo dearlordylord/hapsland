@@ -35,7 +35,7 @@ def campaign(
     case 1n+n:
       next: File -> Main.FrameState -> IO(File & Main.FrameState) = f => s => campaign(
         n,
-        (now + 160n : Nat),
+        (now + 320n : Nat),
         f,
         s
       )
@@ -212,7 +212,7 @@ def stop_continuation(
 def main() -> IO(Unit):
   continue: File -> Main.FrameState -> IO(File & Main.FrameState) = f => s => campaign(
     80n,
-    160n,
+    320n,
     f,
     s
   )
