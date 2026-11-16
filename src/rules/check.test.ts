@@ -554,6 +554,23 @@ describe("batch outcomes and existing policy", () => {
     expect(restricted.reasons.some((reason) => reason.reason === "missing-evidence")).toBe(true)
   })
 
+  it.each(["ineligible", "requires-missing", "root-only"])(
+    "classifies partial evidence by rule needs: %s",
+    async (mode) => {
+      const root = await fixture(
+        mode === "requires-missing" ? ["root-declaration", "resolved-outbound-types"] : ["root-declaration"]
+      )
+      await configure(root, { rules: [mode === "ineligible" ? "function-rule.json" : "rule.json"] })
+      await put(root, "target.ts", "export interface Selected { value: Missing }")
+      const fake = transport(0.1)
+      const result = await batch(root, fake)
+      expect(result.status, JSON.stringify(result)).toBe(
+        mode === "ineligible" ? "no-work" : mode === "requires-missing" ? "incomplete" : "clear"
+      )
+      expect(fake.requests).toHaveLength(mode === "root-only" ? 1 : 0)
+    }
+  )
+
   it("reports invalid configuration as incomplete without provider work", async () => {
     const root = await fixture()
     await put(root, ".hapsland.jsonc", "{ invalid configuration")

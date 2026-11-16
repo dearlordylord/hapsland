@@ -135,6 +135,7 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
   for (const path of paths) {
     if (stop) break
     const selection = { root: repository.root, rootIdentity: repository.rootIdentity, path }
+    const ineligibleDeclarations = new Set<string>()
     const context = {
       settings,
       rules,
@@ -144,7 +145,10 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
         if (reason === "missing-evidence") {
           incomplete = true
         }
-        if (reason === "no-applicable-rule") noApplicableRule = true
+        if (reason === "no-applicable-rule") {
+          noApplicableRule = true
+          ineligibleDeclarations.add(declaration)
+        }
       }
     }
     const preparedFile = yield* prepareSourceFile(selection, context).pipe(Effect.result)
@@ -180,7 +184,8 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
           reasons.push({ path, reason: failure.reason })
           const admittedPartial =
             failure.reason === "missing-evidence" &&
-            ready.some((prepared) => prepared.input.declaration.name === failure.root)
+            (ready.some((prepared) => prepared.input.declaration.name === failure.root) ||
+              (failure.root !== undefined && ineligibleDeclarations.has(failure.root)))
           if (
             !admittedPartial &&
             !["no-supported-function-root", "no-declarations", "extension"].includes(failure.reason)

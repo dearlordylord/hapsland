@@ -415,14 +415,22 @@ const prepareResolvedUnit = (
   const capabilities = preparationCapabilities(frame.contract, partial)
   const language = languageForPath(path)?.id
   if (!supportedRuleLanguage(language)) return undefined
+  const target = { language, artifactKind, inputContract: frame.contract, complete: true }
   const rules = applicableRules(declaration.source, path, currentRules(frame.context), {
-    language,
-    artifactKind,
-    inputContract: frame.contract,
-    complete: true,
+    ...target,
     ...(capabilities === undefined ? {} : { capabilities })
   })
-  if (rules.length === 0) return omitted("no-applicable-rule")
+  if (rules.length === 0) {
+    const completeCapabilities = preparationCapabilities(frame.contract, false)
+    const missingRequiredEvidence =
+      frame.observation.allCurrentDeclarations === true &&
+      partial &&
+      applicableRules(declaration.source, path, currentRules(frame.context), {
+        ...target,
+        ...(completeCapabilities === undefined ? {} : { capabilities: completeCapabilities })
+      }).length > 0
+    return omitted(missingRequiredEvidence ? "missing-evidence" : "no-applicable-rule")
+  }
   const input = freezePreparedReviewUnitInput(
     path,
     unit,
