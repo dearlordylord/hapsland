@@ -429,3 +429,53 @@ it("runs one-off rule checks without stdin or resident state and reports unavail
   expect(existsSync(join(root, "activity"))).toBe(false)
   expect(existsSync(join(root, ".hapsland", "runtime"))).toBe(false)
 })
+
+it("returns one source-free audit JSON with real stdout/stderr and exact no-work/unavailable exits", () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "hapsland-audit-cli-")))
+  roots.push(root)
+  execFileSync("git", ["init", "--quiet", root])
+  writeFileSync(join(root, "type.ts"), "export interface Selected { privateValue: string }")
+  writeFileSync(
+    join(root, "rule.json"),
+    JSON.stringify({
+      version: 1,
+      id: "example",
+      question: "Invalid?",
+      criteria: { false: "Valid", true: "Invalid" },
+      message: "Review it",
+      inputs: [{ languages: ["typescript"], kind: "type", requires: ["root-declaration"] }]
+    })
+  )
+  const configure = (includes: string[]) =>
+    writeFileSync(
+      join(root, ".hapsland.jsonc"),
+      JSON.stringify({ version: 1, includes, rules: ["rule.json"], credentialEnvVar: "HAPSLAND_AUDIT_MISSING_KEY" })
+    )
+  const run = () =>
+    spawnSync(bunExecutable(), [join(process.cwd(), "packages/cli-entry/src/cli.ts"), "rules", "audit", "--json"], {
+      cwd: root,
+      input: "not JSON",
+      encoding: "utf8",
+      timeout: DEFAULT_CHILD_TIMEOUT_MS,
+      env: {
+        ...process.env,
+        HOME: root,
+        REVIEW_USER_CONFIG_PATH: join(root, "missing-user.json"),
+        HAPSLAND_AUDIT_MISSING_KEY: ""
+      }
+    })
+  configure([])
+  const empty = run()
+  expect(empty.status).toBe(7)
+  expect(JSON.parse(empty.stdout)).toMatchObject({ operation: "rule-audit", status: "no-work" })
+  configure(["type.ts"])
+  const unavailable = run()
+  expect(unavailable.status).toBe(6)
+  const result = JSON.parse(unavailable.stdout)
+  expect(result).toMatchObject({ operation: "rule-audit", status: "incomplete" })
+  expect(result.reasons).toContainEqual({ reason: "credential-missing" })
+  expect(unavailable.stdout).not.toContain("privateValue")
+  expect(unavailable.stderr).toContain("requests estimated")
+  expect(unavailable.stderr).not.toContain("type.ts")
+  expect(existsSync(join(root, ".hapsland", "runtime"))).toBe(false)
+})

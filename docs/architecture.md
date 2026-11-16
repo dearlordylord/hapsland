@@ -113,6 +113,9 @@ Effect 4 services compose the resident, client, source preparation, backend eval
 
 Explicit file-and-line rule checks use the same preparation, evidence admission, provider adapters, and freshness checks as hook reviews. Their [command composition](../packages/administration/src/rules/command.ts) supplies live Effect Layers; tests supply controlled Layers to the same handler. The [check workflow](../packages/administration/src/rules/check.ts) receives its working directory as invocation data, uses uncached settings, and resolves credentials only after selecting one eligible declaration. Provider Layers require the standard HTTP client service; production composition supplies Fetch, while controlled HTTP tests retain provider serialization and content filtering.
 
+Configured-scope audits use the same services through the [rules audit workflow](../packages/administration/src/rules/audit.ts). Native observation enumerates candidate names; existing policy and physical admission remain the only source-read authority. The review-execution source-file interface prepares all current eligible declarations without advicee authority. This explicit selection bypasses only the event-specific 64-unit ceiling, preserving analyzer, file, capture and per-declaration graph limits. Frozen-name revalidation compares exact prepared identity, input and supporting fingerprints before dispatch, after evaluation and during final reporting. Rules owns source-free results and counters, and resolves credentials lazily once an eligible declaration needs evaluation.
+
+
 Version-one resident requests and responses decode through Effect Schema. Requests use exact operation alternatives after size-limited JSON framing, with recursive excess-field rejection and structural identity, credential, collection, and coordinate bounds. The decoder rejects unsupported runtime identities, internal route fields on the wire, and finish decisions outside composed turn-end collection. Optional collection mode remains absent when omitted; runtime lifetime, authorization, credential generation, and canonical decisions retain their existing owners. Native patch commands must be strings, and unknown request fields are rejected rather than silently discarded.
 
 An IPC connection owns its response context and provisional delivery lease. Shared review work belongs to the resident lifetime, so disconnecting a collector does not cancel another collector's evaluation. Cancellation stops further authorized work, but issued requests and capture workspace retain their accounting until native work physically settles. Shutdown waits for that settlement before releasing ownership artifacts. Claude edit feedback uses one admission-and-collection request with a deadline and immutable response authority; it retains no edit tickets or duplicate outcome registry. The [advicee contract](advicing-target-contract.md) owns the delivery rules.
@@ -194,7 +197,7 @@ Turbo schedules dependency-first private compilation from manifests. Production 
 
 <!-- architecture-modules:start -->
 
-30 private workspaces: 23 production and 7 auxiliary owners.
+31 private workspaces: 23 production and 8 auxiliary owners.
 
 Edges point from consumer to dependency and retain the manifest dependency field. External dependencies are omitted. Selected verification references identify checks to consult; they do not claim coverage or a passing result.
 
@@ -232,10 +235,11 @@ Edges point from consumer to dependency and retain the manifest dependency field
 | --- | --- | --- | --- |
 | [@hapsland/agent-flow-projection](../packages/agent-flow-projection/package.json): Reducer-derived flow stages, record locations and evidence of accepted transitions | dependencies: `@hapsland/agent-flow-viz`, `@hapsland/build-tooling` | dependencies: `@hapsland/canonical-policy` | [Projection boundary](../packages/agent-flow-projection/README.md)<br>Selected verification: Projection typechecking and dashboard replay fixtures |
 | [@hapsland/agent-flow-viz](../packages/agent-flow-viz/package.json): Public site, decision dashboard and visual presentation of checked flow evidence | — | dependencies: `@hapsland/administration`, `@hapsland/agent-flow-bend`, `@hapsland/agent-flow-projection`, `@hapsland/canonical-policy`, `@hapsland/credential-storage`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/native-observation`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/runtime-inputs`<br>devDependencies: `@hapsland/build-tooling` | [Visualization guidance](../packages/agent-flow-viz/README.md); [Dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md)<br>Selected verification: Dashboard replay fixtures and browser checks |
-| [@hapsland/build-tooling](../scripts/package.json): Build orchestration, artifact publication, repository generators and verification harness adapters | dependencies: `@hapsland/verification`<br>devDependencies: `@hapsland/agent-flow-viz` | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-projection`, `@hapsland/canonical-defense`, `@hapsland/canonical-policy`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend`, `@hapsland/native-observation`, `@hapsland/pi-extension`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis` | [Build ownership guidance](../docs/architecture.md#compiler-and-executable-ownership); [Check selection and evidence boundaries](../docs/testing-matrix.md)<br>Selected verification: Build tooling and harness focused tests |
+| [@hapsland/bend-javascript-abi](../packages/bend-javascript-abi/package.json): Verification-only Bend emitted JavaScript ABI runtime and decoding helpers | dependencies: `@hapsland/build-tooling`, `@hapsland/monkey-business-bend` | — | —<br>Selected verification: [ABI runtime tests](../packages/bend-javascript-abi/bend-js-runtime.test.mjs) |
+| [@hapsland/build-tooling](../scripts/package.json): Build orchestration, artifact publication, repository generators and verification harness adapters | dependencies: `@hapsland/verification`<br>devDependencies: `@hapsland/agent-flow-viz` | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-projection`, `@hapsland/bend-javascript-abi`, `@hapsland/canonical-defense`, `@hapsland/canonical-policy`, `@hapsland/delivery-output`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend`, `@hapsland/native-observation`, `@hapsland/pi-extension`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis` | [Build ownership guidance](../docs/architecture.md#compiler-and-executable-ownership); [Check selection and evidence boundaries](../docs/testing-matrix.md)<br>Selected verification: Build tooling and harness focused tests |
 | [@hapsland/canonical-defense](../prototypes/canonical-defense/package.json): Optional native teaching game and balance laboratory over a separate shared simulation engine instance | dependencies: `@hapsland/build-tooling` | dependencies: `@hapsland/canonical-policy`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend` | [Game proposal and evidence scope](../prototypes/canonical-defense/README.md); [Balance laboratory guidance](../prototypes/canonical-defense/lab/README.md)<br>Selected verification: Optional game and laboratory focused checks |
 | [@hapsland/monkey-business](../packages/monkey-business/package.json): Source-free deterministic simulation API, seeded boundary facts and exact replay over checked reducers | dependencies: `@hapsland/agent-flow-viz`, `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/verification` | dependencies: `@hapsland/agent-flow-bend`, `@hapsland/canonical-policy`, `@hapsland/monkey-business-bend`, `@hapsland/review-definition`, `@hapsland/runtime-inputs` | [Simulation API and evidence scope](../packages/monkey-business/README.md)<br>Selected verification: Simulation package tests and typechecking |
-| [@hapsland/monkey-business-bend](../packages/monkey-business-bend/package.json): Shared source-free simulation state, virtual-time scheduler and review scenario driver | dependencies: `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/monkey-business`, `@hapsland/verification` | — | [Shared engine and host obligations](../packages/monkey-business-bend/README.md)<br>Selected verification: Generated engine freshness and simulation boundary checks |
+| [@hapsland/monkey-business-bend](../packages/monkey-business-bend/package.json): Shared source-free simulation state, virtual-time scheduler and review scenario driver | dependencies: `@hapsland/build-tooling`, `@hapsland/canonical-defense`, `@hapsland/monkey-business`, `@hapsland/verification` | dependencies: `@hapsland/bend-javascript-abi` | [Shared engine and host obligations](../packages/monkey-business-bend/README.md)<br>Selected verification: Generated engine freshness and simulation boundary checks |
 | [@hapsland/verification](../src/package.json): Deterministic product tests and cross-component conformance fixtures consuming private exports | — | dependencies: `@hapsland/activity-observation`, `@hapsland/administration`, `@hapsland/agent-flow-bend`, `@hapsland/build-tooling`, `@hapsland/canonical-policy`, `@hapsland/credential-storage`, `@hapsland/delivery-output`, `@hapsland/hook-runtime`, `@hapsland/inspection-records`, `@hapsland/monkey-business`, `@hapsland/monkey-business-bend`, `@hapsland/native-observation`, `@hapsland/pi-extension`, `@hapsland/resident-runtime`, `@hapsland/resident-transport`, `@hapsland/review-definition`, `@hapsland/review-execution`, `@hapsland/runtime-environment`, `@hapsland/runtime-inputs`, `@hapsland/source-analysis`, `@hapsland/source-artifacts` | [Testing matrix](../docs/testing-matrix.md)<br>Selected verification: Deterministic test and boundary suites |
 
 ### Workspace dependency graph
@@ -246,45 +250,45 @@ flowchart LR
     module0["@hapsland/activity-observation"]
     module1["@hapsland/administration"]
     module2["@hapsland/agent-flow-bend"]
-    module7["@hapsland/canonical-policy"]
-    module8["@hapsland/cli-entry"]
-    module9["@hapsland/credential-storage"]
-    module10["@hapsland/delivery-output"]
-    module11["@hapsland/doctor-entry"]
-    module12["@hapsland/hook-entry"]
-    module13["@hapsland/hook-runtime"]
-    module14["@hapsland/inspection-records"]
-    module17["@hapsland/native-observation"]
-    module18["@hapsland/parser-entry"]
-    module19["@hapsland/pi-extension"]
-    module20["@hapsland/resident-entry"]
-    module21["@hapsland/resident-runtime"]
-    module22["@hapsland/resident-transport"]
-    module23["@hapsland/review-definition"]
-    module24["@hapsland/review-execution"]
-    module25["@hapsland/runtime-environment"]
-    module26["@hapsland/runtime-inputs"]
-    module27["@hapsland/source-analysis"]
-    module28["@hapsland/source-artifacts"]
+    module8["@hapsland/canonical-policy"]
+    module9["@hapsland/cli-entry"]
+    module10["@hapsland/credential-storage"]
+    module11["@hapsland/delivery-output"]
+    module12["@hapsland/doctor-entry"]
+    module13["@hapsland/hook-entry"]
+    module14["@hapsland/hook-runtime"]
+    module15["@hapsland/inspection-records"]
+    module18["@hapsland/native-observation"]
+    module19["@hapsland/parser-entry"]
+    module20["@hapsland/pi-extension"]
+    module21["@hapsland/resident-entry"]
+    module22["@hapsland/resident-runtime"]
+    module23["@hapsland/resident-transport"]
+    module24["@hapsland/review-definition"]
+    module25["@hapsland/review-execution"]
+    module26["@hapsland/runtime-environment"]
+    module27["@hapsland/runtime-inputs"]
+    module28["@hapsland/source-analysis"]
+    module29["@hapsland/source-artifacts"]
   end
   subgraph tooling["Tooling"]
-    module5["@hapsland/build-tooling"]
+    module6["@hapsland/build-tooling"]
   end
   subgraph verification["Verification"]
     module3["@hapsland/agent-flow-projection"]
     module4["@hapsland/agent-flow-viz"]
-    module6["@hapsland/canonical-defense"]
-    module15["@hapsland/monkey-business"]
-    module16["@hapsland/monkey-business-bend"]
-    module29["@hapsland/verification"]
+    module5["@hapsland/bend-javascript-abi"]
+    module7["@hapsland/canonical-defense"]
+    module16["@hapsland/monkey-business"]
+    module17["@hapsland/monkey-business-bend"]
+    module30["@hapsland/verification"]
   end
-  module0 -->|dependencies| module17
+  module0 -->|dependencies| module18
   module1 -->|dependencies| module0
-  module1 -->|dependencies| module9
   module1 -->|dependencies| module10
-  module1 -->|dependencies| module14
-  module1 -->|dependencies| module17
-  module1 -->|dependencies| module21
+  module1 -->|dependencies| module11
+  module1 -->|dependencies| module15
+  module1 -->|dependencies| module18
   module1 -->|dependencies| module22
   module1 -->|dependencies| module23
   module1 -->|dependencies| module24
@@ -292,132 +296,135 @@ flowchart LR
   module1 -->|dependencies| module26
   module1 -->|dependencies| module27
   module1 -->|dependencies| module28
-  module3 -->|dependencies| module7
+  module1 -->|dependencies| module29
+  module3 -->|dependencies| module8
   module4 -->|dependencies| module1
   module4 -->|dependencies| module2
   module4 -->|dependencies| module3
-  module4 -->|dependencies| module7
-  module4 -->|dependencies| module9
-  module4 -->|dependencies| module14
+  module4 -->|dependencies| module8
+  module4 -->|dependencies| module10
   module4 -->|dependencies| module15
-  module4 -->|dependencies| module17
-  module4 -->|dependencies| module21
+  module4 -->|dependencies| module16
+  module4 -->|dependencies| module18
   module4 -->|dependencies| module22
-  module4 -->|dependencies| module26
-  module4 -->|devDependencies| module5
-  module5 -->|dependencies| module0
-  module5 -->|dependencies| module1
-  module5 -->|dependencies| module3
-  module5 -->|dependencies| module6
-  module5 -->|dependencies| module7
-  module5 -->|dependencies| module10
-  module5 -->|dependencies| module14
-  module5 -->|dependencies| module15
-  module5 -->|dependencies| module16
-  module5 -->|dependencies| module17
-  module5 -->|dependencies| module19
-  module5 -->|dependencies| module21
-  module5 -->|dependencies| module22
-  module5 -->|dependencies| module23
-  module5 -->|dependencies| module24
-  module5 -->|dependencies| module25
-  module5 -->|dependencies| module26
-  module5 -->|dependencies| module27
+  module4 -->|dependencies| module23
+  module4 -->|dependencies| module27
+  module4 -->|devDependencies| module6
+  module6 -->|dependencies| module0
+  module6 -->|dependencies| module1
+  module6 -->|dependencies| module3
+  module6 -->|dependencies| module5
   module6 -->|dependencies| module7
+  module6 -->|dependencies| module8
+  module6 -->|dependencies| module11
   module6 -->|dependencies| module15
   module6 -->|dependencies| module16
-  module7 -->|dependencies| module2
-  module8 -->|dependencies| module1
-  module8 -->|dependencies| module10
-  module8 -->|dependencies| module25
-  module8 -->|dependencies| module26
-  module9 -->|dependencies| module25
+  module6 -->|dependencies| module17
+  module6 -->|dependencies| module18
+  module6 -->|dependencies| module20
+  module6 -->|dependencies| module22
+  module6 -->|dependencies| module23
+  module6 -->|dependencies| module24
+  module6 -->|dependencies| module25
+  module6 -->|dependencies| module26
+  module6 -->|dependencies| module27
+  module6 -->|dependencies| module28
+  module7 -->|dependencies| module8
+  module7 -->|dependencies| module16
+  module7 -->|dependencies| module17
+  module8 -->|dependencies| module2
+  module9 -->|dependencies| module1
+  module9 -->|dependencies| module11
   module9 -->|dependencies| module26
-  module11 -->|dependencies| module1
-  module11 -->|dependencies| module25
-  module12 -->|dependencies| module13
-  module12 -->|dependencies| module22
-  module12 -->|dependencies| module25
-  module13 -->|dependencies| module0
-  module13 -->|dependencies| module10
-  module13 -->|dependencies| module17
-  module13 -->|dependencies| module22
-  module13 -->|dependencies| module25
+  module9 -->|dependencies| module27
+  module10 -->|dependencies| module26
+  module10 -->|dependencies| module27
+  module12 -->|dependencies| module1
+  module12 -->|dependencies| module26
+  module13 -->|dependencies| module14
+  module13 -->|dependencies| module23
   module13 -->|dependencies| module26
-  module14 -->|dependencies| module25
+  module14 -->|dependencies| module0
+  module14 -->|dependencies| module11
+  module14 -->|dependencies| module18
+  module14 -->|dependencies| module23
   module14 -->|dependencies| module26
-  module15 -->|dependencies| module2
-  module15 -->|dependencies| module7
-  module15 -->|dependencies| module16
-  module15 -->|dependencies| module23
+  module14 -->|dependencies| module27
   module15 -->|dependencies| module26
-  module17 -->|dependencies| module25
-  module17 -->|dependencies| module26
-  module18 -->|dependencies| module25
+  module15 -->|dependencies| module27
+  module16 -->|dependencies| module2
+  module16 -->|dependencies| module8
+  module16 -->|dependencies| module17
+  module16 -->|dependencies| module24
+  module16 -->|dependencies| module27
+  module17 -->|dependencies| module5
+  module18 -->|dependencies| module26
   module18 -->|dependencies| module27
-  module19 -->|dependencies| module25
-  module20 -->|dependencies| module21
-  module20 -->|dependencies| module25
-  module21 -->|dependencies| module0
-  module21 -->|dependencies| module7
-  module21 -->|dependencies| module9
-  module21 -->|dependencies| module10
-  module21 -->|dependencies| module14
-  module21 -->|dependencies| module17
+  module19 -->|dependencies| module26
+  module19 -->|dependencies| module28
+  module20 -->|dependencies| module26
   module21 -->|dependencies| module22
-  module21 -->|dependencies| module23
-  module21 -->|dependencies| module24
-  module21 -->|dependencies| module25
   module21 -->|dependencies| module26
-  module21 -->|dependencies| module27
   module22 -->|dependencies| module0
+  module22 -->|dependencies| module8
   module22 -->|dependencies| module10
-  module22 -->|dependencies| module14
-  module22 -->|dependencies| module17
+  module22 -->|dependencies| module11
+  module22 -->|dependencies| module15
+  module22 -->|dependencies| module18
+  module22 -->|dependencies| module23
+  module22 -->|dependencies| module24
   module22 -->|dependencies| module25
   module22 -->|dependencies| module26
-  module23 -->|dependencies| module7
-  module23 -->|dependencies| module17
-  module23 -->|dependencies| module25
+  module22 -->|dependencies| module27
+  module22 -->|dependencies| module28
+  module23 -->|dependencies| module0
+  module23 -->|dependencies| module11
+  module23 -->|dependencies| module15
+  module23 -->|dependencies| module18
   module23 -->|dependencies| module26
-  module23 -->|dependencies| module28
-  module24 -->|dependencies| module2
-  module24 -->|dependencies| module7
-  module24 -->|dependencies| module10
-  module24 -->|dependencies| module14
-  module24 -->|dependencies| module17
-  module24 -->|dependencies| module23
-  module24 -->|dependencies| module25
+  module23 -->|dependencies| module27
+  module24 -->|dependencies| module8
+  module24 -->|dependencies| module18
   module24 -->|dependencies| module26
   module24 -->|dependencies| module27
-  module24 -->|dependencies| module28
-  module26 -->|dependencies| module7
-  module26 -->|dependencies| module25
-  module27 -->|dependencies| module7
-  module27 -->|dependencies| module17
-  module27 -->|dependencies| module25
-  module27 -->|dependencies| module28
-  module29 -->|dependencies| module0
-  module29 -->|dependencies| module1
-  module29 -->|dependencies| module2
-  module29 -->|dependencies| module5
-  module29 -->|dependencies| module7
-  module29 -->|dependencies| module9
-  module29 -->|dependencies| module10
-  module29 -->|dependencies| module13
-  module29 -->|dependencies| module14
-  module29 -->|dependencies| module15
-  module29 -->|dependencies| module16
-  module29 -->|dependencies| module17
-  module29 -->|dependencies| module19
-  module29 -->|dependencies| module21
-  module29 -->|dependencies| module22
-  module29 -->|dependencies| module23
-  module29 -->|dependencies| module24
-  module29 -->|dependencies| module25
-  module29 -->|dependencies| module26
-  module29 -->|dependencies| module27
-  module29 -->|dependencies| module28
+  module24 -->|dependencies| module29
+  module25 -->|dependencies| module2
+  module25 -->|dependencies| module8
+  module25 -->|dependencies| module11
+  module25 -->|dependencies| module15
+  module25 -->|dependencies| module18
+  module25 -->|dependencies| module24
+  module25 -->|dependencies| module26
+  module25 -->|dependencies| module27
+  module25 -->|dependencies| module28
+  module25 -->|dependencies| module29
+  module27 -->|dependencies| module8
+  module27 -->|dependencies| module26
+  module28 -->|dependencies| module8
+  module28 -->|dependencies| module18
+  module28 -->|dependencies| module26
+  module28 -->|dependencies| module29
+  module30 -->|dependencies| module0
+  module30 -->|dependencies| module1
+  module30 -->|dependencies| module2
+  module30 -->|dependencies| module6
+  module30 -->|dependencies| module8
+  module30 -->|dependencies| module10
+  module30 -->|dependencies| module11
+  module30 -->|dependencies| module14
+  module30 -->|dependencies| module15
+  module30 -->|dependencies| module16
+  module30 -->|dependencies| module17
+  module30 -->|dependencies| module18
+  module30 -->|dependencies| module20
+  module30 -->|dependencies| module22
+  module30 -->|dependencies| module23
+  module30 -->|dependencies| module24
+  module30 -->|dependencies| module25
+  module30 -->|dependencies| module26
+  module30 -->|dependencies| module27
+  module30 -->|dependencies| module28
+  module30 -->|dependencies| module29
 ```
 
 All workspace dependency fields must be acyclic; the build graph reader rejects production and auxiliary cycles.

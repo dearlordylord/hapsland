@@ -564,7 +564,7 @@ Run `hapsland --version` alone to identify the invoked package version. This doe
 | `repair` | Restore missing owned Hapsland hooks |
 | `reinstall` | Replace marked Hapsland hooks, preserving user settings |
 | `uninstall` | Remove owned Hapsland hooks from registered integrations |
-| `rules` | Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor. |
+| `rules` | Inspect, manage and test local JSON rules. Check and audit send code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor. |
 
 #### hapsland dashboard
 
@@ -643,13 +643,14 @@ hapsland uninstall pi
 
 #### hapsland rules
 
-Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor.
+Inspect, manage and test local JSON rules. Check and audit send code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor.
 
 ```sh
 hapsland rules list
 hapsland rules show --id meaningless_combinations
 hapsland rules explain --id meaningless_combinations --path src/example.ts
 hapsland rules check --path src/example.ts --line 12 --id meaningless_combinations
+hapsland rules audit --json
 hapsland rules create --id no-primitive-obsession --scope project
 hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
 hapsland rules enable --id no-primitive-obsession --scope project

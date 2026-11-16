@@ -430,3 +430,235 @@ describe("one-off file and line rule checks", () => {
     }
   )
 })
+
+// Batch acceptance keeps the parser, source preparation and HTTP provider adapter real.
+describe("configured declaration audits", () => {
+  const invokeAudit = async (root: string, json = true) => {
+    const invocation = await Effect.runPromise(parseInvocation(["rules", "audit", ...(json ? ["--json"] : [])]))
+    if (invocation?.kind !== "rules") throw new Error("Expected rules command")
+    return invocation.options
+  }
+
+  it("reviews distinct declarations on one line and emits source-free findings with exit 1", async () => {
+    const root = await fixture()
+    await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, includes: ["target.ts"], rules: ["rule.json"] }))
+    await put(root, "target.ts", "export interface First { value: string }; export interface Second { count: number }")
+    const fake = transport(0.9)
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const previousExit = process.exitCode
+    try {
+      await Effect.runPromise(
+        runRulesCommand(await invokeAudit(root), root).pipe(
+          Effect.provide(uncachedReviewSettingsLayer),
+          Effect.provide(credentialResolverLayer),
+          Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+          Effect.provide(configuration(root))
+        )
+      )
+      expect(fake.requests).toHaveLength(2)
+      const output = JSON.parse(String(stdout.mock.calls.at(-1)?.[0]))
+      expect(output.status, JSON.stringify(output)).toBe("findings")
+      expect(output.findings.map((finding: { declaration: string }) => finding.declaration)).toEqual([
+        "First",
+        "Second"
+      ])
+      expect(output.counters.requests).toMatchObject({ dispatched: 2, successful: 2, failed: 0 })
+      expect(JSON.stringify(output)).not.toContain("value: string")
+      expect(JSON.stringify(output)).not.toContain("fixture-only-key")
+      expect(stderr.mock.calls.map(([value]) => String(value)).join("")).not.toContain("target.ts")
+      expect(process.exitCode).toBe(1)
+    } finally {
+      process.exitCode = previousExit
+      stdout.mockRestore()
+      stderr.mockRestore()
+    }
+  })
+
+  it.each([undefined, [], ["absent/**/*.ts"]])(
+    "never expands missing or empty configured scope %j",
+    async (includes) => {
+      const root = await fixture()
+      await put(root, ".hapsland.jsonc", JSON.stringify({ version: 1, includes, rules: ["rule.json"] }))
+      const fake = transport(0.1)
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+      const previousExit = process.exitCode
+      try {
+        const effect = runRulesCommand(await invokeAudit(root), root).pipe(
+          Effect.provide(uncachedReviewSettingsLayer),
+          Effect.provide(credentialResolverLayer),
+          Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+          Effect.provide(configuration(root))
+        )
+        if (includes === undefined)
+          await expect(Effect.runPromise(effect)).rejects.toThrow("explicit configured includes")
+        else {
+          await Effect.runPromise(effect)
+          expect(JSON.parse(String(stdout.mock.calls.at(-1)?.[0])).status).toBe("no-work")
+          expect(process.exitCode).toBe(7)
+        }
+        expect(fake.requests).toHaveLength(0)
+      } finally {
+        process.exitCode = previousExit
+        stdout.mockRestore()
+        stderr.mockRestore()
+      }
+    }
+  )
+})
+
+describe("batch outcomes and existing policy", () => {
+  const batch = async (root: string, fake: ReturnType<typeof transport>, id?: string) => {
+    const { auditRules } = await import("@hapsland/administration/rules/audit")
+    return Effect.runPromise(
+      auditRules({ id }, root).pipe(
+        Effect.provide(uncachedReviewSettingsLayer),
+        Effect.provide(credentialResolverLayer),
+        Effect.provide(Layer.succeed(HttpClient.HttpClient, fake.httpClient)),
+        Effect.provide(configuration(root))
+      )
+    )
+  }
+  const configure = (root: string, extra: Record<string, unknown> = {}) =>
+    put(
+      root,
+      ".hapsland.jsonc",
+      JSON.stringify({ version: 1, includes: ["target.ts"], rules: ["rule.json"], ...extra })
+    )
+
+  it("audits more than the event-specific 64-root bound exactly once", async () => {
+    const root = await fixture()
+    await configure(root)
+    await put(
+      root,
+      "target.ts",
+      Array.from({ length: 65 }, (_, index) => `export interface Model${index} { value: string }`).join("\n")
+    )
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("clear")
+    expect(result.counters.requests).toMatchObject({ dispatched: 65, successful: 65, failed: 0 })
+    expect(fake.requests).toHaveLength(65)
+  }, 60_000)
+
+  it("preserves exclusions and explicit related-context scope", async () => {
+    const root = await fixture()
+    await configure(root, { excludes: ["target.ts"] })
+    const fake = transport(0.1)
+    expect((await batch(root, fake)).status).toBe("no-work")
+    expect(fake.requests).toHaveLength(0)
+    await configure(root, { contextIncludes: [] })
+    const restricted = await batch(root, fake)
+    expect(JSON.stringify(fake.requests)).not.toContain("export interface Related")
+    expect(restricted.reasons.some((reason) => reason.reason === "missing-evidence")).toBe(true)
+  })
+
+  it("reports invalid configuration as incomplete without provider work", async () => {
+    const root = await fixture()
+    await put(root, ".hapsland.jsonc", "{ invalid configuration")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.reasons).toEqual([{ reason: "configuration-unavailable" }])
+    expect(fake.requests).toHaveLength(0)
+  })
+
+  it("keeps findings when a different file cannot be parsed", async () => {
+    const root = await fixture()
+    await configure(root, { includes: ["target.ts", "broken.ts"] })
+    await put(root, "broken.ts", "export interface Broken { value:")
+    const fake = transport(0.9)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.findings.some((finding) => finding.declaration === "Selected")).toBe(true)
+  })
+
+  it("continues after invalid declaration results but stops after backend failure", async () => {
+    const root = await fixture()
+    await configure(root)
+    await put(root, "target.ts", "export interface A { value: string }\nexport interface B { value: number }")
+    let calls = 0
+    const fake = transport(0.1)
+    const invalid = HttpClient.make((request) => {
+      calls++
+      return calls === 1
+        ? Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ model: "jev-latest", answers: {} })))
+        : fake.httpClient.execute(request)
+    })
+    const continued = await batch(root, { ...fake, httpClient: invalid })
+    expect(continued.status).toBe("incomplete")
+    expect(continued.counters.requests).toMatchObject({ dispatched: 2, successful: 1, failed: 1 })
+    const failing = HttpClient.make((request) =>
+      Effect.succeed(HttpClientResponse.fromWeb(request, new Response("unavailable", { status: 401 })))
+    )
+    const stopped = await batch(root, { ...fake, httpClient: failing })
+    expect(stopped.status).toBe("incomplete")
+    expect(stopped.counters.requests.dispatched).toBe(1)
+  })
+
+  it("rechecks earlier results before preparing the final report", async () => {
+    const root = await fixture()
+    await configure(root, { includes: ["a.ts", "b.ts"] })
+    await put(root, "a.ts", "export interface A { value: string }")
+    await put(root, "b.ts", "export interface B { value: string }")
+    let responses = 0
+    const fake = transport(0.9, async () => {
+      if (++responses === 2) await put(root, "a.ts", "export interface Replaced { count: number }")
+    })
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.findings.map((finding) => finding.declaration)).toEqual(["B"])
+    expect(result.reasons).toContainEqual({ path: "a.ts", declaration: "A", reason: "stale-at-final-report" })
+  })
+
+  it.each([
+    ["type.rs", "struct Selected { value: String }"],
+    ["type.bend", "type Selected is Data:\n  Selected{value: U32}\n"]
+  ])("audits supported type roots in %s without requiring function support", async (path, source) => {
+    const root = await fixture()
+    await configure(root, { includes: [path] })
+    await put(root, path, source)
+    await put(
+      root,
+      "rule.json",
+      JSON.stringify({
+        version: 1,
+        id: "test/types",
+        question: "Invalid state?",
+        criteria: { false: "Valid", true: "Invalid" },
+        message: "Review type",
+        inputs: [{ languages: ["rust", "bend"], kind: "type", requires: ["root-declaration"] }]
+      })
+    )
+    const result = await batch(root, transport(0.1))
+    expect(result.status, JSON.stringify(result)).toBe("clear")
+    expect(result.counters.requests.successful).toBe(1)
+  })
+
+  it("invalidates a result changed during evaluation", async () => {
+    const root = await fixture()
+    await configure(root)
+    const fake = transport(0.9, async () => {
+      await put(root, "target.ts", "export interface Replacement { value: string }")
+    })
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.findings).toEqual([])
+    expect(result.reasons.some((reason) => reason.reason === "stale")).toBe(true)
+  })
+
+  it.each([
+    "--path",
+    "--line",
+    "--scope",
+    "--changes",
+    "--commit",
+    "--range",
+    "--merge-base",
+    "--include",
+    "--ignore-excludes"
+  ])("rejects unavailable batch flag %s in the actual parser", async (flag) => {
+    await expect(Effect.runPromise(parseInvocation(["rules", "audit", flag, "value"]))).rejects.toThrow()
+  })
+})

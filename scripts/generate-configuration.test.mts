@@ -1,3 +1,4 @@
+import { ruleAuditExamples, ruleAuditFlagReference } from "@hapsland/administration/rules/cli-definition"
 import { documentationFacts } from "./documentation-facts.ts"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -95,6 +96,17 @@ const codeBlocks = (markdown: string): ReadonlyArray<string> =>
   [...markdown.matchAll(/```(?:jsonc|json)\n([\s\S]*?)\n```/gu)].map((match) => match[1] ?? "")
 
 describe("configuration documentation generator", () => {
+  it("keeps generated audit metadata aligned with actual argument vectors and singleton parsing", async () => {
+    expect(ruleAuditFlagReference.map((flag) => [flag.name, flag.type, flag.cardinality, flag.default])).toEqual([
+      ["id", "string", "0..1", "all eligible enabled rules"],
+      ["json", "boolean", "0..1", false]
+    ])
+    for (const example of ruleAuditExamples)
+      expect(await parseInvocation([...example.argv])).toMatchObject({ kind: "rules", options: { action: "audit" } })
+    await expect(parseInvocation(["rules", "audit", "--id", "a", "--id", "b"])).rejects.toThrow()
+    await expect(parseInvocation(["rules", "audit", "--json", "--json"])).rejects.toThrow()
+  })
+
   it("keeps the authoring commands and source selections executable through runtime owners", async () => {
     for (const command of authoringCommandExamples)
       expect(await parseInvocation(command.split(" ").slice(1))).toMatchObject({ kind: "rules" })

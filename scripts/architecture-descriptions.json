@@ -529,5 +529,14 @@
         "label": "Deterministic test and boundary suites"
       }
     ]
+  },
+  "@hapsland/bend-javascript-abi": {
+    "summary": "Verification-only Bend emitted JavaScript ABI runtime and decoding helpers",
+    "verification": [
+      {
+        "label": "ABI runtime tests",
+        "target": "packages/bend-javascript-abi/bend-js-runtime.test.mjs"
+      }
+    ]
   }
 }

@@ -12,6 +12,11 @@ and which rules apply. Each [rule file](rules.md#rule-document-format) defines a
 concern and the input evidence it understands. To create one, follow
 [Write your first rule](write-first-rule.md).
 
+For explicit whole-scope review, `hapsland rules audit` requires `includes` in a
+user or project configuration. Omission never expands into a repository-wide
+audit; an explicit empty list selects nothing. See [configured-file audits](rules.md#audit-configured-files)
+for classifier calls, output and exits.
+
 ## Configuration composition
 
 The [accepted compatibility contract](review-contract-compatibility.md#configuration-and-individual-rules)

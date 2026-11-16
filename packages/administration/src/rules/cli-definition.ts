@@ -9,6 +9,22 @@ export const DEFAULT_RULE_EXAMPLE_ID = SHIPPED_DEFAULT_RULES[0]!.id
 export const CUSTOM_RULE_EXAMPLE_ID = "no-primitive-obsession"
 export const CUSTOM_RULE_EXAMPLE_PATH = `.hapsland/rules/custom/${encodeURIComponent(CUSTOM_RULE_EXAMPLE_ID)}.jsonc`
 export const RULE_CHECK_EXIT_CODES = { evaluated: 0, unavailable: 6 } as const
+export const RULE_AUDIT_EXIT_CODES = { clear: 0, findings: 1, incomplete: 6, "no-work": 7 } as const
+
+const SINGLE_FLAG_MAX = 1
+const auditIdOption = {
+  name: "id",
+  description: "Enabled rule identity; omit to run all eligible enabled rules"
+} as const
+const jsonOption = { name: "json", description: "Write machine-readable JSON to stdout", default: false } as const
+export const ruleAuditExamples = [
+  { argv: ["rules", "audit"], description: "Audit explicitly configured includes" },
+  { argv: ["rules", "audit", "--json"], description: "Write a source-free batch result" }
+] as const
+export const ruleAuditFlagReference = [
+  { ...auditIdOption, type: "string", cardinality: `0..${SINGLE_FLAG_MAX}`, default: "all eligible enabled rules" },
+  { ...jsonOption, type: "boolean", cardinality: `0..${SINGLE_FLAG_MAX}` }
+] as const
 
 const ruleActions = [
   {
@@ -39,6 +55,15 @@ const ruleActions = [
     example: `--path src/example.ts --line 12 --id ${DEFAULT_RULE_EXAMPLE_ID}`,
     callsClassifier: true,
     detail: `Selects the enclosing declaration and its related code, not an arbitrary line window. Sends that code and eligible enabled rules to the configured external classifier (may incur charges); returns probabilities and findings. Uses normal key discovery. No agent session. Exit ${RULE_CHECK_EXIT_CODES.evaluated} means evaluated (including findings); exit ${RULE_CHECK_EXIT_CODES.unavailable} means skipped/unavailable. --json includes the actual source-bearing classifier input.`
+  },
+  {
+    name: "audit",
+    description: "Review every eligible declaration in explicitly configured includes",
+    flags: "audit",
+    example: "--json",
+    callsClassifier: true,
+    detail:
+      "Requires explicit configured includes; no implicit repository-wide audit. Sends current declarations and permitted related code to the configured classifier (may incur charges). JSON omits source. Exits: 0 clear, 1 findings, 6 incomplete, 7 no work. Freshness is checked before dispatch, after evaluation and during final report preparation; there is no atomic batch snapshot."
   },
   {
     name: "create",
@@ -88,7 +113,7 @@ const textFlag = (name: string, description: string) =>
       (value) => value.trim() !== "" && !value.startsWith("--"),
       () => "a nonempty value"
     ),
-    Flag.between(1, 1),
+    Flag.between(1, SINGLE_FLAG_MAX),
     Flag.map(([value]) => value),
     Flag.withDescription(description)
   )
@@ -97,16 +122,19 @@ const rulePathName = "path"
 const id = textFlag(ruleIdName, "Rule identity (required); find it with rules list")
 const path = textFlag(rulePathName, "Existing local JSON rule file (required)")
 const scope = Flag.Literals("scope", ["personal", "project"]).pipe(
-  Flag.atMost(1),
+  Flag.atMost(SINGLE_FLAG_MAX),
   Flag.map(([value]) => value),
   Flag.withDescription("Configuration to change; required without a terminal")
 )
-const json = Flag.Boolean("json").pipe(
-  Flag.atMost(1),
-  Flag.map((values) => values[0] ?? false),
-  Flag.withDescription("Write machine-readable JSON to stdout")
+const json = Flag.Boolean(jsonOption.name).pipe(
+  Flag.atMost(SINGLE_FLAG_MAX),
+  Flag.map((values) => values[0] ?? jsonOption.default),
+  Flag.withDescription(jsonOption.description)
 )
 const flags = {
+  audit: {
+    id: textFlag(auditIdOption.name, auditIdOption.description).pipe(Flag.optional, Flag.map(Option.getOrUndefined))
+  },
   list: {},
   id: { id },
   explain: {
@@ -122,7 +150,7 @@ const flags = {
       "Source file relative to the current directory (required); normal source policy applies"
     ),
     line: Flag.Int("line").pipe(
-      Flag.between(1, 1),
+      Flag.between(1, SINGLE_FLAG_MAX),
       Flag.map(([value]) => value ?? 0),
       Flag.filter(
         (value) => Number.isSafeInteger(value) && value > 0,
@@ -178,7 +206,7 @@ export const makeRulesCommand = (invoke: (options: RulesOptions) => void) => {
   )
   return parent.pipe(
     Command.withDescription(
-      "Inspect, manage and test local JSON rules. Only check sends code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor."
+      "Inspect, manage and test local JSON rules. Check and audit send code to the classifier; other actions make no classifier calls. Defaults to list. Edit rule JSON files in your editor."
     ),
     Command.withSubcommands(commands),
     Command.withExamples(commands.flatMap((command) => command.examples))

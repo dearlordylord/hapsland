@@ -179,6 +179,52 @@ The [inspection dashboard](status.md#opt-in-local-inspection) provides another v
 
 <!-- rule-check-dashboard:end -->
 
+## Audit configured files
+
+`hapsland rules audit` reviews every eligible current declaration in explicitly
+configured `includes`, with the same permitted related code, rules, credentials
+and provider as single-declaration checks. This sends source to the configured
+classifier and may incur charges. It starts no resident or agent session.
+
+```jsonc
+{ "version": 1, "includes": ["src/models/**/*.ts"] }
+```
+
+```sh
+hapsland rules audit
+hapsland rules audit --id meaningless_combinations --json
+```
+
+Patterns resolve from the repository root, including when invoked from a
+subdirectory. Missing explicit includes is an invocation error; empty includes,
+no matching files, no eligible declarations and no applicable rules are explained
+without expanding the scope. Normal exclusions, repository `.gitignore`, privacy,
+file limits and explicit or inherited related-context selection remain effective.
+Only eligible enabled rules run. Several declarations on one line are reviewed
+separately. Unsupported source and missing evidence remain visible in reasons.
+
+Progress on stderr contains counts only. Final text or a single JSON result goes
+to stdout; batch JSON omits source and credentials. Counts distinguish discovered
+selection, prepared/processed declarations, estimated logical requests, actual
+logical dispatches, active requests and successful/failed reviews. Logical
+requests are neither billed requests nor HTTP attempts; provider retries can
+differ. Estimates grow during preparation and are never counted as dispatches.
+Findings identify their file, declaration and location.
+
+Independent declaration failures allow other work to proceed; credential,
+configuration or backend failures stop new dispatches. Findings survive an
+incomplete result. Freshness is checked before dispatch, after each evaluation and during final report
+preparation; files can change after those checks and there is no atomic repository snapshot or
+automatic re-review. Existing analyzer, capture and per-declaration graph limits
+still apply. A bounded discovery failure reports incomplete rather than an empty
+or clean audit.
+
+Batch exits are 0 for complete clear results, 1 for complete findings, 6 for
+incomplete/unavailable results and 7 for no work. These differ from the
+single-declaration check's exits. This configured-scope command does not yet
+provide invocation scope overrides, Git-change selection, terminal animation or
+retained partial results on Ctrl+C; those belong to subsequent batch slices.
+
 <!-- rule-guide:start -->
 
 ## Rule commands
@@ -191,6 +237,7 @@ The command definitions generate this reference and terminal help. `hapsland rul
 | `show` | View a rule and its effective settings |
 | `explain` | Explain activation and file/language selection |
 | `check` | Review the declaration at a file and line with the classifier |
+| `audit` | Review every eligible declaration in explicitly configured includes |
 | `create` | Create an editable rule |
 | `connect` | Add an existing local JSON rule |
 | `enable` | Enable a rule in the selected scope |
@@ -201,10 +248,32 @@ hapsland rules list
 hapsland rules show --id meaningless_combinations
 hapsland rules explain --id meaningless_combinations --path src/example.ts
 hapsland rules check --path src/example.ts --line 12 --id meaningless_combinations
+hapsland rules audit --json
 hapsland rules create --id no-primitive-obsession --scope project
 hapsland rules connect --path .hapsland/rules/custom/no-primitive-obsession.jsonc --scope project
 hapsland rules enable --id no-primitive-obsession --scope project
 hapsland rules disable --id no-primitive-obsession --scope project
+```
+
+### Audit flags and exits
+
+Audit requires explicit configured includes. Unknown flags and repeated singleton flags are rejected. Path, line, scope and Git selectors are unavailable on audit.
+
+| Flag | Type | Occurrences | Default | Meaning |
+|---|---|---|---|---|
+| `--id` | string | 0..1 | all eligible enabled rules | Enabled rule identity; omit to run all eligible enabled rules |
+| `--json` | boolean | 0..1 | false | Write machine-readable JSON to stdout |
+
+| Outcome | Exit |
+|---|---:|
+| clear | 0 |
+| findings | 1 |
+| incomplete | 6 |
+| no-work | 7 |
+
+```sh
+hapsland rules audit
+hapsland rules audit --json
 ```
 
 ## Rule example

@@ -8,7 +8,12 @@ import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { ConfigurationDocument, CONFIGURATION_VERSION } from "@hapsland/runtime-inputs/configuration/types"
 import { RuleDefinition, RULE_SCHEMA_VERSION } from "@hapsland/review-definition/rules/schema"
-import { ruleCommandReference } from "@hapsland/administration/rules/cli-definition"
+import {
+  ruleCommandReference,
+  ruleAuditFlagReference,
+  ruleAuditExamples,
+  RULE_AUDIT_EXIT_CODES
+} from "@hapsland/administration/rules/cli-definition"
 import { rootOperationReference } from "@hapsland/administration/cli-help"
 import { workerCommandReference, VERSION_FLAG } from "@hapsland/runtime-environment/runtime/cli-information"
 import { CLI_NAME } from "@hapsland/runtime-environment/runtime/cli-names"
@@ -446,6 +451,24 @@ const fullRuleReference = (schema: JsonObject): string =>
     "",
     "```sh",
     ...ruleCommandReference().flatMap((command) => command.examples.map((example) => example.command)),
+    "```",
+    "",
+    "### Audit flags and exits",
+    "",
+    "Audit requires explicit configured includes. Unknown flags and repeated singleton flags are rejected. Path, line, scope and Git selectors are unavailable on audit.",
+    "",
+    "| Flag | Type | Occurrences | Default | Meaning |",
+    "|---|---|---|---|---|",
+    ...ruleAuditFlagReference.map(
+      (flag) => `| \`--${flag.name}\` | ${flag.type} | ${flag.cardinality} | ${flag.default} | ${flag.description} |`
+    ),
+    "",
+    "| Outcome | Exit |",
+    "|---|---:|",
+    ...Object.entries(RULE_AUDIT_EXIT_CODES).map(([status, code]) => `| ${status} | ${code} |`),
+    "",
+    "```sh",
+    ...ruleAuditExamples.map((example) => `${CLI_NAME} ${example.argv.join(" ")}`),
     "```",
     "",
     "## Rule example",

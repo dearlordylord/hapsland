@@ -21,6 +21,23 @@ export type DirectFilePolicy = {
 
 export const DEFAULT_DIRECT_FILE_POLICY: DirectFilePolicy = { includes: ["**/*"], excludes: [] }
 
+/** Candidate names only. Callers must apply configured policy and normal physical admission before source reads.
+ * Match named-path Git-ignore semantics: repository .gitignore, without user-global or info exclusions.
+ * A bounded Git observation failure is a discovery failure, never an empty selection.
+ */
+export const discoverWorkingTreeCandidates = Effect.fn("DirectEvent.discoverWorkingTreeCandidates")(function* (
+  root: string
+): Effect.fn.Return<ReadonlyArray<string>, Error> {
+  const names = yield* gitOutput(root, [
+    "ls-files",
+    "-z",
+    "--cached",
+    "--others",
+    "--exclude-per-directory=.gitignore"
+  ]).pipe(Effect.mapError(() => new Error("Working-tree candidate discovery unavailable")))
+  return [...new Set(names.split("\0").filter((path) => path.length > 0))].sort()
+})
+
 export type EligiblePath = { readonly relativePath: string; readonly absolutePath: string }
 
 class PathSelectionError extends Schema.TaggedError<PathSelectionError>()("PathSelectionError", {}) {}

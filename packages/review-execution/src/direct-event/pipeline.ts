@@ -128,8 +128,10 @@ export type SourceLineRequest = Pick<DirectObservation, "root" | "rootIdentity">
   readonly path: string
   readonly line: number
 }
+export type SourceFileRequest = Omit<SourceLineRequest, "line">
 type PreparationObservation = Omit<DirectObservation, "advicee"> & {
   readonly advicee?: DirectAdvicee
+  readonly allCurrentDeclarations?: true
   readonly lineSelection?: { readonly line: number; readonly roots: Set<string> }
 }
 export type SourcePreparationContext = Omit<DirectReviewContext, "controlledWriter" | "advicee">
@@ -327,7 +329,7 @@ const resolveSelectedUnits = Effect.fn("DirectEvent.resolveSelectedUnits")(funct
   const graphFailures: AnalysisFailure[] = []
   for (const item of selected) {
     const root = analysisRoot(item)
-    if (frame.selectedCount.value >= MAX_OBSERVATION_GRAPH_UNITS) {
+    if (frame.observation.allCurrentDeclarations !== true && frame.selectedCount.value >= MAX_OBSERVATION_GRAPH_UNITS) {
       graphFailures.push({ root: root.name, reason: "reference-limit" })
       continue
     }
@@ -978,6 +980,12 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
   const pathOutcomes: Array<PathObservationOutcome> = []
   const observedUnits: Array<ReviewUnit> = []
   for (const candidate of observation.candidates) {
+    if (
+      observation.allCurrentDeclarations === true &&
+      contract === FUNCTION_INPUT_CONTRACT &&
+      languageForPath(candidate.path)?.analyzeFunctions === undefined
+    )
+      continue
     const prepared = yield* prepareCandidate(
       candidate,
       observation,
@@ -1058,6 +1066,48 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         : outcome
     )
   }
+})
+
+/** Explicit operator selection; no fabricated edit, agent identity or resident. */
+export const prepareSourceFile = Effect.fn("DirectEvent.prepareSourceFile")(function* (
+  request: SourceFileRequest,
+  context: SourcePreparationContext
+) {
+  return yield* prepareSourceObservation(
+    {
+      root: request.root,
+      rootIdentity: request.rootIdentity,
+      candidates: [{ operation: "add", path: request.path }],
+      allCurrentDeclarations: true
+    },
+    context
+  )
+})
+
+/** Revalidate the exact declaration and supporting inputs without line ambiguity. */
+export const preparedSourceFileStillCurrent = Effect.fn("DirectEvent.preparedSourceFileStillCurrent")(function* (
+  request: SourceFileRequest,
+  prepared: PreparedSource,
+  context: SourcePreparationContext
+) {
+  if (!(yield* verifyObservationRoot(request))) return false
+  const latest = yield* prepareSourceObservation(
+    {
+      root: request.root,
+      rootIdentity: request.rootIdentity,
+      candidates: [{ operation: "add", path: request.path }],
+      allCurrentDeclarations: true
+    },
+    context,
+    new Map([[request.path, new Set([prepared.input.declaration.name])]])
+  )
+  return latest.outcomes.some(
+    (outcome) =>
+      outcome.status === "ready" &&
+      outcome.prepared.identity === prepared.identity &&
+      sameInput(outcome.prepared.input, prepared.input) &&
+      canonicalValue(outcome.prepared.input.sourceFingerprints) === canonicalValue(prepared.input.sourceFingerprints)
+  )
 })
 
 /** Explicit operator selection; no fabricated edit, agent identity or resident. */

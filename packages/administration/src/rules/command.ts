@@ -118,6 +118,22 @@ const checkRules = Effect.fn("Rules.checkCommand")(function* (options: RulesOpti
   return
 })
 export const runRulesCommand = Effect.fn("Rules.command")(function* (options: RulesOptions, cwd: string) {
+  if (options.action === "audit") {
+    const { auditRules, auditExitCode, formatRuleAudit, formatAuditProgress } = yield* Effect.promise(
+      () => import("./audit.ts")
+    )
+    let lastProgress = 0
+    const result = yield* auditRules({ id: options.id }, cwd, (counters) => {
+      const now = Date.now()
+      if (now - lastProgress < 5_000) return
+      lastProgress = now
+      process.stderr.write(formatAuditProgress(counters) + "\n")
+    })
+    process.stderr.write(formatAuditProgress(result.counters) + "\n")
+    process.stdout.write(options.json ? JSON.stringify(result) + "\n" : formatRuleAudit(result))
+    process.exitCode = auditExitCode(result)
+    return
+  }
   if (options.action === "check") return yield* checkRules(options, cwd)
   const root = yield* discoverWorkingTreeRoot(cwd)
   const configured = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")))

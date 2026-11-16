@@ -359,6 +359,10 @@
     "./invocation/result": {
       "types": "./dist/invocation/result.d.ts",
       "default": "./dist/invocation/result.js"
+    },
+    "./rules/audit": {
+      "types": "./dist/rules/audit.d.ts",
+      "default": "./dist/rules/audit.js"
     }
   },
   "dependencies": {
