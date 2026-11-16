@@ -111,15 +111,18 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
     reasons.push({ reason: policy.includes.length === 0 ? "empty-includes" : "no-enabled-rules" })
     return finish()
   }
-  const discovered = yield* discoverWorkingTreeCandidates(repository.root).pipe(Effect.result)
+  const discovered = yield* discoverWorkingTreeCandidates(
+    repository.root,
+    (path) => selectGlobalPath(policy, path).selected
+  ).pipe(Effect.result)
   if (discovered._tag === "Failure") {
     incomplete = true
     reasons.push({ reason: "discovery-unavailable" })
     return finish()
   }
-  const paths = discovered.success.filter((path) => selectGlobalPath(policy, path).selected)
+  const paths = discovered.success.paths
   counters.files.selected = paths.length
-  counters.files.skipped = discovered.success.length - paths.length
+  counters.files.skipped = discovered.success.skipped
   if (paths.length === 0) reasons.push({ reason: "no-selected-files" })
   const resolveCredential = yield* Effect.cached(
     Effect.gen(function* () {

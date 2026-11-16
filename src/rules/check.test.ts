@@ -527,6 +527,22 @@ describe("batch outcomes and existing policy", () => {
       JSON.stringify({ version: 1, includes: ["target.ts"], rules: ["rule.json"], ...extra })
     )
 
+  it("audits a narrow scope when candidate names exceed the old 64 KiB buffer", async () => {
+    const root = await fixture()
+    await configure(root)
+    const names = Array.from({ length: 900 }, (_, index) => `unselected/${index}-${"x".repeat(80)}.ts`)
+    await Promise.all(names.map((path) => put(root, path, "export type Other = string")))
+    expect(Buffer.byteLength(names.join("\0"))).toBeGreaterThan(65_536)
+    await put(root, "target.ts", "export interface Selected { value: string }")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("clear")
+    expect(result.counters.files).toMatchObject({ selected: 1, processed: 1 })
+    expect(result.counters.files.skipped).toBeGreaterThanOrEqual(900)
+    expect(result.counters.requests).toMatchObject({ dispatched: 1, successful: 1 })
+    expect(fake.requests).toHaveLength(1)
+  })
+
   it("audits more than the event-specific 64-root bound exactly once", async () => {
     const root = await fixture()
     await configure(root)

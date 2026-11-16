@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process"
 import { gitOutput } from "../repository/root.ts"
 import * as Schema from "effect/Schema"
 import { lstat, realpath } from "node:fs/promises"
@@ -21,21 +22,88 @@ export type DirectFilePolicy = {
 
 export const DEFAULT_DIRECT_FILE_POLICY: DirectFilePolicy = { includes: ["**/*"], excludes: [] }
 
-/** Candidate names only. Callers must apply configured policy and normal physical admission before source reads.
+/** Stream candidate names and retain only selected paths; skipped counts distinct names. Callers must apply configured policy and normal physical admission before source reads.
  * Match named-path Git-ignore semantics: repository .gitignore, without user-global or info exclusions.
  * A bounded Git observation failure is a discovery failure, never an empty selection.
  */
 export const discoverWorkingTreeCandidates = Effect.fn("DirectEvent.discoverWorkingTreeCandidates")(function* (
-  root: string
-): Effect.fn.Return<ReadonlyArray<string>, Error> {
-  const names = yield* gitOutput(root, [
-    "ls-files",
-    "-z",
-    "--cached",
-    "--others",
-    "--exclude-per-directory=.gitignore"
-  ]).pipe(Effect.mapError(() => new Error("Working-tree candidate discovery unavailable")))
-  return [...new Set(names.split("\0").filter((path) => path.length > 0))].sort()
+  root: string,
+  selected: (path: string) => boolean
+) {
+  const unavailable = () => new Error("Working-tree candidate discovery unavailable")
+  const paths = new Set<string>()
+  let skipped = 0
+  let pending = ""
+  yield* Effect.acquireUseRelease(
+    Effect.try({
+      try: () => {
+        const child = spawn(
+          "git",
+          [
+            "--literal-pathspecs",
+            "-C",
+            root,
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--deduplicate",
+            "--exclude-per-directory=.gitignore"
+          ],
+          { env: process.env, stdio: ["ignore", "pipe", "ignore"] }
+        )
+        let failed = false
+        child.once("error", () => {
+          failed = true
+        })
+        const closed = new Promise<boolean>((resolve) => {
+          child.once("close", (code) => resolve(!failed && code === 0))
+        })
+        child.stdout.setEncoding("utf8")
+        return { child, closed }
+      },
+      catch: unavailable
+    }),
+    ({ child, closed }) =>
+      Effect.callback<void, Error>((resume) => {
+        const consume = (chunk: unknown) => {
+          try {
+            if (typeof chunk !== "string") {
+              resume(Effect.fail(unavailable()))
+              return
+            }
+            pending += chunk
+            let start = 0
+            for (let end = pending.indexOf("\0"); end !== -1; end = pending.indexOf("\0", start)) {
+              const path = pending.slice(start, end)
+              if (path.length > 0) {
+                if (selected(path)) paths.add(path)
+                else skipped++
+              }
+              start = end + 1
+            }
+            pending = pending.slice(start)
+          } catch {
+            resume(Effect.fail(unavailable()))
+          }
+        }
+        const failed = () => resume(Effect.fail(unavailable()))
+        child.stdout.on("data", consume)
+        child.stdout.once("error", failed)
+        void closed.then((success) =>
+          resume(success && pending.length === 0 ? Effect.void : Effect.fail(unavailable()))
+        )
+        return Effect.sync(() => {
+          child.stdout.off("data", consume)
+          child.stdout.off("error", failed)
+        })
+      }).pipe(Effect.timeoutOrElse({ duration: 2_000, orElse: () => Effect.fail(unavailable()) })),
+    ({ child, closed }) =>
+      Effect.sync(() => {
+        child.kill("SIGKILL")
+      }).pipe(Effect.andThen(Effect.promise(() => closed)), Effect.asVoid)
+  )
+  return { paths: [...paths].sort(), skipped }
 })
 
 export type EligiblePath = { readonly relativePath: string; readonly absolutePath: string }
