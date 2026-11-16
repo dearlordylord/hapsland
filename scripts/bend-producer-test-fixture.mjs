@@ -24,6 +24,11 @@ export async function createBendReceiptFixture(root, repositoryRoot) {
     "owned-lock.mjs"
   ])
     copyFileSync(resolve(repositoryRoot, "scripts", name), resolve(root, "scripts", name))
+  mkdirSync(resolve(root, "packages/bend-javascript-abi"), { recursive: true })
+  copyFileSync(
+    resolve(repositoryRoot, "packages/bend-javascript-abi/bend-js-runtime.mjs"),
+    resolve(root, "packages/bend-javascript-abi/bend-js-runtime.mjs")
+  )
   mkdirSync(resolve(root, "native/src"), { recursive: true })
   copyFileSync(resolve(repositoryRoot, "native/src/inspection-lock.c"), resolve(root, "native/src/inspection-lock.c"))
   const manifestPath = resolve(directory, "package.json")

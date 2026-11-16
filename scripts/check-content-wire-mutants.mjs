@@ -72,8 +72,8 @@ const mutants = [
   {
     name: "compiled-openai-reads-state",
     file: "packages/agent-flow-bend/dist/request-content.generated.js",
-    before: '$core$058lookup$(_fields_0, "input", "null")',
-    after: '$core$058lookup$(_fields_0, "state", "null")',
+    before: '$core_lookup(_fields_0, "input", "null")',
+    after: '$core_lookup(_fields_0, "state", "null")',
     test: "OpenAI profile selects only model/input/questions at the real transport"
   },
   {
@@ -86,8 +86,8 @@ const mutants = [
   {
     name: "compiled-bend-drops-questions",
     file: "packages/agent-flow-bend/dist/request-content.generated.js",
-    before: 'function $core$058encode$(_model_0, _state_0, _questions_0) {\n  const _x_0 = (_questions_0 + "}");',
-    after: 'function $core$058encode$(_model_0, _state_0, _questions_0) {\n  const _x_0 = ("null" + "}");',
+    before: 'function $core_encode(_model_0, _state_0, _questions_0) {\n  const _x_0 = (_questions_0 + "}");',
+    after: 'function $core_encode(_model_0, _state_0, _questions_0) {\n  const _x_0 = ("null" + "}");',
     test: "changing private envelopes preserves exact nonempty wire contents"
   },
   {
