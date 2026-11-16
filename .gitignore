@@ -29,3 +29,6 @@ packages/agent-flow-viz/.astro/
 /native/prebuilt/
 /prototypes/bend-*-source.tar.gz
 /evidence/
+
+# Per-checkout local memory identity.
+/.slopmemr-id

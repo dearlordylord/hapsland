@@ -1,0 +1,3 @@
+# Preserve frozen upstream Markdown exports, whose website-only skip link has no local anchor.
+# All other fragments and links in these captures remain checked.
+exclude = ['^file://.*/references/cloudflare-clairic/(model|changelog)\.md#main-content$']

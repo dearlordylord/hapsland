@@ -77,3 +77,19 @@ When documented source facts change, run `npm run docs:generate`; then run
 selection and prerequisites. Generation and drift checks are explicit manual
 operations. They do not run automatically in product builds, fast/full gates,
 Git hooks, or CI.
+
+## Imported agent skills
+
+The repository retains the following third-party skill captures for coding
+agents. Their upstream instructions are workflow guidance; the repository's
+accepted contracts and current user instructions retain authority. Skill bytes
+are preserved, with source identities and hashes in [skills-lock.json](skills-lock.json).
+Review this index and the lock together whenever a skill is installed, replaced
+or removed.
+
+| Capture | Audience | Upstream source |
+| --- | --- | --- |
+| [eli5](.agents/skills/eli5/SKILL.md) | Coding agents explaining code to beginners | `coldteadotai/pr-lens`, `skills/eli5/SKILL.md` |
+| [pr-lens](.agents/skills/pr-lens/SKILL.md) | Coding agents producing architecture and data-flow diagrams | `coldteadotai/pr-lens`, `skills/pr-lens/SKILL.md` |
+
+The imported [license](.agents/skills/pr-lens/LICENSE) accompanies the captures.
