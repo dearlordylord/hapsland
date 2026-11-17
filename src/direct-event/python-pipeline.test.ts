@@ -55,6 +55,106 @@ class Arbitrary:
         self.value = 1
 `
 
+const pydanticDeclarations: ReadonlyArray<readonly [string, string]> = [
+  ["functional_validators", "BeforeValidator(clean)"],
+  ["functional_validators", "AfterValidator(clean)"],
+  ["functional_validators", "PlainValidator(clean)"],
+  ["functional_validators", "WrapValidator(clean)"],
+  ["functional_validators", "SkipValidation()"],
+  ["functional_validators", "InstanceOf()"],
+  ["functional_validators", "ValidateAs(str, clean)"],
+  ["functional_validators", 'field_validator("value")'],
+  ["functional_validators", 'model_validator(mode="before")'],
+  ["functional_serializers", "PlainSerializer(clean)"],
+  ["functional_serializers", "WrapSerializer(clean)"],
+  ["functional_serializers", "SerializeAsAny()"],
+  ["functional_serializers", 'field_serializer("value")'],
+  ["functional_serializers", "model_serializer()"],
+  ["fields", "PrivateAttr(default=None)"],
+  ["fields", "computed_field(clean)"],
+  ["config", "with_config(strict=True)"],
+  ["aliases", 'AliasPath("payload", 0)'],
+  ["aliases", 'AliasChoices("name", "label")'],
+  ["aliases", "AliasGenerator(alias=clean)"],
+  ["json_schema", 'WithJsonSchema({"type": "string"})'],
+  ["types", "Strict()"],
+  ["types", "AllowInfNan(False)"],
+  ["types", "StringConstraints(min_length=1)"],
+  ["types", "FailFast()"],
+  ["types", 'Tag("cat")'],
+  ["types", 'Discriminator("kind")'],
+  ["types", "EncodedBytes(encoder=Encoder)"],
+  ["types", "EncodedStr(encoder=Encoder)"],
+  ["types", "GetPydanticSchema(clean)"],
+  ["types", "conint(gt=0)"],
+  ["types", "confloat(ge=0)"],
+  ["types", "condecimal(max_digits=6)"],
+  ["types", "constr(min_length=1)"],
+  ["types", "conbytes(min_length=1)"],
+  ["types", "conlist(str, min_length=1)"],
+  ["types", "conset(str, min_length=1)"],
+  ["types", "confrozenset(str, min_length=1)"],
+  ["types", "condate(strict=True)"]
+]
+
+describe("Pydantic declaration import authority", () => {
+  it.each(pydanticDeclarations)("preserves local imports beside %s.%s", (module, expression) => {
+    const name = expression.slice(0, expression.indexOf("("))
+    for (const [imports, call] of [
+      [`from pydantic import ${name}`, expression],
+      [`from pydantic.${module} import ${name} as marker`, expression.replace(name, "marker")],
+      ["import pydantic as pd", `pd.${expression}`]
+    ]) {
+      const source = `${imports}\nfrom support import Base\ndef clean(value):\n    return value\nmetadata = ${call}\nclass Neighbor(Base):\n    pass\n`
+      expect(inspectGraphFile("model.py", source)?.imports.get("Base"), call).toEqual({ path: "support", name: "Base" })
+    }
+  })
+
+  it("keeps dynamic calls and shadowed declaration names from establishing imports", () => {
+    for (const setup of [
+      "from pydantic import BeforeValidator\nBeforeValidator = custom\nmetadata = BeforeValidator(clean)",
+      "from other import BeforeValidator\nmetadata = BeforeValidator(clean)",
+      "from pydantic import BeforeValidator\nmetadata = BeforeValidator(install_loader())",
+      "from pydantic import BeforeValidator\nmetadata = BeforeValidator(lambda value=install_loader(): value)",
+      "from pydantic import create_model\nDynamic = create_model('Dynamic')",
+      "from pydantic import TypeAdapter\nadapter = TypeAdapter(Custom)",
+      "import pydantic as pd\nmetadata = pd.UnknownConstructor(clean)"
+    ]) {
+      const source = `${setup}\nfrom support import Base\nclass Neighbor(Base):\n    pass\n`
+      expect(inspectGraphFile("model.py", source)?.imports.has("Base") ?? false, setup).toBe(false)
+    }
+  })
+
+  it.effect("a validator alias does not block an independent model or claim complete validator evidence", () =>
+    Effect.gen(function* () {
+      const root = yield* Effect.promise(makeGitFixture)
+      yield* Effect.promise(() =>
+        put(
+          root,
+          "model.py",
+          `from typing import Annotated, TypeAlias
+from pydantic import BaseModel, BeforeValidator as Before
+def clean(value):
+    return value
+OptionalText: TypeAlias = Annotated[str | None, Before(clean)]
+class Price(BaseModel):
+    value: float
+class Validated(BaseModel):
+    text: OptionalText
+`
+        )
+      )
+      const result = yield* prepare(addEvent(root, ["model.py"]))
+      const names = result.outcomes.flatMap((outcome) =>
+        outcome.status === "ready" ? [outcome.prepared.input.declaration.name] : []
+      )
+      expect(names).toContain("Price")
+      expect(names).not.toContain("Validated")
+      expect(names).not.toContain("OptionalText")
+    })
+  )
+})
+
 describe("Python same-file shipped review", () => {
   it("preserves identities, complete exact source and declaration ranges for every root family", () => {
     const facts = inspectGraphFile("model.py", familySource)

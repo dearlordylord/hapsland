@@ -564,7 +564,16 @@ destructuring targets, mutation of `__annotations__`, and unsupported class-body
 statements (including deletion and assertion) are explicit uncertainty with
 structural attribution. Arbitrary executable class-body expressions,
 custom constructors and decorated methods are explicit uncertainty, without
-helper/function traversal. Configuration and validator source is evidence of
+helper/function traversal. Known Pydantic declaration constructors for functional validators and serializers,
+field/configuration metadata, aliases, JSON-schema metadata, and constrained-type
+factories preserve static import bindings. The explicit constructor inventory is
+owned by the Python adapter; root reexports and their declared module paths are
+recognized through unshadowed imported identities. Constructing these descriptors
+does not establish the semantics of their callbacks or make executable metadata
+complete. Unknown calls in arguments, shadowed names, dynamic model creation and
+schema-building operations such as `TypeAdapter` remain uncertain.
+
+Configuration and validator source is evidence of
 what was authored, never complete runtime constraints. Unknown external types
 remain opaque. Local supporting declarations use the module authority amendment
 below; system dependencies are never traversed and no synthetic framework

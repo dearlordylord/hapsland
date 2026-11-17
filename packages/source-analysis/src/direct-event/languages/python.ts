@@ -288,17 +288,66 @@ const evaluatedNodes = (node: SyntaxNode): SyntaxNode[] => [
     )
     .flatMap(evaluatedNodes)
 ]
+const pydanticDeclarationCalls = [
+  [
+    "functional_validators",
+    [
+      "BeforeValidator",
+      "AfterValidator",
+      "PlainValidator",
+      "WrapValidator",
+      "SkipValidation",
+      "InstanceOf",
+      "ValidateAs",
+      "field_validator",
+      "model_validator"
+    ]
+  ],
+  [
+    "functional_serializers",
+    ["PlainSerializer", "WrapSerializer", "SerializeAsAny", "field_serializer", "model_serializer"]
+  ],
+  ["fields", ["Field", "PrivateAttr", "computed_field"]],
+  ["config", ["ConfigDict", "with_config"]],
+  ["aliases", ["AliasPath", "AliasChoices", "AliasGenerator"]],
+  ["json_schema", ["WithJsonSchema"]],
+  [
+    "types",
+    [
+      "Strict",
+      "AllowInfNan",
+      "StringConstraints",
+      "FailFast",
+      "Tag",
+      "Discriminator",
+      "EncodedBytes",
+      "EncodedStr",
+      "GetPydanticSchema",
+      "conint",
+      "confloat",
+      "condecimal",
+      "constr",
+      "conbytes",
+      "conlist",
+      "conset",
+      "confrozenset",
+      "condate"
+    ]
+  ],
+  ["deprecated.class_validators", ["validator", "root_validator"]]
+] satisfies ReadonlyArray<readonly [string, ReadonlyArray<string>]>
+
 const declarativeImportCalls = new Set([
   "dataclasses.dataclass",
   "dataclasses.field",
-  "pydantic.Field",
-  "pydantic.ConfigDict",
-  "pydantic.field_validator",
-  "pydantic.model_validator",
-  "pydantic.validator",
-  "pydantic.root_validator",
   "typing.NewType",
-  "typing_extensions.NewType"
+  "typing_extensions.NewType",
+  "pydantic.json_schema.Examples",
+  "pydantic.types.UuidVersion",
+  "pydantic.types.PathType",
+  ...pydanticDeclarationCalls.flatMap(([module, names]) =>
+    names.flatMap((name) => [`pydantic.${name}`, `pydantic.${module}.${name}`])
+  )
 ])
 /** Class bodies, decorators and defaults execute; function/lambda bodies do not. */
 const unknownEvaluatedCall = (
