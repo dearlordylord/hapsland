@@ -33,7 +33,8 @@ describe("Bend normalized adapter facts", () => {
     expect(bendImportCandidates("src/model.bend", "../receipt.bend")).toEqual(["receipt.bend"])
     expect(bendImportCandidates("src/model.bend", "./receipt.bend")).toEqual(["src/receipt.bend"])
     expect(bendImportCandidates("model.bend", "../receipt.bend")).toEqual(["../receipt.bend"])
-    for (const path of ["./receipt.rs", "./receipt.ts", "./receipt", "hub/receipt.bend", "/repo/receipt.bend"]) {
+    expect(bendImportCandidates("src/model.bend", "hub/receipt.bend")).toEqual(["src/hub/receipt.bend"])
+    for (const path of ["./receipt.rs", "./receipt.ts", "./receipt", "hub/receipt@main.bend", "/repo/receipt.bend"]) {
       expect(bendImportCandidates("src/model.bend", path)).toEqual([])
     }
   })

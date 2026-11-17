@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from "vitest"
 import { spawnSync } from "node:child_process"
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -13,9 +13,11 @@ afterEach(() => {
 function fixture() {
   const directory = mkdtempSync(join(tmpdir(), "hapsland-run-freshness-"))
   directories.add(directory)
+  symlinkSync(resolve("node_modules"), join(directory, "node_modules"), "dir")
   for (const path of [
     "packages/monkey-business-bend",
     "packages/agent-flow-bend",
+    "packages/bend-javascript-abi",
     "packages/monkey-business/src",
     "packages/canonical-policy/src",
     "src/canonical"

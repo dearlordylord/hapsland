@@ -242,6 +242,28 @@ describe("proposed adoption corpus native completeness", () => {
               }
             }
           ])
+        } else if (
+          fixture.category === "declaration-cap" ||
+          (fixture.category === "unsupported-binding" && fixture.branch.split("/")[0] === "type-shape")
+        ) {
+          expect(prepared.observation.outcomes).toMatchObject([
+            {
+              status: "incomplete",
+              path: "root.ts",
+              diagnostic: {
+                stage: "preparation",
+                code: "preparation-analysis-unavailable",
+                args: {
+                  reason:
+                    fixture.category !== "declaration-cap"
+                      ? "declaration-merge"
+                      : fixture.branch.split("/")[0] === "type-shape"
+                        ? "declaration-limit"
+                        : "no-declarations"
+                }
+              }
+            }
+          ])
         } else if (!completeCycle && !multiRoot && !stale && !noRule) {
           const observed = prepared.observation.outcomes.find((outcome) => outcome.status === "observed")
           const reason =
@@ -249,15 +271,9 @@ describe("proposed adoption corpus native completeness", () => {
               ? "ambiguous-update"
               : fixture.category === "package-import" && fixture.branch.split("/")[0] === "type-shape"
                 ? "import"
-                : fixture.category === "declaration-cap"
-                  ? fixture.branch.split("/")[0] === "type-shape"
-                    ? "declaration-limit"
-                    : "declaration-limit"
-                  : fixture.category === "unsupported-binding"
-                    ? fixture.branch.split("/")[0] === "type-shape"
-                      ? "declaration-merge"
-                      : "function-overload"
-                    : "missing-evidence"
+                : fixture.category === "unsupported-binding"
+                  ? "function-overload"
+                  : "missing-evidence"
           expect(observed?.analysis).toMatchObject({
             status: "incomplete",
             failures: [expect.objectContaining({ reason })]

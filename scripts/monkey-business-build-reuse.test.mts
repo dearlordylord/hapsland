@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from "vitest"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -14,9 +14,11 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 function fixture() {
   const directory = mkdtempSync(join(tmpdir(), "hapsland-engine-reuse-"))
   directories.add(directory)
+  symlinkSync(resolve("node_modules"), join(directory, "node_modules"), "dir")
   for (const path of [
     "packages/monkey-business-bend",
     "packages/agent-flow-bend",
+    "packages/bend-javascript-abi",
     "packages/monkey-business/src",
     "packages/canonical-policy/src",
     "src/canonical"
@@ -29,7 +31,7 @@ function fixture() {
     spawnSync(process.execPath, [file("build.mjs"), option], {
       encoding: "utf8",
       timeout: 15000,
-      env: { ...process.env, PATH: "" }
+      env: { ...process.env, PATH: option === "--check" ? process.env.PATH : "" }
     })
   const change = (path: string, transform: (source: string) => string) =>
     writeFileSync(path, transform(readFileSync(path, "utf8")))
@@ -57,7 +59,8 @@ it("reuses verified compiled policy for host-only changes through the same wrapp
     compiledPolicyHash: hash(policy(before)),
     provenance: "verified existing module; no fresh compiler invocation"
   })
-  expect(run("--check").status).toBe(0)
+  const checked = run("--check")
+  expect(checked.status, checked.stderr).toBe(0)
 })
 for (const [name, target] of [
   ["source", "Engine.bend"],
