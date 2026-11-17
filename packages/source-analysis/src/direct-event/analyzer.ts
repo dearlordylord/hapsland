@@ -196,7 +196,7 @@ export const combinedAnalyzerMaterializationPreflight = (
   )
   if (measured !== undefined) return measured
   const parsed = parsedDeclarations(path, source, true)
-  if ("status" in parsed && (parsed.reason !== "no-declarations" || languageForPath(path)?.id === "bend")) return parsed
+  if ("status" in parsed) return parsed
   return { status: "unsupported", reason: "preflight-unavailable" }
 }
 export const typeDeclarationCount = (path: string, source: string): number | undefined =>

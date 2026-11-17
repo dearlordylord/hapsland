@@ -210,6 +210,12 @@ logical dispatches, active requests and successful/failed reviews. Logical
 requests are neither billed requests nor HTTP attempts; provider retries can
 differ. Estimates grow during preparation and are never counted as dispatches.
 Findings identify their file, declaration and location.
+Diagnostic reasons distinguish files without supported declarations (normal skips)
+from declarations that could not be checked. Preparation and capture diagnostics
+retain their stage and structured arguments; missing type context identifies the
+declaration and omitted references when available. Optional context is labeled
+separately when the applicable rule can still run. Text output explains these
+reasons, and JSON retains the structured evidence without source text.
 
 Independent declaration failures allow other work to proceed; credential,
 configuration or backend failures stop new dispatches. Findings survive an

@@ -8,6 +8,8 @@ import * as HttpClient from "effect/http/HttpClient"
 import * as HttpClientResponse from "effect/http/HttpClientResponse"
 import { rm } from "node:fs/promises"
 import { parseInvocation } from "@hapsland/administration/cli-command"
+import { formatRuleAudit } from "@hapsland/administration/rules/audit"
+import { MAX_SOURCE_BYTES } from "@hapsland/native-observation/direct-event/capture"
 import { runRulesCommand } from "@hapsland/administration/rules/command"
 import { join } from "node:path"
 import { makeGitFixture, put, addEvent } from "@hapsland/build-tooling/test-support/test-fixtures"
@@ -584,8 +586,162 @@ describe("batch outcomes and existing policy", () => {
         mode === "ineligible" ? "no-work" : mode === "requires-missing" ? "incomplete" : "clear"
       )
       expect(fake.requests).toHaveLength(mode === "root-only" ? 1 : 0)
+      if (mode === "ineligible") {
+        expect(result.reasons.some((reason) => reason.reason === "missing-evidence")).toBe(false)
+        expect(formatRuleAudit(result)).not.toContain("Review allowed")
+      }
     }
   )
+
+  it("treats Python files without supported types as explained no-work", async () => {
+    const root = await fixture()
+    await configure(root, { includes: ["functions.py"] })
+    await put(root, "functions.py", "def normalize(value: str) -> str:\n    return value.strip()\n")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("no-work")
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({ path: "functions.py", reason: "no-declarations", stage: "preparation" })
+    )
+    expect(formatRuleAudit(result)).toContain("Skipped: no type declarations supported by the current analyzer")
+    expect(formatRuleAudit(result)).not.toContain("preparation-analysis-unavailable")
+    expect(fake.requests).toHaveLength(0)
+  })
+
+  it("names unresolved required context once without leaking declaration source", async () => {
+    const root = await fixture(["root-declaration", "resolved-outbound-types"])
+    await configure(root)
+    await put(root, "target.ts", "export interface Selected { secretSourceSentinel: Missing }")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    const reasons = result.reasons.filter(
+      (reason) => reason.declaration === "Selected" && reason.reason === "missing-evidence"
+    )
+    expect(result.status).toBe("incomplete")
+    expect(reasons).toHaveLength(1)
+    expect(reasons[0]).toMatchObject({
+      stage: "preparation",
+      context: "required",
+      missingReferences: [{ symbol: "Missing", reason: "unresolved" }]
+    })
+    expect(formatRuleAudit(result)).toContain("Selected: Not reviewed: required type context could not be prepared")
+    expect(formatRuleAudit(result)).toContain("Cannot resolve type reference: Missing")
+    expect(JSON.stringify(result)).not.toContain("secretSourceSentinel")
+    expect(JSON.stringify(result)).not.toContain("fixture-only-key")
+    expect(fake.requests).toHaveLength(0)
+  })
+
+  it("does not copy unsupported expressions into source-free audit diagnostics", async () => {
+    const root = await fixture(["root-declaration", "resolved-outbound-types"])
+    await configure(root)
+    await put(root, "target.ts", 'export interface Selected { ["PRIVATE_LITERAL_SENTINEL"]: string }')
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({
+        declaration: "Selected",
+        missingReferences: expect.arrayContaining([{ symbol: "unsupported-expression", reason: "unsupported" }])
+      })
+    )
+    expect(JSON.stringify(result)).not.toContain("PRIVATE_LITERAL_SENTINEL")
+    expect(formatRuleAudit(result)).not.toContain("PRIVATE_LITERAL_SENTINEL")
+    expect(fake.requests).toHaveLength(0)
+  })
+
+  it("does not attribute ambiguous same-name declaration references to the wrong unit", async () => {
+    const root = await fixture(["root-declaration", "resolved-outbound-types"])
+    await configure(root, { rules: ["rule.json", "function-rule.json"] })
+    await put(
+      root,
+      "target.ts",
+      "export interface Shared { value: MissingType }\nexport function Shared(value: string): string { return value }"
+    )
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    const missing = result.reasons.find(
+      (reason) => reason.declaration === "Shared" && reason.reason === "missing-evidence"
+    )
+    expect(missing).toMatchObject({ declaration: "Shared", context: "required" })
+    expect(missing?.missingReferences).toBeUndefined()
+    expect(fake.requests).toHaveLength(1)
+  })
+
+  it("explains unsupported Python model behavior without inventing runtime details", async () => {
+    const root = await fixture()
+    await configure(root, { includes: ["model.py"] })
+    await put(
+      root,
+      "rule.json",
+      JSON.stringify({
+        version: 1,
+        id: "python-model",
+        question: "Invalid?",
+        criteria: { false: "Valid", true: "Invalid" },
+        message: "Review model",
+        inputs: [{ languages: ["python"], kind: "type", requires: ["root-declaration", "resolved-outbound-types"] }]
+      })
+    )
+    await put(root, "model.py", "class Model:\n    value: str\n    __annotations__ = make_annotations()\n")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({
+        declaration: "Model",
+        missingReferences: expect.arrayContaining([{ symbol: "schema-behavior", reason: "unsupported" }])
+      })
+    )
+    expect(formatRuleAudit(result)).toContain("Dynamic model schema is not supported by static analysis")
+    expect(JSON.stringify(result)).not.toContain("make_annotations")
+    expect(fake.requests).toHaveLength(0)
+  })
+
+  it("labels missing optional context as review allowed rather than a failed review", async () => {
+    const root = await fixture()
+    await configure(root)
+    await put(root, "target.ts", "export interface Selected { value: Missing }")
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("clear")
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({ declaration: "Selected", reason: "missing-evidence", context: "optional" })
+    )
+    expect(formatRuleAudit(result)).toContain("Review allowed: missing context is optional for the applicable rules")
+    expect(formatRuleAudit(result)).not.toContain("Not reviewed")
+    expect(fake.requests).toHaveLength(1)
+  })
+
+  it("keeps parse and capture refusals distinct and source-free", async () => {
+    const root = await fixture()
+    await configure(root, { includes: ["broken.ts", "large.ts"] })
+    await put(root, "broken.ts", "export interface Broken { secretSourceSentinel:")
+    await put(root, "large.ts", `// ${"x".repeat(MAX_SOURCE_BYTES + 1)}`)
+    const fake = transport(0.1)
+    const result = await batch(root, fake)
+    expect(result.status).toBe("incomplete")
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({
+        path: "broken.ts",
+        stage: "preparation",
+        reason: "preparation-analysis-unavailable",
+        details: { reason: "parse" }
+      })
+    )
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({
+        path: "large.ts",
+        stage: "capture",
+        reason: "capture-size-limit",
+        details: { observedBytes: MAX_SOURCE_BYTES + 4, limitBytes: MAX_SOURCE_BYTES }
+      })
+    )
+    expect(formatRuleAudit(result)).toContain("Not reviewed: source could not be parsed")
+    expect(formatRuleAudit(result)).toContain("bytes; limit is")
+    expect(JSON.stringify(result)).not.toContain("secretSourceSentinel")
+    expect(fake.requests).toHaveLength(0)
+  })
 
   it("reports invalid configuration as incomplete without provider work", async () => {
     const root = await fixture()

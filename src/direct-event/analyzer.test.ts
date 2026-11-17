@@ -9,6 +9,16 @@ import {
 } from "@hapsland/source-analysis/direct-event/analyzer"
 
 describe("initial direct-event TypeScript analyzer", () => {
+  it("distinguishes Python files without supported type roots from parse failures", () => {
+    expect(
+      combinedAnalyzerMaterializationPreflight("a.py", "def run(value: str) -> str:\n    return value\n")
+    ).toMatchObject({ status: "unsupported", reason: "no-declarations" })
+    expect(combinedAnalyzerMaterializationPreflight("a.py", "class Broken(:\n")).toMatchObject({
+      status: "unsupported",
+      reason: "parse"
+    })
+  })
+
   it("measures zero supported roots without treating them as an unknown parse", () => {
     expect(combinedAnalyzerMaterializationPreflight("a.ts", "const value = 1")).toEqual({
       declarations: 0,

@@ -14,12 +14,22 @@ import {
   type EvaluationEvidence
 } from "@hapsland/review-execution/direct-event/pipeline"
 import * as ConfigProvider from "effect/ConfigProvider"
+import type { ReviewNode } from "@hapsland/source-artifacts/direct-event/artifact-model"
+import type { CaptureDiagnostic } from "@hapsland/native-observation/direct-event/capture"
+import type { PreparationDiagnostic } from "@hapsland/review-definition/direct-event/model"
 import { RULE_AUDIT_EXIT_CODES } from "./cli-definition.ts"
 
 interface AuditReason {
   readonly path?: string
   readonly declaration?: string
   readonly reason: string
+  readonly stage?: "selection" | "capture" | "preparation" | "analysis"
+  readonly details?: CaptureDiagnostic["args"] | PreparationDiagnostic["args"]
+  readonly missingReferences?: ReadonlyArray<{
+    readonly symbol: string
+    readonly reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable"
+  }>
+  readonly context?: "optional" | "required"
 }
 interface AuditFinding {
   readonly path: string
@@ -76,7 +86,7 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
           : "clear",
     counters,
     findings,
-    reasons,
+    reasons: [...new Map(reasons.map((reason) => [JSON.stringify(reason), reason])).values()],
     freshness: "before-dispatch-after-evaluation-and-final-report"
   })
   const rootResult = yield* discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.result)
@@ -139,12 +149,13 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
     if (stop) break
     const selection = { root: repository.root, rootIdentity: repository.rootIdentity, path }
     const ineligibleDeclarations = new Set<string>()
+    const omissions: AuditReason[] = []
     const context = {
       settings,
       rules,
       observePreparationOmission: (omittedPath: string, declaration: string, reason: string) => {
         counters.declarations.skipped++
-        reasons.push({ path: omittedPath, declaration, reason })
+        omissions.push({ path: omittedPath, declaration, reason, stage: "preparation" })
         if (reason === "missing-evidence") {
           incomplete = true
         }
@@ -164,10 +175,38 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
     }
     const preparation = preparedFile.success
     const ready = preparation.outcomes.flatMap((outcome) => (outcome.status === "ready" ? [outcome.prepared] : []))
+    const observedUnits = preparation.observation.outcomes.flatMap((observation) =>
+      observation.status === "observed" ? observation.units : []
+    )
+    const referenceDetails = (declaration: string | undefined) => {
+      const matches = observedUnits.filter((unit) => unit.root.artifact.name === declaration)
+      const [match] = matches
+      return matches.length === 1 && match !== undefined ? omittedReferences(match.root) : []
+    }
+    for (const omission of omissions) {
+      const missingReferences = referenceDetails(omission.declaration)
+      reasons.push({
+        ...omission,
+        ...(missingReferences.length === 0 ? {} : { missingReferences }),
+        ...(omission.reason === "missing-evidence" ? { context: "required" as const } : {})
+      })
+    }
     for (const observation of preparation.observation.outcomes) {
       if (observation.status === "incomplete") {
-        const reason = "diagnostic" in observation ? observation.diagnostic.code : observation.reason
-        reasons.push({ path, reason })
+        const diagnostic = "diagnostic" in observation ? observation.diagnostic : undefined
+        const reason =
+          diagnostic?.code === "preparation-analysis-unavailable" && diagnostic.args.reason === "no-declarations"
+            ? "no-declarations"
+            : "diagnostic" in observation
+              ? observation.diagnostic.code
+              : observation.reason
+        reasons.push({
+          path,
+          reason,
+          ...(diagnostic === undefined
+            ? { stage: "selection" as const }
+            : { stage: diagnostic.stage, details: diagnostic.args })
+        })
         // Ordinary selection denials are non-targets; capture/analysis failures lose work.
         if (
           ![
@@ -178,17 +217,38 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
             "git-ignored",
             "sensitive",
             "generated-or-vendor",
-            "file-extension"
+            "file-extension",
+            "no-declarations"
           ].includes(reason)
         )
           incomplete = true
       } else if (observation.analysis.status === "incomplete") {
         for (const failure of observation.analysis.failures) {
-          reasons.push({ path, reason: failure.reason })
+          if (
+            failure.reason === "missing-evidence" &&
+            failure.root !== undefined &&
+            ineligibleDeclarations.has(failure.root)
+          )
+            continue
           const admittedPartial =
             failure.reason === "missing-evidence" &&
             (ready.some((prepared) => prepared.input.declaration.name === failure.root) ||
               (failure.root !== undefined && ineligibleDeclarations.has(failure.root)))
+          const missingReferences = referenceDetails(failure.root)
+          // The omission observer already reports required missing context for this declaration.
+          if (
+            !omissions.some((omission) => omission.declaration === failure.root && omission.reason === failure.reason)
+          )
+            reasons.push({
+              path,
+              ...(failure.root === undefined ? {} : { declaration: failure.root }),
+              reason: failure.reason,
+              stage: "analysis",
+              ...(missingReferences.length === 0 ? {} : { missingReferences }),
+              ...(failure.reason === "missing-evidence"
+                ? { context: admittedPartial ? ("optional" as const) : ("required" as const) }
+                : {})
+            })
           if (
             !admittedPartial &&
             !["no-supported-function-root", "no-declarations", "extension"].includes(failure.reason)
@@ -306,6 +366,75 @@ export const auditRules = Effect.fn("Rules.audit")(function* (
 export const auditExitCode = (result: RuleAuditResult): number => RULE_AUDIT_EXIT_CODES[result.status]
 export const formatAuditProgress = (counters: AuditCounters): string =>
   `Files ${counters.files.processed}/${counters.files.selected}, skipped ${counters.files.skipped}; declarations ${counters.declarations.processed}/${counters.declarations.prepared}, skipped ${counters.declarations.skipped}; requests estimated ${counters.requests.estimated}, dispatched ${counters.requests.dispatched}, active ${counters.requests.active}, successful ${counters.requests.successful}, failed ${counters.requests.failed}`
+const diagnosticSymbol = (symbol: string): string =>
+  /^[\p{ID_Start}_$][\p{ID_Continue}$]*(?:\.[\p{ID_Start}_$][\p{ID_Continue}$]*)*$/u.test(symbol) ||
+  ["import-authority", "schema-behavior", "type-parameter"].includes(symbol)
+    ? symbol
+    : "unsupported-expression"
+
+const omittedReferences = (node: ReviewNode): NonNullable<AuditReason["missingReferences"]> => {
+  const references: Array<NonNullable<AuditReason["missingReferences"]>[number]> = []
+  for (const reference of node.references) {
+    if (reference.kind === "expanded") references.push(...omittedReferences(reference.node))
+    if (reference.kind === "omitted")
+      references.push({ symbol: diagnosticSymbol(reference.site.symbol), reason: reference.reason })
+  }
+  return [...new Map(references.map((reference) => [JSON.stringify(reference), reference])).values()]
+}
+
+const referenceExplanation = (reference: NonNullable<AuditReason["missingReferences"]>[number]): string => {
+  if (reference.reason === "unsupported") {
+    switch (reference.symbol) {
+      case "import-authority":
+        return "Cannot statically resolve imports"
+      case "namespace":
+        return "Cannot statically resolve module bindings"
+      case "schema-behavior":
+        return "Dynamic model schema is not supported by static analysis"
+      case "behavior":
+        return "Model constructors and decorated methods are not supported by static analysis"
+      case "metadata":
+        return "Model metadata cannot be evaluated statically"
+      case "annotation":
+        return "Type annotation uses unsupported syntax"
+      case "unsupported-expression":
+        return "Type expression is not supported by static analysis"
+      default:
+        return `Unsupported type reference: ${reference.symbol}`
+    }
+  }
+  if (reference.reason === "unresolved") return `Cannot resolve type reference: ${reference.symbol}`
+  if (reference.reason === "reference-limit") return `Type reference exceeds the analysis limit: ${reference.symbol}`
+  return `Supporting source is unavailable for: ${reference.symbol}`
+}
+
+const reasonExplanation = (reason: AuditReason): string => {
+  if (reason.reason === "no-declarations") return "Skipped: no type declarations supported by the current analyzer"
+  if (reason.reason === "no-supported-function-root") return "Skipped: no supported function declarations"
+  if (reason.reason === "no-applicable-rule" || reason.reason === "no-applicable-rules")
+    return "Skipped: no enabled rule applies"
+  if (reason.reason === "no-eligible-declarations") return "No declarations are eligible for review"
+  if (reason.reason === "missing-evidence")
+    return reason.context === "optional"
+      ? "Review allowed: missing context is optional for the applicable rules"
+      : "Not reviewed: required type context could not be prepared"
+  if (
+    reason.reason === "preparation-analysis-unavailable" &&
+    reason.details !== undefined &&
+    "reason" in reason.details
+  ) {
+    if (reason.details.reason === "parse") return "Not reviewed: source could not be parsed"
+    if (reason.details.reason === "declaration-limit")
+      return "Not reviewed: too many declarations for the analyzer limit"
+    return `Not reviewed: analyzer preparation unavailable (${reason.details.reason})`
+  }
+  if (reason.reason === "parse") return "Not reviewed: source could not be parsed"
+  if (reason.reason === "capture-size-limit" && reason.details !== undefined && "observedBytes" in reason.details)
+    return `Not reviewed: source is ${reason.details.observedBytes} bytes; limit is ${reason.details.limitBytes} bytes`
+  if (reason.stage === "capture") return `Not reviewed: source capture failed (${reason.reason})`
+  return reason.reason
+}
+
 export const formatRuleAudit = (result: RuleAuditResult): string =>
   [
     `Audit: ${result.status}`,
@@ -316,7 +445,7 @@ export const formatRuleAudit = (result: RuleAuditResult): string =>
     ),
     ...result.reasons.map(
       (reason) =>
-        `${reason.path ?? "Audit"}${reason.declaration === undefined ? "" : ` ${reason.declaration}`}: ${reason.reason}`
+        `${reason.path ?? "Audit"}${reason.declaration === undefined ? "" : ` ${reason.declaration}`}: ${reasonExplanation(reason)}${reason.missingReferences?.length ? ` — ${reason.missingReferences.map(referenceExplanation).join("; ")}` : ""}`
     ),
     "Freshness checked before dispatch, after evaluation and during final report preparation; no atomic batch snapshot."
   ].join("\n") + "\n"
